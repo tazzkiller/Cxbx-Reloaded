@@ -659,7 +659,7 @@ XBSYSAPI EXPORTNUM(207) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtQueryDirectoryFile
 
 	NTSTATUS ret;
 
-	if (FileInformationClass != 1)   // Due to unicode->string conversion
+	if (FileInformationClass != FileDirectoryInformation)   // Due to unicode->string conversion
 		CxbxKrnlCleanup("Unsupported FileInformationClass");
 
 	NtDll::UNICODE_STRING NtFileMask;
@@ -1098,8 +1098,16 @@ XBSYSAPI EXPORTNUM(226) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtSetInformationFile
 		LOG_FUNC_ARG(Length)
 		LOG_FUNC_ARG(FileInformationClass)
 		LOG_FUNC_END;
+	
+	// The converted file information. If NULL, no conversion was needed
+	SMART_PVOID(convertedFileInfo, XboxToNativeFileInformation(FileInformation, FileInformationClass, &Length))
 
-	NTSTATUS ret = NtDll::NtSetInformationFile(FileHandle, IoStatusBlock, FileInformation, Length, FileInformationClass);
+	// The object passed to NtSetInformationFile can be either a native Xbox struct or a converted struct.
+	// Keep track of them separately so that the memory for the converted struct can be properly freed.
+	// Xbox structs should not be touched
+	PVOID actualFileInfo = (NULL == convertedFileInfo ? FileInformation : convertedFileInfo);
+
+	NTSTATUS ret = NtDll::NtSetInformationFile(FileHandle, IoStatusBlock, actualFileInfo, Length, FileInformationClass);
 
 	RETURN(ret);
 }

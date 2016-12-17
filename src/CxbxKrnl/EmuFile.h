@@ -44,6 +44,7 @@ namespace xboxkrnl
 
 #include <cstdio>
 #include <string>
+#include <memory>
 
 // ******************************************************************
 // * prevent name collisions
@@ -175,4 +176,20 @@ HANDLE CxbxGetDeviceNativeRootHandle(std::string XboxFullPath);
 NTSTATUS CxbxCreateSymbolicLink(std::string SymbolicLinkName, std::string FullPath);
 bool CxbxMountUtilityDrive(bool formatClean);
 
+NTSTATUS CxbxCreateParentFolders(HANDLE RootDirectory, std::wstring &Path);
+
+// Deletes structs created by the converters
+void _CxbxPVOIDDeleter(PVOID *ptr);
+
+// Creates a PVOID variable named var which takes the given value
+// and is automatically deleted when it goes out of scope
+#define SMART_PVOID(var, value)  PVOID var = value; std::shared_ptr<PVOID> __var_shared_ptr(&var, _CxbxPVOIDDeleter);
+
+// Converts an Xbox FileInformation struct to the NT equivalent.
+PVOID XboxToNativeFileInformation
+(
+	IN  PVOID xboxFileInformation,
+	IN  ULONG FileInformationClass,
+	OUT ULONG *Length
+);
 #endif

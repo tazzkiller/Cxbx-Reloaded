@@ -43,6 +43,7 @@
 #include <ntstatus.h>
 #pragma warning(default:4005)
 #include "CxbxKrnl.h"
+#include "EmuAlloc.h"
 
 std::string DriveSerial = "\\??\\serial:";
 std::string DriveCdRom0 = "\\??\\CdRom0:"; // CD-ROM device
@@ -495,6 +496,136 @@ EmuNtSymbolicLinkObject* FindNtSymbolicLinkObjectByRootHandle(const HANDLE Handl
 	}
 	
 	return NULL;
+}
+
+
+NTSTATUS _CxbxCreateParentFolders_recurse(HANDLE RootDirectory, std::wstring &SubPath);
+
+NTSTATUS CxbxCreateParentFolders(HANDLE RootDirectory, std::wstring &Path)
+{
+	int index = Path.rfind('\\');
+	if (index >= 0)
+	{
+		return _CxbxCreateParentFolders_recurse(RootDirectory, Path.substr(0, index));
+	}
+}
+
+NTSTATUS _CxbxCreateParentFolders_recurse(HANDLE RootDirectory, std::wstring &SubPath)
+{
+	NtDll::UNICODE_STRING UnicodePath;
+	NtDll::OBJECT_ATTRIBUTES ObjectAttributes;
+	NtDll::IO_STATUS_BLOCK IoStatus;
+	NtDll::HANDLE DirHandle;
+	NTSTATUS Status;
+
+	NtDll::RtlInitUnicodeString(&UnicodePath, SubPath.c_str());
+	InitializeObjectAttributes(&ObjectAttributes, &UnicodePath, 0, RootDirectory, NULL);
+
+	Status = NtDll::NtCreateFile(&DirHandle,
+		GENERIC_READ | GENERIC_WRITE,
+		&ObjectAttributes,
+		&IoStatus,
+		NULL,
+		FILE_ATTRIBUTE_NORMAL,
+		FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+		FILE_CREATE,
+		FILE_DIRECTORY_FILE,
+		NULL,
+		0);
+
+	if (NT_SUCCESS(Status))
+	{
+		return STATUS_SUCCESS;
+	}
+	
+	if (STATUS_OBJECT_PATH_NOT_FOUND == Status)
+	{
+		int index = SubPath.rfind('\\');
+		if (index >= 0)
+		{
+			Status = _CxbxCreateParentFolders_recurse(RootDirectory, SubPath.substr(0, index));
+			if (NT_SUCCESS(Status))
+			{
+				Status = NtDll::NtCreateFile(&DirHandle,
+					GENERIC_READ | GENERIC_WRITE,
+					&ObjectAttributes,
+					&IoStatus,
+					NULL,
+					FILE_ATTRIBUTE_NORMAL,
+					FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+					FILE_CREATE,
+					FILE_DIRECTORY_FILE,
+					NULL,
+					0);
+			}
+		}
+	}
+
+	return Status;
+}
+
+void _CxbxPVOIDDeleter(PVOID *ptr)
+{
+	if (*ptr)
+		CxbxFree(*ptr);
+}
+
+PVOID XboxToNativeFileInformation
+(
+	IN  PVOID xboxFileInformation,
+	IN  ULONG FileInformationClass,
+	OUT ULONG *Length
+)
+{
+	PVOID result;
+	switch (FileInformationClass)
+	{
+	case xboxkrnl::FileRenameInformation: {
+		xboxkrnl::FILE_RENAME_INFORMATION *xboxRenameInfo = reinterpret_cast<xboxkrnl::FILE_RENAME_INFORMATION *>(xboxFileInformation);
+
+		// Convert filename from STRING to WCHAR *
+		WCHAR wcFileName[MAX_PATH + 1];
+		size_t cvtLen;
+		mbstowcs_s(&cvtLen, wcFileName, xboxRenameInfo->FileName.Buffer, xboxRenameInfo->FileName.Length);
+
+		// Strip out the path to the file, leaving only the file name
+		// NtSetInformationFile on Xbox allows full paths, Windows does not
+		// TODO: might need to move files if a title decides to "rename" a file to a different path
+		std::wstring originalFileName(wcFileName);
+		std::wstring convertedFileName;
+		size_t slashPos = originalFileName.rfind('\\');
+		if (slashPos >= 0)
+			convertedFileName = originalFileName.substr(slashPos + 1);
+		else
+			convertedFileName = originalFileName;
+
+		// Build the native FILE_RENAME_INFORMATION struct
+		*Length = sizeof(NtDll::FILE_RENAME_INFORMATION) + convertedFileName.size() * sizeof(wchar_t);
+		result = CxbxMalloc(*Length);
+		ZeroMemory(result, *Length);
+
+		NtDll::FILE_RENAME_INFORMATION *renameInfo = (NtDll::FILE_RENAME_INFORMATION *) result;
+		renameInfo->ReplaceIfExists = xboxRenameInfo->ReplaceIfExists;
+		renameInfo->RootDirectory = NULL;
+		renameInfo->FileNameLength = convertedFileName.size() * sizeof(wchar_t);
+		wmemcpy_s(renameInfo->FileName, convertedFileName.size(), convertedFileName.c_str(), convertedFileName.size());
+		break;
+	}
+	// TODO implement these
+	case xboxkrnl::FileDirectoryInformation: {
+		// TODO: handle differences
+		// - FileName uses char on Xbox, wchar_t on Windows
+		// - FileNameLength is the length in *bytes* of FileName
+		//     therefore FileNameLength on Windows = 2 * FileNameLength on Xbox
+
+		//break;
+	}
+	default:
+		result = NULL;
+		break;
+	}
+
+	return result;
 }
 
 // TODO : Move to a better suited file

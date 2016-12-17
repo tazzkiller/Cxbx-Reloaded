@@ -533,19 +533,31 @@ FS_INFORMATION_CLASS, *PFS_INFORMATION_CLASS;
 // ******************************************************************
 typedef struct _FILE_DIRECTORY_INFORMATION
 {
-    ULONG           NextEntryOffset;
-    ULONG           FileIndex;
-    LARGE_INTEGER   CreationTime;
-    LARGE_INTEGER   LastAccessTime;
-    LARGE_INTEGER   LastWriteTime;
-    LARGE_INTEGER   ChangeTime;
-    LARGE_INTEGER   EndOfFile;
-    LARGE_INTEGER   AllocationSize;
-    ULONG           FileAttributes;
-    ULONG           FileNameLength;
-    WCHAR           FileName[1];        // Offset: 0x40
+	ULONG           NextEntryOffset;
+	ULONG           FileIndex;
+	LARGE_INTEGER   CreationTime;
+	LARGE_INTEGER   LastAccessTime;
+	LARGE_INTEGER   LastWriteTime;
+	LARGE_INTEGER   ChangeTime;
+	LARGE_INTEGER   EndOfFile;
+	LARGE_INTEGER   AllocationSize;
+	ULONG           FileAttributes;
+	ULONG           FileNameLength;
+	WCHAR           FileName[1];        // Offset: 0x40
 }
 FILE_DIRECTORY_INFORMATION;
+
+// ******************************************************************
+// * FILE_RENAME_INFORMATION
+// ******************************************************************
+typedef struct _FILE_RENAME_INFORMATION
+{
+	BOOLEAN ReplaceIfExists;
+	HANDLE  RootDirectory;
+	ULONG   FileNameLength;
+	WCHAR   FileName[1];
+}
+FILE_RENAME_INFORMATION, *PFILE_RENAME_INFORMATION;
 
 // ******************************************************************
 // * FILE_NETWORK_OPEN_INFORMATION
