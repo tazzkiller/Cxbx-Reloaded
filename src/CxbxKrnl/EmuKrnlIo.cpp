@@ -139,7 +139,7 @@ XBSYSAPI EXPORTNUM(66) xboxkrnl::NTSTATUS NTAPI xboxkrnl::IoCreateFile
 				DbgPrintf("EmuKrnl (0x%X): IoCreateFile - attempting to create parent folders...\n", GetCurrentThreadId());
 				
 				// It does; create them as necessary
-				ret = CxbxCreateParentFolders(nativeObjectAttributes.NtObjAttrPtr->RootDirectory, path);
+				ret = CxbxCreateParentFolders(nativeObjectAttributes.NtObjAttrPtr->RootDirectory, path.substr(0, indexOfSlash));
 				if (FAILED(ret))
 				{
 					DbgPrintf("EmuKrnl (0x%X): IoCreateFile - could not create parent folders! (0x%.08X)\n", GetCurrentThreadId(), ret);
