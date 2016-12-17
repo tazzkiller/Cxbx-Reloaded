@@ -127,7 +127,8 @@ XBSYSAPI EXPORTNUM(66) xboxkrnl::NTSTATUS NTAPI xboxkrnl::IoCreateFile
 		// If there was an attempt to create a file, check if the parent folders exist
 		if ((0xC000003A == ret) // TODO: constantify to STATUS_OBJECT_PATH_NOT_FOUND
 			&& (FILE_CREATE == Disposition || FILE_OPEN_IF == Disposition || FILE_OVERWRITE_IF == Disposition)
-			&& (CreateOptions & FILE_NON_DIRECTORY_FILE))
+			&& (CreateOptions & FILE_NON_DIRECTORY_FILE)
+			&& (CxbxIsUtilityDrive(nativeObjectAttributes.NtObjAttrPtr->RootDirectory)))
 		{
 			// Convert the path to a wstring
 			std::wstring path(nativeObjectAttributes.NtObjAttrPtr->ObjectName->Buffer, nativeObjectAttributes.NtObjAttrPtr->ObjectName->Length / sizeof(NtDll::WCHAR));

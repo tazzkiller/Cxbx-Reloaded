@@ -153,28 +153,20 @@ HANDLE EmuHandleToHandle(EmuHandle* emuHandle)
 	return (HANDLE)((uint32_t)emuHandle | 0x80000000);
 }
 
-NTSTATUS CxbxObjectAttributesToNT(xboxkrnl::POBJECT_ATTRIBUTES ObjectAttributes, NativeObjectAttributes& nativeObjectAttributes, std::string aFileAPIName)
+bool CxbxIsUtilityDrive(NtDll::HANDLE RootDirectory)
 {
-	NTSTATUS result = 0;
-	std::string OriginalPath;
-	std::string RelativePath;
+	EmuNtSymbolicLinkObject* SymbolicLinkObject = FindNtSymbolicLinkObjectByName(DriveZ);
+	return (SymbolicLinkObject->RootDirectoryHandle == RootDirectory);
+}
+
+NTSTATUS _CxbxConvertFilePath(std::string RelativeXboxPath, std::wstring &RelativeNativePath, NtDll::HANDLE *RootDirectory, std::string aFileAPIName)
+{
+	std::string OriginalPath = RelativeXboxPath;
+	std::string RelativePath = RelativeXboxPath;
 	std::string XboxFullPath;
 	std::string NativePath;
 	EmuNtSymbolicLinkObject* NtSymbolicLinkObject = NULL;
-	result = STATUS_SUCCESS;
-	if (ObjectAttributes == NULL)
-	{
-		// When the pointer is nil, make sure we pass nil to Windows too :
-		nativeObjectAttributes.NtObjAttrPtr = NULL;
-		return result;
-	}
-
-	// ObjectAttributes are given, so make sure the pointer we're going to pass to Windows is assigned :
-	nativeObjectAttributes.NtObjAttrPtr = &nativeObjectAttributes.NtObjAttr;
-
-	RelativePath = std::string(ObjectAttributes->ObjectName->Buffer, ObjectAttributes->ObjectName->Length);
-	OriginalPath = RelativePath;
-
+	
 	// Always trim '\??\' off :
 	if ((RelativePath.length() >= 4) && (RelativePath[0] == '\\') && (RelativePath[1] == '?') && (RelativePath[2] == '?') && (RelativePath[3] == '\\'))
 		RelativePath.erase(0, 4);
@@ -190,7 +182,7 @@ NTSTATUS CxbxObjectAttributesToNT(xboxkrnl::POBJECT_ATTRIBUTES ObjectAttributes,
 			NtSymbolicLinkObject = FindNtSymbolicLinkObjectByVolumeLetter(RelativePath[0]);
 			RelativePath.erase(0, 2); // Remove 'C:'
 
-			// If the remaining path starts with a ':', remove it (to prevent errors) :
+									  // If the remaining path starts with a ':', remove it (to prevent errors) :
 			if ((RelativePath.length() > 0) && (RelativePath[0] == ':'))
 				RelativePath.erase(0, 1);  // xbmp needs this, as it accesses 'e::\'
 		}
@@ -217,7 +209,7 @@ NTSTATUS CxbxObjectAttributesToNT(xboxkrnl::POBJECT_ATTRIBUTES ObjectAttributes,
 			// Fixup RelativePath path here
 			if ((NtSymbolicLinkObject != NULL))
 				RelativePath.erase(0, NtSymbolicLinkObject->XboxFullPath.length()); // Remove '\Device\Harddisk0\Partition2'
-			// else TODO : Turok requests 'gamedata.dat' without a preceding path, we probably need 'CurrentDir'-functionality
+																					// else TODO : Turok requests 'gamedata.dat' without a preceding path, we probably need 'CurrentDir'-functionality
 		}
 
 		if ((NtSymbolicLinkObject != NULL))
@@ -234,23 +226,22 @@ NTSTATUS CxbxObjectAttributesToNT(xboxkrnl::POBJECT_ATTRIBUTES ObjectAttributes,
 			}
 
 			XboxFullPath = NtSymbolicLinkObject->XboxFullPath;
-			ObjectAttributes->RootDirectory = NtSymbolicLinkObject->RootDirectoryHandle;
+			*RootDirectory = NtSymbolicLinkObject->RootDirectoryHandle;
 		}
 		else
 		{
 			// No symbolic link - as last resort, check if the path accesses a partition from Harddisk0 :
 			if (_strnicmp(RelativePath.c_str(), (DeviceHarddisk0 + "\\partition").c_str(), (DeviceHarddisk0 + "\\partition").length()) != 0)
 			{
-				result = STATUS_UNRECOGNIZED_VOLUME; // TODO : Is this the correct error?
 				EmuWarning((("Path not available : ") + OriginalPath).c_str());
-				return result;
+				return STATUS_UNRECOGNIZED_VOLUME; // TODO : Is this the correct error?
 			}
 
 			XboxFullPath = RelativePath;
 			// Remove Harddisk0 prefix, in the hope that the remaining path might work :
 			RelativePath.erase(0, DeviceHarddisk0.length() + 1);
 			// And set Root to the folder containing the partition-folders :
-			ObjectAttributes->RootDirectory = CxbxBasePathHandle;
+			*RootDirectory = CxbxBasePathHandle;
 			NativePath = CxbxBasePath;
 		}
 
@@ -278,15 +269,41 @@ NTSTATUS CxbxObjectAttributesToNT(xboxkrnl::POBJECT_ATTRIBUTES ObjectAttributes,
 	{
 		// For non-file API calls, prefix with '\??\' again :
 		RelativePath = "\\??\\" + RelativePath;
-		ObjectAttributes->RootDirectory = 0;
+		*RootDirectory = 0;
 	}
 
-	// Convert Ansi to Unicode :
-	mbstowcs(nativeObjectAttributes.wszObjectName, RelativePath.c_str(), 160);
+	// Convert the relative path to unicode
+	RelativeNativePath = std::wstring(RelativePath.length(), L' ');
+	std::copy(RelativePath.begin(), RelativePath.end(), RelativeNativePath.begin());
+
+	return STATUS_SUCCESS;
+}
+
+NTSTATUS CxbxObjectAttributesToNT(xboxkrnl::POBJECT_ATTRIBUTES ObjectAttributes, NativeObjectAttributes& nativeObjectAttributes, std::string aFileAPIName)
+{
+	NTSTATUS result = STATUS_SUCCESS;
+	std::string RelativeXboxPath;
+	std::wstring RelativeNativePath;
+	NtDll::HANDLE RootDirectory;
+	if (ObjectAttributes == NULL)
+	{
+		// When the pointer is nil, make sure we pass nil to Windows too :
+		nativeObjectAttributes.NtObjAttrPtr = NULL;
+		return result;
+	}
+
+	// ObjectAttributes are given, so make sure the pointer we're going to pass to Windows is assigned :
+	nativeObjectAttributes.NtObjAttrPtr = &nativeObjectAttributes.NtObjAttr;
+
+	RelativeXboxPath = std::string(ObjectAttributes->ObjectName->Buffer, ObjectAttributes->ObjectName->Length);
+	result = _CxbxConvertFilePath(RelativeXboxPath, RelativeNativePath, &RootDirectory, aFileAPIName);
+
+	// Copy relative path string to the unicode string
+	wcscpy_s(nativeObjectAttributes.wszObjectName, RelativeNativePath.c_str());
 	NtDll::RtlInitUnicodeString(&nativeObjectAttributes.NtUnicodeString, nativeObjectAttributes.wszObjectName);
 
-	// Initialize the NT ObjectAttributes :
-	InitializeObjectAttributes(&nativeObjectAttributes.NtObjAttr, &nativeObjectAttributes.NtUnicodeString, ObjectAttributes->Attributes, ObjectAttributes->RootDirectory, NULL);
+	// Initialize the NT ObjectAttributes
+	InitializeObjectAttributes(&nativeObjectAttributes.NtObjAttr, &nativeObjectAttributes.NtUnicodeString, ObjectAttributes->Attributes, RootDirectory, NULL);
 
 	return result;
 }
@@ -526,6 +543,7 @@ NTSTATUS CxbxCreateParentFolders(HANDLE RootDirectory, std::wstring &Path)
 
 	if (NT_SUCCESS(Status))
 	{
+		NtDll::NtClose(DirHandle);
 		return STATUS_SUCCESS;
 	}
 	
@@ -548,6 +566,7 @@ NTSTATUS CxbxCreateParentFolders(HANDLE RootDirectory, std::wstring &Path)
 					FILE_DIRECTORY_FILE,
 					NULL,
 					0);
+				NtDll::NtClose(DirHandle);
 			}
 		}
 	}
@@ -561,30 +580,40 @@ void _CxbxPVOIDDeleter(PVOID *ptr)
 		CxbxFree(*ptr);
 }
 
-NtDll::FILE_RENAME_INFORMATION * _XboxToNTRenameInfo(xboxkrnl::FILE_RENAME_INFORMATION *xboxRenameInfo, ULONG *Length)
+
+NtDll::FILE_LINK_INFORMATION * _XboxToNTLinkInfo(xboxkrnl::FILE_LINK_INFORMATION *xboxLinkInfo, ULONG *Length)
 {
 	// Convert filename from STRING to WCHAR *
 	WCHAR wcFileName[MAX_PATH + 1];
 	size_t cvtLen;
-	mbstowcs_s(&cvtLen, wcFileName, xboxRenameInfo->FileName.Buffer, xboxRenameInfo->FileName.Length);
+	mbstowcs_s(&cvtLen, wcFileName, xboxLinkInfo->FileName, xboxLinkInfo->FileNameLength);
 
-	// Strip out the path to the file, leaving only the file name
-	// NtSetInformationFile on Xbox allows full paths, Windows does not
-	// TODO: might need to move files if a title decides to "rename" a file to a different path
-	std::wstring originalFileName(wcFileName);
+	// Build the native FILE_LINK_INFORMATION struct
+	*Length = sizeof(NtDll::FILE_LINK_INFORMATION) + cvtLen * sizeof(wchar_t);
+	NtDll::FILE_LINK_INFORMATION *ntLinkInfo = (NtDll::FILE_LINK_INFORMATION *) CxbxMalloc(*Length);
+	ZeroMemory(ntLinkInfo, *Length);
+	ntLinkInfo->ReplaceIfExists = xboxLinkInfo->ReplaceIfExists;
+	ntLinkInfo->RootDirectory = xboxLinkInfo->RootDirectory;
+	ntLinkInfo->FileNameLength = cvtLen * sizeof(wchar_t);
+	wmemcpy_s(ntLinkInfo->FileName, cvtLen, wcFileName, cvtLen);
+	
+	return ntLinkInfo;
+}
+
+NtDll::FILE_RENAME_INFORMATION * _XboxToNTRenameInfo(xboxkrnl::FILE_RENAME_INFORMATION *xboxRenameInfo, ULONG *Length)
+{
+	// Convert the path from Xbox to native
+	std::string originalFileName(xboxRenameInfo->FileName.Buffer, xboxRenameInfo->FileName.Length);
 	std::wstring convertedFileName;
-	size_t slashPos = originalFileName.rfind('\\');
-	if (slashPos >= 0)
-		convertedFileName = originalFileName.substr(slashPos + 1);
-	else
-		convertedFileName = originalFileName;
+	NtDll::HANDLE RootDirectory;
+	_CxbxConvertFilePath(originalFileName, convertedFileName, &RootDirectory, "NtSetInformationFile");
 
 	// Build the native FILE_RENAME_INFORMATION struct
 	*Length = sizeof(NtDll::FILE_RENAME_INFORMATION) + convertedFileName.size() * sizeof(wchar_t);
 	NtDll::FILE_RENAME_INFORMATION *ntRenameInfo = (NtDll::FILE_RENAME_INFORMATION *) CxbxMalloc(*Length);
 	ZeroMemory(ntRenameInfo, *Length);
 	ntRenameInfo->ReplaceIfExists = xboxRenameInfo->ReplaceIfExists;
-	ntRenameInfo->RootDirectory = NULL;
+	ntRenameInfo->RootDirectory = RootDirectory;
 	ntRenameInfo->FileNameLength = convertedFileName.size() * sizeof(wchar_t);
 	wmemcpy_s(ntRenameInfo->FileName, convertedFileName.size(), convertedFileName.c_str(), convertedFileName.size());
 
@@ -611,9 +640,8 @@ PVOID _XboxToNTFileInformation
 	{
 		case xboxkrnl::FileLinkInformation:
 		{
-			// TODO: handle differences
-			// - FileName on Xbox uses single-byte chars, NT uses wide chars
-
+			xboxkrnl::FILE_LINK_INFORMATION *xboxLinkInfo = reinterpret_cast<xboxkrnl::FILE_LINK_INFORMATION *>(xboxFileInformation);
+			result = _XboxToNTLinkInfo(xboxLinkInfo, Length);
 			break;
 		}
 		case xboxkrnl::FileRenameInformation:

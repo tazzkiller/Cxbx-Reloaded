@@ -175,6 +175,7 @@ bool CxbxRegisterDeviceNativePath(std::string XboxFullPath, std::string NativePa
 HANDLE CxbxGetDeviceNativeRootHandle(std::string XboxFullPath);
 NTSTATUS CxbxCreateSymbolicLink(std::string SymbolicLinkName, std::string FullPath);
 bool CxbxMountUtilityDrive(bool formatClean);
+bool CxbxIsUtilityDrive(NtDll::HANDLE RootDirectory);
 
 NTSTATUS CxbxCreateParentFolders(HANDLE RootDirectory, std::wstring &Path);
 
@@ -183,11 +184,20 @@ void _CxbxPVOIDDeleter(PVOID *ptr);
 
 // Creates a PVOID variable named var which takes the given value
 // and is automatically deleted when it goes out of scope
-#define SMART_PVOID(var, value)  PVOID var = value; std::shared_ptr<PVOID> __var_shared_ptr = (NULL == var) ? NULL : std::shared_ptr<PVOID>(&var, _CxbxPVOIDDeleter);
+#define SMART_PVOID(var, value, orig)                     \
+	PVOID var = value;                                    \
+	std::shared_ptr<PVOID> __var_shared_ptr;              \
+	if (NULL == var)                                      \
+	{                                                     \
+		__var_shared_ptr = NULL;                          \
+		var = orig;                                       \
+	}                                                     \
+	else                                                  \
+		__var_shared_ptr = std::shared_ptr<PVOID>(&var, _CxbxPVOIDDeleter);
 
 // Converts an Xbox FileInformation struct to the NT equivalent.
 // Used by NtSetInformationFile.
-#define XboxToNTFileInformation(var, i, c, l)  SMART_PVOID(var, _XboxToNTFileInformation(i, c, l))
+#define XboxToNTFileInformation(var, i, c, l)  SMART_PVOID(var, _XboxToNTFileInformation(i, c, l), i)
 PVOID _XboxToNTFileInformation
 (
 	IN  PVOID xboxFileInformation,
@@ -197,7 +207,7 @@ PVOID _XboxToNTFileInformation
 
 // Converts an NT FileInformation struct to the Xbox equivalent.
 // Used by NtQueryInformationFile and NtQueryDirectoryFile
-#define NTToXboxFileInformation(var, i, c, l)  SMART_PVOID(var, _NTToXboxFileInformation(i, c, l))
+#define NTToXboxFileInformation(var, i, c, l)  SMART_PVOID(var, _NTToXboxFileInformation(i, c, l), i)
 PVOID _NTToXboxFileInformation
 (
 	IN  PVOID nativeFileInformation,

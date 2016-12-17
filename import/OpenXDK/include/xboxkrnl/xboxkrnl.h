@@ -621,6 +621,16 @@ typedef struct _FILE_RENAME_INFORMATION
 FILE_RENAME_INFORMATION;
 
 // ******************************************************************
+// * FILE_LINK_INFORMATION
+// ******************************************************************
+typedef struct _FILE_LINK_INFORMATION {
+	BOOLEAN         ReplaceIfExists;
+	HANDLE          RootDirectory;
+	ULONG           FileNameLength;
+	CHAR            FileName[1];
+} FILE_LINK_INFORMATION, *PFILE_LINK_INFORMATION;
+
+// ******************************************************************
 // * KSYSTEM_TIME
 // ******************************************************************
 typedef struct _KSYSTEM_TIME
