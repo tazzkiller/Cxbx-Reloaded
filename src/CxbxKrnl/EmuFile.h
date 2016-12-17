@@ -187,7 +187,8 @@ void _CxbxPVOIDDeleter(PVOID *ptr);
 
 // Converts an Xbox FileInformation struct to the NT equivalent.
 // Used by NtSetInformationFile.
-PVOID XboxToNTFileInformation
+#define XboxToNTFileInformation(var, i, c, l) SMART_PVOID(var, _XboxToNTFileInformation(i, c, l))
+PVOID _XboxToNTFileInformation
 (
 	IN  PVOID xboxFileInformation,
 	IN  ULONG FileInformationClass,
@@ -196,7 +197,8 @@ PVOID XboxToNTFileInformation
 
 // Converts an NT FileInformation struct to the Xbox equivalent.
 // Used by NtQueryInformationFile and NtQueryDirectoryFile
-PVOID NTToXboxFileInformation
+#define NTToXboxFileInformation(var, i, c, l) SMART_PVOID(var, _NTToXboxFileInformation(i, c, l))
+PVOID _NTToXboxFileInformation
 (
 	IN  PVOID nativeFileInformation,
 	IN  ULONG FileInformationClass,
