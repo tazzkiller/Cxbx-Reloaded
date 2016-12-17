@@ -561,189 +561,171 @@ void _CxbxPVOIDDeleter(PVOID *ptr)
 		CxbxFree(*ptr);
 }
 
-PVOID XboxToNTFileInformation
+NtDll::FILE_RENAME_INFORMATION * _XboxToNTRenameInfo(xboxkrnl::FILE_RENAME_INFORMATION *xboxRenameInfo, ULONG *Length)
+{
+	// Convert filename from STRING to WCHAR *
+	WCHAR wcFileName[MAX_PATH + 1];
+	size_t cvtLen;
+	mbstowcs_s(&cvtLen, wcFileName, xboxRenameInfo->FileName.Buffer, xboxRenameInfo->FileName.Length);
+
+	// Strip out the path to the file, leaving only the file name
+	// NtSetInformationFile on Xbox allows full paths, Windows does not
+	// TODO: might need to move files if a title decides to "rename" a file to a different path
+	std::wstring originalFileName(wcFileName);
+	std::wstring convertedFileName;
+	size_t slashPos = originalFileName.rfind('\\');
+	if (slashPos >= 0)
+		convertedFileName = originalFileName.substr(slashPos + 1);
+	else
+		convertedFileName = originalFileName;
+
+	// Build the native FILE_RENAME_INFORMATION struct
+	*Length = sizeof(NtDll::FILE_RENAME_INFORMATION) + convertedFileName.size() * sizeof(wchar_t);
+	NtDll::FILE_RENAME_INFORMATION *ntRenameInfo = (NtDll::FILE_RENAME_INFORMATION *) CxbxMalloc(*Length);
+	ZeroMemory(ntRenameInfo, *Length);
+	ntRenameInfo->ReplaceIfExists = xboxRenameInfo->ReplaceIfExists;
+	ntRenameInfo->RootDirectory = NULL;
+	ntRenameInfo->FileNameLength = convertedFileName.size() * sizeof(wchar_t);
+	wmemcpy_s(ntRenameInfo->FileName, convertedFileName.size(), convertedFileName.c_str(), convertedFileName.size());
+
+	return ntRenameInfo;
+}
+
+PVOID _XboxToNTFileInformation
 (
 	IN  PVOID xboxFileInformation,
 	IN  ULONG FileInformationClass,
 	OUT ULONG *Length
 )
 {
-	// TODO: identify differences and implement.
-	// If the structs are the same between systems, remove the entire case block.
-
 	PVOID result = NULL;
 	switch (FileInformationClass)
 	{
-	case xboxkrnl::FileBasicInformation:
-	{
-		// TODO
-		break;
-	}
-	case xboxkrnl::FileDispositionInformation:
-	{
-		// TODO
-		break;
-	}
-	case xboxkrnl::FileEndOfFileInformation:
-	{
-		// TODO
-		break;
-	}
-	case xboxkrnl::FileLinkInformation:
-	{
-		// TODO
-		break;
-	}
-	case xboxkrnl::FilePositionInformation:
-	{
-		// TODO
-		break;
-	}
-	case xboxkrnl::FileRenameInformation:
-	{
-		xboxkrnl::FILE_RENAME_INFORMATION *xboxRenameInfo = reinterpret_cast<xboxkrnl::FILE_RENAME_INFORMATION *>(xboxFileInformation);
+		case xboxkrnl::FileLinkInformation:
+		{
+			// TODO: handle differences
+			// - FileName on Xbox uses single-byte chars, NT uses wide chars
 
-		// Convert filename from STRING to WCHAR *
-		WCHAR wcFileName[MAX_PATH + 1];
-		size_t cvtLen;
-		mbstowcs_s(&cvtLen, wcFileName, xboxRenameInfo->FileName.Buffer, xboxRenameInfo->FileName.Length);
-
-		// Strip out the path to the file, leaving only the file name
-		// NtSetInformationFile on Xbox allows full paths, Windows does not
-		// TODO: might need to move files if a title decides to "rename" a file to a different path
-		std::wstring originalFileName(wcFileName);
-		std::wstring convertedFileName;
-		size_t slashPos = originalFileName.rfind('\\');
-		if (slashPos >= 0)
-			convertedFileName = originalFileName.substr(slashPos + 1);
-		else
-			convertedFileName = originalFileName;
-
-		// Build the native FILE_RENAME_INFORMATION struct
-		*Length = sizeof(NtDll::FILE_RENAME_INFORMATION) + convertedFileName.size() * sizeof(wchar_t);
-		result = CxbxMalloc(*Length);
-		ZeroMemory(result, *Length);
-
-		NtDll::FILE_RENAME_INFORMATION *renameInfo = (NtDll::FILE_RENAME_INFORMATION *) result;
-		renameInfo->ReplaceIfExists = xboxRenameInfo->ReplaceIfExists;
-		renameInfo->RootDirectory = NULL;
-		renameInfo->FileNameLength = convertedFileName.size() * sizeof(wchar_t);
-		wmemcpy_s(renameInfo->FileName, convertedFileName.size(), convertedFileName.c_str(), convertedFileName.size());
-		break;
-	}
-	default:
-		result = NULL;
-		break;
+			break;
+		}
+		case xboxkrnl::FileRenameInformation:
+		{
+			xboxkrnl::FILE_RENAME_INFORMATION *xboxRenameInfo = reinterpret_cast<xboxkrnl::FILE_RENAME_INFORMATION *>(xboxFileInformation);
+			result = _XboxToNTRenameInfo(xboxRenameInfo, Length);
+			break;
+		}
+		default:
+		{
+			result = NULL;
+			break;
+		}
 	}
 
 	return result;
 }
 
-PVOID NTToXboxFileInformation
+PVOID _NTToXboxFileInformation
 (
 	IN  PVOID nativeFileInformation,
 	IN  ULONG FileInformationClass,
 	OUT ULONG *Length
 )
 {
-	// TODO: identify differences and implement.
-	// If the structs are the same between systems, remove the entire case block.
 	PVOID result = NULL;
 	switch (FileInformationClass)
 	{
-	case NtDll::FileAccessInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FileAlignmentInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FileAllInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FileBasicInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FileEaInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FileInternalInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FileModeInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FileNameInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FileNetworkOpenInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FilePositionInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FileStandardInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FileBothDirectoryInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FileDirectoryInformation:
-	{
-		// TODO: handle differences
-		// - FileName uses char on Xbox, wchar_t on NT
-		// - FileNameLength is the length in *bytes* of FileName
-		//     therefore FileNameLength on Xbox = FileNameLength / 2 on NT
-		// - The rest of the struct is exactly the same
+		case NtDll::FileAllInformation:
+		{
+			// TODO: this struct contains the following members on both systems:
+			//   FILE_BASIC_INFORMATION BasicInformation;           -- minor differences
+			//   FILE_STANDARD_INFORMATION StandardInformation;     -- identical
+			//   FILE_INTERNAL_INFORMATION InternalInformation;     -- identical
+			//   FILE_EA_INFORMATION EaInformation;                 -- identical
+			//   FILE_ACCESS_INFORMATION AccessInformation;         -- identical
+			//   FILE_POSITION_INFORMATION PositionInformation;     -- identical
+			//   FILE_MODE_INFORMATION ModeInformation;             -- identical
+			//   FILE_ALIGNMENT_INFORMATION AlignmentInformation;   -- identical
+			//   FILE_NAME_INFORMATION NameInformation;             -- minor differences
+			// See the following switch cases for details on the differences
 
-		break;
-	}
-	case NtDll::FileFullDirectoryInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FileNamesInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FileObjectIdInformation:
-	{
-		// TODO
-		break;
-	}
-	case NtDll::FileReparsePointInformation:
-	{
-		// TODO
-		break;
-	}
-	default:
-		result = NULL;
-		break;
+			break;
+		}
+		case NtDll::FileBasicInformation:
+		{
+			// TODO: clean up attributes
+			// - mask Attributes & FILE_ATTRIBUTE_VALID_SET_FLAGS
+			// - FILE_ATTRIBUTE_VALID_SET_FLAGS = 0x000031a7
+		
+			break;
+		}
+		case NtDll::FileNameInformation:
+		{
+			// TODO: handle differences
+			// - FileName on Xbox uses single-byte chars, NT uses wide chars
+
+			break;
+		}
+		case NtDll::FileNetworkOpenInformation:
+		{
+			// TODO: clean up attributes
+			// - mask Attributes & FILE_ATTRIBUTE_VALID_SET_FLAGS
+			// - FILE_ATTRIBUTE_VALID_SET_FLAGS = 0x000031a7
+
+			break;
+		}
+		case NtDll::FileBothDirectoryInformation:
+		{
+			// TODO: handle differences
+			// - Xbox reuses the FILE_DIRECTORY_INFORMATION struct, which is mostly identical to FILE_BOTH_DIR_INFORMATION
+			// - NextEntryOffset might be a problem
+			// - NT has extra fields before FileName:
+			//   - ULONG EaSize
+			//   - CCHAR ShortNameLength
+			//   - WCHAR ShortName[12]
+			// - FileName on Xbox uses single-byte chars, NT uses wide chars
+
+			break;
+		}
+		case NtDll::FileDirectoryInformation:
+		{
+			// TODO: handle differences
+			// - NextEntryOffset might be a problem
+			// - FileName on Xbox uses single-byte chars, NT uses wide chars
+
+			break;
+		}
+		case NtDll::FileFullDirectoryInformation:
+		{
+			// TODO: handle differences
+			// - Xbox reuses the FILE_DIRECTORY_INFORMATION struct, which is mostly identical to FILE_FULL_DIR_INFORMATION
+			// - NextEntryOffset might be a problem
+			// - NT has one extra field before FileName:
+			//   - ULONG EaSize
+			// - FileName on Xbox uses single-byte chars, NT uses wide chars
+
+			break;
+		}
+		case NtDll::FileNamesInformation:
+		{
+			// TODO: handle differences
+			// - NextEntryOffset might be a problem
+			// - FileName on Xbox uses single-byte chars, NT uses wide chars
+
+			break;
+		}
+		case NtDll::FileObjectIdInformation:
+		{
+			// TODO: handle differences
+			// - The LONGLONG FileReference field from NT can be ignored
+			// - ExtendedInfo is an union on NT, but is otherwise identical
+
+			break;
+		}
+		default:
+		{
+			result = NULL;
+			break;
+		}
 	}
 
 	return result;
