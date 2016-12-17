@@ -115,43 +115,70 @@ XBSYSAPI EXPORTNUM(66) xboxkrnl::NTSTATUS NTAPI xboxkrnl::IoCreateFile
 	{
 		DbgPrintf("EmuKrnl (0x%X): IoCreateFile Failed! (0x%.08X)\n", GetCurrentThreadId(), ret);
 
+		// TODO refactor this ugly mess
+
+		// It seems that some titles will attempt to write files to the utility drive
+		// without creating the necessary parent folders.  I'm not sure if this is
+		// intended behavior, but whenever a file creation attempt fails because its
+		// parent folder does not exist (and if the file was supposed to be created),
+		// the emulator will create the necessary parent folders first and try the
+		// operation again.  It would be nice to confirm this behavior on a real Xbox.
+
 		// If there was an attempt to create a file, check if the parent folders exist
-		if ((0xC000003A == ret) // STATUS_OBJECT_PATH_NOT_FOUND
+		if ((0xC000003A == ret) // TODO: constantify to STATUS_OBJECT_PATH_NOT_FOUND
 			&& (FILE_CREATE == Disposition || FILE_OPEN_IF == Disposition || FILE_OVERWRITE_IF == Disposition)
 			&& (CreateOptions & FILE_NON_DIRECTORY_FILE))
 		{
-			DbgPrintf("EmuKrnl (0x%X): IoCreateFile - attempting to create parent folders...\n", GetCurrentThreadId());
+			// Convert the path to a wstring
 			std::wstring path(nativeObjectAttributes.NtObjAttrPtr->ObjectName->Buffer, nativeObjectAttributes.NtObjAttrPtr->ObjectName->Length / sizeof(NtDll::WCHAR));
-			ret = CxbxCreateParentFolders(nativeObjectAttributes.NtObjAttrPtr->RootDirectory, path);
-			if (FAILED(ret))
+			
+			// Check if it has parent folders
+			size_t indexOfSlash = path.rfind('\\');
+			if (indexOfSlash >= 0)
 			{
-				DbgPrintf("EmuKrnl (0x%X): IoCreateFile - could not create parent folders! (0x%.08X)\n", GetCurrentThreadId(), ret);
-			}
-			else
-			{
-				DbgPrintf("EmuKrnl (0x%X): IoCreateFile - reattempting operation...\n", GetCurrentThreadId());
-
-				ret = NtDll::NtCreateFile(
-					FileHandle,
-					DesiredAccess | GENERIC_READ,
-					nativeObjectAttributes.NtObjAttrPtr,
-					NtDll::PIO_STATUS_BLOCK(IoStatusBlock),
-					NtDll::PLARGE_INTEGER(AllocationSize),
-					FileAttributes,
-					ShareAccess,
-					Disposition,
-					CreateOptions,
-					NULL,
-					0);
-
+				DbgPrintf("EmuKrnl (0x%X): IoCreateFile - attempting to create parent folders...\n", GetCurrentThreadId());
+				
+				// It does; create them as necessary
+				ret = CxbxCreateParentFolders(nativeObjectAttributes.NtObjAttrPtr->RootDirectory, path);
 				if (FAILED(ret))
 				{
-					DbgPrintf("EmuKrnl (0x%X): IoCreateFile Failed! (0x%.08X)\n", GetCurrentThreadId(), ret);
+					DbgPrintf("EmuKrnl (0x%X): IoCreateFile - could not create parent folders! (0x%.08X)\n", GetCurrentThreadId(), ret);
+
+					// Make sure we return the original error code
+					ret = 0xC000003A; // TODO: constantify to STATUS_OBJECT_PATH_NOT_FOUND
 				}
 				else
 				{
-					DbgPrintf("EmuKrnl (0x%X): IoCreateFile = 0x%.08X\n", GetCurrentThreadId(), *FileHandle);
+					DbgPrintf("EmuKrnl (0x%X): IoCreateFile - reattempting operation...\n", GetCurrentThreadId());
+
+					// Try creating the file again
+					ret = NtDll::NtCreateFile(
+						FileHandle,
+						DesiredAccess | GENERIC_READ,
+						nativeObjectAttributes.NtObjAttrPtr,
+						NtDll::PIO_STATUS_BLOCK(IoStatusBlock),
+						NtDll::PLARGE_INTEGER(AllocationSize),
+						FileAttributes,
+						ShareAccess,
+						Disposition,
+						CreateOptions,
+						NULL,
+						0);
+
+					if (FAILED(ret))
+					{
+						DbgPrintf("EmuKrnl (0x%X): IoCreateFile Failed! (0x%.08X)\n", GetCurrentThreadId(), ret);
+					}
+					else
+					{
+						DbgPrintf("EmuKrnl (0x%X): IoCreateFile = 0x%.08X\n", GetCurrentThreadId(), *FileHandle);
+					}
 				}
+			}
+			else
+			{
+				// No parent directories; log the error
+				DbgPrintf("EmuKrnl (0x%X): IoCreateFile Failed! (0x%.08X)\n", GetCurrentThreadId(), ret);
 			}
 		}
 	}

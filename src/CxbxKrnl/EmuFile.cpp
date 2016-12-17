@@ -499,18 +499,9 @@ EmuNtSymbolicLinkObject* FindNtSymbolicLinkObjectByRootHandle(const HANDLE Handl
 }
 
 
-NTSTATUS _CxbxCreateParentFolders_recurse(HANDLE RootDirectory, std::wstring &SubPath);
-
+// Creates the parent folders of the given path recursively.
+// Path is assumed to be a directory.
 NTSTATUS CxbxCreateParentFolders(HANDLE RootDirectory, std::wstring &Path)
-{
-	int index = Path.rfind('\\');
-	if (index >= 0)
-	{
-		return _CxbxCreateParentFolders_recurse(RootDirectory, Path.substr(0, index));
-	}
-}
-
-NTSTATUS _CxbxCreateParentFolders_recurse(HANDLE RootDirectory, std::wstring &SubPath)
 {
 	NtDll::UNICODE_STRING UnicodePath;
 	NtDll::OBJECT_ATTRIBUTES ObjectAttributes;
@@ -518,7 +509,7 @@ NTSTATUS _CxbxCreateParentFolders_recurse(HANDLE RootDirectory, std::wstring &Su
 	NtDll::HANDLE DirHandle;
 	NTSTATUS Status;
 
-	NtDll::RtlInitUnicodeString(&UnicodePath, SubPath.c_str());
+	NtDll::RtlInitUnicodeString(&UnicodePath, Path.c_str());
 	InitializeObjectAttributes(&ObjectAttributes, &UnicodePath, 0, RootDirectory, NULL);
 
 	Status = NtDll::NtCreateFile(&DirHandle,
@@ -540,10 +531,10 @@ NTSTATUS _CxbxCreateParentFolders_recurse(HANDLE RootDirectory, std::wstring &Su
 	
 	if (STATUS_OBJECT_PATH_NOT_FOUND == Status)
 	{
-		int index = SubPath.rfind('\\');
+		int index = Path.rfind('\\');
 		if (index >= 0)
 		{
-			Status = _CxbxCreateParentFolders_recurse(RootDirectory, SubPath.substr(0, index));
+			Status = CxbxCreateParentFolders(RootDirectory, Path.substr(0, index));
 			if (NT_SUCCESS(Status))
 			{
 				Status = NtDll::NtCreateFile(&DirHandle,
