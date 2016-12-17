@@ -1099,15 +1099,9 @@ XBSYSAPI EXPORTNUM(226) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtSetInformationFile
 		LOG_FUNC_ARG(FileInformationClass)
 		LOG_FUNC_END;
 	
-	// The converted file information. If NULL, no conversion was needed
-	XboxToNTFileInformation(convertedFileInfo, FileInformation, FileInformationClass, &Length)
+	XboxToNTFileInformation(convertedFileInfo, FileInformation, FileInformationClass, &Length);
 
-	// The object passed to NtSetInformationFile can be either a native Xbox struct or a converted struct.
-	// Keep track of them separately so that the memory for the converted struct can be properly freed.
-	// Xbox structs should not be touched
-	PVOID actualFileInfo = (NULL == convertedFileInfo ? FileInformation : convertedFileInfo);
-
-	NTSTATUS ret = NtDll::NtSetInformationFile(FileHandle, IoStatusBlock, actualFileInfo, Length, FileInformationClass);
+	NTSTATUS ret = NtDll::NtSetInformationFile(FileHandle, IoStatusBlock, convertedFileInfo, Length, FileInformationClass);
 
 	RETURN(ret);
 }

@@ -183,11 +183,11 @@ void _CxbxPVOIDDeleter(PVOID *ptr);
 
 // Creates a PVOID variable named var which takes the given value
 // and is automatically deleted when it goes out of scope
-#define SMART_PVOID(var, value)  PVOID var = value; std::shared_ptr<PVOID> __var_shared_ptr(&var, _CxbxPVOIDDeleter);
+#define SMART_PVOID(var, value)  PVOID var = value; std::shared_ptr<PVOID> __var_shared_ptr = (NULL == var) ? NULL : std::shared_ptr<PVOID>(&var, _CxbxPVOIDDeleter);
 
 // Converts an Xbox FileInformation struct to the NT equivalent.
 // Used by NtSetInformationFile.
-#define XboxToNTFileInformation(var, i, c, l) SMART_PVOID(var, _XboxToNTFileInformation(i, c, l))
+#define XboxToNTFileInformation(var, i, c, l)  SMART_PVOID(var, _XboxToNTFileInformation(i, c, l))
 PVOID _XboxToNTFileInformation
 (
 	IN  PVOID xboxFileInformation,
@@ -197,7 +197,7 @@ PVOID _XboxToNTFileInformation
 
 // Converts an NT FileInformation struct to the Xbox equivalent.
 // Used by NtQueryInformationFile and NtQueryDirectoryFile
-#define NTToXboxFileInformation(var, i, c, l) SMART_PVOID(var, _NTToXboxFileInformation(i, c, l))
+#define NTToXboxFileInformation(var, i, c, l)  SMART_PVOID(var, _NTToXboxFileInformation(i, c, l))
 PVOID _NTToXboxFileInformation
 (
 	IN  PVOID nativeFileInformation,

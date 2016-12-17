@@ -115,7 +115,7 @@ XBSYSAPI EXPORTNUM(66) xboxkrnl::NTSTATUS NTAPI xboxkrnl::IoCreateFile
 	{
 		DbgPrintf("EmuKrnl (0x%X): IoCreateFile Failed! (0x%.08X)\n", GetCurrentThreadId(), ret);
 
-		// TODO refactor this ugly mess
+		// TODO: refactor this ugly mess
 
 		// It seems that some titles will attempt to write files to the utility drive
 		// without creating the necessary parent folders.  I'm not sure if this is
