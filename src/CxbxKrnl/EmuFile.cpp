@@ -598,7 +598,15 @@ PVOID _XboxToNTFileInformation
 	OUT ULONG *Length
 )
 {
+	// The following classes of file information structs are identical between platforms:
+	//   FileBasicInformation
+	//   FileDispositionInformation
+	//   FileEndOfFileInformation
+	//   FileLinkInformation
+	//   FilePositionInformation
+
 	PVOID result = NULL;
+
 	switch (FileInformationClass)
 	{
 		case xboxkrnl::FileLinkInformation:
@@ -631,7 +639,18 @@ PVOID _NTToXboxFileInformation
 	OUT ULONG *Length
 )
 {
+	// The following classes of file information structs are identical between platforms:
+	//   FileAccessInformation
+	//   FileAlignmentInformation
+	//   FileEaInformation
+	//   FileInternalInformation
+	//   FileModeInformation
+	//   FilePositionInformation
+	//   FileStandardInformation
+	//   FileReparsePointInformation
+
 	PVOID result = NULL;
+
 	switch (FileInformationClass)
 	{
 		case NtDll::FileAllInformation:
@@ -730,6 +749,8 @@ PVOID _NTToXboxFileInformation
 
 	return result;
 }
+
+// TODO: FS_INFORMATION_CLASS and its related structs most likely need to be converted too
 
 // TODO : Move to a better suited file
 // TODO : Create (and use) an Xbox version of this too
