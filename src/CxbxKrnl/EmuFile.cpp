@@ -156,7 +156,10 @@ HANDLE EmuHandleToHandle(EmuHandle* emuHandle)
 bool CxbxIsUtilityDrive(NtDll::HANDLE RootDirectory)
 {
 	EmuNtSymbolicLinkObject* SymbolicLinkObject = FindNtSymbolicLinkObjectByName(DriveZ);
-	return (SymbolicLinkObject->RootDirectoryHandle == RootDirectory);
+	if (SymbolicLinkObject)
+		return (SymbolicLinkObject->RootDirectoryHandle == RootDirectory);
+	else
+		return false;
 }
 
 NTSTATUS _CxbxConvertFilePath(std::string RelativeXboxPath, std::wstring &RelativeNativePath, NtDll::HANDLE *RootDirectory, std::string aFileAPIName)
