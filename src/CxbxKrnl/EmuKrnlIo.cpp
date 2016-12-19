@@ -131,8 +131,8 @@ XBSYSAPI EXPORTNUM(66) xboxkrnl::NTSTATUS NTAPI xboxkrnl::IoCreateFile
 			&& (CxbxIsUtilityDrive(nativeObjectAttributes.NtObjAttrPtr->RootDirectory)))
 		{
 			// Convert the path to a wstring
-			std::wstring path(nativeObjectAttributes.NtObjAttrPtr->ObjectName->Buffer, nativeObjectAttributes.NtObjAttrPtr->ObjectName->Length / sizeof(NtDll::WCHAR));
-			
+			std::wstring path = PUNICODE_STRING_to_wstring(nativeObjectAttributes.NtObjAttrPtr->ObjectName);
+
 			// Check if it has parent folders
 			size_t indexOfSlash = path.rfind('\\');
 			if (indexOfSlash >= 0)
@@ -205,7 +205,7 @@ XBSYSAPI EXPORTNUM(67) xboxkrnl::NTSTATUS NTAPI xboxkrnl::IoCreateSymbolicLink
 		LOG_FUNC_ARG(DeviceName)
 		LOG_FUNC_END;
 
-	NTSTATUS ret = CxbxCreateSymbolicLink(std::string(SymbolicLinkName->Buffer, SymbolicLinkName->Length), std::string(DeviceName->Buffer, DeviceName->Length));
+	NTSTATUS ret = CxbxCreateSymbolicLink(PSTRING_to_string(SymbolicLinkName), PSTRING_to_string(DeviceName));
 
 	RETURN(ret);
 }
@@ -220,11 +220,11 @@ XBSYSAPI EXPORTNUM(69) xboxkrnl::NTSTATUS NTAPI xboxkrnl::IoDeleteSymbolicLink
 {
 	LOG_FUNC_ONE_ARG(SymbolicLinkName);
 
-	EmuNtSymbolicLinkObject* symbolicLink = FindNtSymbolicLinkObjectByName(std::string(SymbolicLinkName->Buffer, SymbolicLinkName->Length));
+	EmuNtSymbolicLinkObject* symbolicLink = FindNtSymbolicLinkObjectByName(PSTRING_to_string(SymbolicLinkName));
 
 	NTSTATUS ret = STATUS_OBJECT_NAME_NOT_FOUND;
 
-	if ((symbolicLink != NULL))
+	if (symbolicLink != NULL)
 		ret = symbolicLink->NtClose();
 
 	RETURN(ret);
