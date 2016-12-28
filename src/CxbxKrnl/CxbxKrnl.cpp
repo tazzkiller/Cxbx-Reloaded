@@ -43,6 +43,7 @@ namespace xboxkrnl
 
 #include "CxbxKrnl.h"
 #include "Emu.h"
+#include "EmuMem.h"
 #include "EmuFile.h"
 #include "EmuFS.h"
 #include "EmuShared.h"
@@ -460,6 +461,8 @@ extern "C" CXBXKRNL_API void CxbxKrnlInit
 		// as long as this doesn't start with "INIT"
 		strncpy_s((PSTR)DummyKernel->SectionHeader.Name, 8, "DONGS", 8);
 	}
+
+	mem_handlers_init();
 
 	// Initialize devices :
 	char szBuffer[MAX_PATH];

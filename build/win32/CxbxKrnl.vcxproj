@@ -210,6 +210,7 @@
     <ClInclude Include="..\..\src\CxbxKrnl\EmuFile.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuFS.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuKrnlLogging.h" />
+    <ClInclude Include="..\..\src\CxbxKrnl\EmuMem.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuNtDll.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuNV2A.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuSha.h" />
@@ -539,6 +540,7 @@
     <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlXbox.cpp" />
     <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlXc.cpp" />
     <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlXe.cpp" />
+    <ClCompile Include="..\..\src\CxbxKrnl\EmuMem.cpp" />
     <ClCompile Include="..\..\src\CxbxKrnl\EmuNtDll.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
