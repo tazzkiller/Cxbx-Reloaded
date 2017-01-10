@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -43,10 +45,12 @@ namespace xboxkrnl
 
 #include "CxbxKrnl.h"
 #include "Emu.h"
+#include "EmuX86.h"
 #include "EmuMem.h"
 #include "EmuFile.h"
 #include "EmuFS.h"
 #include "EmuShared.h"
+#include "EmuNV2A.h" // For InitOpenGLContext
 #include "HLEIntercept.h"
 #include "Exe.h"
 
@@ -367,6 +371,8 @@ extern "C" CXBXKRNL_API void CxbxKrnlInit
 
 	g_CurrentProcessHandle = GetCurrentProcess();
 
+	CxbxInitPerformanceCounters();
+
 #ifdef _DEBUG
 //	MessageBoxA(NULL, "Attach a Debugger", "DEBUG", 0);
 //  Debug child processes using https://marketplace.visualstudio.com/items?itemName=GreggMiskelly.MicrosoftChildProcessDebuggingPowerTool
@@ -377,12 +383,20 @@ extern "C" CXBXKRNL_API void CxbxKrnlInit
 	{
 		if (AllocConsole())
 		{
+			HANDLE StdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+
+			// Maximise the console scroll buffer height :
+			CONSOLE_SCREEN_BUFFER_INFO coninfo;
+			GetConsoleScreenBufferInfo(StdHandle, &coninfo);
+			coninfo.dwSize.Y = SHRT_MAX - 1; // = 32767-1 = 32766 = maximum value that works
+			SetConsoleScreenBufferSize(StdHandle, coninfo.dwSize);
+
 			freopen("CONOUT$", "wt", stdout);
 			freopen("CONIN$", "rt", stdin);
 
 			SetConsoleTitle("Cxbx-Reloaded : Kernel Debug Console");
 
-			SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);
+			SetConsoleTextAttribute(StdHandle, FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);
 
 			printf("EmuMain (0x%X): Cxbx-Reloaded Version %s\n", GetCurrentThreadId(), _CXBX_VERSION);
 			printf("EmuMain (0x%X): Debug Console Allocated (DM_CONSOLE).\n", GetCurrentThreadId());
@@ -463,6 +477,12 @@ extern "C" CXBXKRNL_API void CxbxKrnlInit
 	}
 
 	mem_handlers_init();
+
+	// Read which components need to be LLE'ed :
+	int CxbxLLE_Flags;
+	g_EmuShared->GetFlagsLLE(&CxbxLLE_Flags);
+	bLLE_APU = (CxbxLLE_Flags & LLE_APU) > 0;
+	bLLE_GPU = (CxbxLLE_Flags & LLE_GPU) > 0;
 
 	// Initialize devices :
 	char szBuffer[MAX_PATH];
@@ -556,23 +576,7 @@ extern "C" CXBXKRNL_API void CxbxKrnlInit
 	//extern void InitializeSectionStructures(void); 
 	InitializeSectionStructures();
 
-	DbgPrintf("EmuMain (0x%X): Initializing Direct3D.\n", GetCurrentThreadId());
 
-	XTL::EmuD3DInit(pXbeHeader, dwXbeHeaderSize);
-
-	EmuHLEIntercept(pLibraryVersion, pXbeHeader);
-
-	//
-	// initialize FS segment selector
-	//
-
-	{
-		EmuInitFS();
-
-		EmuGenerateFS(pTLS, pTLSData);
-	}
-
-	
 	DbgPrintf("EmuMain : Determining CPU affinity.\n");
 
 	// Make sure the Xbox1 code runs on one core (as the box itself has only 1 CPU,
@@ -594,6 +598,37 @@ extern "C" CXBXKRNL_API void CxbxKrnlInit
 		// Make sure Xbox1 code runs on one core :
 		SetThreadAffinityMask(GetCurrentThread(), g_CPUXbox);
 	}
+
+	//
+	// initialize grapchics
+	//
+	DbgPrintf("EmuMain (0x%X): Initializing render window.\n", GetCurrentThreadId());
+	XTL::CxbxInitWindow(pXbeHeader, dwXbeHeaderSize);
+
+	if (bLLE_GPU)
+	{
+		DbgPrintf("EmuMain (0x%X): Initializing OpenGL.\n", GetCurrentThreadId());
+		InitOpenGLContext();
+	}
+	else
+	{
+		DbgPrintf("EmuMain (0x%X): Initializing Direct3D.\n", GetCurrentThreadId());
+		XTL::EmuD3DInit(pXbeHeader, dwXbeHeaderSize);
+	}
+
+	EmuHLEIntercept(pLibraryVersion, pXbeHeader);
+
+	//
+	// initialize FS segment selector
+	//
+
+	{
+		EmuInitFS();
+
+		EmuGenerateFS(pTLS, pTLSData);
+	}
+
+	EmuX86_Init();
 
     DbgPrintf("EmuMain (0x%X): Initial thread starting.\n", GetCurrentThreadId());
 
