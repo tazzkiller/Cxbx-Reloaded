@@ -1557,6 +1557,7 @@ OOVPATable D3D8_5558[] = {
 	OOVPA_TABLE_ENTRY(D3DDevice_GetProjectionViewportMatrix, 5455),
 	OOVPA_TABLE_ENTRY(D3DDevice_GetRenderTarget2, 5233),
 	OOVPA_TABLE_ENTRY(D3DDevice_GetTransform, 4361),
+	OOVPA_TABLE_ENTRY(D3DDevice_GetVertexShaderSize, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_GetViewport, 5558),
 	OOVPA_TABLE_ENTRY(D3DDevice_InsertCallback, 5558),
 	OOVPA_TABLE_ENTRY(D3DDevice_InsertFence, 5233),
@@ -1568,6 +1569,7 @@ OOVPATable D3D8_5558[] = {
 	OOVPA_TABLE_ENTRY(D3DDevice_MakeSpace, 5558),
 	OOVPA_TABLE_ENTRY(D3DDevice_PersistDisplay, 5558),
 	OOVPA_TABLE_ENTRY(D3DDevice_Reset, 4134),
+	OOVPA_TABLE_ENTRY(D3DDevice_RunVertexStateShader, 4627),
 	OOVPA_TABLE_ENTRY(D3DDevice_SelectVertexShader, 5558),
 	OOVPA_TABLE_ENTRY(D3DDevice_SetBackMaterial, 5558),
 	OOVPA_TABLE_ENTRY(D3DDevice_SetFlickerFilter, 5455),
@@ -1664,8 +1666,6 @@ OOVPATable D3D8_5558[] = {
 
 	OOVPA_TABLE_PATCH(D3DDevice_GetBackBuffer2B, 5558, D3DDevice_GetBackBuffer2),
 	OOVPA_TABLE_PATCH(D3DDevice_SetVertexShaderConstant1Fast, 5558, D3DDevice_SetVertexShaderConstant1),
-	OOVPA_TABLE_PATCH(X_D3DDevice_GetVertexShaderSize, 3925, D3DDevice_GetVertexShaderSize),
-	OOVPA_TABLE_PATCH(X_D3DDevice_RunVertexStateShader, 4627, D3DDevice_RunVertexStateShader),
 
 	OOVPA_TABLE_XREF(D3DDevice_LazySetStateVB, 5558),
 	OOVPA_TABLE_XREF(D3D_BlockOnResource, 5558),

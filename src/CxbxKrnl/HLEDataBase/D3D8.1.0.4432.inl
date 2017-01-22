@@ -703,6 +703,7 @@ OOVPATable D3D8_4432[]  {
 	OOVPA_TABLE_ENTRY(D3DDevice_CreateVertexBuffer, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_CreateVertexShader, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_DeletePixelShader, 4134),
+	OOVPA_TABLE_ENTRY(D3DDevice_DeleteVertexShader, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_DrawIndexedVertices, 4361),
 	OOVPA_TABLE_ENTRY(D3DDevice_DrawIndexedVerticesUP, 4134),
 	OOVPA_TABLE_ENTRY(D3DDevice_DrawVertices, 4361),
@@ -720,6 +721,7 @@ OOVPATable D3D8_4432[]  {
 	OOVPA_TABLE_ENTRY(D3DDevice_GetProjectionViewportMatrix, 4432),
 	OOVPA_TABLE_ENTRY(D3DDevice_GetRenderTarget, 4432),
 	OOVPA_TABLE_ENTRY(D3DDevice_GetTransform, 4361),
+	OOVPA_TABLE_ENTRY(D3DDevice_GetVertexShaderSize, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_GetViewport, 4361),
 	OOVPA_TABLE_ENTRY(D3DDevice_GetVisibilityTestResult, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_LightEnable, 4361),
@@ -737,6 +739,7 @@ OOVPATable D3D8_4432[]  {
 	//OOVPA_TABLE_ENTRY(D3DDevice_SetRenderState_BackFillMode, 4134),
 	OOVPA_TABLE_ENTRY(D3DDevice_SetRenderState_BackFillMode, 4531),
 	OOVPA_TABLE_ENTRY(D3DDevice_SetRenderState_CullMode, 4034),
+	OOVPA_TABLE_ENTRY(D3DDevice_SetRenderState_CullMode, 4134),
 	OOVPA_TABLE_ENTRY(D3DDevice_SetRenderState_DoNotCullUncompressed, 4134),
 	OOVPA_TABLE_ENTRY(D3DDevice_SetRenderState_Dxt1NoiseEnable, 4134),
 	OOVPA_TABLE_ENTRY(D3DDevice_SetRenderState_EdgeAntiAlias, 4361),
@@ -802,10 +805,6 @@ OOVPATable D3D8_4432[]  {
 	OOVPA_TABLE_ENTRY(D3D_KickOffAndWaitForIdle, 4034),
 	OOVPA_TABLE_ENTRY(Get2DSurfaceDesc, 4361),
 	OOVPA_TABLE_ENTRY(Lock2DSurface, 3925),
-
-	OOVPA_TABLE_PATCH(D3DDevice_SetRenderState_CullModeB, 4134, D3DDevice_SetRenderState_CullMode),
-	OOVPA_TABLE_PATCH(X_D3DDevice_DeleteVertexShader, 3925, D3DDevice_DeleteVertexShader),
-	OOVPA_TABLE_PATCH(X_D3DDevice_GetVertexShaderSize, 3925, D3DDevice_GetVertexShaderSize),
 
 	OOVPA_TABLE_XREF(D3D_SetFence, 4134),
 };

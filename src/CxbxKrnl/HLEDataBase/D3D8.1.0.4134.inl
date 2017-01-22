@@ -1458,29 +1458,29 @@ OOVPA_NO_XREF(D3DDevice_DeletePixelShader, 4134, 7)
 OOVPA_END;
 
 // ******************************************************************
-// * D3DDevice_SetRenderState_CullModeB
+// * D3DDevice_SetRenderState_CullMode
 // ******************************************************************
-OOVPA_XREF(D3DDevice_SetRenderState_CullModeB, 4134, 13,
+OOVPA_XREF(D3DDevice_SetRenderState_CullMode, 4134, 13,
 
     XREF_DXSRSCULLMODE,
     XRefZero)
 
-        // D3DDevice_SetRenderState_CullModeB+0x22 : mov dword ptr [eax], 0x40308
+        // D3DDevice_SetRenderState_CullMode+0x22 : mov dword ptr [eax], 0x40308
         { 0x22, 0xC7 }, // (Offset,Value)-Pair #1
         { 0x24, 0x08 }, // (Offset,Value)-Pair #2
         { 0x25, 0x03 }, // (Offset,Value)-Pair #3
         { 0x26, 0x04 }, // (Offset,Value)-Pair #4
 
-        // D3DDevice_SetRenderState_CullModeB+0x2D : add eax, 8
+        // D3DDevice_SetRenderState_CullMode+0x2D : add eax, 8
         { 0x2D, 0x83 }, // (Offset,Value)-Pair #5
         { 0x2E, 0xC0 }, // (Offset,Value)-Pair #6
         { 0x2F, 0x08 }, // (Offset,Value)-Pair #7
 
-        // D3DDevice_SetRenderState_CullModeB+0x39 : retn 4
+        // D3DDevice_SetRenderState_CullMode+0x39 : retn 4
         { 0x39, 0xC2 }, // (Offset,Value)-Pair #8
         { 0x3A, 0x04 }, // (Offset,Value)-Pair #9
 
-        // D3DDevice_SetRenderState_CullModeB+0x5C : add edx, 0x404
+        // D3DDevice_SetRenderState_CullMode+0x5C : add edx, 0x404
         { 0x5C, 0x81 }, // (Offset,Value)-Pair #10
         { 0x5D, 0xC2 }, // (Offset,Value)-Pair #11
         { 0x5E, 0x04 }, // (Offset,Value)-Pair #12
@@ -1490,7 +1490,7 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_DeleteVertexShader
 // ******************************************************************
-OOVPA_NO_XREF(X_D3DDevice_DeleteVertexShader, 4134, 6)
+OOVPA_NO_XREF(D3DDevice_DeleteVertexShader, 4134, 6)
 
         { 0x02, 0x24 },
         { 0x06, 0xFF },
@@ -1807,6 +1807,7 @@ OOVPATable D3D8_4134[] = {
 	OOVPA_TABLE_ENTRY(D3DDevice_CreateVertexShader, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_CreateVolumeTexture, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_DeletePixelShader, 4134),
+	OOVPA_TABLE_ENTRY(D3DDevice_DeleteVertexShader, 4134),
 	OOVPA_TABLE_ENTRY(D3DDevice_DrawIndexedVertices, 4034),
 	OOVPA_TABLE_ENTRY(D3DDevice_DrawIndexedVerticesUP, 4134),
 	OOVPA_TABLE_ENTRY(D3DDevice_DrawVertices, 4034),
@@ -1824,6 +1825,7 @@ OOVPATable D3D8_4134[] = {
 	OOVPA_TABLE_ENTRY(D3DDevice_GetTile, 4134),
 	OOVPA_TABLE_ENTRY(D3DDevice_GetTransform, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_GetTransform, 4134),
+	OOVPA_TABLE_ENTRY(D3DDevice_GetVertexShaderSize, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_GetVisibilityTestResult, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_InsertFence, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_IsBusy, 4134),
@@ -1848,6 +1850,7 @@ OOVPATable D3D8_4134[] = {
 	OOVPA_TABLE_ENTRY(D3DDevice_SetPixelShaderConstant, 4134),
 	OOVPA_TABLE_ENTRY(D3DDevice_SetRenderState_BackFillMode, 4134),
 	OOVPA_TABLE_ENTRY(D3DDevice_SetRenderState_CullMode, 4034),
+	OOVPA_TABLE_ENTRY(D3DDevice_SetRenderState_CullMode, 4134),
 	OOVPA_TABLE_ENTRY(D3DDevice_SetRenderState_DoNotCullUncompressed, 4134),
 	//OOVPA_TABLE_ENTRY(D3DDevice_SetRenderState_Dxt1NoiseEnable, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_SetRenderState_Dxt1NoiseEnable, 4134),
@@ -1922,11 +1925,8 @@ OOVPATable D3D8_4134[] = {
 	OOVPA_TABLE_ENTRY(Lock2DSurface, 3925),
 
 	OOVPA_TABLE_PATCH(D3DDevice_KickOff, 4134, D3DDevice_KickOff),
-	OOVPA_TABLE_PATCH(D3DDevice_SetRenderState_CullModeB, 4134, D3DDevice_SetRenderState_CullMode),
 	OOVPA_TABLE_PATCH(D3DDevice_SetTile, 4134, D3DDevice_SetTileNoWait),
-	//OOVPA_TABLE_PATCH(X_D3DDevice_DeleteVertexShader, 3925, D3DDevice_DeleteVertexShader),
-	OOVPA_TABLE_PATCH(X_D3DDevice_DeleteVertexShader, 4134, D3DDevice_DeleteVertexShader),
-	OOVPA_TABLE_PATCH(X_D3DDevice_GetVertexShaderSize, 3925, D3DDevice_GetVertexShaderSize),
+	//	OOVPA_TABLE_ENTRY(D3DDevice_DeleteVertexShader, 3925),
 
 	OOVPA_TABLE_XREF(D3D_SetFence, 4134),
 

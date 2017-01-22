@@ -1341,6 +1341,7 @@ OOVPATable D3D8_5788[] = {
 	OOVPA_TABLE_ENTRY(D3DDevice_Release, 5788),
 	OOVPA_TABLE_ENTRY(D3DDevice_Reset, 4134),
 	OOVPA_TABLE_ENTRY(D3DDevice_RunPushBuffer, 5788),
+	OOVPA_TABLE_ENTRY(D3DDevice_RunVertexStateShader, 4627),
 	OOVPA_TABLE_ENTRY(D3DDevice_SelectVertexShader, 5558),
 	OOVPA_TABLE_ENTRY(D3DDevice_SetBackBufferScale, 5788),
 	OOVPA_TABLE_ENTRY(D3DDevice_SetBackMaterial, 5788),
@@ -1437,7 +1438,6 @@ OOVPATable D3D8_5788[] = {
 
 	OOVPA_TABLE_PATCH(D3DDevice_SetVertexShaderConstant1Fast, 5558, D3DDevice_SetVertexShaderConstant1),
 	OOVPA_TABLE_PATCH(D3DDevice_Swap2, 5788, D3DDevice_Swap),
-	OOVPA_TABLE_PATCH(X_D3DDevice_RunVertexStateShader, 4627, D3DDevice_RunVertexStateShader),
 
 	OOVPA_TABLE_XREF(D3DDevice_BeginStateBig, 5788),
 	OOVPA_TABLE_XREF(D3DDevice_LazySetStateVB, 5558),

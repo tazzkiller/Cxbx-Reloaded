@@ -1155,6 +1155,7 @@ OOVPATable D3D8_4034[] = {
 	OOVPA_TABLE_ENTRY(D3DDevice_CreateVertexBuffer, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_CreateVertexShader, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_CreateVolumeTexture, 3925),
+	OOVPA_TABLE_ENTRY(D3DDevice_DeleteVertexShader, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_DrawIndexedVertices, 4034),
 	OOVPA_TABLE_ENTRY(D3DDevice_DrawRectPatch, 4034),
 	OOVPA_TABLE_ENTRY(D3DDevice_DrawVertices, 4034),
@@ -1163,6 +1164,7 @@ OOVPATable D3D8_4034[] = {
 	OOVPA_TABLE_ENTRY(D3DDevice_GetCreationParameters, 4034),
 	OOVPA_TABLE_ENTRY(D3DDevice_GetDeviceCaps, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_GetGammaRamp, 4034),
+	OOVPA_TABLE_ENTRY(D3DDevice_GetVertexShaderSize, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_GetViewport, 4034),
 	OOVPA_TABLE_ENTRY(D3DDevice_GetVisibilityTestResult, 3925),
 	OOVPA_TABLE_ENTRY(D3DDevice_LightEnable, 4034),
@@ -1218,9 +1220,6 @@ OOVPATable D3D8_4034[] = {
 	OOVPA_TABLE_ENTRY(D3D_SetPushBufferSize, 4034),
 	OOVPA_TABLE_ENTRY(Get2DSurfaceDesc, 4034),
 	OOVPA_TABLE_ENTRY(Lock2DSurface, 3925),
-
-	OOVPA_TABLE_PATCH(X_D3DDevice_DeleteVertexShader, 3925, D3DDevice_DeleteVertexShader),
-	OOVPA_TABLE_PATCH(X_D3DDevice_GetVertexShaderSize, 3925, D3DDevice_GetVertexShaderSize),
 
 	// OOVPA_TABLE_ENTRY(D3DDevice_DeletePatch, 4034),
 };
