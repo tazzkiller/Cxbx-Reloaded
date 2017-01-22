@@ -44,7 +44,9 @@
 #include "HLEDataBase.h"
 #include "HLEIntercept.h"
 
+
 static void *EmuLocateFunction(OOVPA *Oovpa, uint32 lower, uint32 upper);
+static void *EmuLocateFunctionNew(int buildVersion, void *patch, uint32 lower, uint32 upper);
 static void  EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader);
 static void  EmuXRefFailure();
 
@@ -318,18 +320,7 @@ void EmuHLEIntercept(Xbe::LibraryVersion *pLibraryVersion, Xbe::Header *pXbeHead
 
 				if(bXRefFirstPass)
                 {
-                    if(strcmp(Lib_XAPILIB, szLibraryName) == 0 && 
-                        (BuildVersion == 3911 || BuildVersion == 4034 || BuildVersion == 4134 || BuildVersion == 4361
-                      || BuildVersion == 4432 || BuildVersion == 4627 || BuildVersion == 5233 || BuildVersion == 5558
-                      || BuildVersion == 5788 || BuildVersion == 5849))
-                    {
-                        uint32 lower = pXbeHeader->dwBaseAddr;
-                        uint32 upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
-                    }
-                    else if(strcmp(Lib_D3D8, szLibraryName) == 0 /*&& strcmp(Lib_D3D8LTCG, szOrigLibraryName)*/ && 
-                        (BuildVersion == 3925 || BuildVersion == 4134 || BuildVersion == 4361 || BuildVersion == 4432
-                      || BuildVersion == 4627 || BuildVersion == 5233 || BuildVersion == 5558 || BuildVersion == 5788
-                      || BuildVersion == 5849))
+					if(strcmp(Lib_D3D8, szLibraryName) == 0)
                     {
 						// Save D3D8 build version
 						g_BuildVersion = BuildVersion;
@@ -337,17 +328,21 @@ void EmuHLEIntercept(Xbe::LibraryVersion *pLibraryVersion, Xbe::Header *pXbeHead
 
                         uint32 lower = pXbeHeader->dwBaseAddr;
                         uint32 upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
-
-                        void *pFunc = nullptr;
-
-                        if(BuildVersion == 3925)
-                            pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_3925, lower, upper);
-                        else if(BuildVersion < 5233)
-                            pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_4034, lower, upper);
-                        else
-                            pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_5233, lower, upper);
-
-                        // locate D3DDeferredRenderState
+						void *pFunc;
+/*						
+						// improve overall detection results by first looking for a few significant symbols
+						pFunc = EmuLocateFunctionNew(
+							BuildVersion,
+							&(XTL::EMUPATCH(D3D_BlockOnTime)),
+							lower,
+							upper);
+*/
+						// derive D3DDeferredRenderState from D3DDevice_SetRenderState_CullMode
+						pFunc = EmuLocateFunctionNew(
+							BuildVersion, 
+							&(XTL::EMUPATCH(D3DDevice_SetRenderState_CullMode)),
+							lower,
+							upper);
                         if(pFunc != nullptr)
                         {
                             // offset for stencil cull enable render state in the deferred render state buffer
@@ -406,42 +401,33 @@ void EmuHLEIntercept(Xbe::LibraryVersion *pLibraryVersion, Xbe::Header *pXbeHead
                             CxbxKrnlCleanup("EmuD3DDeferredRenderState was not found!");
                         }
 
-                        // locate D3DDeferredTextureState
+						// derive D3DDeferredTextureState from D3DDevice_SetTextureState_TexCoordIndex
+                        pFunc = EmuLocateFunctionNew(
+							BuildVersion, 
+							&(XTL::EMUPATCH(D3DDevice_SetTextureState_TexCoordIndex)),
+							lower,
+							upper);
+                        if(pFunc != nullptr)
                         {
-                            pFunc = nullptr;
-
-                            if(BuildVersion == 3925)
-                                pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_3925, lower, upper);
+                            if(BuildVersion == 3925) // 0x18F180
+                                XTL::EmuD3DDeferredTextureState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x11) - 0x70); // TODO: Verify
                             else if(BuildVersion == 4134)
-                                pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4134, lower, upper);
-                            else if(BuildVersion == 4361 || BuildVersion == 4432)
-                                pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4361, lower, upper);
-                            else if(BuildVersion == 4627 || BuildVersion == 5233 || BuildVersion == 5558 || BuildVersion == 5788
-                                 || BuildVersion == 5849)
-                                pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4627, lower, upper);
-
-                            if(pFunc != nullptr)
-                            {
-                                if(BuildVersion == 3925) // 0x18F180
-                                    XTL::EmuD3DDeferredTextureState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x11) - 0x70); // TODO: Verify
-                                else if(BuildVersion == 4134)
-                                    XTL::EmuD3DDeferredTextureState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x18) - 0x70); // TODO: Verify
-                                else
-                                    XTL::EmuD3DDeferredTextureState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x19) - 0x70);
-
-                                for(int s=0;s<4;s++)
-                                {
-                                    for(int v=0;v<32;v++)
-                                        XTL::EmuD3DDeferredTextureState[v+s*32] = X_D3DTSS_UNK;
-                                }
-
-                                DbgPrintf("HLE: 0x%.08X -> EmuD3DDeferredTextureState\n", XTL::EmuD3DDeferredTextureState);
-                            }
+                                XTL::EmuD3DDeferredTextureState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x18) - 0x70); // TODO: Verify
                             else
+                                XTL::EmuD3DDeferredTextureState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x19) - 0x70);
+
+                            for(int s=0;s<4;s++)
                             {
-                                XTL::EmuD3DDeferredTextureState = nullptr;
-                                CxbxKrnlCleanup("EmuD3DDeferredTextureState was not found!");
+                                for(int v=0;v<32;v++)
+                                    XTL::EmuD3DDeferredTextureState[v+s*32] = X_D3DTSS_UNK;
                             }
+
+                            DbgPrintf("HLE: 0x%.08X -> EmuD3DDeferredTextureState\n", XTL::EmuD3DDeferredTextureState);
+                        }
+                        else
+                        {
+                            XTL::EmuD3DDeferredTextureState = nullptr;
+                            CxbxKrnlCleanup("EmuD3DDeferredTextureState was not found!");
                         }
                     }
 					//else if(strcmp(Lib_D3D8LTCG, szLibraryName) == 0 &&
@@ -707,6 +693,29 @@ static void *EmuLocateFunction(OOVPA *Oovpa, uint32 lower, uint32 upper)
 
 	// found nothing
     return nullptr;
+}
+
+static void *EmuLocateFunctionNew(int buildVersion, void *patch, uint32 lower, uint32 upper)
+{
+	void *result;
+	OOVPA *best;
+	OOVPA *next;
+
+	GetPatchOOVPAs(buildVersion, patch, &best, &next);
+
+	if (best) {
+		result = EmuLocateFunction(best, lower, upper);
+		if (result)
+			return result;
+	}
+
+	if (next) {
+		result = EmuLocateFunction(next, lower, upper);
+		if (result)
+			return result;
+	}
+	
+	return nullptr;
 }
 
 // install function interception wrappers

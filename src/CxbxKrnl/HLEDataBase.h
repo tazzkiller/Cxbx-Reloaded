@@ -345,4 +345,6 @@ enum XRefDataBaseOffset
 // ******************************************************************
 extern uint32 XRefDataBase[XREF_COUNT];
 
+void GetPatchOOVPAs(int buildVersion, void *patch, OOVPA **best, OOVPA **next);
+
 #endif /*HLEDATABASE_H*/
