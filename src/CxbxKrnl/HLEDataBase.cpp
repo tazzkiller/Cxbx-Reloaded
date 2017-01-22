@@ -77,6 +77,7 @@ const char *Lib_XONLINES = "XONLINES";
 #include "HLEDataBase/D3D8.1.0.5788.inl"
 #include "HLEDataBase/D3D8.1.0.5849.inl"
 #include "HLEDataBase/D3D8LTCG.1.0.5849.inl"
+#include "HLEDataBase/D3D8.inl"
 #include "HLEDataBase/DSound.1.0.3936.inl"
 #include "HLEDataBase/DSound.1.0.4134.inl"
 #include "HLEDataBase/DSound.1.0.4361.inl"

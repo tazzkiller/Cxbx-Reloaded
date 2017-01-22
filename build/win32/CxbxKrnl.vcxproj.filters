@@ -403,6 +403,7 @@
       <Filter>HLEDatabase</Filter>
     </None>
     <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.5788.inl" />
+    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.inl" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="HLEDatabase">
