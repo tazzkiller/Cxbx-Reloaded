@@ -185,7 +185,7 @@ void GetPatchOOVPAs(int buildVersion, void *patch, OOVPA **best, OOVPA **next)
 	*next = nullptr;
 	int nextVersionDelta = MAXINT;
 
-	for (int i = 0; i < D3D8_ALL_SIZE; i++) {
+	for (uint i = 0; i < D3D8_ALL_SIZE; i++) {
 		// only consider OOVPATable entries that apply to indicated patch :
 		if ((D3D8_ALL[i].lpRedirect == patch)
 			// skip LTCG and/or Disabled entries :
@@ -206,7 +206,7 @@ void GetPatchOOVPAs(int buildVersion, void *patch, OOVPA **best, OOVPA **next)
 				// don't offer an alternative if the new best match is exact :
 				if (currVersionDelta == 0) {
 					*next = nullptr;
-					exit;
+					break;
 				}
 				// remember the delta's to compare with other entries
 				nextVersionDelta = bestVersionDelta;
