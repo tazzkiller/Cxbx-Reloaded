@@ -46,8 +46,10 @@
 
 
 static void *EmuLocateFunction(OOVPA *Oovpa, uint32 lower, uint32 upper);
-static void *EmuLocateFunctionNew(int buildVersion, void *patch, uint32 lower, uint32 upper);
-static void  EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader);
+static void *EmuLocateFunctionNew(uint16 *buildVersion, void *patch, uint32 lower, uint32 upper);
+static void  HLEScanInSection(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::SectionHeader *pSectionHeader);
+static void  HLEScanInEntireXbe(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader);
+static void  EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, uint32 lower, uint32 upper);
 static void  EmuXRefFailure();
 
 #include <shlobj.h>
@@ -73,6 +75,64 @@ bool bLLE_JIT = false; // Set this to true for experimental JIT
 bool bXRefFirstPass; // For search speed optimization, set in EmuHLEIntercept, read in EmuLocateFunction
 uint32 UnResolvedXRefs; // Tracks XRef location, used (read/write) in EmuHLEIntercept and EmuLocateFunction
 
+void HLEGetCacheFileName(Xbe::Certificate *pCertificate, char *szCacheFileName)
+{
+	SHGetSpecialFolderPath(NULL, szCacheFileName, CSIDL_APPDATA, TRUE);
+	strcat(szCacheFileName, "\\Cxbx-Reloaded\\");
+
+	CreateDirectory(szCacheFileName, NULL);
+	char *spot = strrchr(szCacheFileName, '\\');
+
+	// create HLECache directory
+	strcpy(spot, "\\HLECache");
+	CreateDirectory(szCacheFileName, NULL);
+
+	// open title's cache file
+	sprintf(spot + 9, "\\%08x.dat", pCertificate->dwTitleId);
+}
+
+boolean HLEInitializeCacheFile(char *szCacheFileName)
+{
+	bool result = false;
+	FILE *pCacheFile = fopen(szCacheFileName, "rb");
+	if (pCacheFile != NULL)
+	{
+		bool bVerified = false;
+
+		// verify last compiled timestamp
+		char szCacheLastCompileTime[64];
+		memset(szCacheLastCompileTime, 0, 64);
+		if (fread(szCacheLastCompileTime, 64, 1, pCacheFile) == 1)
+		{
+			if (strcmp(szCacheLastCompileTime, szHLELastCompileTime) == 0)
+				bVerified = true;
+		}
+
+		// load function addresses
+		if (bVerified)
+		{
+			while (true)
+			{
+				void *cur;
+				if (fread(&cur, 4, 1, pCacheFile) != 1)
+					break;
+
+				vCacheInp.push_back(cur);
+			}
+
+			bCacheInp = true;
+			vCacheInpIter = vCacheInp.begin();
+			result = true;
+		}
+
+		fclose(pCacheFile);
+	}
+
+	return result;
+}
+
+void HLEUpdateCacheFile(char *szCacheFileName); // forward
+
 void EmuHLEIntercept(Xbe::LibraryVersion *pLibraryVersion, Xbe::Header *pXbeHeader)
 {
     Xbe::Certificate *pCertificate = (Xbe::Certificate*)pXbeHeader->dwCertificateAddr;
@@ -85,109 +145,29 @@ void EmuHLEIntercept(Xbe::LibraryVersion *pLibraryVersion, Xbe::Header *pXbeHead
     DbgPrintf("*******************************************************************************\n");
     DbgPrintf("\n");
 
-    //
-    // initialize HLE cache file
-    //
+	HLEGetCacheFileName(pCertificate, &szCacheFileName[0]);
+	if (HLEInitializeCacheFile(&szCacheFileName[0]))
+		DbgPrintf("HLE: Loaded HLE Cache for 0x%.08X\n", pCertificate->dwTitleId);
 
-	{
-		SHGetSpecialFolderPath(NULL, szCacheFileName, CSIDL_APPDATA, TRUE);
-
-		strcat(szCacheFileName, "\\Cxbx-Reloaded\\");
-
-		CreateDirectory(szCacheFileName, NULL);
-
-		char *spot = strrchr(szCacheFileName, '\\');
-
-		//
-		// create HLECache directory
-		//
-
-		strcpy(spot, "\\HLECache");
-
-		CreateDirectory(szCacheFileName, NULL);
-		
-		//
-        // open title's cache file
-        //
-		sprintf(spot+9, "\\%08x.dat", pCertificate->dwTitleId);
-
-        FILE *pCacheFile = fopen(szCacheFileName, "rb");
-
-        if(pCacheFile != NULL)
-        {
-            bool bVerified = false;
-
-            //
-            // verify last compiled timestamp
-            //
-
-            char szCacheLastCompileTime[64];
-
-            memset(szCacheLastCompileTime, 0, 64);
-
-            if(fread(szCacheLastCompileTime, 64, 1, pCacheFile) == 1)
-            {
-                if(strcmp(szCacheLastCompileTime, szHLELastCompileTime) == 0)
-                {
-                    bVerified = true;
-                }
-            }
-
-            //
-            // load function addresses
-            //
-
-            if(bVerified)
-            {
-                while(true)
-                {
-                    void *cur;
-
-                    if(fread(&cur, 4, 1, pCacheFile) != 1)
-                        break;
-
-                    vCacheInp.push_back(cur);
-                }
-
-                bCacheInp = true;
-
-                vCacheInpIter = vCacheInp.begin();
-
-                DbgPrintf("HLE: Loaded HLE Cache for 0x%.08X\n", pCertificate->dwTitleId);
-            }
-
-            fclose(pCacheFile);
-        }
-    }
-
-	//
     // initialize Microsoft XDK emulation
-    //
 
     if(pLibraryVersion != 0)
-    {
+	{
         DbgPrintf("HLE: Detected Microsoft XDK application...\n");
-
 		UnResolvedXRefs = XREF_COUNT; // = sizeof(XRefDataBase) / sizeof(uint32)
 
-        uint32 dwLibraryVersions = pXbeHeader->dwLibraryVersions;
+		uint32 dwLibraryVersions = pXbeHeader->dwLibraryVersions;
         uint32 LastUnResolvedXRefs = UnResolvedXRefs+1;
         uint32 OrigUnResolvedXRefs = UnResolvedXRefs;
-
 		bool bFoundD3D = false;
 
 		bXRefFirstPass = true; // Set to false for search speed optimization
-
 		memset((void*)XRefDataBase, XREF_UNKNOWN, sizeof(XRefDataBase));
-
-
-		for(int p=0;UnResolvedXRefs < LastUnResolvedXRefs;p++)
+		for(int p=0; UnResolvedXRefs < LastUnResolvedXRefs; p++)
         {
             DbgPrintf("HLE: Starting pass #%d...\n", p+1);
-
             LastUnResolvedXRefs = UnResolvedXRefs;
-
-            for(uint32 v=0;v<dwLibraryVersions;v++)
+            for(uint32 v=0; v<dwLibraryVersions; v++)
             {
                 uint16 BuildVersion = pLibraryVersion[v].wBuildVersion;
                 uint16 OrigBuildVersion = BuildVersion;
@@ -318,8 +298,21 @@ void EmuHLEIntercept(Xbe::LibraryVersion *pLibraryVersion, Xbe::Header *pXbeHead
 					//		BuildVersion = 3911;
 				}
 
+				Xbe::SectionHeader * AssociatedSection = nullptr;
 				if(bXRefFirstPass)
                 {
+					// For first pass, search for a section with the first 3 characters as the library
+					// (in practise, this will find section D3D, D3DX and DSOUND, mostly) :
+					AssociatedSection = (Xbe::SectionHeader *)pXbeHeader->dwSectionHeadersAddr;
+					for (uint s = 0; strncmp((char *)AssociatedSection->dwSectionNameAddr, szLibraryName, 3) != 0; s++) {
+						if (s >= pXbeHeader->dwSections) {
+							AssociatedSection = nullptr;
+							break;
+						}
+
+						AssociatedSection++;
+					}
+
 					if(strcmp(Lib_D3D8, szLibraryName) == 0)
                     {
 						// Save D3D8 build version
@@ -328,6 +321,12 @@ void EmuHLEIntercept(Xbe::LibraryVersion *pLibraryVersion, Xbe::Header *pXbeHead
 
                         uint32 lower = pXbeHeader->dwBaseAddr;
                         uint32 upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
+						if (AssociatedSection != nullptr) {
+							// If we found an associated section for this library, scan only in that address range :
+							lower = AssociatedSection->dwVirtualAddr;
+							upper = lower + AssociatedSection->dwVirtualSize;
+						}
+
 						void *pFunc;
 /*						
 						// improve overall detection results by first looking for a few significant symbols
@@ -336,10 +335,11 @@ void EmuHLEIntercept(Xbe::LibraryVersion *pLibraryVersion, Xbe::Header *pXbeHead
 							&(XTL::EMUPATCH(D3D_BlockOnTime)),
 							lower,
 							upper);
+						BuildVersion = g_BuildVersion; // restore after use
 */
 						// derive D3DDeferredRenderState from D3DDevice_SetRenderState_CullMode
 						pFunc = EmuLocateFunctionNew(
-							BuildVersion, 
+							&BuildVersion, 
 							&(XTL::EMUPATCH(D3DDevice_SetRenderState_CullMode)),
 							lower,
 							upper);
@@ -394,16 +394,17 @@ void EmuHLEIntercept(Xbe::LibraryVersion *pLibraryVersion, Xbe::Header *pXbeHead
 
                             DbgPrintf("HLE: 0x%.08X -> EmuD3DDeferredRenderState\n", XTL::EmuD3DDeferredRenderState);
 							//DbgPrintf("HLE: 0x%.08X -> XREF_D3DRS_ROPZCMPALWAYSREAD\n", XRefDataBase[XREF_D3DRS_ROPZCMPALWAYSREAD] );
-                        }
+						}
                         else
                         {
                             XTL::EmuD3DDeferredRenderState = nullptr;
                             CxbxKrnlCleanup("EmuD3DDeferredRenderState was not found!");
                         }
+						BuildVersion = g_BuildVersion; // restore after use
 
 						// derive D3DDeferredTextureState from D3DDevice_SetTextureState_TexCoordIndex
                         pFunc = EmuLocateFunctionNew(
-							BuildVersion, 
+							&BuildVersion, 
 							&(XTL::EMUPATCH(D3DDevice_SetTextureState_TexCoordIndex)),
 							lower,
 							upper);
@@ -429,7 +430,9 @@ void EmuHLEIntercept(Xbe::LibraryVersion *pLibraryVersion, Xbe::Header *pXbeHead
                             XTL::EmuD3DDeferredTextureState = nullptr;
                             CxbxKrnlCleanup("EmuD3DDeferredTextureState was not found!");
                         }
-                    }
+
+						BuildVersion = g_BuildVersion; // restore after use
+					}
 					//else if(strcmp(Lib_D3D8LTCG, szLibraryName) == 0 &&
      //                   (BuildVersion == 5849))	// 5849 only so far...
      //               {
@@ -524,7 +527,10 @@ void EmuHLEIntercept(Xbe::LibraryVersion *pLibraryVersion, Xbe::Header *pXbeHead
 
 				if (FoundHLEData) {
 					if (g_bPrintfOn) printf("Found\n");
-					EmuInstallWrappers(FoundHLEData->OovpaTable, FoundHLEData->OovpaTableSize, pXbeHeader);
+					if (AssociatedSection != nullptr)
+						HLEScanInSection(FoundHLEData->OovpaTable, FoundHLEData->OovpaTableSize, AssociatedSection);
+					else
+						HLEScanInEntireXbe(FoundHLEData->OovpaTable, FoundHLEData->OovpaTableSize, pXbeHeader);
 				} else {
 					if (g_bPrintfOn) printf("Skipped\n");
 				}
@@ -539,50 +545,39 @@ void EmuHLEIntercept(Xbe::LibraryVersion *pLibraryVersion, Xbe::Header *pXbeHead
 
     vCacheInp.clear();
 
-    //
-    // update cache file
-    //
-/* Turn of the nasty HLE cacheing (When you are adding oovaps anyway), it's in dire need of a better file identify system
-    if(vCacheOut.size() > 0)
-    {
-        FILE *pCacheFile = fopen(szCacheFileName, "wb");
-
-        if(pCacheFile != NULL)
-        {
-            DbgPrintf("HLE: Saving HLE Cache for 0x%.08X...\n", pCertificate->dwTitleId);
-
-            //
-            // write last compiled timestamp
-            //
-
-            char szCacheLastCompileTime[64];
-
-            memset(szCacheLastCompileTime, 0, 64);
-
-            strcpy(szCacheLastCompileTime, szHLELastCompileTime);
-
-            fwrite(szCacheLastCompileTime, 64, 1, pCacheFile);
-
-            //
-            // write function addresses
-            //
-
-            std::vector<void*>::const_iterator cur;
-
-            for(cur = vCacheOut.begin();cur != vCacheOut.end(); ++cur)
-            {
-                fwrite(&(*cur), 4, 1, pCacheFile);
-            }
-        }
-
-        fclose(pCacheFile);
-    }
-*/
-    vCacheOut.clear();
+	HLEUpdateCacheFile(szCacheFileName);
 
     DbgPrintf("\n");
 
     return;
+}
+
+void HLEUpdateCacheFile(char *szCacheFileName)
+{
+/* Turn of the nasty HLE cacheing (When you are adding oovaps anyway), it's in dire need of a better file identify system
+	if(vCacheOut.size() > 0)
+	{
+		FILE *pCacheFile = fopen(szCacheFileName, "wb");
+		if(pCacheFile != NULL)
+		{
+			DbgPrintf("HLE: Saving HLE Cache for 0x%.08X...\n", pCertificate->dwTitleId);
+			// write last compiled timestamp
+			char szCacheLastCompileTime[64];
+			memset(szCacheLastCompileTime, 0, 64);
+			strcpy(szCacheLastCompileTime, szHLELastCompileTime);
+			fwrite(szCacheLastCompileTime, 64, 1, pCacheFile);
+			// write function addresses
+			std::vector<void*>::const_iterator cur;
+			for(cur = vCacheOut.begin();cur != vCacheOut.end(); ++cur)
+			{
+				fwrite(&(*cur), 4, 1, pCacheFile);
+			}
+		}
+
+		fclose(pCacheFile);
+	}
+*/
+	vCacheOut.clear();
 }
 
 // install function interception wrapper
@@ -624,7 +619,7 @@ static void *EmuLocateFunction(OOVPA *Oovpa, uint32 lower, uint32 upper)
 		upper -= Offset;
 	}
 
-	// search all of the image memory
+	// search on all locations in the given address range
 	for (uint32 cur = lower; cur < upper; cur++)
 	{
 		uint32 v; // verification counter
@@ -695,35 +690,52 @@ static void *EmuLocateFunction(OOVPA *Oovpa, uint32 lower, uint32 upper)
     return nullptr;
 }
 
-static void *EmuLocateFunctionNew(int buildVersion, void *patch, uint32 lower, uint32 upper)
+static void *EmuLocateFunctionNew(uint16 *buildVersion, void *patch, uint32 lower, uint32 upper)
 {
 	void *result;
-	OOVPA *best;
-	OOVPA *next;
+	OOVPATable *best;
+	OOVPATable *next;
 
-	GetPatchOOVPAs(buildVersion, patch, &best, &next);
+	GetPatchOOVPAs(*buildVersion, patch, &best, &next);
 
 	if (best) {
-		result = EmuLocateFunction(best, lower, upper);
-		if (result)
+		result = EmuLocateFunction(best->Oovpa, lower, upper);
+		if (result) {
+			*buildVersion = best->Version;
 			return result;
+		}
 	}
 
 	if (next) {
-		result = EmuLocateFunction(next, lower, upper);
-		if (result)
+		result = EmuLocateFunction(next->Oovpa, lower, upper);
+		if (result) {
+			*buildVersion = next->Version;
 			return result;
+		}
 	}
 	
 	return nullptr;
 }
 
-// install function interception wrappers
-static void EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader)
+static void HLEScanInSection(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::SectionHeader *pSectionHeader)
+{
+	uint32 lower = pSectionHeader->dwVirtualAddr;
+	uint32 upper = pSectionHeader->dwVirtualAddr + pSectionHeader->dwVirtualSize;
+
+	EmuInstallWrappers(OovpaTable, OovpaTableSize, lower, upper);
+}
+
+static void HLEScanInEntireXbe(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader)
 {
     uint32 lower = pXbeHeader->dwBaseAddr;
     uint32 upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
 
+	EmuInstallWrappers(OovpaTable, OovpaTableSize, lower, upper);
+}
+
+// install function interception wrappers
+static void EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, uint32 lower, uint32 upper)
+{
     // traverse the full OOVPA table
     for(uint32 a=0;a<OovpaTableSize/sizeof(OOVPATable);a++)
     {

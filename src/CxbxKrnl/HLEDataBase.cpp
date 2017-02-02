@@ -177,7 +177,7 @@ const HLEData HLEDataBase[] =
 	HLE_ENTRY(Lib_XACTENG, XactEng, 4627),
 };
 
-void GetPatchOOVPAs(int buildVersion, void *patch, OOVPA **best, OOVPA **next)
+void GetPatchOOVPAs(int buildVersion, void *patch, OOVPATable **best, OOVPATable **next)
 {
 	*best = nullptr;
 	int bestVersionDelta = MAXINT;
@@ -186,17 +186,17 @@ void GetPatchOOVPAs(int buildVersion, void *patch, OOVPA **best, OOVPA **next)
 	int nextVersionDelta = MAXINT;
 
 	for (uint i = 0; i < D3D8_ALL_SIZE; i++) {
+		OOVPATable *curr = &(D3D8_ALL[i]);
 		// only consider OOVPATable entries that apply to indicated patch :
-		if ((D3D8_ALL[i].lpRedirect == patch)
+		if ((curr->lpRedirect == patch)
 			// skip LTCG and/or Disabled entries :
-			&& (D3D8_ALL[i].Flags == 0))
+			&& (curr->Flags == 0)) // Flag_IsLTCG and Flag_IsDisabled must not be set
 		{
-			OOVPA *curr = D3D8_ALL[i].Oovpa;
 			// TODO : Decide what's better :
 			// an OOVPA from a version below desired (even though with a larger delta)?
 			// or an OOVPA with a smaller delta (but from a version above desired)?
 			// For now, just use smallest delta (as that's easier to implement) :
-			int currVersionDelta = abs((int)(D3D8_ALL[i].Version) - buildVersion);
+			int currVersionDelta = abs((int)(curr->Version) - buildVersion);
 
 			// is the current entry better than what we've seen upto now?
 			if (bestVersionDelta > currVersionDelta) {
