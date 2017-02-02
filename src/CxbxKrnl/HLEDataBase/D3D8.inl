@@ -899,4 +899,4 @@ OOVPATable D3D8_ALL[] = {
 // ******************************************************************
 // * D3D8_ALL_SIZE
 // ******************************************************************
-uint32 D3D8_ALL_SIZE = sizeof(D3D8_ALL);
+uint32 D3D8_ALL_SIZE = sizeof(D3D8_ALL) / sizeof(OOVPATable);
