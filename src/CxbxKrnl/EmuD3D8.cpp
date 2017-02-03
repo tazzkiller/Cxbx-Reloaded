@@ -107,7 +107,7 @@ static XTL::D3DCAPS8                g_D3DCaps;              // Direct3D8 Caps
 static int                          g_iWireframe    = 0;
 
 // build version
-extern uint32						g_BuildVersion;
+extern uint16						g_BuildVersion;
 
 // resource caching for _Register
 static XTL::X_D3DResource pCache[16] = {0};

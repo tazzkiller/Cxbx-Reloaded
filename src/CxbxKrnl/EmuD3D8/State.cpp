@@ -43,8 +43,8 @@
 DWORD *XTL::EmuD3DDeferredRenderState;
 DWORD *XTL::EmuD3DDeferredTextureState;
 
-extern uint32 g_BuildVersion;
-extern uint32 g_OrigBuildVersion;
+extern uint16 g_BuildVersion;
+extern uint16 g_OrigBuildVersion;
 
 // ******************************************************************
 // * patch: UpdateDeferredStates

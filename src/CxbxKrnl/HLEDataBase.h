@@ -98,6 +98,32 @@ extern const char *Lib_XNETS;
 extern const char *Lib_XONLINE; // TODO : Typo for XONLINES?
 extern const char *Lib_XONLINES;
 
+enum KnownLibrary {
+	_UnknownLibrary = -1,
+	CalcSig = 0,
+	D3D8,
+	D3D8LTCG,
+	D3DX8,
+	DMUSIC,
+	DSOUND,
+	LIBC,
+	LIBCMT,
+	LIBCPMT,
+	XACTENG,
+	XAPILIB,
+	XBOXKRNL,
+	XGRAPHC,
+	XMV,
+	XMVDEC,
+	XNETS,
+	XONLINE, // TODO : Typo for XONLINES?
+	XONLINES,
+	XVOICE,
+	KnownLibrariesCount
+};
+
+extern const char *KnownLibraryNames[];
+
 // ******************************************************************
 // * HLEDataBase
 // ******************************************************************

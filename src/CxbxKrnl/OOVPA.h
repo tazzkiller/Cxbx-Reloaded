@@ -182,7 +182,7 @@ struct OOVPATable
 };
 
 const uint16_t Flag_IsLTCG = 1; // Indicates an entry that registers an LTCG OOVPA
-const uint16_t Flag_IsDisabled = 2; // Indicates an entry that's currently disabled
+const uint16_t Flag_DontScan = 2; // Indicates an entry that's currently disabled and thus shouldn't be searched for
 const uint16_t Flag_Reserved = 4;
 
 #if _DEBUG_TRACE
@@ -234,7 +234,7 @@ const uint16_t Flag_Reserved = 4;
 
 #define DISABLED /* registration is (temporarily) disabled by a flag */
 #define REGISTER_OOVPA_DISABLED(Symbol, Version, ...) \
-	OOVPA_TABLE_ENTRY_FULL(Symbol, XTL::EMUPATCH(Symbol), #Symbol ## "_" ## #Version ## " (Disabled)", Version, Flag_IsDisabled)
+	OOVPA_TABLE_ENTRY_FULL(Symbol, XTL::EMUPATCH(Symbol), #Symbol ## "_" ## #Version ## " (Disabled)", Version, Flag_DontScan)
 
 #pragma pack()
 

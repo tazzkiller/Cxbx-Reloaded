@@ -52,6 +52,28 @@ const char *Lib_XNETS = "XNETS";
 const char *Lib_XONLINE = "XONLINE"; // TODO : Typo for XONLINES?
 const char *Lib_XONLINES = "XONLINES";
 
+const char *KnownLibraryNames[] = {
+	"CalcSig",
+	Lib_D3D8,
+	Lib_D3D8LTCG,
+	Lib_D3DX8,
+	"DMUSIC",
+	Lib_DSOUND,
+	"LIBC",
+	"LIBCMT",
+	"LIBCPMT",
+	Lib_XACTENG,
+	Lib_XAPILIB,
+	"XBOXKRNL",
+	Lib_XGRAPHC,
+	"XMV",
+	"XMVDEC",
+	Lib_XNETS,
+	Lib_XONLINE,
+	Lib_XONLINES,
+	"XVOICE",
+};
+
 #include "Emu.h"
 #include "EmuXTL.h"
 #include "HLEDataBase.h"
@@ -190,7 +212,7 @@ void GetPatchOOVPAs(int buildVersion, void *patch, OOVPATable **best, OOVPATable
 		// only consider OOVPATable entries that apply to indicated patch :
 		if ((curr->lpRedirect == patch)
 			// skip LTCG and/or Disabled entries :
-			&& (curr->Flags == 0)) // Flag_IsLTCG and Flag_IsDisabled must not be set
+			&& (curr->Flags == 0)) // Flag_IsLTCG and Flag_DontScan must not be set
 		{
 			// TODO : Decide what's better :
 			// an OOVPA from a version below desired (even though with a larger delta)?
