@@ -39,18 +39,18 @@
 // ******************************************************************
 // * Take THIS C++ !!
 // ******************************************************************
-template <class BaseClass, typename MFT> inline void *MFPtoFP( MFT pMemFunc)
+template <class BaseClass, typename MFT> inline void *MFPtoFP(MFT pMemFunc)
 {
-    union
-    {
-        MFT pMemFunc;
-        void (*pFunc)();
-    }
-    ThisConv;
+	union
+	{
+		MFT pMemFunc;
+		void(*pFunc)();
+	}
+	ThisConv;
 
-    ThisConv.pMemFunc = pMemFunc;
+	ThisConv.pMemFunc = pMemFunc;
 
-    return ThisConv.pFunc;
+	return ThisConv.pFunc;
 }
 
 #pragma pack(1)
@@ -172,11 +172,11 @@ OOVPA_XREF(Name, Version, Count, XRefNoSaveIndex, XRefZero)
 // ******************************************************************
 struct OOVPATable
 {
-    OOVPA *Oovpa;
-    void  *lpRedirect;
-    #ifdef _DEBUG_TRACE
-    char  *szFuncName;
-    #endif
+	OOVPA *Oovpa;
+	void  *lpRedirect;
+#ifdef _DEBUG_TRACE
+	char  *szFuncName;
+#endif
 	uint16_t Version : 13; // 2^13 = 8192, enough to store lowest and higest possible Library Version number in
 	uint16_t Flags : 3;
 };
