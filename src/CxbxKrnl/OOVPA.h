@@ -173,7 +173,7 @@ OOVPA_XREF(Name, Version, Count, XRefNoSaveIndex, XRefZero)
 struct OOVPATable
 {
 	OOVPA *Oovpa;
-	void  *lpRedirect; // TODO : Rename to emuPatch
+	void  *emuPatch;
 #ifdef _DEBUG_TRACE
 	char  *szFuncName;
 #endif

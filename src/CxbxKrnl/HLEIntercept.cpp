@@ -61,7 +61,7 @@ static void  EmuXRefFailure();
 #include <vector>
 
 uint32 fcount = 0;
-uint32 funcExclude[2048] = {0};
+void *funcExclude[2048] = {nullptr};
 
 uint16 g_BuildVersion;
 uint16 g_OrigBuildVersion;
@@ -327,6 +327,8 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 						SectionToScan++;
 					}
 
+					SectionToScan = nullptr; // test: does the no-section specific scanning still work?
+
 					if (curr_lib == KnownLibrary::D3D8)
 					{
 						// Save D3D8 build version
@@ -456,6 +458,8 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 				}
 
 				DbgPrintf("HLE: * Searching HLE database for %s version 1.0.%d... ", szLibraryName, BuildVersion);
+
+				ConsolidatedRegistrations = nullptr; // test: does the old scanning still work? Answer : No.
 
 				if (ConsolidatedRegistrations != nullptr) {
 					// TODO : Once all databases are consolidated, this will be the only type of scanning
@@ -611,6 +615,15 @@ static boolean CheckOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
 	return true;
 }
 
+static boolean IsOovpaAlreadyLocated(OOVPA *Oovpa)
+{
+	if (Oovpa->XRefSaveIndex > XRefNoSaveIndex)
+		if (XRefDataBase[Oovpa->XRefSaveIndex] != 0)
+			return true;
+
+	return false;
+}
+
 static uint32 GetHighestOovpaOffset(OOVPA *Oovpa)
 {
 	uint32 Offset;
@@ -667,28 +680,93 @@ static void *NewEmuLocateFunction(OOVPATable *OovpaTable, uint32 OovpaTableSize,
 	return nullptr;
 }
 
+#define C 1500
+	OOVPA *filtered_oovpa_best[C];
+	OOVPA *filtered_oovpa_next[C];
+	void *filtered_oovpa_patch[C];
+
 static void NewEmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, uint32 lower, uint32 upper)
 {
-	// TODO : Reduce the OovpaTable to version-relevant Oovpa's only.
-	//int16_t buildVersion = g_BuildVersion;
+	// Reduce the OovpaTable to version-relevant Oovpa's only
+	int16_t buildVersion = g_BuildVersion;
+	OOVPATable *active_patch = &(OovpaTable[0]);
+	uint32 active_index = 0;
+	uint32 filtered_count = 0;
+	OOVPATable *current_patch = nullptr;
+	for (uint32 a = 0; a < OovpaTableSize + 1; a++) // 1 entry extra, to handle last stretch
+	{
+		boolean handle_stretch;
+
+		if (a == OovpaTableSize)
+			handle_stretch = true; // always handle last entry
+		else
+		{
+			current_patch = &(OovpaTable[a]);
+			handle_stretch = (current_patch->emuPatch != active_patch->emuPatch);
+		}
+
+		if (handle_stretch)
+		{
+			OOVPATable *best, *next;
+
+			GetPatchOOVPAs(active_patch, a - active_index, buildVersion, active_patch->emuPatch, &best, &next);
+			if (best == nullptr)
+				filtered_oovpa_best[filtered_count] = nullptr;
+			else
+				filtered_oovpa_best[filtered_count] = best->Oovpa;
+
+			if (next == nullptr)
+				filtered_oovpa_next[filtered_count] = nullptr;
+			else
+				filtered_oovpa_next[filtered_count] = next->Oovpa;
+
+			filtered_oovpa_patch[filtered_count] = active_patch->emuPatch;
+			filtered_count++;
+
+			active_index = a;
+			active_patch = current_patch;
+		}
+	}
+
+	// TODO : Prioritize the filtered OOVPA's, for example sorted on size (~= GetHighestOovpaOffset)
 
 	// search on all locations in the given address range
 	for (xbaddr cur = lower; cur < upper; cur++)
 	{
-		// traverse the full OOVPA table
-		for (uint32 a = 0; a<OovpaTableSize; a++)
+		// traverse the filtered OOVPAs
+		for (uint32 a = 0; a<filtered_count; a++)
 		{	
-			OOVPA *Oovpa = OovpaTable[a].Oovpa;
+			OOVPA *Oovpa = filtered_oovpa_best[a];
+
+			if (IsOovpaAlreadyLocated(Oovpa))
+			{
+				cur += GetHighestOovpaOffset(Oovpa);
+				cur--; // correct outer for loop
+				break; // inner for loop
+			}
+
 			if (CheckOOVPAToAddress(Oovpa, cur)) {
-				if (OovpaTable[a].lpRedirect != nullptr)
-				{
-					EmuInstallWrapper((void*)cur, OovpaTable[a].lpRedirect);
-					funcExclude[fcount++] = (uint32)cur;
-				}
+				if (filtered_oovpa_patch[a] != nullptr)
+					EmuInstallWrapper((void*)cur, filtered_oovpa_patch[a]);
 
 				cur += GetHighestOovpaOffset(Oovpa);
 				cur--; // correct outer for loop
 				break; // inner for loop
+			}
+
+			// try the next-best Oovpa version :
+			Oovpa = filtered_oovpa_next[a];
+			if (Oovpa != nullptr)
+			{
+				// IsOovpaAlreadyLocated is already checked in best version, wont differ here
+				if (CheckOOVPAToAddress(Oovpa, cur)) {
+					if (filtered_oovpa_patch[a] != nullptr)
+						EmuInstallWrapper((void*)cur, filtered_oovpa_patch[a]);
+
+					cur += GetHighestOovpaOffset(Oovpa);
+					cur--; // correct outer for loop
+					break; // inner for loop
+				}
 			}
 		}
 	}
@@ -752,7 +830,7 @@ static void EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, ui
             DbgPrintf("HLE: 0x%.08X -> %s\n", pFunc, OovpaTable[a].szFuncName);
             #endif
 
-            if(OovpaTable[a].lpRedirect == nullptr)
+            if(OovpaTable[a].emuPatch == nullptr)
             {
 				// No patch, XRef-only OOVPA - for now, patch it as a failure
 				// TODO : if (OovpaTable[a].Flags & Flag_FailIfCalled)
@@ -764,8 +842,8 @@ static void EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, ui
             }
             else
             {
-                EmuInstallWrapper(pFunc, OovpaTable[a].lpRedirect);
-                funcExclude[fcount++] = (uint32)pFunc;
+                EmuInstallWrapper(pFunc, OovpaTable[a].emuPatch);
+                funcExclude[fcount++] = (void *)pFunc;
             }
         }
     }
@@ -928,7 +1006,7 @@ void VerifyHLEDataEntry(HLEVerifyContext *context, const OOVPATable *table, uint
 	if (context->against == nullptr) {
 		context->main_index = index;
 		// does this entry specify a redirection (patch)?
-		void * entry_redirect = table[index].lpRedirect;
+		void * entry_redirect = table[index].emuPatch;
 		if (entry_redirect != nullptr) {
 			if (table[index].Oovpa == nullptr) {
 				HLEError(context, "Patch without an OOVPA at index %d",
@@ -936,7 +1014,7 @@ void VerifyHLEDataEntry(HLEVerifyContext *context, const OOVPATable *table, uint
 			} else
 				// check no patch occurs twice in this table
 				for (uint32 t = index + 1; t < count; t++) {
-					if (entry_redirect == table[t].lpRedirect) {
+					if (entry_redirect == table[t].emuPatch) {
 						if (table[index].Oovpa == table[t].Oovpa) {
 							HLEError(context, "Patch registered again (with same OOVPA) at index %d",
 								t);

@@ -225,7 +225,7 @@ void GetPatchOOVPAs(OOVPATable *database, uint32 databaseSize, int buildVersion,
 	for (uint32 i = 0; i < databaseSize; i++) {
 		OOVPATable *curr = &(database[i]);
 		// only consider OOVPATable entries that apply to indicated patch :
-		if ((curr->lpRedirect == patch)
+		if ((curr->emuPatch == patch)
 			// skip LTCG and/or Disabled entries :
 			&& (curr->Flags == 0)) // Flag_IsLTCG and Flag_DontScan must not be set
 		{
