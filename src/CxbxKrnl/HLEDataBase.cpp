@@ -39,6 +39,8 @@
 #undef FIELD_OFFSET     // prevent macro redefinition warnings
 #include <windows.h>
 
+#include "CxbxKrnl.h" // For xbaddr
+
 extern "C" const char *szHLELastCompileTime = __TIMESTAMP__;
 
 const char *Lib_D3D8 = "D3D8";
@@ -199,7 +201,20 @@ const HLEData HLEDataBase[] =
 	HLE_ENTRY(Lib_XACTENG, XactEng, 4627),
 };
 
-void GetPatchOOVPAs(int buildVersion, void *patch, OOVPATable **best, OOVPATable **next)
+OOVPATable *GetConsolidatedOOVPATable(KnownLibrary lib, uint32 *size)
+{
+	switch (lib)
+	{
+	case D3D8: {
+		*size = D3D8_ALL_SIZE;
+		return &(D3D8_ALL[0]);
+	}
+	default:			
+		return nullptr;
+	}
+}
+
+void GetPatchOOVPAs(OOVPATable *database, uint32 databaseSize, int buildVersion, void *patch, OOVPATable **best, OOVPATable **next)
 {
 	*best = nullptr;
 	int bestVersionDelta = MAXINT;
@@ -207,8 +222,8 @@ void GetPatchOOVPAs(int buildVersion, void *patch, OOVPATable **best, OOVPATable
 	*next = nullptr;
 	int nextVersionDelta = MAXINT;
 
-	for (uint i = 0; i < D3D8_ALL_SIZE; i++) {
-		OOVPATable *curr = &(D3D8_ALL[i]);
+	for (uint32 i = 0; i < databaseSize; i++) {
+		OOVPATable *curr = &(database[i]);
 		// only consider OOVPATable entries that apply to indicated patch :
 		if ((curr->lpRedirect == patch)
 			// skip LTCG and/or Disabled entries :
@@ -251,4 +266,4 @@ extern const uint32 HLEDataBaseCount = sizeof(HLEDataBase) / sizeof(HLEData);
 // ******************************************************************
 // * XRefDataBase
 // ******************************************************************
-extern uint32 XRefDataBase[XREF_COUNT] = { 0 }; // Reset and populated by EmuHLEIntercept
+extern xbaddr XRefDataBase[XREF_COUNT] = { 0 }; // Reset and populated by EmuHLEIntercept

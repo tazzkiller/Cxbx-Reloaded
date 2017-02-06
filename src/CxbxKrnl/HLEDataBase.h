@@ -124,6 +124,8 @@ enum KnownLibrary {
 
 extern const char *KnownLibraryNames[];
 
+OOVPATable *GetConsolidatedOOVPATable(KnownLibrary lib, uint32 *size);
+
 // ******************************************************************
 // * HLEDataBase
 // ******************************************************************
@@ -147,7 +149,8 @@ extern const uint32 HLEDataBaseCount;
 // ******************************************************************
 enum XRefDataBaseOffset
 {
-    XREF_D3DDEVICE=0,
+	XREF_UNKNOWN = XRefNoSaveIndex, // = 0
+	XREF_D3DDEVICE,
     XREF_DXSRSCULLMODE,
     XREF_D3DRS_MULTISAMPLEMODE,
     XREF_D3DRS_MULTISAMPLERENDERTARGETMODE,
@@ -364,13 +367,11 @@ enum XRefDataBaseOffset
 	// Also, if XREF_COUNT > sizeof(byte), enlarge struct OOVPA.XRefSaveIndex (and Value somehow)
 };
 
-#define XREF_UNKNOWN -1
-
 // ******************************************************************
 // * XRefDataBase
 // ******************************************************************
-extern uint32 XRefDataBase[XREF_COUNT];
+extern xbaddr XRefDataBase[XREF_COUNT];
 
-void GetPatchOOVPAs(int buildVersion, void *patch, OOVPATable **best, OOVPATable **next);
+void GetPatchOOVPAs(OOVPATable *database, uint32 databaseSize, int buildVersion, void *patch, OOVPATable **best, OOVPATable **next);
 
 #endif /*HLEDATABASE_H*/

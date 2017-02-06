@@ -83,7 +83,7 @@ struct OOVPA
 	// This OOVPA field (uint08 XRefSaveIndex) contains either an
 	// XREF_* enum value, or the XRefNoSaveIndex marker when there's
 	// no XREF_* enum defined for this OOVPA.
-	uint08 XRefSaveIndex;
+	uint08 XRefSaveIndex; // Stores XRefDataBaseOffset
 
 	// This OOVPA field (uint08 XRefCount) contains the number of
 	// {Offset, XREF_*-enum}-pairs that come before all other
@@ -115,13 +115,13 @@ struct OOVPA
 // This XRefNoSaveIndex constant, when set in the OOVPA.XRefSaveIndex
 // field, functions as a marker indicating there's no XREF_* enum
 // defined for the OOVPA.
-const uint08 XRefNoSaveIndex = (uint08)-1;
+const uint08 XRefNoSaveIndex = (uint08)0;
 
-// This XRefZero constant, when set in the OOVPA.XRefSaveIndex field,
+// This XRefZero constant, when set in the OOVPA.XRefCount field,
 // indicates there are no {offset, XREF_*-enum} present in the OOVPA.
 const uint08 XRefZero = (uint08)0;
 
-// This XRefOne constant, when set in the OOVPA.XRefSaveIndex field,
+// This XRefOne constant, when set in the OOVPA.XRefCount field,
 // indicates the OOVPA contains one (1) {offset, XREF_* enum} pair.
 const uint08 XRefOne = (uint08)1;
 
@@ -173,7 +173,7 @@ OOVPA_XREF(Name, Version, Count, XRefNoSaveIndex, XRefZero)
 struct OOVPATable
 {
 	OOVPA *Oovpa;
-	void  *lpRedirect;
+	void  *lpRedirect; // TODO : Rename to emuPatch
 #ifdef _DEBUG_TRACE
 	char  *szFuncName;
 #endif
