@@ -61,7 +61,7 @@ static void  EmuXRefFailure();
 #include <vector>
 
 uint32 fcount = 0;
-void *funcExclude[2048] = {nullptr};
+void * funcExclude[2048] = { nullptr };
 
 uint16 g_BuildVersion;
 uint16 g_OrigBuildVersion;
@@ -843,7 +843,7 @@ static void EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, ui
             else
             {
                 EmuInstallWrapper(pFunc, OovpaTable[a].emuPatch);
-                funcExclude[fcount++] = (void *)pFunc;
+                funcExclude[fcount++] = pFunc;
             }
         }
     }
