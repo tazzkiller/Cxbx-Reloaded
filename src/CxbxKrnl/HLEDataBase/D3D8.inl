@@ -826,9 +826,9 @@ OOVPATable D3D8_ALL[] = {
 	REGISTER_OOVPA(D3DVertexBuffer_Lock2, 5849, PATCH),
 	REGISTER_OOVPA(D3DVolumeTexture_LockBox, 3925, PATCH),
 	REGISTER_OOVPA(D3DVolumeTexture_LockBox, 4627, PATCH),
-	REGISTER_OOVPA(D3D_AllocContiguousMemory, 3925, PATCH),
-	REGISTER_OOVPA(D3D_AllocContiguousMemory, 5788, PATCH),
-	REGISTER_OOVPA(D3D_AllocContiguousMemory, 5849, PATCH),
+	REGISTER_OOVPA(D3D_AllocContiguousMemory, 3925, DISABLED), // Just calls MmAllocateContiguousMemory. Was PATCH
+	REGISTER_OOVPA(D3D_AllocContiguousMemory, 5788, DISABLED), // Just calls MmAllocateContiguousMemory. Was PATCH
+	REGISTER_OOVPA(D3D_AllocContiguousMemory, 5849, DISABLED), // Just calls MmAllocateContiguousMemory. Was PATCH
 	REGISTER_OOVPA(D3D_BlockOnResource, 3925, PATCH),
 	REGISTER_OOVPA(D3D_BlockOnResource, 5558, PATCH), // Was XREF only
 	REGISTER_OOVPA(D3D_BlockOnTime, 3925, PATCH),
