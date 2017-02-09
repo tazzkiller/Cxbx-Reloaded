@@ -13,7 +13,9 @@ Cxbx-Reloaded is still pretty unstable, don't expect it to run much at this poin
 ## Bug Reports
 Cxbx-Reloaded is in the early stages right now and most games will either crash or do nothing, please do not submit issues for these games. 
 
-I want to know what games actually do something, so if a game displays graphics before crashing, please submit a bug reports containing the error message displayed (if any), screenshots and an Xbe dump (This can be created via [Edit -> Dump Xbe Info To -> File]).
+We want to know what games actually do something, so if a game displays graphics before crashing, please submit a bug reports containing the error message displayed (if any), screenshots and an Xbe dump (This can be created via [Edit -> Dump Xbe Info To -> File]).
+
+[![Gitter](https://img.shields.io/gitter/room/gitterHQ/gitter.svg)](https://gitter.im/Cxbx-Reloaded/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Screenshot Gallery
 http://imgur.com/a/Bzvti
