@@ -45,15 +45,15 @@
 #include "HLEIntercept.h"
 
 
-static void *EmuLocateFunction(OOVPA *Oovpa, uint32 lower, uint32 upper);
+static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper);
 static void  HLEScanInSection(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::SectionHeader *pSectionHeader);
 static void  HLEScanInEntireXbe(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader);
-static void  EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, uint32 lower, uint32 upper);
+static void  EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, xbaddr lower, xbaddr upper);
 
-static void *NewEmuLocateFunction(OOVPATable *OovpaTable, uint32 OovpaTableSize, uint16 *buildVersion, void *patch, uint32 lower, uint32 upper);
+static xbaddr NewEmuLocateFunction(OOVPATable *OovpaTable, uint32 OovpaTableSize, uint16 *buildVersion, void *patch, xbaddr lower, xbaddr upper);
 static void  NewHLEScanInSection(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::SectionHeader *pSectionHeader);
 static void  NewHLEScanInEntireXbe(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader);
-static void  NewEmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, uint32 lower, uint32 upper);
+static void  NewEmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, xbaddr lower, xbaddr upper);
 
 static void  EmuXRefFailure();
 
@@ -61,16 +61,16 @@ static void  EmuXRefFailure();
 #include <vector>
 
 uint32 fcount = 0;
-void *funcExclude[2048] = {nullptr};
+void * funcExclude[2048] = { nullptr };
 
 uint16 g_BuildVersion;
 uint16 g_OrigBuildVersion;
 
-static std::vector<void *> vCacheOut;
+static std::vector<xbaddr> vCacheOut;
 
 static bool bCacheInp = false;
-static std::vector<void *> vCacheInp;
-static std::vector<void*>::const_iterator vCacheInpIter;
+static std::vector<xbaddr> vCacheInp;
+static std::vector<xbaddr>::const_iterator vCacheInpIter;
 
 
 bool bLLE_APU = false; // Set this to true for experimental APU (sound) LLE
@@ -118,7 +118,7 @@ boolean HLEInitializeCacheFile(char *szCacheFileName)
 		{
 			while (true)
 			{
-				void *cur;
+					xbaddr cur;
 				if (fread(&cur, 4, 1, pCacheFile) != 1)
 					break;
 
@@ -170,7 +170,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 	if (pLibraryVersion != nullptr)
 	{
         DbgPrintf("HLE: Detected Microsoft XDK application...\n");
-		UnResolvedXRefs = XREF_COUNT; // = sizeof(XRefDataBase) / sizeof(uint32)
+		UnResolvedXRefs = XREF_COUNT; // = sizeof(XRefDataBase) / sizeof(xbaddr)
 
 		uint32 dwLibraryVersions = pXbeHeader->dwLibraryVersions;
         uint32 LastUnResolvedXRefs = UnResolvedXRefs+1;
@@ -178,7 +178,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 		bool bFoundD3D = false;
 
 		bXRefFirstPass = true; // Set to false for search speed optimization
-		memset((void*)XRefDataBase, 0, sizeof(XRefDataBase));
+		memset((void*)XRefDataBase, XREF_ADDR_UNDETERMINED, sizeof(XRefDataBase));
 		for(int p=0; UnResolvedXRefs < LastUnResolvedXRefs; p++)
         {
             DbgPrintf("HLE: Starting pass #%d...\n", p+1);
@@ -335,15 +335,15 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 						g_BuildVersion = BuildVersion;
 						g_OrigBuildVersion = OrigBuildVersion;
 
-						uint32 lower = pXbeHeader->dwBaseAddr;
-						uint32 upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
+						xbaddr lower = pXbeHeader->dwBaseAddr;
+						xbaddr upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
 						if (SectionToScan != nullptr) {
 							// If we found an associated section for this library, scan only in that address range :
 							lower = SectionToScan->dwVirtualAddr;
 							upper = lower + SectionToScan->dwVirtualSize;
 						}
 
-						void *pFunc;
+						xbaddr pFunc = (xbaddr)nullptr;
 /*
 						// improve overall detection results by first looking for a few significant symbols
 						pFunc = EmuLocateFunctionNew(
@@ -362,49 +362,49 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 							&(XTL::EMUPATCH(D3DDevice_SetRenderState_CullMode)),
 							lower,
 							upper);
-						if (pFunc != nullptr)
+                        if(pFunc != (xbaddr)nullptr)
 						{
 							// offset for stencil cull enable render state in the deferred render state buffer
 							int patchOffset = 0;
 
 							if (BuildVersion == 3925)
 							{
-								XTL::EmuD3DDeferredRenderState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x25) - 0x1FC + 82 * 4);  // TODO: Clean up (?)
+								XTL::EmuD3DDeferredRenderState = (DWORD*)(*(DWORD*)(pFunc + 0x25) - 0x1FC + 82*4);  // TODO: Clean up (?)
 								patchOffset = 142 * 4 - 82 * 4; // TODO: Verify
 
-								//XTL::EmuD3DDeferredRenderState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x25) - 0x19F + 72*4);  // TODO: Clean up (?)
+								//XTL::EmuD3DDeferredRenderState = (DWORD*)(*(DWORD*)(pFunc + 0x25) - 0x19F + 72*4);  // TODO: Clean up (?)
 								//patchOffset = 142*4 - 72*4; // TODO: Verify
 							}
 							else if (BuildVersion == 4034 || BuildVersion == 4134)
 							{
-								XTL::EmuD3DDeferredRenderState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x2B) - 0x248 + 82 * 4);  // TODO: Verify
+                                XTL::EmuD3DDeferredRenderState = (DWORD*)(*(DWORD*)(pFunc + 0x2B) - 0x248 + 82*4);  // TODO: Verify
 								patchOffset = 142 * 4 - 82 * 4;
 							}
 							else if (BuildVersion == 4361)
 							{
-								XTL::EmuD3DDeferredRenderState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x2B) - 0x200 + 82 * 4);
+                                XTL::EmuD3DDeferredRenderState = (DWORD*)(*(DWORD*)(pFunc + 0x2B) - 0x200 + 82*4);
 								patchOffset = 142 * 4 - 82 * 4;
 							}
 							else if (BuildVersion == 4432)
 							{
-								XTL::EmuD3DDeferredRenderState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x2B) - 0x204 + 83 * 4);
+                                XTL::EmuD3DDeferredRenderState = (DWORD*)(*(DWORD*)(pFunc + 0x2B) - 0x204 + 83*4);
 								patchOffset = 143 * 4 - 83 * 4;
 							}
 							else if (BuildVersion == 4627 || BuildVersion == 5233 || BuildVersion == 5558 || BuildVersion == 5788
 								|| BuildVersion == 5849)
 							{
 								// WARNING: Not thoroughly tested (just seemed very correct right away)
-								XTL::EmuD3DDeferredRenderState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x2B) - 0x24C + 92 * 4);
+                                XTL::EmuD3DDeferredRenderState = (DWORD*)(*(DWORD*)(pFunc + 0x2B) - 0x24C + 92*4);
 								patchOffset = 162 * 4 - 92 * 4;
 							}
 
 							XRefDataBase[XREF_D3DDEVICE] = *(DWORD*)((DWORD)pFunc + 0x03);
-							XRefDataBase[XREF_D3DRS_MULTISAMPLEMODE] = (uint32)XTL::EmuD3DDeferredRenderState + patchOffset - 8 * 4;
-							XRefDataBase[XREF_D3DRS_MULTISAMPLERENDERTARGETMODE] = (uint32)XTL::EmuD3DDeferredRenderState + patchOffset - 7 * 4;
-							XRefDataBase[XREF_D3DRS_STENCILCULLENABLE] = (uint32)XTL::EmuD3DDeferredRenderState + patchOffset + 0 * 4;
-							XRefDataBase[XREF_D3DRS_ROPZCMPALWAYSREAD] = (uint32)XTL::EmuD3DDeferredRenderState + patchOffset + 1 * 4;
-							XRefDataBase[XREF_D3DRS_ROPZREAD] = (uint32)XTL::EmuD3DDeferredRenderState + patchOffset + 2 * 4;
-							XRefDataBase[XREF_D3DRS_DONOTCULLUNCOMPRESSED] = (uint32)XTL::EmuD3DDeferredRenderState + patchOffset + 3 * 4;
+                            XRefDataBase[XREF_D3DRS_MULTISAMPLEMODE]       = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset - 8*4;
+                            XRefDataBase[XREF_D3DRS_MULTISAMPLERENDERTARGETMODE] = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset - 7*4;
+                            XRefDataBase[XREF_D3DRS_STENCILCULLENABLE]     = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset + 0*4;
+                            XRefDataBase[XREF_D3DRS_ROPZCMPALWAYSREAD]     = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset + 1*4;
+                            XRefDataBase[XREF_D3DRS_ROPZREAD]              = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset + 2*4;
+                            XRefDataBase[XREF_D3DRS_DONOTCULLUNCOMPRESSED] = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset + 3*4;
 
 							for (int v = 0; v < 44; v++)
 							{
@@ -430,14 +430,14 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 							&(XTL::EMUPATCH(D3DDevice_SetTextureState_TexCoordIndex)),
 							lower,
 							upper);
-						if (pFunc != nullptr)
+						if (pFunc != (xbaddr)nullptr)
 						{
 							if (BuildVersion == 3925) // 0x18F180
-								XTL::EmuD3DDeferredTextureState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x11) - 0x70); // TODO: Verify
+								XTL::EmuD3DDeferredTextureState = (DWORD*)(*(DWORD*)(pFunc + 0x11) - 0x70); // TODO: Verify
 							else if (BuildVersion == 4134)
-								XTL::EmuD3DDeferredTextureState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x18) - 0x70); // TODO: Verify
+								XTL::EmuD3DDeferredTextureState = (DWORD*)(*(DWORD*)(pFunc + 0x18) - 0x70); // TODO: Verify
 							else
-								XTL::EmuD3DDeferredTextureState = (DWORD*)(*(DWORD*)((uint32)pFunc + 0x19) - 0x70);
+								XTL::EmuD3DDeferredTextureState = (DWORD*)(*(DWORD*)(pFunc + 0x19) - 0x70);
 
 							for (int s = 0; s < 4; s++)
 							{
@@ -541,53 +541,57 @@ void HLEUpdateCacheFile(char *szCacheFileName)
 }
 
 // install function interception wrapper
-static inline void EmuInstallWrapper(void *FunctionAddr, void *WrapperAddr)
+static inline void EmuInstallPatch(xbaddr FunctionAddr, void *Patch)
 {
     uint08 *FuncBytes = (uint08*)FunctionAddr;
 
-    *(uint08*)&FuncBytes[0] = 0xE9; // = opcode for JMP rel32 (Jump near, relative, displacement relative to next instruction)
-    *(uint32*)&FuncBytes[1] = (uint32)WrapperAddr - (uint32)FunctionAddr - 5;
+	*(uint08*)&FuncBytes[0] = OPCODE_JMP_E9; // = opcode for JMP rel32 (Jump near, relative, displacement relative to next instruction)
+    *(uint32*)&FuncBytes[1] = (uint32)Patch - FunctionAddr - 5;
 }
 
 static inline void GetOovpaEntry(OOVPA *oovpa, int index, OUT uint32 &offset, OUT uint08 &value)
 {
-	if (oovpa->Type == Large) {
-		offset = (uint32) ((LOOVPA<1>*)oovpa)->Lovp[index].Offset;
-		value = ((LOOVPA<1>*)oovpa)->Lovp[index].Value;
-	}
-	else {
-		offset = (uint32) ((SOOVPA<1>*)oovpa)->Sovp[index].Offset;
-		value = ((SOOVPA<1>*)oovpa)->Sovp[index].Value;
-	}
+	offset = (uint32)((LOOVPA<1>*)oovpa)->Lovp[index].Offset;
+	value = ((LOOVPA<1>*)oovpa)->Lovp[index].Value;
 }
 
-static boolean CheckOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
+static inline void GetXRefEntry(OOVPA *oovpa, int index, OUT uint32 &xref, OUT uint08 &offset)
 {
-	uint32 Offset;
-	uint08 ExpectedValue;
+	// Note : These are stored swapped by the XREF_ENTRY macro, hence this difference from GetOovpaEntry :
+	xref = (uint32)((LOOVPA<1>*)oovpa)->Lovp[index].Offset;
+	offset = ((LOOVPA<1>*)oovpa)->Lovp[index].Value;
+}
 
+static boolean CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
+{
 	// Check all (Offset,Value)-pairs, stop if any does not match
 	for (uint32 v = 0; v < Oovpa->Count; v++)
 	{
-		// get offset + value pair
-		GetOovpaEntry(Oovpa, v, Offset, ExpectedValue);
-
 		// Is this an xref?
 		if (v < Oovpa->XRefCount)
 		{
+			uint32 XRef;
+			uint08 Offset;
+
 			// get currently registered (un)known address
-			xbaddr XRefValue = XRefDataBase[ExpectedValue];
-			// unknown XRef cannot be checked yet
-			if (XRefValue == 0)
+			GetXRefEntry(Oovpa, v, XRef, Offset);
+			xbaddr XRefValue = XRefDataBase[XRef];
+			// Undetermined XRef cannot be checked yet
+			if (XRefValue == XREF_ADDR_UNDETERMINED)
 				return false;
 
-			uint32 ActualValue = *(uint32*)(cur + Offset);
+			xbaddr ActualValue = *(xbaddr*)(cur + Offset);
 			// check if PC-relative or direct reference matches XRef
 			if ((ActualValue + cur + Offset + 4 != XRefValue) && (ActualValue != XRefValue))
 				return false;
 		}
 		else
 		{
+			uint32 Offset;
+			uint08 ExpectedValue;
+
+			// get offset + value pair
+			GetOovpaEntry(Oovpa, v, Offset, ExpectedValue);
 			uint08 ActualValue = *(uint08*)(cur + Offset);
 			if (ActualValue != ExpectedValue)
 				return false;
@@ -598,7 +602,7 @@ static boolean CheckOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
 	if (Oovpa->XRefSaveIndex != XRefNoSaveIndex)
 	{
 		// is the XRef not saved yet?
-		if (XRefDataBase[Oovpa->XRefSaveIndex] == 0)
+		if (XRefDataBase[Oovpa->XRefSaveIndex] == XREF_ADDR_UNDETERMINED)
 		{
 			// save and count the found address
 			UnResolvedXRefs--;
@@ -618,7 +622,7 @@ static boolean CheckOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
 static boolean IsOovpaAlreadyLocated(OOVPA *Oovpa)
 {
 	if (Oovpa->XRefSaveIndex > XRefNoSaveIndex)
-		if (XRefDataBase[Oovpa->XRefSaveIndex] != 0)
+		if (XRefDataBase[Oovpa->XRefSaveIndex] != XREF_ADDR_UNDETERMINED)
 			return true;
 
 	return false;
@@ -634,28 +638,28 @@ static uint32 GetHighestOovpaOffset(OOVPA *Oovpa)
 }
 
 // locate the given function, searching within lower and upper bounds
-static void *EmuLocateFunction(OOVPA *Oovpa, uint32 lower, uint32 upper)
+static xbaddr EmuLocateFunction(OOVPA *Oovpa, uint32 lower, uint32 upper)
 {
     // skip out if this is an unnecessary search
     if(!bXRefFirstPass && Oovpa->XRefCount == XRefZero && Oovpa->XRefSaveIndex == XRefNoSaveIndex)
-        return nullptr;
+        return (xbaddr)nullptr;
 
 	// correct upper bound with highest Oovpa offset
 	upper -= GetHighestOovpaOffset(Oovpa);
 
 	// search on all locations in the given address range
 	for (xbaddr cur = lower; cur < upper; cur++)
-		if (CheckOOVPAToAddress(Oovpa, cur))
+		if (CompareOOVPAToAddress(Oovpa, cur))
 			// return found address
-			return (void*)cur;
+			return cur;
 
 	// found nothing
-    return nullptr;
+    return (xbaddr)nullptr;
 }
 
-static void *NewEmuLocateFunction(OOVPATable *OovpaTable, uint32 OovpaTableSize, uint16 *buildVersion, void *patch, uint32 lower, uint32 upper)
+static xbaddr NewEmuLocateFunction(OOVPATable *OovpaTable, uint32 OovpaTableSize, uint16 *buildVersion, void *patch, uint32 lower, uint32 upper)
 {
-	void *result;
+	xbaddr result;
 	OOVPATable *best;
 	OOVPATable *next;
 
@@ -677,7 +681,7 @@ static void *NewEmuLocateFunction(OOVPATable *OovpaTable, uint32 OovpaTableSize,
 		}
 	}
 	
-	return nullptr;
+	return (xbaddr)nullptr;
 }
 
 #define C 1500
@@ -745,9 +749,9 @@ static void NewEmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize,
 				break; // inner for loop
 			}
 
-			if (CheckOOVPAToAddress(Oovpa, cur)) {
+			if (CompareOOVPAToAddress(Oovpa, cur)) {
 				if (filtered_oovpa_patch[a] != nullptr)
-					EmuInstallWrapper((void*)cur, filtered_oovpa_patch[a]);
+					EmuInstallPatch(cur, filtered_oovpa_patch[a]);
 
 				cur += GetHighestOovpaOffset(Oovpa);
 				cur--; // correct outer for loop
@@ -759,9 +763,9 @@ static void NewEmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize,
 			if (Oovpa != nullptr)
 			{
 				// IsOovpaAlreadyLocated is already checked in best version, wont differ here
-				if (CheckOOVPAToAddress(Oovpa, cur)) {
+				if (CompareOOVPAToAddress(Oovpa, cur)) {
 					if (filtered_oovpa_patch[a] != nullptr)
-						EmuInstallWrapper((void*)cur, filtered_oovpa_patch[a]);
+						EmuInstallPatch(cur, filtered_oovpa_patch[a]);
 
 					cur += GetHighestOovpaOffset(Oovpa);
 					cur--; // correct outer for loop
@@ -774,32 +778,32 @@ static void NewEmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize,
 
 static void  NewHLEScanInSection(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::SectionHeader *pSectionHeader)
 {
-	uint32 lower = pSectionHeader->dwVirtualAddr;
-	uint32 upper = pSectionHeader->dwVirtualAddr + pSectionHeader->dwVirtualSize;
+	xbaddr lower = pSectionHeader->dwVirtualAddr;
+	xbaddr upper = pSectionHeader->dwVirtualAddr + pSectionHeader->dwVirtualSize;
 
 	NewEmuInstallWrappers(OovpaTable, OovpaTableSize, lower, upper);
 }
 
 static void NewHLEScanInEntireXbe(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader)
 {
-	uint32 lower = pXbeHeader->dwBaseAddr;
-	uint32 upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
+	xbaddr lower = pXbeHeader->dwBaseAddr;
+	xbaddr upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
 
 	NewEmuInstallWrappers(OovpaTable, OovpaTableSize, lower, upper);
 }
 
 static void HLEScanInSection(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::SectionHeader *pSectionHeader)
 {
-	uint32 lower = pSectionHeader->dwVirtualAddr;
-	uint32 upper = pSectionHeader->dwVirtualAddr + pSectionHeader->dwVirtualSize;
+	xbaddr lower = pSectionHeader->dwVirtualAddr;
+	xbaddr upper = pSectionHeader->dwVirtualAddr + pSectionHeader->dwVirtualSize;
 
 	EmuInstallWrappers(OovpaTable, OovpaTableSize, lower, upper);
 }
 
 static void HLEScanInEntireXbe(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader)
 {
-    uint32 lower = pXbeHeader->dwBaseAddr;
-    uint32 upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
+    xbaddr lower = pXbeHeader->dwBaseAddr;
+    xbaddr upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
 
 	EmuInstallWrappers(OovpaTable, OovpaTableSize, lower, upper);
 }
@@ -808,10 +812,10 @@ static void HLEScanInEntireXbe(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xb
 static void EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, uint32 lower, uint32 upper)
 {
     // traverse the full OOVPA table
-    for(uint32 a=0;a<OovpaTableSize/sizeof(OOVPATable);a++)
+    for(size_t a=0;a<OovpaTableSize/sizeof(OOVPATable);a++)
     {
         OOVPA *Oovpa = OovpaTable[a].Oovpa;
-        void *pFunc = nullptr;
+        xbaddr pFunc = (xbaddr)nullptr;
 
         if(bCacheInp && (vCacheInpIter != vCacheInp.end()))
         {
@@ -824,7 +828,7 @@ static void EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, ui
             vCacheOut.push_back(pFunc);
         }
 
-        if(pFunc != nullptr)
+        if(pFunc != (xbaddr)nullptr)
         {
             #ifdef _DEBUG_TRACE
             DbgPrintf("HLE: 0x%.08X -> %s\n", pFunc, OovpaTable[a].szFuncName);
@@ -833,16 +837,16 @@ static void EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, ui
             if(OovpaTable[a].emuPatch == nullptr)
             {
 				// No patch, XRef-only OOVPA - for now, patch it as a failure
-				// TODO : if (OovpaTable[a].Flags & Flag_FailIfCalled)
+				if ((OovpaTable[a].Flags & Flag_DontScan) == 0)
 				{
-					// Insert breakpoint
-					*(uint8_t*)pFunc = 0xCC; // = opcode for INT 3 (Interrupt 3 - trap to debugger)
-					EmuInstallWrapper((void*)(((uint32_t)pFunc) + 1), EmuXRefFailure);
+					// Write breakpoint opcode
+					*(uint8_t*)pFunc = OPCODE_INT3_CC; // = opcode for INT 3 (Interrupt 3 - trap to debugger)
+					EmuInstallPatch(pFunc + 1, EmuXRefFailure);
 				}
             }
             else
             {
-                EmuInstallWrapper(pFunc, OovpaTable[a].emuPatch);
+                EmuInstallPatch(pFunc, OovpaTable[a].emuPatch);
                 funcExclude[fcount++] = (void *)pFunc;
             }
         }
@@ -909,8 +913,8 @@ void VerifyHLEOOVPA(HLEVerifyContext *context, OOVPA *oovpa)
 			uint32 curr_offset;
 			GetOovpaEntry(oovpa, p, curr_offset, dummy_value);
 			if (!(curr_offset > prev_offset)) {
-				HLEError(context, "%s[%d] : Offset (0x%x) must be larger then previous offset (0x%x)",
-					(oovpa->Type = Large) ? "Lovp" : "Sovp", p, curr_offset, prev_offset);
+				HLEError(context, "Lovp[%d] : Offset (0x%x) must be larger then previous offset (0x%x)",
+					p, curr_offset, prev_offset);
 			}
 		}
 

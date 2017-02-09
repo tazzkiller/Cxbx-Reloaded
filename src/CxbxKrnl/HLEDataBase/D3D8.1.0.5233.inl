@@ -134,7 +134,7 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_Clear
 // ******************************************************************
-OOVPA_NO_XREF_LARGE(D3DDevice_Clear, 5233, 8)
+OOVPA_NO_XREF(D3DDevice_Clear, 5233, 8)
         { 0x1D, 0x8A },
         { 0x3C, 0x8B },
         { 0x5B, 0x00 },
@@ -929,7 +929,7 @@ OOVPA_XREF(D3DDevice_SetRenderState_MultiSampleRenderTargetMode, 5233, 8,
     XRefNoSaveIndex,
     XRefOne)
 
-        { 0x0B, XREF_D3DRS_MULTISAMPLERENDERTARGETMODE },
+        XREF_ENTRY( 0x0B, XREF_D3DRS_MULTISAMPLERENDERTARGETMODE ),
 
         { 0x03, 0x04 },
         { 0x0F, 0x8B },
@@ -948,7 +948,7 @@ OOVPA_XREF(D3DDevice_SetRenderState_MultiSampleRenderTargetMode, 5344, 8,
     XRefNoSaveIndex,
     XRefOne)
 
-        { 0x0B, XREF_D3DRS_MULTISAMPLERENDERTARGETMODE },
+        XREF_ENTRY( 0x0B, XREF_D3DRS_MULTISAMPLERENDERTARGETMODE ),
 
         { 0x03, 0x04 },
         { 0x0F, 0x8B },
@@ -1002,7 +1002,7 @@ OOVPA_XREF(D3DDevice_InsertFence, 5233, 5,
     XRefNoSaveIndex,
     XRefOne)
 
-        { 0x03, XREF_D3D_SETFENCE },
+        XREF_ENTRY( 0x03, XREF_D3D_SETFENCE ),
 
         { 0x00, 0x6A },
         { 0x01, 0x00 },
@@ -1018,7 +1018,7 @@ OOVPA_XREF(D3DDevice_IsFencePending, 5233, 6,
     XRefNoSaveIndex,
     XRefOne)
 
-        { 0x01, XREF_D3DDEVICE },
+        XREF_ENTRY( 0x01, XREF_D3DDEVICE ),
 
         { 0x07, 0x30 },
         { 0x0A, 0x2C },
@@ -1051,7 +1051,7 @@ OOVPA_XREF(D3DDevice_BlockOnFence, 5233, 6,
     XRefNoSaveIndex,
     XRefOne)
 
-        { 0x08, XREF_D3D_BLOCKONTIME },
+        XREF_ENTRY( 0x08, XREF_D3D_BLOCKONTIME ),
 
         { 0x00, 0x8B },
         { 0x02, 0x24 },
@@ -1668,8 +1668,8 @@ OOVPATable D3D8_5233[] = {
 	REGISTER_OOVPA(D3DDevice_SetFlickerFilter, 5344, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetSoftDisplayFilter, 5233, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetSoftDisplayFilter, 5344, PATCH),
-	// REGISTER_OOVPA(D3DDevice_Unknown1,
-	REGISTER_OOVPA(D3DDevice_SetRenderState_TwoSidedLighting, 4134, PATCH, 5233, ALIAS, D3DDevice_Unknown1), // Beware of the typo...
+	// REGISTER_OOVPA(D3DDevice_Unknown1, 5233, PATCH)
+	REGISTER_OOVPA(D3DDevice_SetRenderState_TwoSidedLighting, 4134, PATCH), // Beware of the typo...
     // ******
     // Duplicate references are normally bad, but this XDK is aliased to XDK 5344
     // until such time as a separate XDK file is generated for 5344, this will have to do
