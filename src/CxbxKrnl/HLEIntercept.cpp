@@ -540,7 +540,6 @@ void HLEUpdateCacheFile(char *szCacheFileName)
 	vCacheOut.clear();
 }
 
-// install function interception wrapper
 static inline void EmuInstallPatch(xbaddr FunctionAddr, void *Patch)
 {
     uint08 *FuncBytes = (uint08*)FunctionAddr;
@@ -549,17 +548,17 @@ static inline void EmuInstallPatch(xbaddr FunctionAddr, void *Patch)
     *(uint32*)&FuncBytes[1] = (uint32)Patch - FunctionAddr - 5;
 }
 
-static inline void GetOovpaEntry(OOVPA *oovpa, int index, OUT uint32 &offset, OUT uint08 &value)
-{
-	offset = (uint32)((LOOVPA<1>*)oovpa)->Lovp[index].Offset;
-	value = ((LOOVPA<1>*)oovpa)->Lovp[index].Value;
-}
-
 static inline void GetXRefEntry(OOVPA *oovpa, int index, OUT uint32 &xref, OUT uint08 &offset)
 {
 	// Note : These are stored swapped by the XREF_ENTRY macro, hence this difference from GetOovpaEntry :
 	xref = (uint32)((LOOVPA<1>*)oovpa)->Lovp[index].Offset;
 	offset = ((LOOVPA<1>*)oovpa)->Lovp[index].Value;
+}
+
+static inline void GetOovpaEntry(OOVPA *oovpa, int index, OUT uint32 &offset, OUT uint08 &value)
+{
+	offset = (uint32)((LOOVPA<1>*)oovpa)->Lovp[index].Offset;
+	value = ((LOOVPA<1>*)oovpa)->Lovp[index].Value;
 }
 
 static boolean CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
@@ -575,14 +574,14 @@ static boolean CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
 
 			// get currently registered (un)known address
 			GetXRefEntry(Oovpa, v, XRef, Offset);
-			xbaddr XRefValue = XRefDataBase[XRef];
+			xbaddr XRefAddr = XRefDataBase[XRef];
 			// Undetermined XRef cannot be checked yet
-			if (XRefValue == XREF_ADDR_UNDETERMINED)
+			if (XRefAddr == XREF_ADDR_UNDETERMINED)
 				return false;
 
-			xbaddr ActualValue = *(xbaddr*)(cur + Offset);
+			xbaddr ActualAddr = *(xbaddr*)(cur + Offset);
 			// check if PC-relative or direct reference matches XRef
-			if ((ActualValue + cur + Offset + 4 != XRefValue) && (ActualValue != XRefValue))
+			if ((ActualAddr + cur + Offset + 4 != XRefAddr) && (ActualAddr != XRefAddr))
 				return false;
 		}
 		else
@@ -618,6 +617,17 @@ static boolean CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
 	// all offsets matched
 	return true;
 }
+
+/*
+static boolean IsXBAddressInExecutable(xbaddr addr)
+{
+	if (addr >= XBOX_BASE_ADDR)
+		if (addr <= EMU_MAX_MEMORY_SIZE) // TODO : Should use actual executable bound, but this upper bound works for now
+			return true;
+
+	return false;
+}
+*/
 
 static boolean IsOovpaAlreadyLocated(OOVPA *Oovpa)
 {
