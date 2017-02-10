@@ -58,7 +58,8 @@ static void  NewEmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize
 static void  EmuXRefFailure();
 
 #include <shlobj.h>
-#include <vector>
+#include <vector> // std::vector
+#include <algorithm> // std::sort
 
 uint32 fcount = 0;
 void * funcExclude[2048] = { nullptr };
@@ -459,7 +460,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 				DbgPrintf("HLE: * Searching HLE database for %s version 1.0.%d... ", szLibraryName, BuildVersion);
 
-				ConsolidatedRegistrations = nullptr; // test: does the old scanning still work? Answer : No.
+				//ConsolidatedRegistrations = nullptr; // test: does the old scanning still work? Answer : No.
 
 				if (ConsolidatedRegistrations != nullptr) {
 					// TODO : Once all databases are consolidated, this will be the only type of scanning
@@ -629,15 +630,6 @@ static boolean IsXBAddressInExecutable(xbaddr addr)
 }
 */
 
-static boolean IsOovpaAlreadyLocated(OOVPA *Oovpa)
-{
-	if (Oovpa->XRefSaveIndex > XRefNoSaveIndex)
-		if (XRefDataBase[Oovpa->XRefSaveIndex] != XREF_ADDR_UNDETERMINED)
-			return true;
-
-	return false;
-}
-
 static uint32 GetHighestOovpaOffset(OOVPA *Oovpa)
 {
 	uint32 Offset;
@@ -694,19 +686,36 @@ static xbaddr NewEmuLocateFunction(OOVPATable *OovpaTable, uint32 OovpaTableSize
 	return (xbaddr)nullptr;
 }
 
-#define C 1500
-	OOVPA *filtered_oovpa_best[C];
-	OOVPA *filtered_oovpa_next[C];
-	void *filtered_oovpa_patch[C];
+struct ScanFor {
+	xbaddr located_at; // TODO : convert to bool[], as that's probably much faster
+	void *patch; // could be nullptr
+	OOVPA *best;
+	int  best_high;
+	OOVPA *next; // could be nullptr
+	int  next_high;
+
+	bool operator < (const ScanFor& other) const
+	{
+		return (best_high > other.best_high) || (next_high > other.next_high);
+	}
+};
+
+//bool operator<(const ScanFor& left, const ScanFor& right)
+//{
+//	return (left.best_high > right.best_high) || (left.next_high > right.next_high);
+//}
 
 static void NewEmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, uint32 lower, uint32 upper)
 {
-	// Reduce the OovpaTable to version-relevant Oovpa's only
 	int16_t buildVersion = g_BuildVersion;
-	OOVPATable *active_patch = &(OovpaTable[0]);
-	uint32 active_index = 0;
-	uint32 filtered_count = 0;
+	size_t stretch_start = 0;
+	void *stretch_patch = OovpaTable[0].emuPatch;
 	OOVPATable *current_patch = nullptr;
+	std::vector<ScanFor> filtered_oovpas(OovpaTableSize); // will always fit
+	bool *filtered_hits = new bool[OovpaTableSize];
+	uint32 filtered_count = 0;
+
+	// Reduce the OovpaTable to version-relevant Oovpa's only
 	for (uint32 a = 0; a < OovpaTableSize + 1; a++) // 1 entry extra, to handle last stretch
 	{
 		boolean handle_stretch;
@@ -716,33 +725,78 @@ static void NewEmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize,
 		else
 		{
 			current_patch = &(OovpaTable[a]);
-			handle_stretch = (current_patch->emuPatch != active_patch->emuPatch);
+			// handle streches of the same emuPatch :
+			handle_stretch = (current_patch->emuPatch != stretch_patch);
 		}
 
-		if (handle_stretch)
-		{
-			OOVPATable *best, *next;
+		if (!handle_stretch)
+			continue;
+		
+		// Set patch already, so active_patch can be reused
+		// (might be previously set, could be set to nullptr - doesn't matter)
+		filtered_oovpas[filtered_count].patch = stretch_patch;
+		// remember new patch, for next stretch
+		stretch_patch = current_patch->emuPatch;
 
-			GetPatchOOVPAs(active_patch, a - active_index, buildVersion, active_patch->emuPatch, &best, &next);
-			if (best == nullptr)
-				filtered_oovpa_best[filtered_count] = nullptr;
-			else
-				filtered_oovpa_best[filtered_count] = best->Oovpa;
+		OOVPATable *best = nullptr;
+		OOVPATable *next = nullptr;
+		int bestVersionDelta = MAXINT;
+		int nextVersionDelta = MAXINT;
 
-			if (next == nullptr)
-				filtered_oovpa_next[filtered_count] = nullptr;
-			else
-				filtered_oovpa_next[filtered_count] = next->Oovpa;
+		for (size_t b = stretch_start; b < a; b++) {
+			current_patch = &(OovpaTable[b]);
+			if ((current_patch->Flags & Flag_DontScan) == 0) { // Flag_IsLTCG and Flag_DontScan must not be set
+					// TODO : Decide what's better :
+					// an OOVPA from a version below desired (even though with a larger delta)?
+					// or an OOVPA with a smaller delta (but from a version above desired)?
+					// For now, just use smallest delta (as that's easier to implement) :
+				int currVersionDelta = abs((int)(current_patch->Version) - buildVersion);
 
-			filtered_oovpa_patch[filtered_count] = active_patch->emuPatch;
-			filtered_count++;
+				// is the current entry better than what we've seen upto now?
+				if (bestVersionDelta > currVersionDelta) {
+					// choose the current entry as the best (and previous best as next-best)
+					next = best;
+					best = current_patch;
+					// don't offer an alternative if the new best match is exact :
+					if (currVersionDelta == 0) {
+						next = nullptr;
+						break;
+					}
 
-			active_index = a;
-			active_patch = current_patch;
+					// remember the delta's to compare with other entries
+					nextVersionDelta = bestVersionDelta;
+					bestVersionDelta = currVersionDelta;
+				}
+				else
+					// is the current entry better than the next-best?
+					if (nextVersionDelta > currVersionDelta) {
+						nextVersionDelta = currVersionDelta;
+						next = current_patch;
+					}
+			}
 		}
+
+		stretch_start = a;
+		if (best == nullptr)
+			continue;
+
+		filtered_oovpas[filtered_count].located_at = 0;
+		filtered_oovpas[filtered_count].best = best->Oovpa;
+		filtered_oovpas[filtered_count].best_high = GetHighestOovpaOffset(best->Oovpa);
+		if (next != nullptr) {
+			filtered_oovpas[filtered_count].next = next->Oovpa;
+			filtered_oovpas[filtered_count].next_high = GetHighestOovpaOffset(next->Oovpa);
+		}
+		else {
+			filtered_oovpas[filtered_count].next = nullptr;
+			filtered_oovpas[filtered_count].next_high = 0;
+		}
+
+		filtered_count++;
 	}
 
-	// TODO : Prioritize the filtered OOVPA's, for example sorted on size (~= GetHighestOovpaOffset)
+	//  Prioritize filtered_oovpas, for example sorted on size (~= GetHighestOovpaOffset)
+// TODO : Get this to work :	std::sort(filtered_oovpas.begin(), filtered_oovpas.end()); // uses operator<
 
 	// search on all locations in the given address range
 	for (xbaddr cur = lower; cur < upper; cur++)
@@ -750,40 +804,44 @@ static void NewEmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize,
 		// traverse the filtered OOVPAs
 		for (uint32 a = 0; a<filtered_count; a++)
 		{	
-			OOVPA *Oovpa = filtered_oovpa_best[a];
+			// Skip the ones that were already located
+			if (filtered_hits[a])
+			//if (filtered_oovpas[a].located_at > 0)
+				continue;
 
-			if (IsOovpaAlreadyLocated(Oovpa))
-			{
-				cur += GetHighestOovpaOffset(Oovpa);
-				cur--; // correct outer for loop
-				break; // inner for loop
-			}
-
+			// first, try the best Oovpa version
+			OOVPA *Oovpa = filtered_oovpas[a].best;
 			if (CompareOOVPAToAddress(Oovpa, cur)) {
-				if (filtered_oovpa_patch[a] != nullptr)
-					EmuInstallPatch(cur, filtered_oovpa_patch[a]);
+				// if found, mark it's location and place the patch if available
+				//filtered_oovpas[a].located_at = cur;
+				filtered_hits[a] = true;
+				if (filtered_oovpas[a].patch != nullptr)
+					EmuInstallPatch(cur, filtered_oovpas[a].patch);
 
-				cur += GetHighestOovpaOffset(Oovpa);
+				// skip over the highest byte offset of this Oovpa
+				cur += filtered_oovpas[a].best_high;
 				cur--; // correct outer for loop
 				break; // inner for loop
 			}
 
 			// try the next-best Oovpa version :
-			Oovpa = filtered_oovpa_next[a];
+			Oovpa = filtered_oovpas[a].next;
 			if (Oovpa != nullptr)
 			{
-				// IsOovpaAlreadyLocated is already checked in best version, wont differ here
 				if (CompareOOVPAToAddress(Oovpa, cur)) {
-					if (filtered_oovpa_patch[a] != nullptr)
-						EmuInstallPatch(cur, filtered_oovpa_patch[a]);
+					//filtered_oovpas[a].located_at = cur;
+					filtered_hits[a] = true;
+					if (filtered_oovpas[a].next != nullptr)
+						EmuInstallPatch(cur, filtered_oovpas[a].patch);
 
-					cur += GetHighestOovpaOffset(Oovpa);
+					cur += filtered_oovpas[a].next_high;
 					cur--; // correct outer for loop
 					break; // inner for loop
 				}
 			}
 		}
 	}
+	delete[] filtered_hits;
 }
 
 static void  NewHLEScanInSection(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::SectionHeader *pSectionHeader)
