@@ -149,6 +149,7 @@ extern const uint32 HLEDataBaseCount;
 // ******************************************************************
 enum XRefDataBaseOffset
 {
+	XREF_UNKNOWN = XRefNoSaveIndex, // = 0
 	XREF_D3DDEVICE,
     XREF_DXSRSCULLMODE,
     XREF_D3DRS_MULTISAMPLEMODE,
