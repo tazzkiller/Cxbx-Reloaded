@@ -115,7 +115,7 @@ const uint16 XRefNoSaveIndex = (uint16)-1;
 // The price to pay for this is that the Offset is stored using 8 bits,
 // meaning that offsets beyond 255 cannot be used, not problem for now.
 #define XREF_ENTRY(Offset, XRef)	\
-	{ XRef, Offset }
+	{ (uint16)XRef, Offset }
 
 // UNUSED Macro for storing a normal (non-XRef) {Offset, Value}-Pair
 // Offsets can go up to 16 bits, values are always one byte (8 bits)
@@ -135,7 +135,7 @@ template <uint16 COUNT> struct LOOVPA
 };
 
 #define OOVPA_XREF(Name, Version, Count, XRefSaveIndex, XRefCount)	\
-LOOVPA<Count> Name##_##Version = { { Count, XRefCount, XRefSaveIndex }, {
+LOOVPA<Count> Name##_##Version = { { Count, XRefCount, (uint16)XRefSaveIndex }, {
 
 #define OOVPA_NO_XREF(Name, Version, Count) \
 OOVPA_XREF(Name, Version, Count, XRefNoSaveIndex, XRefZero)

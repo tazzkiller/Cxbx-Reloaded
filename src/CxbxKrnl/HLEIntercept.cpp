@@ -48,7 +48,7 @@
 static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper);
 static void  HLEScanInSection(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::SectionHeader *pSectionHeader);
 static void  HLEScanInEntireXbe(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader);
-static void  EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, xbaddr lower, xbaddr upper);
+static void  EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, xbaddr lower, xbaddr upper);
 
 static xbaddr NewEmuLocateFunction(OOVPATable *OovpaTable, uint32 OovpaTableSize, uint16 *buildVersion, void *patch, xbaddr lower, xbaddr upper);
 static void  NewHLEScanInSection(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::SectionHeader *pSectionHeader);
@@ -564,60 +564,46 @@ static inline void GetOovpaEntry(OOVPA *oovpa, int index, OUT uint32 &offset, OU
 
 static boolean CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
 {
-	// Check all (Offset,Value)-pairs, stop if any does not match
-	for (uint32 v = 0; v < Oovpa->Count; v++)
+	uint32 v = 0; // verification counter
+
+	// Check all XRefs, stop if any does not match
+	for (; v < Oovpa->XRefCount; v++)
 	{
-		// Is this an xref?
-		if (v < Oovpa->XRefCount)
-		{
-			uint32 XRef;
-			uint08 Offset;
+		uint32 XRef;
+		uint08 Offset;
 
-			// get currently registered (un)known address
-			GetXRefEntry(Oovpa, v, XRef, Offset);
-			xbaddr XRefAddr = XRefDataBase[XRef];
-			// Undetermined XRef cannot be checked yet
-			if (XRefAddr == XREF_ADDR_UNDETERMINED)
-				return false;
+		// get currently registered (un)known address
+		GetXRefEntry(Oovpa, v, XRef, Offset);
+		xbaddr XRefAddr = XRefDataBase[XRef];
+		// Undetermined XRef cannot be checked yet
+		// (EmuLocateFunction already checked this, but this check
+		// is cheap enough to keep, and keep this function generic).
+		if (XRefAddr == XREF_ADDR_UNDETERMINED)
+			return false;
 
-			xbaddr ActualAddr = *(xbaddr*)(cur + Offset);
-			// check if PC-relative or direct reference matches XRef
-			if ((ActualAddr + cur + Offset + 4 != XRefAddr) && (ActualAddr != XRefAddr))
-				return false;
-		}
-		else
-		{
-			uint32 Offset;
-			uint08 ExpectedValue;
-
-			// get offset + value pair
-			GetOovpaEntry(Oovpa, v, Offset, ExpectedValue);
-			uint08 ActualValue = *(uint08*)(cur + Offset);
-			if (ActualValue != ExpectedValue)
-				return false;
-		}
+		xbaddr ActualAddr = *(xbaddr*)(cur + Offset);
+		// check if PC-relative or direct reference matches XRef
+		if ((ActualAddr + cur + Offset + 4 != XRefAddr) && (ActualAddr != XRefAddr))
+			return false;
 	}
 
-	// do we need to save the found address?
-	if (Oovpa->XRefSaveIndex != XRefNoSaveIndex)
+	// Check all (Offset,Value)-pairs, stop if any does not match
+	for (; v < Oovpa->Count; v++)
 	{
-		// is the XRef not saved yet?
-		if (XRefDataBase[Oovpa->XRefSaveIndex] == XREF_ADDR_UNDETERMINED)
-		{
-			// save and count the found address
-			UnResolvedXRefs--;
-			XRefDataBase[Oovpa->XRefSaveIndex] = cur;
-		}
-		else
-		{
-			if (XRefDataBase[Oovpa->XRefSaveIndex] != cur)
-				EmuWarning("Found OOVPA on other address than in XRefDataBase!");
-		}
+		uint32 Offset;
+		uint08 ExpectedValue;
+
+		// get offset + value pair
+		GetOovpaEntry(Oovpa, v, Offset, ExpectedValue);
+		uint08 ActualValue = *(uint08*)(cur + Offset);
+		if (ActualValue != ExpectedValue)
+			return false;
 	}
 
 	// all offsets matched
 	return true;
 }
+
 
 /*
 static boolean IsXBAddressInExecutable(xbaddr addr)
@@ -639,12 +625,47 @@ static uint32 GetHighestOovpaOffset(OOVPA *Oovpa)
 	return Offset;
 }
 
+void StoreOOVPAXRef(OOVPA *Oovpa, xbaddr cur)
+{
+	// do we need to save the found address?
+	if (Oovpa->XRefSaveIndex != XRefNoSaveIndex)
+	{
+		// is the XRef not saved yet?
+		if (XRefDataBase[Oovpa->XRefSaveIndex] == XREF_ADDR_UNDETERMINED)
+		{
+			// save and count the found address
+			UnResolvedXRefs--;
+			XRefDataBase[Oovpa->XRefSaveIndex] = cur;
+		}
+		else
+		{
+			if (XRefDataBase[Oovpa->XRefSaveIndex] != cur)
+				EmuWarning("Found OOVPA on other address than in XRefDataBase!");
+		}
+	}
+}
+
 // locate the given function, searching within lower and upper bounds
-static xbaddr EmuLocateFunction(OOVPA *Oovpa, uint32 lower, uint32 upper)
+static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper)
 {
     // skip out if this is an unnecessary search
     if(!bXRefFirstPass && Oovpa->XRefCount == XRefZero && Oovpa->XRefSaveIndex == XRefNoSaveIndex)
         return (xbaddr)nullptr;
+
+	// Check all XRefs are known (if not, don't do a useless scan) :
+	for (uint32 v = 0; v < Oovpa->XRefCount; v++)
+	{
+		uint32 XRef;
+		uint08 Offset;
+
+		// get currently registered (un)known address
+		GetXRefEntry(Oovpa, v, XRef, Offset);
+		xbaddr XRefAddr = XRefDataBase[XRef];
+		// Undetermined XRef cannot be checked yet
+		if (XRefAddr == XREF_ADDR_UNDETERMINED)
+			// Skip this scan over the address range
+			return (xbaddr)nullptr;
+	}
 
 	// correct upper bound with highest Oovpa offset
 	upper -= GetHighestOovpaOffset(Oovpa);
@@ -652,8 +673,12 @@ static xbaddr EmuLocateFunction(OOVPA *Oovpa, uint32 lower, uint32 upper)
 	// search on all locations in the given address range
 	for (xbaddr cur = lower; cur < upper; cur++)
 		if (CompareOOVPAToAddress(Oovpa, cur))
+		{
+			StoreOOVPAXRef(Oovpa, cur);
+
 			// return found address
 			return cur;
+		}
 
 	// found nothing
     return (xbaddr)nullptr;
@@ -796,7 +821,8 @@ static void NewEmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize,
 	}
 
 	//  Prioritize filtered_oovpas, for example sorted on size (~= GetHighestOovpaOffset)
-// TODO : Get this to work :	std::sort(filtered_oovpas.begin(), filtered_oovpas.end()); // uses operator<
+// TODO : Get this to work :	
+	std::sort(filtered_oovpas.begin(), filtered_oovpas.end()); // uses operator<
 
 	// search on all locations in the given address range
 	for (xbaddr cur = lower; cur < upper; cur++)
@@ -811,7 +837,9 @@ static void NewEmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize,
 
 			// first, try the best Oovpa version
 			OOVPA *Oovpa = filtered_oovpas[a].best;
-			if (CompareOOVPAToAddress(Oovpa, cur)) {
+			if (CompareOOVPAToAddress(Oovpa, cur))
+			{
+				StoreOOVPAXRef(Oovpa, cur);
 				// if found, mark it's location and place the patch if available
 				//filtered_oovpas[a].located_at = cur;
 				filtered_hits[a] = true;
@@ -828,7 +856,9 @@ static void NewEmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize,
 			Oovpa = filtered_oovpas[a].next;
 			if (Oovpa != nullptr)
 			{
-				if (CompareOOVPAToAddress(Oovpa, cur)) {
+				if (CompareOOVPAToAddress(Oovpa, cur))
+				{
+					StoreOOVPAXRef(Oovpa, cur);
 					//filtered_oovpas[a].located_at = cur;
 					filtered_hits[a] = true;
 					if (filtered_oovpas[a].next != nullptr)
@@ -841,6 +871,7 @@ static void NewEmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize,
 			}
 		}
 	}
+
 	delete[] filtered_hits;
 }
 
@@ -865,7 +896,7 @@ static void HLEScanInSection(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe:
 	xbaddr lower = pSectionHeader->dwVirtualAddr;
 	xbaddr upper = pSectionHeader->dwVirtualAddr + pSectionHeader->dwVirtualSize;
 
-	EmuInstallWrappers(OovpaTable, OovpaTableSize, lower, upper);
+	EmuInstallPatches(OovpaTable, OovpaTableSize, lower, upper);
 }
 
 static void HLEScanInEntireXbe(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader)
@@ -873,11 +904,11 @@ static void HLEScanInEntireXbe(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xb
     xbaddr lower = pXbeHeader->dwBaseAddr;
     xbaddr upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
 
-	EmuInstallWrappers(OovpaTable, OovpaTableSize, lower, upper);
+	EmuInstallPatches(OovpaTable, OovpaTableSize, lower, upper);
 }
 
 // install function interception wrappers
-static void EmuInstallWrappers(OOVPATable *OovpaTable, uint32 OovpaTableSize, uint32 lower, uint32 upper)
+static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, uint32 lower, uint32 upper)
 {
     // traverse the full OOVPA table
     for(size_t a=0;a<OovpaTableSize/sizeof(OOVPATable);a++)
