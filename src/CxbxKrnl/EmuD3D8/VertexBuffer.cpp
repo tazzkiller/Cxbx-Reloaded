@@ -467,11 +467,14 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
         pPatchDesc->dwVertexCount = Desc.Size / uiStride;
         dwNewSize = pPatchDesc->dwVertexCount * pStreamPatch->ConvertedStride;
 
-        if(FAILED(pOrigVertexBuffer->Lock(0, 0, &pOrigData, 0)))
-        {
-            CxbxKrnlCleanup("Couldn't lock the original buffer");
-        }
-        g_pD3DDevice8->CreateVertexBuffer(dwNewSize, 0, 0, XTL::D3DPOOL_MANAGED, &pNewVertexBuffer);
+		// Avoid a crash when g_pVertexBuffer isn't set (yet) :
+		if (!g_pVertexBuffer)
+			return false;
+
+		// Retrieve the Xbox VertexBuffer Data pointer (NOT the native data!) :
+		pOrigData = EMUPATCH(D3DVertexBuffer_Lock2)(g_pVertexBuffer, 0);
+
+		g_pD3DDevice8->CreateVertexBuffer(dwNewSize, 0, 0, D3DPOOL_MANAGED, &pNewVertexBuffer);
         if(FAILED(pNewVertexBuffer->Lock(0, 0, &pNewData, 0)))
         {
             CxbxKrnlCleanup("Couldn't lock the new buffer");

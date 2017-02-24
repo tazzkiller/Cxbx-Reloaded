@@ -47,6 +47,7 @@ namespace xboxkrnl
 #include "Emu.h"
 #include "EmuFS.h"
 #include "EmuShared.h"
+#include "Logging.h" // For LOG_FORWARD
 #include "DbgConsole.h"
 #include "ResourceTracker.h"
 #include "EmuAlloc.h"
@@ -990,16 +991,15 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 g_pCachedZStencilSurface->Common = 0;
                 g_pCachedZStencilSurface->Data = X_D3DRESOURCE_DATA_FLAG_SPECIAL | X_D3DRESOURCE_DATA_FLAG_D3DSTEN;
 				g_bHasZBuffer = SUCCEEDED(g_pD3DDevice8->GetDepthStencilSurface(&g_pCachedZStencilSurface->EmuSurface8));
-                (void)g_pD3DDevice8->CreateVertexBuffer
+
+				(void)g_pD3DDevice8->CreateVertexBuffer
                 (
                     1, 0, 0, XTL::D3DPOOL_MANAGED,
                     &g_pDummyBuffer
                 );
 
                 for(int Streams = 0; Streams < 8; Streams++)
-                {
                     g_pD3DDevice8->SetStreamSource(Streams, g_pDummyBuffer, 1);
-                }
 
                 // initially, show a black screen
                 // Only clear depth buffer and stencil if present
@@ -3333,19 +3333,13 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer)
     if(FAILED(hRet))
         EmuWarning("CreateIndexBuffer Failed! (0x%.08X)", hRet);
 
-    //
     // update data ptr
-    //
-
     {
-        BYTE *pData = NULL;
+        BYTE *pData = NULL; // TODO : (DWORD)xboxkrnl::MmAllocateContiguousMemory(Length);
 
         (*ppIndexBuffer)->EmuIndexBuffer8->Lock(0, Length, &pData, NULL);
-
         (*ppIndexBuffer)->Data = (DWORD)pData;
     }
-
-    
 
     return hRet;
 }
@@ -4372,7 +4366,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
                 g_VBTrackTotal.insert(pResource->EmuVertexBuffer8);
                 #endif
 
-                BYTE *pData = 0;
+                BYTE *pData = nullptr;
 
                 hRet = pResource->EmuVertexBuffer8->Lock(0, 0, &pData, 0);
 
@@ -4385,7 +4379,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
 
                 pResource->EmuVertexBuffer8->Unlock();
 
-                pResource->Data = (ULONG)pData;
+				pResource->Data = (ULONG)pBase; // Was pData
             }
 
             DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created VertexBuffer (0x%.08X)\n", pResource->EmuVertexBuffer8);
@@ -4437,7 +4431,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
 
                 pResource->EmuIndexBuffer8->Unlock();
 
-                pResource->Data = (ULONG)pData;
+                pResource->Data = (ULONG)pData; // TODO : Use pBase?
             }
 
             DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created IndexBuffer (0x%.08X)\n", pResource->EmuIndexBuffer8);
@@ -5511,15 +5505,12 @@ HRESULT WINAPI XTL::EMUPATCH(D3DSurface_LockRect)
     {
         IDirect3DSurface8 *pSurface8 = pThis->EmuSurface8;
 
-        DWORD NewFlags = 0;
+		DWORD NewFlags = EmuXB2PC_D3DLock(Flags);
 
-        if(Flags & 0x80)
-            NewFlags |= D3DLOCK_READONLY;
-
-        if(Flags & 0x40)
+        if(Flags & X_D3DLOCK_TILED)
             EmuWarning("D3DLOCK_TILED ignored!");
 
-        if(!(Flags & 0x80) && !(Flags & 0x40) && Flags != 0)
+        if(!(Flags & X_D3DLOCK_READONLY) && !(Flags & X_D3DLOCK_TILED) && Flags != 0)
             CxbxKrnlCleanup("EmuIDirect3DSurface8_LockRect: Unknown Flags! (0x%.08X)", Flags);
 
 		try
@@ -5862,9 +5853,41 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexBuffer)
     X_D3DVertexBuffer **ppVertexBuffer
 )
 {
-    *ppVertexBuffer = EMUPATCH(D3DDevice_CreateVertexBuffer2)(Length);
 
-    return D3D_OK;
+	DbgPrintf("EmuD3D8: EmuD3DDevice_CreateVertexBuffer2\n"
+		"(\n"
+		"   Length              : 0x%.08X\n"
+		"   Usage               : 0x%.08X\n"
+		"   FVF                 : 0x%.08X\n"
+		"   Pool                : 0x%.08X\n"
+		"   ppVertexBuffer      : 0x%.08X\n"
+		");\n",
+		Length, Usage, FVF, Pool, ppVertexBuffer);
+
+	IDirect3DVertexBuffer8* pNativeVertexBuffer = nullptr;
+
+	HRESULT hRet = g_pD3DDevice8->CreateVertexBuffer
+	(
+		Length,
+		0, // TODO : EmuXB2PC_D3DUsage(Usage)
+		FVF,
+		D3DPOOL_MANAGED, // TODO : EmuXB2PC_D3DPool(Pool)
+		&pNativeVertexBuffer
+	);
+
+	if (FAILED(hRet))
+		EmuWarning("CreateVertexBuffer Failed!");
+	else
+	{
+		*ppVertexBuffer = new X_D3DVertexBuffer();
+		(*ppVertexBuffer)->Data = (DWORD)xboxkrnl::MmAllocateContiguousMemory(Length);
+		(*ppVertexBuffer)->EmuVertexBuffer8 = pNativeVertexBuffer;
+#ifdef _DEBUG_TRACK_VB
+		g_VBTrackTotal.insert(pNativeVertexBuffer);
+#endif
+	}
+
+    return hRet;
 }
 
 // ******************************************************************
@@ -5875,35 +5898,20 @@ XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexBuffer2)
     UINT Length
 )
 {
-    
+	LOG_FORWARD("D3DDevice_CreateVertexBuffer");
 
-    DbgPrintf("EmuD3D8: EmuD3DDevice_CreateVertexBuffer2\n"
-           "(\n"
-           "   Length              : 0x%.08X\n"
-           ");\n",
-           Length);
+	X_D3DVertexBuffer* pVertexBuffer = NULL;
 
-    X_D3DVertexBuffer *pD3DVertexBuffer = new X_D3DVertexBuffer();
+	EMUPATCH(D3DDevice_CreateVertexBuffer)
+	(
+		Length,
+		/*Usage=*/0,
+		/*FVF=*/0,
+		/*D3DPool=*/XTL::D3DPOOL_MANAGED,
+		&pVertexBuffer
+	);
 
-    HRESULT hRet = g_pD3DDevice8->CreateVertexBuffer
-    (
-        Length,
-        0,
-        0,
-        D3DPOOL_MANAGED,
-        &pD3DVertexBuffer->EmuVertexBuffer8
-    );
-
-    if(FAILED(hRet))
-        EmuWarning("CreateVertexBuffer Failed!");
-
-    #ifdef _DEBUG_TRACK_VB
-    g_VBTrackTotal.insert(pD3DVertexBuffer->EmuVertexBuffer8);
-    #endif
-
-    
-
-    return pD3DVertexBuffer;
+    return pVertexBuffer;
 }
 
 // ******************************************************************
@@ -7340,35 +7348,29 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetTransform)
 // ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock)
 (
-    X_D3DVertexBuffer  *ppVertexBuffer,
+    X_D3DVertexBuffer  *pVertexBuffer,
     UINT                OffsetToLock,
     UINT                SizeToLock,
     BYTE              **ppbData,
     DWORD               Flags
 )
 {
-    
-
     DbgPrintf("EmuD3D8: EmuIDirect3DVertexBuffer8_Lock\n"
            "(\n"
-           "   ppVertexBuffer      : 0x%.08X\n"
+           "   pVertexBuffer       : 0x%.08X\n"
            "   OffsetToLock        : 0x%.08X\n"
            "   SizeToLock          : 0x%.08X\n"
            "   ppbData             : 0x%.08X\n"
            "   Flags               : 0x%.08X\n"
            ");\n",
-           ppVertexBuffer, OffsetToLock, SizeToLock, ppbData, Flags);
+           pVertexBuffer, OffsetToLock, SizeToLock, ppbData, Flags);
 
-    IDirect3DVertexBuffer8 *pVertexBuffer8 = ppVertexBuffer->EmuVertexBuffer8;
+	// Note : SizeToLock is ignored on Xbox
 
-    HRESULT hRet = pVertexBuffer8->Lock(OffsetToLock, SizeToLock, ppbData, Flags);
+	// TODO : Flags might request a flush - how to do that?
 
-    if(FAILED(hRet))
-        EmuWarning("VertexBuffer Lock Failed!");
-
-    
-
-    return;
+	// Return the Xbox VertexBuffer Data pointer (NOT the native data!) :
+	*ppbData = (BYTE *)(pVertexBuffer->Data) + OffsetToLock;
 }
 
 // ******************************************************************
@@ -7376,37 +7378,22 @@ VOID WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock)
 // ******************************************************************
 BYTE* WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock2)
 (
-    X_D3DVertexBuffer  *ppVertexBuffer,
+    X_D3DVertexBuffer  *pVertexBuffer,
     DWORD               Flags
 )
 {
-    
-
-    DbgPrintf("EmuD3D8: EmuIDirect3DVertexBuffer8_Lock2\n"
-           "(\n"
-           "   ppVertexBuffer      : 0x%.08X\n"
-           "   Flags               : 0x%.08X\n"
-           ");\n",
-           ppVertexBuffer, Flags);
-
-    IDirect3DVertexBuffer8 *pVertexBuffer8 = NULL;
+	LOG_FORWARD("D3DVertexBuffer_Lock");
 
     BYTE *pbData = NULL;
 
-    HRESULT hRet = S_OK;
-	
-	if( ppVertexBuffer->EmuVertexBuffer8 )
-	{
-		pVertexBuffer8 = ppVertexBuffer->EmuVertexBuffer8;
-		hRet = pVertexBuffer8->Lock(0, 0, &pbData, EmuXB2PC_D3DLock(Flags));    // Fixed flags check, Battlestar Galactica now displays graphics correctly
-
-		if( FAILED( hRet ) )
-			EmuWarning( "Lock vertex buffer failed!" );
-	}
-	else
-		EmuWarning( "ppVertexBuffer->EmuVertexBuffer8 == NULL!" );
-
-    
+	EMUPATCH(D3DVertexBuffer_Lock)
+	(
+		pVertexBuffer,
+		0,
+		0,
+		&pbData,
+		Flags
+	);
 
     return pbData;
 }
@@ -7461,8 +7448,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
 	// Cache stream number
 	g_dwLastSetStream = StreamNumber;
 
-    if(StreamNumber == 0)
-        g_pVertexBuffer = pStreamData;
+	if (StreamNumber == 0)
+		g_pVertexBuffer = pStreamData;
 
 	// Test for a non-zero stream source.  Unreal Championship gives us
 	// some funky number when going ingame.
