@@ -982,13 +982,13 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 
                 // update render target cache
                 g_pCachedRenderTarget = new XTL::X_D3DSurface();
-                g_pCachedRenderTarget->Common = 0;
+                g_pCachedRenderTarget->Common = X_D3DCOMMON_TYPE_SURFACE | 1; // Set refcount to 1
                 g_pCachedRenderTarget->Data = X_D3DRESOURCE_DATA_FLAG_SPECIAL | X_D3DRESOURCE_DATA_FLAG_D3DREND;
                 g_pD3DDevice8->GetRenderTarget(&g_pCachedRenderTarget->EmuSurface8);
 
                 // update z-stencil surface cache
                 g_pCachedZStencilSurface = new XTL::X_D3DSurface();
-                g_pCachedZStencilSurface->Common = 0;
+                g_pCachedZStencilSurface->Common = X_D3DCOMMON_TYPE_SURFACE | 1; // Set refcount to 1
                 g_pCachedZStencilSurface->Data = X_D3DRESOURCE_DATA_FLAG_SPECIAL | X_D3DRESOURCE_DATA_FLAG_D3DSTEN;
 				g_bHasZBuffer = SUCCEEDED(g_pD3DDevice8->GetDepthStencilSurface(&g_pCachedZStencilSurface->EmuSurface8));
 
@@ -4601,7 +4601,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
                 *pRefCount = 1;
 
                 // If YUY2 is not supported in hardware, we'll actually mark this as a special fake texture (set highest bit)
-				pPixelContainer->Common = 1; // Set refcount to 1
+				pPixelContainer->Common = X_D3DCOMMON_TYPE_TEXTURE | 1; // Set refcount to 1
                 pPixelContainer->Data = X_D3DRESOURCE_DATA_FLAG_SPECIAL | X_D3DRESOURCE_DATA_FLAG_YUVSURF;
                 pPixelContainer->Lock = dwPtr;
                 pPixelContainer->Format = (X_D3DFMT_YUY2 << X_D3DFORMAT_FORMAT_SHIFT);
@@ -5712,10 +5712,12 @@ HRESULT WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel)
 
 			*ppSurfaceLevel = new X_D3DSurface();
 
-			(*ppSurfaceLevel)->Data = 0xB00BBABE;
-			(*ppSurfaceLevel)->Common = 0;
-			(*ppSurfaceLevel)->Format = 0;
-			(*ppSurfaceLevel)->Size = 0;
+			(*ppSurfaceLevel)->Common = X_D3DCOMMON_D3DCREATED | X_D3DCOMMON_TYPE_SURFACE | 1; // Set refcount to 1
+			(*ppSurfaceLevel)->Data = 0xB00BBABE; // Marker to indicate surface-of-texture
+			(*ppSurfaceLevel)->Format = 0; // TODO : Calculate this
+			(*ppSurfaceLevel)->Size = pThis->Size;
+			(*ppSurfaceLevel)->Parent = pThis;
+			pThis->Common++; // AddRef on the parent
 
 			hRet = pTexture8->GetSurfaceLevel(Level, &((*ppSurfaceLevel)->EmuSurface8));
 
@@ -5880,7 +5882,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexBuffer)
 	else
 	{
 		*ppVertexBuffer = new X_D3DVertexBuffer();
-		(*ppVertexBuffer)->Data = (DWORD)xboxkrnl::MmAllocateContiguousMemory(Length);
+		(*ppVertexBuffer)->Common = X_D3DCOMMON_TYPE_VERTEXBUFFER | 1; // Set refcount to 1
+		(*ppVertexBuffer)->Data = (DWORD)xboxkrnl::MmAllocateContiguousMemory(Length); // Note : Freeed in D3DDevice_DeleteVertexBuffer (unpatched)
 		(*ppVertexBuffer)->EmuVertexBuffer8 = pNativeVertexBuffer;
 #ifdef _DEBUG_TRACK_VB
 		g_VBTrackTotal.insert(pNativeVertexBuffer);
@@ -8174,7 +8177,7 @@ XTL::X_D3DPalette * WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette2)
         32*sizeof(D3DCOLOR)      // D3DPALETTE_32
     };
 
-    pPalette->Common = (Size << 30) | 0x1030001;
+    pPalette->Common = (Size << 30) | X_D3DCOMMON_D3DCREATED | X_D3DCOMMON_TYPE_PALETTE | 1; // Set refcount to 1 
     pPalette->Data = (DWORD)new uint08[lk[Size]];
 
     pPalette->Lock = 0x8000BEEF; // emulated reference count for palettes
