@@ -7661,6 +7661,7 @@ XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource2)
     return pVertexBuffer;
 }
 
+
 // ******************************************************************
 // * patch: D3DDevice_SetStreamSource
 // ******************************************************************
@@ -7722,6 +7723,128 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
 
     return hRet;
 }
+
+/*
+#define VERTICES_PER_QUAD 4
+#define VERTICES_PER_TRIANGLE 3
+#define TRIANGLES_PER_QUAD 2
+
+UINT QuadToTriangleVertexCount(UINT NrOfQuadVertices)
+{
+	return (NrOfQuadVertices * VERTICES_PER_TRIANGLE * TRIANGLES_PER_QUAD) / VERTICES_PER_QUAD;
+}
+
+bool WindingClockwise = true;
+UINT QuadToTriangleIndexBuffer_Size = 0; // = NrOfQuadVertices
+WORD *QuadToTriangleIndexBuffer = nullptr;
+
+UINT QuadToTriangleD3DIndexBuffer_Size = 0; // = NrOfQuadVertices
+XTL::IDirect3DIndexBuffer8 *QuadToTriangleD3DIndexBuffer = nullptr;
+
+void DxbxDebugSwitchQuadIndexWinding
+{
+	WindingClockwise = !WindingClockwise;
+
+	//SetLength(QuadToTriangleIndexBuffer, 0);
+	QuadToTriangleIndexBuffer_Size = 0;
+	QuadToTriangleD3DIndexBuffer_Size = 0;
+	if (QuadToTriangleD3DIndexBuffer != nillptr) then
+		IDirect3DIndexBuffer(QuadToTriangleD3DIndexBuffer) = nil; // Note : This does a implicit _Release() call!
+}
+
+WORD *DxbxAssureQuadListIndexBuffer(UINT NrOfQuadVertices)
+{
+	UINT NrOfTriangleVertices;
+	UINT i, j;
+
+	if (QuadToTriangleIndexBuffer_Size < NrOfQuadVertices)
+	{
+		QuadToTriangleIndexBuffer_Size = RoundUp(NrOfQuadVertices, 1000);
+
+		NrOfTriangleVertices = QuadToTriangleVertexCount(QuadToTriangleIndexBuffer_Size);
+		//SetLength(QuadToTriangleIndexBuffer, NrOfTriangleVertices);
+
+		i = 0;
+		j = 0;
+		while (i < NrOfTriangleVertices)
+		{
+			if (WindingClockwise)
+			{
+				// ABCD becomes ABC+CDA, so this is triangle 1 :
+				QuadToTriangleIndexBuffer[i + 0] = j + 0;
+				QuadToTriangleIndexBuffer[i + 1] = j + 1;
+				QuadToTriangleIndexBuffer[i + 2] = j + 2;
+				i += VERTICES_PER_TRIANGLE;
+
+				// And this is triangle 2 :
+				QuadToTriangleIndexBuffer[i + 0] = j + 2;
+				QuadToTriangleIndexBuffer[i + 1] = j + 3;
+				QuadToTriangleIndexBuffer[i + 2] = j + 0;
+				i += VERTICES_PER_TRIANGLE;
+			}
+			else
+			{
+				// ABCD becomes ADC+CBA, so this is triangle 1 :
+				QuadToTriangleIndexBuffer[i + 0] = j + 0;
+				QuadToTriangleIndexBuffer[i + 1] = j + 3;
+				QuadToTriangleIndexBuffer[i + 2] = j + 2;
+				i += VERTICES_PER_TRIANGLE;
+
+				// And this is triangle 2 :
+				QuadToTriangleIndexBuffer[i + 0] = j + 2;
+				QuadToTriangleIndexBuffer[i + 1] = j + 1;
+				QuadToTriangleIndexBuffer[i + 2] = j + 0;
+				i += VERTICES_PER_TRIANGLE;
+			}
+
+			// Next quad, please :
+			j += VERTICES_PER_QUAD;
+		}
+	}
+
+	return &(QuadToTriangleIndexBuffer[0]);
+}
+
+void DxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
+{
+	HRESULT hRet;
+	UINT NrOfTriangleVertices;
+	WORD *pwData;
+
+	if (QuadToTriangleD3DIndexBuffer_Size < NrOfQuadVertices)
+	{
+		QuadToTriangleD3DIndexBuffer_Size = RoundUp(NrOfQuadVertices, 1000);
+		if (QuadToTriangleD3DIndexBuffer != nullptr)
+			((IDirect3DIndexBuffer)QuadToTriangleD3DIndexBuffer).Release();
+
+		// Create a new native index buffer of the above determined size :
+		NrOfTriangleVertices = QuadToTriangleVertexCount(QuadToTriangleD3DIndexBuffer_Size);
+		hRet = IDirect3DDevice_CreateIndexBuffer(g_pD3DDevice,
+			NrOfTriangleVertices * sizeof(WORD),
+			D3DUSAGE_WRITEONLY,
+			D3DFMT_INDEX16,
+			D3DPOOL_MANAGED,
+			&QuadToTriangleD3DIndexBuffer);
+		if (FAILED(hRet))
+			DxbxD3DError("DxbxAssureQuadListD3DIndexBuffer", "IndexBuffer Create Failed!", nil, hRet);
+
+		// Put quadlist-to-triangle-list index mappings into this buffer :
+		pwData = nullptr;
+		((IDirect3DIndexBuffer)QuadToTriangleD3DIndexBuffer)->Lock(0, 0, { out }TLockData(pwData), 0);
+		if (pwData = nillptr)
+			DxbxD3DError("DxbxAssureQuadListD3DIndexBuffer", "Could not lock index buffer!");
+
+		memcpy(pwData, DxbxAssureQuadListIndexBuffer(NrOfQuadVertices), NrOfTriangleVertices * sizeof(WORD));
+
+		((IDirect3DIndexBuffer)QuadToTriangleD3DIndexBuffer)->Unlock();
+	}
+
+	// Activate the new native index buffer :
+	hRet = g_pD3DDevice.SetIndices(IDirect3DIndexBuffer(QuadToTriangleD3DIndexBuffer) { $IFDEF DXBX_USE_D3D9 } {$MESSAGE 'fixme'} {$ELSE}, { BaseVertexIndex = }0{$ENDIF});
+	if (FAILED(hRet)) then
+		DxbxKrnlCleanup("DxbxAssureQuadListD3DIndexBuffer : SetIndices Failed!"#13#10 + DxbxD3DErrorString(hRet));
+}
+*/
 
 // ******************************************************************
 // * patch: D3DDevice_SetVertexShader
@@ -7849,6 +7972,31 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
             VPDesc.dwPrimitiveCount
         );
 
+		/*
+		// Close line-loops using a separate DrawPrimitiveUP call :
+		if (VPDesc.PrimitiveType = X_D3DPT_LINELOOP) {
+			CxbxKrnlCleanup("XTL_EmuD3DDevice_DrawVertices : X_D3DPT_LINELOOP not unsupported yet!");
+			// TODO : Close line-loops using a final single line, drawn from the end to the start vertex
+			// TODO : Copy the last and first vertices into a separate buffer :
+			memcpy(
+				&(DxbxClosingLineVertices[0]),
+				ActiveVertexBuffer.Data[StartVertex * ActiveVertexBuffer.Stride],
+				ActiveVertexBuffer.Stride);
+			// Append a second copy of the first vertex to the end, completing the strip to form a loop :
+			memcpy(
+				&(DxbxClosingLineVertices[0]),
+				ActiveVertexBuffer.Data[(StartVertex + VertexCount) * ActiveVertexBuffer.Stride],
+				ActiveVertexBuffer.Stride);
+			g_pD3DDevice8->.DrawPrimitiveUP
+			(
+				D3DPT_LINELIST,
+				1, // PrimitiveCount
+				&DxbxClosingLineVertices[0], // pVertexStreamZeroData
+				ActiveVertexBuffer.Stride
+			);
+		}
+		*/
+
 		g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
 
         #ifdef _DEBUG_TRACK_VB
@@ -7956,18 +8104,80 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
 	{
 		if( g_pCallback )
 		{
-			
 			g_pCallback(g_CallbackParam);
-			
-
 			// TODO: Reset pointer?
 		}
 	}
-
-    
-
-    return;
 }
+
+/*
+byte DxbxClosingLineVertices[256] = { 0 };
+
+void DxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
+{
+	PWORD pwIndexData;
+	PVOID pVertexStreamZeroData;
+	UINT VertexCount = VPDesc.dwVertexCount; // Dxbx addition : Use the new VertexCount
+
+	if (VPDesc.PrimitiveType == XTL::X_D3DPT_QUADLIST)
+	{
+		// Draw quadlists using a single 'quad-to-triangle mapping' index buffer :
+
+		// Assure & activate that special index buffer :
+		pwIndexData = DxbxAssureQuadListIndexBuffer(/*NrOfQuadVertices=* /VertexCount);
+
+		// Convert quad vertex-count & start to triangle vertex count & start :
+		VertexCount = QuadToTriangleVertexCount(VertexCount);
+
+		g_pD3DDevice->DrawIndexedPrimitiveUP
+		(
+			D3DPT_TRIANGLELIST,
+			0, // = MinVertexIndex
+			VertexCount, // = NumVertexIndices
+			VPDesc.dwPrimitiveCount * TRIANGLES_PER_QUAD, // = PrimitiveCount
+			pwIndexData,
+			D3DFMT_INDEX16,
+			VPDesc.pVertexStreamZeroData,
+			VPDesc.uiVertexStreamZeroStride
+		);
+	}
+	else
+	{
+		// Other primitives than X_D3DPT_QUADLIST can be drawn normally :
+		g_pD3DDevice->DrawPrimitiveUP
+		(
+			EmuXB2PC_D3DPrimitiveType(VPDesc.PrimitiveType),
+			VPDesc.dwPrimitiveCount,
+			VPDesc.pVertexStreamZeroData,
+			VPDesc.uiVertexStreamZeroStride
+		);
+
+		if (VPDesc.PrimitiveType == X_D3DPT_LINELOOP)
+		{
+			// Note : XDK samples reaching this case : DebugKeyboard, Gamepad, Tiling, ShadowBuffer
+
+			// Close line-loops using a final single line, drawn from the end to the start vertex :
+			memcpy(
+				&(DxbxClosingLineVertices[0]),
+				VPDesc.pVertexStreamZeroData,
+				VPDesc.uiVertexStreamZeroStride);
+			memcpy(
+				&(DxbxClosingLineVertices[VPDesc.uiVertexStreamZeroStride]),
+				(PByte(VPDesc.pVertexStreamZeroData) + (VPDesc.uiVertexStreamZeroStride * (VertexCount - 1))),
+				VPDesc.uiVertexStreamZeroStride);
+
+			pVertexStreamZeroData = &DxbxClosingLineVertices[0]; // Needed for D3D9
+			g_pD3DDevice->DrawPrimitiveUP
+			(
+				D3DPT_LINELIST,
+				1, // = PrimitiveCount
+				pVertexStreamZeroData,
+				VPDesc.uiVertexStreamZeroStride
+			);
+		}
+	}
+} // DxbxDrawPrimitiveUP
+*/
 
 // ******************************************************************
 // * patch: D3DDevice_DrawIndexedVertices
