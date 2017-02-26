@@ -7958,7 +7958,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
 // ******************************************************************
 // * patch: D3DDevice_DrawIndexedVertices
 // ******************************************************************
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 (
     X_D3DPRIMITIVETYPE  PrimitiveType,
     UINT                VertexCount,
@@ -8147,9 +8147,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 	}
 
 //#endif
-    
-
-    return D3D_OK;
 }
 
 // ******************************************************************
