@@ -4,6 +4,8 @@
 #define __BUFFERED_IO_H__
 
 #ifdef __cplusplus
+#pragma once
+
 extern "C" {
 #endif
 

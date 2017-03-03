@@ -3,9 +3,9 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
-#include <stdlib.h>
-#include <string.h>
-#include <sys/types.h>
+#include <stdlib.h> // For offsetof
+#include <string.h> // For memcmp, memset
+//#include <sys/types.h>
 
 #include "xdvdfs.h"
 
