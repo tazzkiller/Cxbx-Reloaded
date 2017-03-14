@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuKrnl.h
+// *   Cxbx->Win32->CxbxKrnl->Xapi.1.0.5344.cpp
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -31,28 +31,31 @@
 // *  All rights reserved
 // *
 // ******************************************************************
-#ifndef EMUKRNL_H
-#define EMUKRNL_H
 
-// CONTAINING_RECORD macro
-// Gets the value of structure member (field - num1),given the type(MYSTRUCT, in this code) and the List_Entry head(temp, in this code)
-// See http://stackoverflow.com/questions/8240273/a-portable-way-to-calculate-pointer-to-the-whole-structure-using-pointer-to-a-fi
-//#define CONTAINING_RECORD(ptr, type, field) \
-//	(((type) *)((char *)(ptr) - offsetof((type), member)))
+// ******************************************************************
+// * XAPI_5344
+// ******************************************************************
+OOVPATable XAPI_5344[] = {
 
-#define OBJECT_TO_OBJECT_HEADER(Object) \
-    CONTAINING_RECORD(Object, OBJECT_HEADER, Body)
+	REGISTER_OOVPA(GetTimeZoneInformation, 3911, DISABLED),
+	REGISTER_OOVPA(SetThreadPriority, 3911, PATCH),
+	REGISTER_OOVPA(SetThreadPriorityBoost, 4627, PATCH),
+	REGISTER_OOVPA(GetThreadPriority, 4627, PATCH),
+	REGISTER_OOVPA(XRegisterThreadNotifyRoutine, 3911, PATCH),
+	REGISTER_OOVPA(XMountUtilityDrive, 4432, PATCH),
+	REGISTER_OOVPA(XInitDevices, 5233, PATCH),
+	REGISTER_OOVPA(XGetDevices, 4134, PATCH),
+	REGISTER_OOVPA(XGetDeviceChanges, 5233, PATCH),
+	REGISTER_OOVPA(XInputOpen, 4361, PATCH),
+	REGISTER_OOVPA(XInputGetCapabilities, 5233, PATCH),
+	REGISTER_OOVPA(XID_fCloseDevice, 4928, XREF),
+	REGISTER_OOVPA(XInputClose, 4928, PATCH),
+	REGISTER_OOVPA(XInputGetState, 4928, PATCH),
+	REGISTER_OOVPA(XInputSetState, 5233, PATCH),
+	REGISTER_OOVPA(QueueUserAPC, 3911, PATCH),
+};
 
-void InitializeListHead(xboxkrnl::PLIST_ENTRY pListHead);
-bool IsListEmpty(xboxkrnl::PLIST_ENTRY pListHead);
-void InsertHeadList(xboxkrnl::PLIST_ENTRY pListHead, xboxkrnl::PLIST_ENTRY pEntry);
-void InsertTailList(xboxkrnl::PLIST_ENTRY pListHead, xboxkrnl::PLIST_ENTRY pEntry);
-//#define RemoveEntryList(e) do { PLIST_ENTRY f = (e)->Flink, b = (e)->Blink; f->Blink = b; b->Flink = f; (e)->Flink = (e)->Blink = NULL; } while (0)
-
-void RemoveEntryList(xboxkrnl::PLIST_ENTRY pEntry);
-xboxkrnl::PLIST_ENTRY RemoveHeadList(xboxkrnl::PLIST_ENTRY pListHead);
-xboxkrnl::PLIST_ENTRY RemoveTailList(xboxkrnl::PLIST_ENTRY pListHead);
-
-extern xboxkrnl::LAUNCH_DATA_PAGE DefaultLaunchDataPage;
-
-#endif
+// ******************************************************************
+// * XAPI_5344_SIZE
+// ******************************************************************
+uint32 XAPI_5344_SIZE = sizeof(XAPI_5344);

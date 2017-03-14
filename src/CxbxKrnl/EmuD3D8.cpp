@@ -131,7 +131,7 @@ static DWORD						g_SwapLast = 0;
 // cached Direct3D state variable(s)
 static XTL::X_D3DSurface           *g_pCachedRenderTarget = NULL;
 static XTL::X_D3DSurface           *g_pCachedZStencilSurface = NULL;
-static XTL::X_D3DSurface           *g_YuvSurface = NULL;
+static XTL::X_D3DSurface           *g_pCachedYuvSurface = NULL;
 static BOOL                         g_fYuvEnabled = FALSE;
 static DWORD                        g_dwVertexShaderUsage = 0;
 static DWORD                        g_VertexShaderSlots[136];
@@ -979,13 +979,13 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 // update render target cache
                 g_pCachedRenderTarget = new XTL::X_D3DSurface();
                 g_pCachedRenderTarget->Common = 0;
-                g_pCachedRenderTarget->Data = X_D3DRESOURCE_DATA_FLAG_SPECIAL | X_D3DRESOURCE_DATA_FLAG_D3DREND;
+                g_pCachedRenderTarget->Data = X_D3DRESOURCE_DATA_RENDER_TARGET;
                 g_pD3DDevice8->GetRenderTarget(&g_pCachedRenderTarget->EmuSurface8);
 
                 // update z-stencil surface cache
                 g_pCachedZStencilSurface = new XTL::X_D3DSurface();
                 g_pCachedZStencilSurface->Common = 0;
-                g_pCachedZStencilSurface->Data = X_D3DRESOURCE_DATA_FLAG_SPECIAL | X_D3DRESOURCE_DATA_FLAG_D3DSTEN;
+                g_pCachedZStencilSurface->Data = X_D3DRESOURCE_DATA_DEPTH_STENCIL;
 				g_bHasZBuffer = SUCCEEDED(g_pD3DDevice8->GetDepthStencilSurface(&g_pCachedZStencilSurface->EmuSurface8));
                 (void)g_pD3DDevice8->CreateVertexBuffer
                 (
@@ -1072,8 +1072,7 @@ static void EmuVerifyResourceIsRegistered(XTL::X_D3DResource *pResource)
         return;
 
     // Already "Registered" implicitly
-    if((IsSpecialResource(pResource->Data) && ((pResource->Data & X_D3DRESOURCE_DATA_FLAG_D3DREND) || (pResource->Data & X_D3DRESOURCE_DATA_FLAG_D3DSTEN)))
-     ||(pResource->Data == 0xB00BBABE))
+    if((pResource->Data & X_D3DRESOURCE_DATA_FLAG_SPECIAL) == X_D3DRESOURCE_DATA_FLAG_SPECIAL)
         return;
 
     int v=0;
@@ -1162,7 +1161,7 @@ static void EmuUnswizzleTextureStages()
 		pPixelContainer->EmuTexture8->UnlockRect(0);
 		pPixelContainer->Common &= ~X_D3DCOMMON_ISLOCKED;
 
-		// TODO: potentially CRC to see if this surface was actually modified..
+		// TODO: potentially XXHash32::hash() to see if this surface was actually modified..
 
 		//
 		// unswizzle texture
@@ -2008,7 +2007,7 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer2)
         CxbxKrnlCleanup("Unable to retrieve back buffer");
 
     // update data pointer
-    pBackBuffer->Data = X_D3DRESOURCE_DATA_FLAG_SPECIAL | X_D3DRESOURCE_DATA_FLAG_SURFACE;
+    pBackBuffer->Data = X_D3DRESOURCE_DATA_BACK_BUFFER;
 
     
 
@@ -2025,7 +2024,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer)
     X_D3DSurface      **ppBackBuffer
 )
 {
-        DbgPrintf("EmuD3D8: EmuD3DDevice_GetBackBuffer\n"
+        DbgPrintf("EmuD3D8: EmuD3DDevice_GetBackBuffer >>\n"
                "(\n"
                "   BackBuffer          : 0x%.08X\n"
                "   Type                : 0x%.08X\n"
@@ -3052,10 +3051,10 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture)
         *pRefCount = 1;
 
         // If YUY2 is not supported in hardware, we'll actually mark this as a special fake texture (set highest bit)
-        Texture_Data = X_D3DRESOURCE_DATA_FLAG_SPECIAL | X_D3DRESOURCE_DATA_FLAG_YUVSURF;
+        Texture_Data = X_D3DRESOURCE_DATA_YUV_SURFACE;
         pTexture->Lock = dwPtr;
 
-        g_YuvSurface = (X_D3DSurface*)pTexture;
+        g_pCachedYuvSurface = (X_D3DSurface*)pTexture;
 
         hRet = D3D_OK;
     }
@@ -3194,7 +3193,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVolumeTexture)
         *pRefCount = 1;
 
         // If YUY2 is not supported in hardware, we'll actually mark this as a special fake texture (set highest bit)
-        (*ppVolumeTexture)->Data = X_D3DRESOURCE_DATA_FLAG_SPECIAL | X_D3DRESOURCE_DATA_FLAG_YUVSURF;
+        (*ppVolumeTexture)->Data = X_D3DRESOURCE_DATA_YUV_SURFACE;
         (*ppVolumeTexture)->Lock = dwPtr;
 		(*ppVolumeTexture)->Format = Format; // TODO : apply << X_D3DFORMAT_FORMAT_SHIFT here?
 
@@ -3470,7 +3469,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
     {
         EmuVerifyResourceIsRegistered(pTexture);
 
-        if(IsSpecialResource(pTexture->Data) && (pTexture->Data & X_D3DRESOURCE_DATA_FLAG_YUVSURF))
+        if(pTexture->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
         {
             //
             // NOTE: TODO: This is almost a hack! :)
@@ -3965,7 +3964,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4ub)
 {
 	
 
-    DbgPrintf("EmuD3D8: EmuD3DDevice_SetVertexData4ub\n"
+    DbgPrintf("EmuD3D8: EmuD3DDevice_SetVertexData4ub >>\n"
            "(\n"
            "   Register            : 0x%.08X\n"
            "   a                   : 0x%.02X\n"
@@ -3996,7 +3995,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4s)
 {
 	
 
-    DbgPrintf("EmuD3D8: EmuD3DDevice_SetVertexData4s\n"
+    DbgPrintf("EmuD3D8: EmuD3DDevice_SetVertexData4s >>\n"
            "(\n"
            "   Register            : 0x%.08X\n"
            "   a                   : 0x%.04X\n"
@@ -4604,7 +4603,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
 
                 // If YUY2 is not supported in hardware, we'll actually mark this as a special fake texture (set highest bit)
 				pPixelContainer->Common = 1; // Set refcount to 1
-                pPixelContainer->Data = X_D3DRESOURCE_DATA_FLAG_SPECIAL | X_D3DRESOURCE_DATA_FLAG_YUVSURF;
+                pPixelContainer->Data = X_D3DRESOURCE_DATA_YUV_SURFACE;
                 pPixelContainer->Lock = dwPtr;
                 pPixelContainer->Format = (X_D3DFMT_YUY2 << X_D3DFORMAT_FORMAT_SHIFT);
 
@@ -4765,8 +4764,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
 
                         if( pBase != NULL ) pThis->Data = (DWORD)pSrc;
 
-                        if(( IsSpecialResource(pResource->Data) && (pResource->Data & X_D3DRESOURCE_DATA_FLAG_SURFACE))
-                         ||( IsSpecialResource(pBase) && ((DWORD)pBase & X_D3DRESOURCE_DATA_FLAG_SURFACE)))
+                        if(( pResource->Data == X_D3DRESOURCE_DATA_BACK_BUFFER)
+                         ||( (DWORD)pBase == X_D3DRESOURCE_DATA_BACK_BUFFER))
                         {
                             EmuWarning("Attempt to registered to another resource's data (eww!)");
 
@@ -5011,7 +5010,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_AddRef)
     }
     else 
     {
-        if(IsSpecialResource(pThis->Data) && (pThis->Data & X_D3DRESOURCE_DATA_FLAG_YUVSURF))
+        if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
         {
             DWORD  dwPtr = (DWORD)pThis->Lock;
             DWORD *pRefCount = (DWORD*)(dwPtr + g_dwOverlayP*g_dwOverlayH);
@@ -5063,22 +5062,15 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
 		return 0;
 	}
 
-	// HACK: Clone textures generated by D3DDevice::GetTexture2
-	if(IsSpecialResource(pThis->Data) && (pThis->Data & X_D3DRESOURCE_DATA_FLAG_TEXCLON))
-	{
-		EmuWarning( "Deleting clone texture (from D3DDevice::GetTexture2)..." );
-//		uRet = pThis->EmuBaseTexture8->Release();
-		delete pThis;
-	}
-    else if(IsSpecialResource(pThis->Data) && (pThis->Data & X_D3DRESOURCE_DATA_FLAG_YUVSURF))
+	if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
     {
         DWORD  dwPtr = (DWORD)pThis->Lock;
         DWORD *pRefCount = (DWORD*)(dwPtr + g_dwOverlayP*g_dwOverlayH);
 
         if(--(*pRefCount) == 0)
         {
-            if(g_YuvSurface == pThis)
-                g_YuvSurface = NULL;
+            if(g_pCachedYuvSurface == pThis)
+                g_pCachedYuvSurface = NULL;
 
             // free memory associated with this special resource handle
             CxbxFree((PVOID)dwPtr);
@@ -5313,7 +5305,7 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
     {
 		DbgPrintf("EmuTexture8: = 0x%.08X\n", pPixelContainer->EmuTexture8 );
 
-		if(pPixelContainer->Data == 0xFFFF0002)
+		if(pPixelContainer->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
 		{
 			hRet = E_FAIL;
 		}
@@ -5412,7 +5404,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DSurface_GetDesc)
 
     EmuVerifyResourceIsRegistered(pThis);
 
-    if(IsSpecialResource(pThis->Data) && (pThis->Data & X_D3DRESOURCE_DATA_FLAG_YUVSURF))
+    if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
     {
         pDesc->Format = EmuPC2XB_D3DFormat(D3DFMT_YUY2);
         pDesc->Height = g_dwOverlayH;
@@ -5496,7 +5488,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DSurface_LockRect)
 	
     EmuVerifyResourceIsRegistered(pThis);
 
-    if(IsSpecialResource(pThis->Data) && (pThis->Data & X_D3DRESOURCE_DATA_FLAG_YUVSURF))
+    if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
     {
         pLockedRect->Pitch = g_dwOverlayP;
         pLockedRect->pBits = (PVOID)pThis->Lock;
@@ -5584,7 +5576,7 @@ XTL::X_D3DResource * WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel2)
     X_D3DSurface *pSurfaceLevel;
 
     // In a special situation, we are actually returning a memory ptr with high bit set
-    if(IsSpecialResource(pThis->Data) && (pThis->Data & X_D3DRESOURCE_DATA_FLAG_YUVSURF))
+    if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
     {
         DWORD dwSize = g_dwOverlayP*g_dwOverlayH;
 
@@ -5632,7 +5624,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DTexture_LockRect)
     EmuVerifyResourceIsRegistered(pThis);
 
     // check if we have an unregistered YUV2 resource
-    if( (pThis != nullptr) && IsSpecialResource(pThis->Data) && (pThis->Data & X_D3DRESOURCE_DATA_FLAG_YUVSURF))
+    if( (pThis != nullptr) && (pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE))
     {
         pLockedRect->Pitch = g_dwOverlayP;
         pLockedRect->pBits = (PVOID)pThis->Lock;
@@ -5698,7 +5690,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel)
 	if(pThis)
 	{
 		// if highest bit is set, this is actually a raw memory pointer (for YUY2 simulation)
-		if(IsSpecialResource(pThis->Data) && (pThis->Data & X_D3DRESOURCE_DATA_FLAG_YUVSURF))
+		if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
 		{
 			DWORD dwSize = g_dwOverlayP*g_dwOverlayH;
 
@@ -5717,7 +5709,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel)
 
 			*ppSurfaceLevel = new X_D3DSurface();
 
-			(*ppSurfaceLevel)->Data = 0xB00BBABE;
+			(*ppSurfaceLevel)->Data = X_D3DRESOURCE_DATA_SURFACE_LEVEL;
 			(*ppSurfaceLevel)->Common = 0;
 			(*ppSurfaceLevel)->Format = 0;
 			(*ppSurfaceLevel)->Size = 0;
@@ -7247,7 +7239,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_YuvEnable)
     if(g_fYuvEnabled)
     {
         
-		EMUPATCH(D3DDevice_UpdateOverlay)(g_YuvSurface, 0, 0, FALSE, 0);
+		EMUPATCH(D3DDevice_UpdateOverlay)(g_pCachedYuvSurface, 0, 0, FALSE, 0);
         
     }
 
@@ -7557,6 +7549,20 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
     return hRet;
 }
 
+void CxbxUpdateNativeD3DResources()
+{
+	XTL::EmuUpdateDeferredStates();
+	EmuUnswizzleTextureStages();
+/* TODO : Port these :
+	DxbxUpdateActiveVertexShader();
+	DxbxUpdateActiveTextures();
+	DxbxUpdateActivePixelShader();
+	DxbxUpdateDeferredStates(); // BeginPush sample shows us that this must come *after* texture update!
+	DxbxUpdateActiveVertexBufferStreams();
+	DxbxUpdateActiveRenderTarget();
+*/
+}
+
 // ******************************************************************
 // * patch: D3DDevice_DrawVertices
 // ******************************************************************
@@ -7577,10 +7583,11 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
            ");\n",
            PrimitiveType, StartVertex, VertexCount);
 
-    EmuUpdateDeferredStates();
-	EmuUnswizzleTextureStages();
+	// Dxbx Note : In DrawVertices and DrawIndexedVertices, PrimitiveType may not be D3DPT_POLYGON
 
-    VertexPatchDesc VPDesc;
+	CxbxUpdateNativeD3DResources();
+
+	VertexPatchDesc VPDesc;
 
     VPDesc.PrimitiveType = PrimitiveType;
     VPDesc.dwVertexCount = VertexCount;
@@ -7602,7 +7609,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 
         g_pD3DDevice8->DrawPrimitive
         (
-            EmuPrimitiveType(VPDesc.PrimitiveType),
+            EmuXB2PC_D3DPrimitiveType(VPDesc.PrimitiveType),
             StartVertex,
             VPDesc.dwPrimitiveCount
         );
@@ -7657,8 +7664,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
            PrimitiveType, VertexCount, pVertexStreamZeroData,
            VertexStreamZeroStride);
 
-    EmuUpdateDeferredStates();
-	EmuUnswizzleTextureStages();
+	CxbxUpdateNativeD3DResources();
 
 /*#if 0
 	// HACK: Phantom Crash...
@@ -7690,22 +7696,18 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
     {
         #ifdef _DEBUG_TRACK_VB
         if(!g_bVBSkipStream)
+        #endif
         {
-        #endif
+			g_pD3DDevice8->DrawPrimitiveUP
+			(
+				EmuXB2PC_D3DPrimitiveType(VPDesc.PrimitiveType),
+				VPDesc.dwPrimitiveCount,
+				VPDesc.pVertexStreamZeroData,
+				VPDesc.uiVertexStreamZeroStride
+			);
 
-        g_pD3DDevice8->DrawPrimitiveUP
-        (
-            EmuPrimitiveType(VPDesc.PrimitiveType),
-            VPDesc.dwPrimitiveCount,
-            VPDesc.pVertexStreamZeroData,
-            VPDesc.uiVertexStreamZeroStride
-        );
-
-		g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
-
-        #ifdef _DEBUG_TRACK_VB
+			g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
         }
-        #endif
     }
 
     VertPatch.Restore();
@@ -7731,7 +7733,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
 // ******************************************************************
 // * patch: D3DDevice_DrawIndexedVertices
 // ******************************************************************
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 (
     X_D3DPRIMITIVETYPE  PrimitiveType,
     UINT                VertexCount,
@@ -7781,8 +7783,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
             CxbxKrnlCleanup("SetIndices Failed!");
     }
 
-    EmuUpdateDeferredStates();
-	EmuUnswizzleTextureStages();
+	CxbxUpdateNativeD3DResources();
 
     if( (PrimitiveType == X_D3DPT_LINELOOP) || (PrimitiveType == X_D3DPT_QUADLIST) )
         EmuWarning("Unsupported PrimitiveType! (%d)", (DWORD)PrimitiveType);
@@ -7873,7 +7874,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
     {
         g_pD3DDevice8->DrawIndexedPrimitive
         (
-            EmuPrimitiveType(VPDesc.PrimitiveType), 0, uiNumVertices, uiStartIndex, VPDesc.dwPrimitiveCount
+            EmuXB2PC_D3DPrimitiveType(VPDesc.PrimitiveType), 0, uiNumVertices, uiStartIndex, VPDesc.dwPrimitiveCount
         );
 
 		g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
@@ -7882,14 +7883,14 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 		{ 
 			g_pD3DDevice8->DrawPrimitive 
 			( 
-				EmuPrimitiveType(VPDesc.PrimitiveType), 0, VPDesc.dwPrimitiveCount 
+				EmuXB2PC_D3DPrimitiveType(VPDesc.PrimitiveType), 0, VPDesc.dwPrimitiveCount 
 			); 
 		} 
 		else 
 		{ 
 			g_pD3DDevice8->DrawIndexedPrimitive 
 			( 
-				EmuPrimitiveType(VPDesc.PrimitiveType), 0, uiNumVertices, uiStartIndex, VPDesc.dwPrimitiveCount 
+				EmuXB2PC_D3DPrimitiveType(VPDesc.PrimitiveType), 0, uiNumVertices, uiStartIndex, VPDesc.dwPrimitiveCount 
 			); 
 		} */
     }
@@ -7920,9 +7921,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 	}
 
 //#endif
-    
-
-    return D3D_OK;
 }
 
 // ******************************************************************
@@ -7953,9 +7951,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
     if(g_pIndexBuffer != 0 && g_pIndexBuffer->Lock == X_D3DRESOURCE_LOCK_FLAG_NOSIZE)
         CxbxKrnlCleanup("g_pIndexBuffer != 0");
 
-    EmuUpdateDeferredStates();
-	EmuUnswizzleTextureStages();
-
+	CxbxUpdateNativeD3DResources();
+	
     if( (PrimitiveType == X_D3DPT_LINELOOP) || (PrimitiveType == X_D3DPT_QUADLIST) )
         EmuWarning("Unsupported PrimitiveType! (%d)", (DWORD)PrimitiveType);
 
@@ -7981,7 +7978,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
     {
         g_pD3DDevice8->DrawIndexedPrimitiveUP
         (
-            EmuPrimitiveType(VPDesc.PrimitiveType), 0, VPDesc.dwVertexCount, VPDesc.dwPrimitiveCount, pIndexData, D3DFMT_INDEX16, VPDesc.pVertexStreamZeroData, VPDesc.uiVertexStreamZeroStride
+            EmuXB2PC_D3DPrimitiveType(VPDesc.PrimitiveType), 0, VPDesc.dwVertexCount, VPDesc.dwPrimitiveCount, pIndexData, D3DFMT_INDEX16, VPDesc.pVertexStreamZeroData, VPDesc.uiVertexStreamZeroStride
         );
 
 		g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
@@ -10231,7 +10228,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTargetFast)
 {
 	
 
-    DbgPrintf("EmuD3D8: EmuD3DDevice_SetRenderTarget\n"
+    DbgPrintf("EmuD3D8: EmuD3DDevice_SetRenderTarget >>\n"
            "(\n"
            "   pRenderTarget       : 0x%.08X (0x%.08X)\n"
            "   pNewZStencil        : 0x%.08X (0x%.08X)\n"
