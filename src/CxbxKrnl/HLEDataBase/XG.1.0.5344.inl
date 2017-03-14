@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuKrnl.h
+// *   Cxbx->Win32->CxbxKrnl->XG.1.0.5344.cpp
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -31,28 +31,17 @@
 // *  All rights reserved
 // *
 // ******************************************************************
-#ifndef EMUKRNL_H
-#define EMUKRNL_H
 
-// CONTAINING_RECORD macro
-// Gets the value of structure member (field - num1),given the type(MYSTRUCT, in this code) and the List_Entry head(temp, in this code)
-// See http://stackoverflow.com/questions/8240273/a-portable-way-to-calculate-pointer-to-the-whole-structure-using-pointer-to-a-fi
-//#define CONTAINING_RECORD(ptr, type, field) \
-//	(((type) *)((char *)(ptr) - offsetof((type), member)))
+// ******************************************************************
+// * XG_5344
+// ******************************************************************
+OOVPATable XG_5344[1] = {
 
-#define OBJECT_TO_OBJECT_HEADER(Object) \
-    CONTAINING_RECORD(Object, OBJECT_HEADER, Body)
+	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, PATCH),
+	// REGISTER_OOVPA(XGSwizzleRect, 4361, PATCH), // Leave unpatched
+};
 
-void InitializeListHead(xboxkrnl::PLIST_ENTRY pListHead);
-bool IsListEmpty(xboxkrnl::PLIST_ENTRY pListHead);
-void InsertHeadList(xboxkrnl::PLIST_ENTRY pListHead, xboxkrnl::PLIST_ENTRY pEntry);
-void InsertTailList(xboxkrnl::PLIST_ENTRY pListHead, xboxkrnl::PLIST_ENTRY pEntry);
-//#define RemoveEntryList(e) do { PLIST_ENTRY f = (e)->Flink, b = (e)->Blink; f->Blink = b; b->Flink = f; (e)->Flink = (e)->Blink = NULL; } while (0)
-
-void RemoveEntryList(xboxkrnl::PLIST_ENTRY pEntry);
-xboxkrnl::PLIST_ENTRY RemoveHeadList(xboxkrnl::PLIST_ENTRY pListHead);
-xboxkrnl::PLIST_ENTRY RemoveTailList(xboxkrnl::PLIST_ENTRY pListHead);
-
-extern xboxkrnl::LAUNCH_DATA_PAGE DefaultLaunchDataPage;
-
-#endif
+// ******************************************************************
+// * XG_5344_SIZE
+// ******************************************************************
+uint32 XG_5344_SIZE = sizeof(XG_5344);

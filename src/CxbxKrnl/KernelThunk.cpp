@@ -42,7 +42,7 @@ namespace xboxkrnl
     #include <xboxkrnl/xboxkrnl.h>
 };
 
-#include "Cxbx.h" // For CXBXKRNL_API, CxbxKrnl_KernelThunkTable
+#include "Cxbx.h" // For CxbxKrnl_KernelThunkTable
 #include "CxbxKrnl.h" // For UINT
 
 //
@@ -65,7 +65,7 @@ namespace xboxkrnl
 
 // kernel thunk table
 // Note : Names that collide with other symbols, use the KRNL() macro.
-extern "C" CXBXKRNL_API uint32 CxbxKrnl_KernelThunkTable[379] =
+uint32 CxbxKrnl_KernelThunkTable[379] =
 {
 	(uint32)PANIC(0x0000),                                        // 0x0000 (0)   NULL
 	(uint32)FUNC(&xboxkrnl::AvGetSavedDataAddress),               // 0x0001 (1)
@@ -220,9 +220,9 @@ extern "C" CXBXKRNL_API uint32 CxbxKrnl_KernelThunkTable[379] =
 	(uint32)FUNC(&xboxkrnl::KeSetTimerEx),                        // 0x0096 (150)
 	(uint32)FUNC(&xboxkrnl::KeStallExecutionProcessor),           // 0x0097 (151)
 	(uint32)FUNC(&xboxkrnl::KeSuspendThread),                     // 0x0098 (152)
-	(uint32)PANIC(0x0099),                                        // 0x0099 (153) KeSynchronizeExecution
+	(uint32)FUNC(&xboxkrnl::KeSynchronizeExecution),              // 0x0099 (153)
 	(uint32)VARIABLE(0x009A),                                     // 0x009A (154) KeSystemTime (Set by ConnectWindowsTimersToThunkTable)
-	(uint32)PANIC(0x009B),                                        // 0x009B (155) KeTestAlertThread
+	(uint32)FUNC(&xboxkrnl::KeTestAlertThread),                   // 0x009B (155)
 	(uint32)VARIABLE(&xboxkrnl::KeTickCount),                     // 0x009C (156)
 	(uint32)VARIABLE(&xboxkrnl::KeTimeIncrement),                 // 0x009D (157)
 	(uint32)FUNC(&xboxkrnl::KeWaitForMultipleObjects),            // 0x009E (158)
