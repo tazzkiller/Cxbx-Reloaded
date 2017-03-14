@@ -3159,11 +3159,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture)
     if(PCFormat == D3DFMT_YUY2)
     {
         DWORD dwSize = g_dwOverlayP*g_dwOverlayH;
-        DWORD dwPtr = (DWORD)CxbxMalloc(dwSize + sizeof(DWORD));
-        DWORD *pRefCount = (DWORD*)(dwPtr + dwSize);
-
-        // initialize ref count
-        *pRefCount = 1;
+        DWORD dwPtr = (DWORD)CxbxMalloc(dwSize);
 
         // If YUY2 is not supported in hardware, we'll actually mark this as a special fake texture (set highest bit)
         Texture_Data = X_D3DRESOURCE_DATA_YUV_SURFACE;
@@ -3301,11 +3297,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVolumeTexture)
     if(PCFormat == D3DFMT_YUY2)
     {
         DWORD dwSize = g_dwOverlayP*g_dwOverlayH;
-        DWORD dwPtr = (DWORD)CxbxMalloc(dwSize + sizeof(DWORD));
-        DWORD *pRefCount = (DWORD*)(dwPtr + dwSize);
-
-        // initialize ref count
-        *pRefCount = 1;
+        DWORD dwPtr = (DWORD)CxbxMalloc(dwSize);
 
         // If YUY2 is not supported in hardware, we'll actually mark this as a special fake texture (set highest bit)
         (*ppVolumeTexture)->Data = X_D3DRESOURCE_DATA_YUV_SURFACE;
@@ -4709,19 +4701,14 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
                 //
 
                 DWORD dwSize = g_dwOverlayP*g_dwOverlayH;
-                DWORD dwPtr = (DWORD)CxbxMalloc(dwSize + sizeof(DWORD));
-
-                DWORD *pRefCount = (DWORD*)(dwPtr + dwSize);
-
-                // initialize ref count
-                *pRefCount = 1;
+                DWORD dwPtr = (DWORD)CxbxMalloc(dwSize);
 
                 // If YUY2 is not supported in hardware, we'll actually mark this as a special fake texture (set highest bit)
-				pPixelContainer->Common = 1; // Set refcount to 1
                 pPixelContainer->Data = X_D3DRESOURCE_DATA_YUV_SURFACE;
                 pPixelContainer->Lock = dwPtr;
-                pPixelContainer->Format = (X_D3DFMT_YUY2 << X_D3DFORMAT_FORMAT_SHIFT);
 
+				// TODO : Is the following actually needed, or is Register called with these set already?
+                pPixelContainer->Format = (X_D3DFMT_YUY2 << X_D3DFORMAT_FORMAT_SHIFT);
                 pPixelContainer->Size  = (g_dwOverlayW & X_D3DSIZE_WIDTH_MASK);
                 pPixelContainer->Size |= (g_dwOverlayH << X_D3DSIZE_HEIGHT_SHIFT) & X_D3DSIZE_HEIGHT_MASK;
                 pPixelContainer->Size |= (g_dwOverlayP << X_D3DSIZE_PITCH_SHIFT) & X_D3DSIZE_PITCH_MASK;
@@ -5120,35 +5107,10 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_AddRef)
 
     ULONG uRet = 0;
 
-    if (!pThis) {
-        EmuWarning("IDirect3DResource8::AddRef() was not passed a valid pointer!");
-    }
-    else 
-    {
-        if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
-        {
-            DWORD  dwPtr = (DWORD)pThis->Lock;
-            DWORD *pRefCount = (DWORD*)(dwPtr + g_dwOverlayP*g_dwOverlayH);
-            ++(*pRefCount);
-        }
-        else
-        {
-            IDirect3DResource8 *pResource8 = pThis->EmuResource8;
-
-            if(pThis->Lock == X_D3DRESOURCE_LOCK_PALETTE)
-                uRet = ++pThis->Lock;
-            else if(pResource8 != 0)
-                uRet = pResource8->AddRef();
-
-		    if(!pResource8)
-			    __asm int 3;
-			    //EmuWarning("EmuResource is not a valid pointer!");
-
-            pThis->Common = (pThis->Common & ~X_D3DCOMMON_REFCOUNT_MASK) | ((pThis->Common & X_D3DCOMMON_REFCOUNT_MASK) + 1);
-        }
-    }
-
-    
+	if (!pThis)
+		EmuWarning("IDirect3DResource8::AddRef() was not passed a valid pointer!");
+	else
+		uRet = (++(pThis->Common)) & X_D3DCOMMON_REFCOUNT_MASK;
 
     return uRet;
 }
@@ -5167,29 +5129,30 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
            ");\n",
            pThis);
 
-    ULONG uRet = 0;
-
 	// HACK: In case the clone technique fails...
 	if(!pThis)
 	{
-		EmuWarning("NULL texture!");
-
+		EmuWarning("NULL Resource!");
 		return 0;
 	}
 
+	if ((pThis->Common & X_D3DCOMMON_REFCOUNT_MASK) == 0)
+	{
+		EmuWarning("Resource with zero RefCount!");
+		return 0;
+	}
+
+	ULONG uRet = (--(pThis->Common)) & X_D3DCOMMON_REFCOUNT_MASK;
+	if (uRet > 0)
+		return uRet;
+
 	if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
     {
-        DWORD  dwPtr = (DWORD)pThis->Lock;
-        DWORD *pRefCount = (DWORD*)(dwPtr + g_dwOverlayP*g_dwOverlayH);
+		if(g_pCachedYuvSurface == pThis)
+			g_pCachedYuvSurface = NULL;
 
-        if(--(*pRefCount) == 0)
-        {
-            if(g_pCachedYuvSurface == pThis)
-                g_pCachedYuvSurface = NULL;
-
-            // free memory associated with this special resource handle
-            CxbxFree((PVOID)dwPtr);
-        }
+		// free memory associated with this special resource handle
+		CxbxFree((PVOID)pThis->Lock);
         
 		EMUPATCH(D3DDevice_EnableOverlay)(FALSE);
     }
@@ -5200,7 +5163,6 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
         if(pThis->Lock == X_D3DRESOURCE_LOCK_PALETTE)
         {
             delete[] (PVOID)pThis->Data;
-            uRet = --pThis->Lock;
         }
         else if(pResource8 != nullptr)
         {
@@ -5217,25 +5179,23 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
             D3DRESOURCETYPE Type = pResource8->GetType();
             #endif
 
-            uRet = pResource8->Release();
-            if(uRet == 0)
+            while (pResource8->Release() > 0)
+				;
+
+			DbgPrintf("EmuIDirect3DResource8_Release : Cleaned up a Resource!\n");
+
+			#ifdef _DEBUG_TRACE_VB
+            if(Type == D3DRTYPE_VERTEXBUFFER)
             {
-                DbgPrintf("EmuIDirect3DResource8_Release : Cleaned up a Resource!\n");
-
-                #ifdef _DEBUG_TRACE_VB
-                if(Type == D3DRTYPE_VERTEXBUFFER)
-                {
-                    g_VBTrackTotal.remove(pResource8);
-                    g_VBTrackDisable.remove(pResource8);
-                }
-                #endif
-
-                //delete pThis;
+				g_VBTrackTotal.remove(pResource8);
+                g_VBTrackDisable.remove(pResource8);
             }
+            #endif
         }
-
-        pThis->Common = (pThis->Common & ~X_D3DCOMMON_REFCOUNT_MASK) | ((pThis->Common & X_D3DCOMMON_REFCOUNT_MASK) - 1);
     }
+
+	if (pThis->Common & X_D3DCOMMON_D3DCREATED)
+		delete pThis;
 
     return uRet;
 }
