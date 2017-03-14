@@ -253,6 +253,27 @@ typedef struct _XINPUT_FEEDBACK
 XINPUT_FEEDBACK, *PXINPUT_FEEDBACK;
 
 // ******************************************************************
+// * XBGAMEPAD
+// ******************************************************************
+struct XBGAMEPAD : public XINPUT_GAMEPAD
+{
+	FLOAT      fX1;
+	FLOAT      fY1;
+	FLOAT      fX2;
+	FLOAT      fY2;
+	WORD       wLastButtons;
+	BOOL       bLastAnalogButtons[8];
+	WORD       wPressedButtons;
+	BOOL       bPressedAnalogButtons[8];
+	XINPUT_RUMBLE	Rumble;
+	XINPUT_FEEDBACK	Feedback;
+	XINPUT_CAPABILITIES caps;
+	HANDLE     hDevice;
+	BOOL       bInserted;
+	BOOL       bRemoved;
+};
+
+// ******************************************************************
 // * RTL_HEAP_PARAMETERS
 // ******************************************************************
 typedef struct _RTL_HEAP_PARAMETERS
@@ -322,6 +343,7 @@ LAUNCH_DATA, *PLAUNCH_DATA;
 // ******************************************************************
 BOOL WINAPI EMUPATCH(XFormatUtilityDrive)();
 
+#if 0 // Handled by ExQueryNonVolatileSetting(XC_MAX_OS) returning XBOX_USER_SETTINGS
 // ******************************************************************
 // * patch: GetTimeZoneInformation
 // ******************************************************************
@@ -329,6 +351,7 @@ DWORD WINAPI EMUPATCH(GetTimeZoneInformation)
 (
     OUT LPTIME_ZONE_INFORMATION lpTimeZoneInformation
 );
+#endif
 
 // ******************************************************************
 // * patch: XMountUtilityDrive

@@ -42,7 +42,7 @@
 
 // print out a warning message to the kernel debug log file
 #ifdef _DEBUG_WARNINGS
-extern "C" CXBXKRNL_API void NTAPI EmuWarning(const char *szWarningMessage, ...);
+void NTAPI EmuWarning(const char *szWarningMessage, ...);
 #else
 inline void NTAPI EmuWarning(const char *szWarningMessage, ...) { }
 #endif
@@ -68,12 +68,6 @@ extern void * funcExclude[2048];
 // partition emulation directory handles
 extern HANDLE g_hCurDir;
 extern CHAR  *g_strCurDrive;
-extern HANDLE g_hTDrive;
-extern CHAR  *g_strTDrive;
-extern HANDLE g_hUDrive;
-extern CHAR  *g_strUDrive;
-extern HANDLE g_hZDrive;
-extern CHAR  *g_strZDrive;
 extern HWND   g_hEmuWindow;
 
 // thread notification routine

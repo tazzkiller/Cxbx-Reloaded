@@ -980,7 +980,7 @@ OOVPATable XAPI_3911[] = {
     // REGISTER_OOVPA(CreateMutex, 3911, PATCH), // Too High Level
     // REGISTER_OOVPA(CreateThread, 3911, PATCH), // Too High Level
 	REGISTER_OOVPA(SetThreadPriority, 3911, PATCH), //*/
-	REGISTER_OOVPA(GetTimeZoneInformation, 3911, PATCH),
+	REGISTER_OOVPA(GetTimeZoneInformation, 3911, DISABLED),
 	REGISTER_OOVPA(XRegisterThreadNotifyRoutine, 3911, PATCH),
     // REGISTER_OOVPA(XCalculateSignatureBegin, 3911, PATCH),
 	REGISTER_OOVPA(XGetDevices, 3911, PATCH),
@@ -1004,7 +1004,7 @@ OOVPATable XAPI_3911[] = {
 	REGISTER_OOVPA(XUnmountAlternateTitle, 3911, ALIAS, XUnmountAlternateTitleA),
 	REGISTER_OOVPA(XMountMUA, 3911, PATCH),
 	REGISTER_OOVPA(XLaunchNewImage, 3911, ALIAS, XLaunchNewImageA),
-	REGISTER_OOVPA(XGetLaunchInfo, 3911, PATCH),
+	REGISTER_OOVPA(XGetLaunchInfo, 3911, DISABLED),
 	REGISTER_OOVPA(XAutoPowerDownResetTimer, 3911, PATCH),
 	REGISTER_OOVPA(XMountMURootA, 3911, PATCH),
 	REGISTER_OOVPA(XMountUtilityDrive, 3911, PATCH),

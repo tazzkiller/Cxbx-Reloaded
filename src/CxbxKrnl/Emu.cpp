@@ -68,12 +68,6 @@ CRITICAL_SECTION dbgCritical;
 // Global Variable(s)
 HANDLE           g_hCurDir    = NULL;
 CHAR            *g_strCurDrive= NULL;
-HANDLE           g_hTDrive    = NULL;
-CHAR            *g_strTDrive  = NULL;
-HANDLE           g_hUDrive    = NULL;
-CHAR            *g_strUDrive  = NULL;
-HANDLE           g_hZDrive    = NULL;
-CHAR            *g_strZDrive  = NULL;
 volatile bool    g_bEmuException = false;
 volatile bool    g_bEmuSuspended = false;
 volatile bool    g_bPrintfOn = true;
@@ -114,7 +108,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 
 // print out a warning message to the kernel debug log file
 #ifdef _DEBUG_WARNINGS
-extern "C" CXBXKRNL_API void NTAPI EmuWarning(const char *szWarningMessage, ...)
+void NTAPI EmuWarning(const char *szWarningMessage, ...)
 {
     if(szWarningMessage == NULL)
         return;

@@ -201,7 +201,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 				if (BuildVersion == 4721) { BuildVersion = 4627; }
 				if (BuildVersion == 4831) { BuildVersion = 4627; }
 				if (BuildVersion == 4928) { BuildVersion = 4627; }
-				if (BuildVersion == 5344) { BuildVersion = 5233; }
 				if (BuildVersion == 5455) { BuildVersion = 5558; }
 				if (BuildVersion == 5659) { BuildVersion = 5558; }
 				if (BuildVersion == 5028) { BuildVersion = 4627; }
@@ -391,7 +390,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
                                 XTL::EmuD3DDeferredRenderState = (DWORD*)(*(DWORD*)(pFunc + 0x2B) - 0x204 + 83*4);
 								patchOffset = 143 * 4 - 83 * 4;
 							}
-							else if (BuildVersion == 4627 || BuildVersion == 5233 || BuildVersion == 5558 || BuildVersion == 5788
+							else if (BuildVersion == 4627 || BuildVersion == 5233 || BuildVersion == 5344 || BuildVersion == 5558 || BuildVersion == 5788
 								|| BuildVersion == 5849)
 							{
 								// WARNING: Not thoroughly tested (just seemed very correct right away)
@@ -924,7 +923,8 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, uin
         else
         {
             pFunc = EmuLocateFunction(Oovpa, lower, upper);
-            vCacheOut.push_back(pFunc);
+			if (pFunc != (xbaddr)nullptr)
+				vCacheOut.push_back(pFunc);
         }
 
         if(pFunc != (xbaddr)nullptr)
