@@ -40,11 +40,20 @@
 #define X_D3DRSSE_UNK 0x7fffffff
 extern CONST DWORD EmuD3DRenderStateSimpleEncoded[174];
 
-// is this format swizzled, and if so - how many BPP?
-extern BOOL EmuXBFormatIsSwizzled(X_D3DFORMAT Format, DWORD *pBPP);
+// how many bits does this format use per pixel?
+extern DWORD EmuXBFormatBitsPerPixel(X_D3DFORMAT Format);
+
+// how many bytes does this format use per pixel?
+extern DWORD EmuXBFormatBytesPerPixel(X_D3DFORMAT Format);
+
+// is this format compressed?
+extern BOOL EmuXBFormatIsCompressed(X_D3DFORMAT Format);
 
 // is this format linear?
 extern BOOL EmuXBFormatIsLinear(X_D3DFORMAT Format);
+
+// is this format swizzled?
+extern BOOL EmuXBFormatIsSwizzled(X_D3DFORMAT Format);
 
 // convert from xbox to pc color formats
 extern D3DFORMAT EmuXB2PC_D3DFormat(X_D3DFORMAT Format);
@@ -182,15 +191,15 @@ inline D3DSTENCILOP EmuXB2PC_D3DSTENCILOP(X_D3DSTENCILOP Value)
 extern UINT EmuD3DVertexToPrimitive[11][2];
 
 // convert from vertex count to primitive count (Xbox)
-inline int EmuD3DVertex2PrimitiveCount(int PrimitiveType, int VertexCount)
+inline int EmuD3DVertex2PrimitiveCount(X_D3DPRIMITIVETYPE PrimitiveType, int VertexCount)
 {
     return (VertexCount - EmuD3DVertexToPrimitive[PrimitiveType][1]) / EmuD3DVertexToPrimitive[PrimitiveType][0];
 }
 
 // convert from primitive count to vertex count (Xbox)
-inline int EmuD3DPrimitive2VertexCount(int PrimitiveType, int PrimitiveCount)
+inline int EmuD3DPrimitive2VertexCount(X_D3DPRIMITIVETYPE PrimitiveType, int PrimitiveCount)
 {
-    return (((PrimitiveCount)*EmuD3DVertexToPrimitive[PrimitiveType][0])+EmuD3DVertexToPrimitive[PrimitiveType][1]);
+    return (PrimitiveCount * EmuD3DVertexToPrimitive[PrimitiveType][0]) + EmuD3DVertexToPrimitive[PrimitiveType][1];
 }
 
 // conversion table for xbox->pc primitive types
