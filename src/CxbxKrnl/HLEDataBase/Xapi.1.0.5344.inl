@@ -45,7 +45,7 @@ OOVPATable XAPI_5344[] = {
 	REGISTER_OOVPA(XMountUtilityDrive, 4432, PATCH),
 	REGISTER_OOVPA(XInitDevices, 5233, PATCH),
 	REGISTER_OOVPA(XGetDevices, 4134, PATCH),
-	REGISTER_OOVPA(XGetDeviceChanges, 5233, PATCH),
+	REGISTER_OOVPA(XGetDeviceChanges, 5233, DISABLED),
 	REGISTER_OOVPA(XInputOpen, 4361, PATCH),
 	REGISTER_OOVPA(XInputGetCapabilities, 5233, PATCH),
 	REGISTER_OOVPA(XID_fCloseDevice, 4928, XREF),
@@ -53,6 +53,11 @@ OOVPATable XAPI_5344[] = {
 	REGISTER_OOVPA(XInputGetState, 4928, PATCH),
 	REGISTER_OOVPA(XInputSetState, 5233, PATCH),
 	REGISTER_OOVPA(QueueUserAPC, 3911, PATCH),
+	REGISTER_OOVPA(CreateFiber, 3911, DISABLED),
+	REGISTER_OOVPA(DeleteFiber, 3911, DISABLED),
+	REGISTER_OOVPA(SwitchToFiber, 3911, DISABLED),
+	REGISTER_OOVPA(ConvertThreadToFiber, 3911, DISABLED),
+	REGISTER_OOVPA(OutputDebugStringA, 3911, PATCH),
 };
 
 // ******************************************************************

@@ -778,9 +778,9 @@ DWORD WINAPI EMUPATCH(D3DBaseTexture_GetLevelCount)
 );
 
 // ******************************************************************
-// * patch: IDirect3DTexture8_GetSurfaceLevel
+// * patch: IDirect3DTexture8_GetSurfaceLevel2
 // ******************************************************************
-X_D3DResource * WINAPI EMUPATCH(D3DTexture_GetSurfaceLevel2)
+X_D3DSurface * WINAPI EMUPATCH(D3DTexture_GetSurfaceLevel2)
 (
     X_D3DTexture   *pThis,
     UINT            Level
@@ -1276,6 +1276,15 @@ VOID WINAPI EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
     CONST PVOID         pIndexData,
     CONST PVOID         pVertexStreamZeroData,
     UINT                VertexStreamZeroStride
+);
+
+// ******************************************************************
+// * patch: D3DDevice_GetLight
+// ******************************************************************
+HRESULT WINAPI EMUPATCH(D3DDevice_GetLight)
+(
+    DWORD            Index,
+    D3DLIGHT8       *pLight
 );
 
 // ******************************************************************

@@ -142,7 +142,9 @@ POLLING_PARAMETERS_HANDLE, *PPOLLING_PARAMETERS_HANDLE;
 // ******************************************************************
 typedef struct _XPP_DEVICE_TYPE
 {
-    ULONG Reserved[3];
+	ULONG CurrentConnected;
+	ULONG ChangeConnected;
+	ULONG PreviousConnected;
 }
 XPP_DEVICE_TYPE, *PXPP_DEVICE_TYPE;
 
@@ -722,11 +724,6 @@ DWORD WINAPI EMUPATCH(XInputGetDeviceDescription)
 );
 
 // ******************************************************************
-// * patch: XAutoPowerDownResetTimer
-// ******************************************************************
-int WINAPI EMUPATCH(XAutoPowerDownResetTimer)();
-
-// ******************************************************************
 // * patch: ReadFileEx
 // ******************************************************************
 BOOL WINAPI EMUPATCH(ReadFileEx)
@@ -748,6 +745,14 @@ BOOL WINAPI EMUPATCH(WriteFileEx)
 	DWORD nNumberOfBytesToWrite,                        // number of bytes to write
 	LPOVERLAPPED lpOverlapped,                          // overlapped buffer
 	LPOVERLAPPED_COMPLETION_ROUTINE lpCompletionRoutine // completion routine
+);
+
+// ******************************************************************
+// * patch: OutputDebugStringA
+// ******************************************************************
+VOID WINAPI EMUPATCH(OutputDebugStringA)
+(
+	IN LPCSTR lpOutputString
 );
 
 // s+
