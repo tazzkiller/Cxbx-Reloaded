@@ -238,10 +238,9 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
 			&uiStride);
         if(!pOrigVertexBuffer)
 		{
-			/*if(!g_pVertexBuffer || !g_pVertexBuffer->EmuVertexBuffer8)
-				CxbxKrnlCleanup("Unable to retrieve original buffer (Stream := %d)", uiStream);
-			else
-				pOrigVertexBuffer = g_pVertexBuffer->EmuVertexBuffer8;*/
+			/* pOrigVertexBuffer = GetHostVertexBuffer(g_pVertexBuffer);
+			if(pOrigVertexBuffer == nullptr)
+				CxbxKrnlCleanup("Unable to retrieve original buffer (Stream := %d)", uiStream); */
 
 			if(pbFatalError)
 				*pbFatalError = true;
@@ -1268,7 +1267,9 @@ VOID XTL::EmuUpdateActiveTexture() // Never called!
         X_D3DResource       *pResource = (X_D3DResource*)pTexture;
         X_D3DPixelContainer *pPixelContainer = (X_D3DPixelContainer*)pTexture;
 
-        X_D3DFORMAT X_Format = (X_D3DFORMAT)((pPixelContainer->Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT);
+		XTL::IDirect3DTexture8 *pHostTexture = pPixelContainer->EmuTexture8; // TODO : Use GetHostTexture(pPixelContainer);
+
+		X_D3DFORMAT X_Format = (X_D3DFORMAT)((pPixelContainer->Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT);
 
         if(X_Format != 0xCD && ((pTexture->Common & X_D3DCOMMON_TYPE_MASK) == X_D3DCOMMON_TYPE_TEXTURE))
         {
@@ -1380,7 +1381,7 @@ VOID XTL::EmuUpdateActiveTexture() // Never called!
             {
                 D3DLOCKED_RECT LockedRect;
 
-                HRESULT hRet = pResource->EmuTexture8->LockRect(level, &LockedRect, NULL, 0);
+                HRESULT hRet = pHostTexture->LockRect(level, &LockedRect, NULL, 0);
 
                 RECT  iRect  = {0,0,0,0};
                 POINT iPoint = {0,0};
@@ -1437,7 +1438,7 @@ VOID XTL::EmuUpdateActiveTexture() // Never called!
                     }
                 }
 
-                pResource->EmuTexture8->UnlockRect(level);
+				pHostTexture->UnlockRect(level);
 
                 dwMipOffs += dwMipWidth*dwMipHeight*dwBPP;
 
@@ -1447,7 +1448,7 @@ VOID XTL::EmuUpdateActiveTexture() // Never called!
             }
         }
 
-        g_pD3DDevice8->SetTexture(Stage, pTexture->EmuTexture8);
+        g_pD3DDevice8->SetTexture(Stage, pHostTexture);
         //*/
     }
 }

@@ -86,7 +86,8 @@ static void EmuUnswizzleActiveTexture()
 
 	DWORD dwBPP = XTL::EmuXBFormatBytesPerPixel(XBFormat);
     // remove lock
-    pPixelContainer->EmuTexture8->UnlockRect(0);
+    XTL::IDirect3DTexture8 *pHostTexture = pPixelContainer->EmuTexture8; // TODO : Use GetHostTexture(pPixelContainer);
+    pHostTexture->UnlockRect(0);
     pPixelContainer->Common &= ~X_D3DCOMMON_ISLOCKED;
 
     // TODO: potentially XXHash32::hash() to see if this surface was actually modified..
@@ -96,15 +97,14 @@ static void EmuUnswizzleActiveTexture()
     //
 
     {
-        XTL::IDirect3DTexture8 *pTexture = pPixelContainer->EmuTexture8;
 
-        DWORD dwLevelCount = pTexture->GetLevelCount();
+        DWORD dwLevelCount = pHostTexture->GetLevelCount();
 
         for(uint32 v=0;v<dwLevelCount;v++)
         {
             XTL::D3DSURFACE_DESC SurfaceDesc;
 
-            HRESULT hRet = pTexture->GetLevelDesc(v, &SurfaceDesc);
+            HRESULT hRet = pHostTexture->GetLevelDesc(v, &SurfaceDesc);
 
             if(FAILED(hRet))
                 continue;
@@ -120,7 +120,7 @@ static void EmuUnswizzleActiveTexture()
                 //    break;
                 //CxbxKrnlCleanup("Temporarily unsupported format for active texture unswizzle (0x%.08X)", SurfaceDesc.Format);
 
-                hRet = pTexture->LockRect(v, &LockedRect, NULL, NULL);
+                hRet = pHostTexture->LockRect(v, &LockedRect, NULL, NULL);
 
                 if(FAILED(hRet))
                     continue;
@@ -142,7 +142,7 @@ static void EmuUnswizzleActiveTexture()
 
                 memcpy(LockedRect.pBits, pTemp, dwPitch*dwHeight);
 
-                pTexture->UnlockRect(0);
+                pHostTexture->UnlockRect(0);
 
 				free(pTemp);
             }
