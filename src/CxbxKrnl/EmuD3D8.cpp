@@ -256,17 +256,32 @@ inline boolean IsSpecialXboxResource(const XTL::X_D3DResource *pXboxResource)
 	return ((pXboxResource->Data & X_D3DRESOURCE_DATA_FLAG_SPECIAL) == X_D3DRESOURCE_DATA_FLAG_SPECIAL);
 }
 
-XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
+// TODO : Once all accesses to the Lock/Emu* union fields are
+// done through these functions, switch the implementation to an
+// associative map, so that we no longer abuse any Xbox fields.
+XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pThis)
 {
+	// Don't read from unassigned Xbox resources
 	if (pXboxResource == NULL)
 		return nullptr;
 
+	// Skip palette's, fixup's and pushbuffer's
+	DWORD Type = GetXboxResourceType(pXboxResource);
+	if (Type == X_D3DCOMMON_TYPE_PALETTE)
+		return nullptr;
+
+	if (Type == X_D3DCOMMON_TYPE_FIXUP)
+		return nullptr;
+
+	if (Type == X_D3DCOMMON_TYPE_PUSHBUFFER)		
+		return nullptr;
+
+	// Skip all special resources (amongst which X_D3DRESOURCE_DATA_YUV_SURFACE),
+	// as these put something else than a host resource in the Lock field :
 	if (IsSpecialXboxResource(pXboxResource)) // Was X_D3DRESOURCE_DATA_YUV_SURFACE
 		return nullptr;
 
-	if (pXboxResource->Lock == X_D3DRESOURCE_LOCK_PALETTE)
-		return nullptr;
-
+	// Once we reach this point, we expect a resource to be present
 	if (pXboxResource->EmuResource8 == nullptr)
 	{
 		__asm int 3;
@@ -1372,14 +1387,6 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 // check if a resource has been registered yet (if not, register it)
 static void EmuVerifyResourceIsRegistered(XTL::X_D3DResource *pResource)
 {
-    // 0xEEEEEEEE and 0xFFFFFFFF are somehow set in Halo :(
-    if(pResource->Lock != 0 && pResource->Lock != 0xEEEEEEEE && pResource->Lock != 0xFFFFFFFF)
-        return;
-
-	// Skip resources with unknown size
-	if (pResource->Lock == X_D3DRESOURCE_LOCK_FLAG_NOSIZE)
-		return;
-
 	// Skip resources without data
 	if (pResource->Data == NULL)
 		return;
@@ -1387,6 +1394,12 @@ static void EmuVerifyResourceIsRegistered(XTL::X_D3DResource *pResource)
     // Already "Registered" implicitly
     if(IsSpecialXboxResource(pResource))
         return;
+
+	// Skip resources with unknown size
+	if (pResource->Lock == X_D3DRESOURCE_LOCK_FLAG_NOSIZE)
+		return;
+
+	// Note : palette's, fixup's and pushbuffer's ARE allowed!
 
 	if (std::find(g_RegisteredResources.begin(), g_RegisteredResources.end(), pResource->Data) != g_RegisteredResources.end()) {
 		return;
