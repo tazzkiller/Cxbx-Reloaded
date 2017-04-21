@@ -1171,7 +1171,7 @@ OOVPATable D3D8_4034[] = {
 	REGISTER_OOVPA(D3DDevice_SetRenderState_CullMode, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_CreateCubeTexture, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDeviceCaps, 3925, DISABLED),
-	REGISTER_OOVPA(D3DDevice_CreatePalette, 3925, PATCH),
+	REGISTER_OOVPA(D3DDevice_CreatePalette, 3925, DISABLED),
 	REGISTER_OOVPA(D3DDevice_CreateTexture, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_CreateVolumeTexture, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_CreateIndexBuffer, 3925, PATCH),
