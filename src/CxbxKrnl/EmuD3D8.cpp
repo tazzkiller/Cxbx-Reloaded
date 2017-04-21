@@ -5326,8 +5326,22 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
                 //delete pThis;
             }
         }
+		else
+		{
+			uRet = (--pThis->Common) & X_D3DCOMMON_REFCOUNT_MASK;
+			if (uRet == 0)
+			{
+				DbgPrintf("EmuIDirect3DResource8_Release : Cleaned up a Xbox Resource!\n");
 
-        pThis->Common--; // Release
+				if (pThis->Common & X_D3DCOMMON_D3DCREATED)
+					// This handles ((pThis->Common & X_D3DCOMMON_TYPE_MASK) == X_D3DCOMMON_TYPE_PALETTE)
+					// (previously X_D3DRESOURCE_LOCK_PALETTE) too :
+					if (pThis->Data != NULL)
+						g_MemoryManager.Free((void*)(pThis->Data | MM_SYSTEM_PHYSICAL_MAP));
+
+				// TODO : ;g_MemoryManager.Free(pThis);
+			}
+		}
     }
 
     return uRet;
