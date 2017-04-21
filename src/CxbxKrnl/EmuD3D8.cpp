@@ -315,12 +315,14 @@ XTL::X_D3DVertexBuffer *EmuNewD3DVertexBuffer()
 	return result;
 }
 
+#if 0 // never called
 XTL::X_D3DPalette *EmuNewD3DPalette()
 {
 	XTL::X_D3DPalette *result = (XTL::X_D3DPalette *)g_MemoryManager.AllocateZeroed(1, sizeof(XTL::X_D3DPalette));
 	result->Common = X_D3DCOMMON_D3DCREATED | X_D3DCOMMON_TYPE_PALETTE | 1; // Set refcount to 1
 	return result;
 }
+#endif
 
 VOID CxbxSetPixelContainerHeader
 (
