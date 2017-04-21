@@ -267,14 +267,16 @@ XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pThis)
 	if ((pThis->Data & X_D3DRESOURCE_DATA_FLAG_SPECIAL) == X_D3DRESOURCE_DATA_FLAG_SPECIAL)
 		return nullptr;
 
+	XTL::IDirect3DResource8 *result = pThis->EmuResource8;
+
 	// Once we reach this point, we expect a resource to be present
-	if (pThis->EmuResource8 == nullptr)
+	if (result == nullptr)
 	{
 		__asm int 3;
 		//EmuWarning("EmuResource is not a valid pointer!");
 	}
 
-	return pThis->EmuResource8;
+	return result;
 }
 
 XTL::IDirect3DSurface8 *GetHostSurface(XTL::X_D3DResource *pThis)
@@ -301,28 +303,23 @@ XTL::IDirect3DBaseTexture8 *GetHostBaseTexture(XTL::X_D3DResource *pThis)
 
 XTL::IDirect3DTexture8 *GetHostTexture(XTL::X_D3DResource *pThis)
 {
-	if (pThis == NULL)
-		return nullptr;
-
-	if ((pThis->Common & X_D3DCOMMON_TYPE_MASK) != X_D3DCOMMON_TYPE_TEXTURE)
-		return nullptr;
+	return (XTL::IDirect3DTexture8 *)GetHostBaseTexture(pThis);
 
 	// TODO : Check for 1 face?
-
-	return pThis->EmuTexture8;
 }
 
 XTL::IDirect3DCubeTexture8 *GetHostCubeTexture(XTL::X_D3DResource *pThis)
 {
-	if (pThis == NULL)
-		return nullptr;
-
-	if ((pThis->Common & X_D3DCOMMON_TYPE_MASK) != X_D3DCOMMON_TYPE_TEXTURE)
-		return nullptr;
+	return (XTL::IDirect3DCubeTexture8 *)GetHostBaseTexture(pThis);
 
 	// TODO : Check for 6 faces?
+}
 
-	return pThis->EmuCubeTexture8;
+XTL::IDirect3DVolumeTexture8 *GetHostVolumeTexture(XTL::X_D3DResource *pThis)
+{
+	return (XTL::IDirect3DVolumeTexture8 *)GetHostBaseTexture(pThis);
+
+	// TODO : Check for 3 dimensions?
 }
 
 XTL::IDirect3DIndexBuffer8 *GetHostIndexBuffer(XTL::X_D3DResource *pThis)
