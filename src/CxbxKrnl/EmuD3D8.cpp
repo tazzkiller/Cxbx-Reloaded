@@ -8419,6 +8419,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
     return hRet;
 }
 
+#if 0 // patch DISABLED
 // ******************************************************************
 // * patch: D3DDevice_CreatePalette
 // ******************************************************************
@@ -8434,7 +8435,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette)
 
     return D3D_OK;
 }
+#endif
 
+#if 0 // patch DISABLED
 // ******************************************************************
 // * patch: D3DDevice_CreatePalette2
 // ******************************************************************
@@ -8477,6 +8480,7 @@ XTL::X_D3DPalette * WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette2)
 
     return pPalette;
 }
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_SetPalette
