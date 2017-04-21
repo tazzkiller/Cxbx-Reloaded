@@ -2257,8 +2257,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer)
 )
 {
 	FUNC_EXPORTS
-
-        DbgPrintf("EmuD3D8: EmuD3DDevice_GetBackBuffer >>\n"
+		
+	// TODO : Enable LOG_FORWARD("D3DDevice_GetBackBuffer2");
+	DbgPrintf("EmuD3D8: EmuD3DDevice_GetBackBuffer >>\n"
                "(\n"
                "   BackBuffer          : 0x%.08X\n"
                "   Type                : 0x%.08X\n"
@@ -2468,6 +2469,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget)
 {
 	FUNC_EXPORTS
 
+	// TODO : Enable LOG_FORWARD("D3DDevice_GetRenderTarget2");
     DbgPrintf("EmuD3D8: EmuD3DDevice_GetRenderTarget >>\n"
            "(\n"
            "   ppRenderTarget      : 0x%.08X\n"
@@ -2475,6 +2477,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget)
            ppRenderTarget);
 
 	*ppRenderTarget = EMUPATCH(D3DDevice_GetRenderTarget2)();
+
     return D3D_OK;
 }
 
@@ -2506,6 +2509,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface)
 {
 	FUNC_EXPORTS
 
+	// TODO : Enable LOG_FORWARD("D3DDevice_GetDepthStencilSurface2");
     DbgPrintf("EmuD3D8: EmuD3DDevice_GetDepthStencilSurface >>\n"
            "(\n"
            "   ppZStencilSurface   : 0x%.08X\n"
@@ -3938,7 +3942,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData2f)
 {
 	FUNC_EXPORTS
 
-        DbgPrintf("EmuD3D8: EmuD3DDevice_SetVertexData2f >>\n"
+		// TODO : Enable LOG_FORWARD("D3DDevice_SetVertexData4f");
+		DbgPrintf("EmuD3D8: EmuD3DDevice_SetVertexData2f >>\n"
                "(\n"
                "   Register            : 0x%.08X\n"
                "   a                   : %f\n"
@@ -3964,7 +3969,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData2s)
 {
 	FUNC_EXPORTS
 
-        DbgPrintf("EmuD3D8: EmuD3DDevice_SetVertexData2s >>\n"
+		// TODO : Enable LOG_FORWARD("D3DDevice_SetVertexData4f");
+		DbgPrintf("EmuD3D8: EmuD3DDevice_SetVertexData2s >>\n"
                "(\n"
                "   Register            : 0x%.08X\n"
                "   a                   : %d\n"
@@ -4168,6 +4174,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4ub)
 {
 	FUNC_EXPORTS
 
+	// TODO : Enable LOG_FORWARD("D3DDevice_SetVertexData4f");
     DbgPrintf("EmuD3D8: EmuD3DDevice_SetVertexData4ub >>\n"
            "(\n"
            "   Register            : 0x%.08X\n"
@@ -4199,6 +4206,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4s)
 {
 	FUNC_EXPORTS
 
+	// TODO : Enable LOG_FORWARD("D3DDevice_SetVertexData4f");
     DbgPrintf("EmuD3D8: EmuD3DDevice_SetVertexData4s >>\n"
            "(\n"
            "   Register            : 0x%.08X\n"
@@ -4227,7 +4235,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexDataColor)
 {
 	FUNC_EXPORTS
 
-        DbgPrintf("EmuD3D8: EmuD3DDevice_SetVertexDataColor >>\n"
+		// TODO : Enable LOG_FORWARD("D3DDevice_SetVertexData4f");
+		DbgPrintf("EmuD3D8: EmuD3DDevice_SetVertexDataColor >>\n"
                "(\n"
                "   Register            : 0x%.08X\n"
                "   Color               : 0x%.08X\n"
@@ -5903,6 +5912,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel)
 {
 	FUNC_EXPORTS
 
+	// TODO : Enable LOG_FORWARD("D3DTexture_GetSurfaceLevel2");
     DbgPrintf("EmuD3D8: EmuIDirect3DTexture8_GetSurfaceLevel >>\n"
            "(\n"
            "   pThis               : 0x%.08X\n"
@@ -10347,22 +10357,11 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DCubeTexture_GetCubeMapSurface2)
 {
 	FUNC_EXPORTS
 
-	DbgPrintf("EmuD3D8: EmuIDirect3DCubeTexture8_GetCubeMapSurface2\n"
-			"(\n"
-			"   pThis              : 0x%.08X\n"
-			"   FaceType           : 0x%.08X\n"
-			"   Level              : 0x%.08X\n"
-			");\n", pThis, FaceType, Level);
+	// TODO : Enable LOG_FORWARD("D3DCubeTexture_GetCubeMapSurface");
 
-	HRESULT hRet;
+	X_D3DSurface* pCubeMapSurface;
 
-	// Create a new surface
-	X_D3DSurface* pCubeMapSurface = EmuNewD3DSurface();
-
-	EmuVerifyResourceIsRegistered(pThis);
-	hRet = pThis->EmuCubeTexture8->GetCubeMapSurface( FaceType, Level, &pCubeMapSurface->EmuSurface8 );
-
-		
+	EMUPATCH(D3DCubeTexture_GetCubeMapSurface)(pThis, FaceType, Level, &pCubeMapSurface);
 
 	return pCubeMapSurface;
 }
@@ -10481,6 +10480,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTargetFast)
 {
 	FUNC_EXPORTS
 
+	// TODO : Enable LOG_FORWARD("D3DDevice_SetRenderTarget");
     DbgPrintf("EmuD3D8: EmuD3DDevice_SetRenderTarget >>\n"
            "(\n"
            "   pRenderTarget       : 0x%.08X (0x%.08X)\n"
