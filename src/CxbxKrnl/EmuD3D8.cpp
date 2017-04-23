@@ -259,7 +259,7 @@ inline boolean IsSpecialXboxResource(const XTL::X_D3DResource *pXboxResource)
 // TODO : Once all accesses to the Lock/Emu* union fields are
 // done through these functions, switch the implementation to an
 // associative map, so that we no longer abuse any Xbox fields.
-XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pThis)
+XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
 {
 	// Don't read from unassigned Xbox resources
 	if (pXboxResource == NULL)
