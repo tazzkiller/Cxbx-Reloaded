@@ -149,7 +149,7 @@ static XTL::X_VERTEXSHADERCONSTANTMODE g_VertexShaderConstantMode = X_VSCM_192;
 XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 
 // cached active texture
-XTL::X_D3DPixelContainer *XTL::EmuD3DActiveTexture[TEXTURE_STAGES] = {0,0,0,0};
+XTL::X_D3DPixelContainer *XTL::EmuD3DActiveTexture[TEXTURE_STAGES] = { nullptr, nullptr, nullptr, nullptr };
 
 // information passed to the create device proxy thread
 struct EmuD3D8CreateDeviceProxyData
@@ -363,7 +363,7 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 			return nullptr;
 		case X_D3DRESOURCE_DATA_YUV_SURFACE:
 			// YUV surfaces are marked as such in the Data field,
-			// and their data is put in their Lock field :s
+			// and their data is put in their Lock field :
 			pData = pXboxResource->Lock;
 			// TODO : What about X_D3DRESOURCE_LOCK_FLAG_NOSIZE?
 			break;
@@ -381,19 +381,26 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 	DWORD Type = GetXboxResourceType(pXboxResource);
 	switch (Type) {
 	case X_D3DCOMMON_TYPE_VERTEXBUFFER:
+		pData |= MM_SYSTEM_PHYSICAL_MAP;
 		break;
 	case X_D3DCOMMON_TYPE_INDEXBUFFER:
+		assert(false); // Index buffers are not allowed to be registered
 		break;
 	case X_D3DCOMMON_TYPE_PUSHBUFFER:
+		// Push-buffers always set 'Data' to the virtual address.
+		pData &= ~MM_SYSTEM_PHYSICAL_MAP;
 		break;
 	case X_D3DCOMMON_TYPE_PALETTE:
 		pData |= MM_SYSTEM_PHYSICAL_MAP;
 		break;
 	case X_D3DCOMMON_TYPE_TEXTURE:
+		pData |= MM_SYSTEM_PHYSICAL_MAP;
 		break;
 	case X_D3DCOMMON_TYPE_SURFACE:
+		pData |= MM_SYSTEM_PHYSICAL_MAP;
 		break;
 	case X_D3DCOMMON_TYPE_FIXUP:
+		assert(false); // Fixup's are not allowed to be registered
 		break;
 	default:
 		CxbxKrnlCleanup("Unhandled resource type");
