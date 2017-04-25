@@ -1071,7 +1071,7 @@ OOVPATable D3D8_5788[] = {
 	REGISTER_OOVPA(D3DDevice_UpdateOverlay, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetOverlayUpdateStatus, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_LogicOp, 4627, PATCH),
-	REGISTER_OOVPA(D3DDevice_CreatePalette2, 5558, PATCH),
+	REGISTER_OOVPA(D3DDevice_CreatePalette2, 5558, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SetPalette, 5788, PATCH),
 	REGISTER_OOVPA(D3DDevice_LoadVertexShaderProgram, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetPushBufferOffset, 5788, PATCH),

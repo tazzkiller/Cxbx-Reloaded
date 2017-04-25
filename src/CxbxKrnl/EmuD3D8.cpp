@@ -149,7 +149,7 @@ static XTL::X_VERTEXSHADERCONSTANTMODE g_VertexShaderConstantMode = X_VSCM_192;
 XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 
 // cached active texture
-XTL::X_D3DPixelContainer *XTL::EmuD3DActiveTexture[TEXTURE_STAGES] = {0,0,0,0};
+XTL::X_D3DPixelContainer *XTL::EmuD3DActiveTexture[TEXTURE_STAGES] = { nullptr, nullptr, nullptr, nullptr };
 
 // information passed to the create device proxy thread
 struct EmuD3D8CreateDeviceProxyData
@@ -248,21 +248,49 @@ inline DWORD GetXboxResourceType(const XTL::X_D3DResource *pXboxResource)
 	return pXboxResource->Common & X_D3DCOMMON_TYPE_MASK;
 }
 
+inline boolean IsSpecialXboxResource(const XTL::X_D3DResource *pXboxResource)
+{
+	// Don't pass in unassigned Xbox resources
+	assert(pXboxResource != NULL);
+
+	return ((pXboxResource->Data & X_D3DRESOURCE_DATA_FLAG_SPECIAL) == X_D3DRESOURCE_DATA_FLAG_SPECIAL);
+}
+
+// TODO : Once all accesses to the Lock/Emu* union fields are
+// done through these functions, switch the implementation to an
+// associative map, so that we no longer abuse any Xbox fields.
 XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
 {
-	if ((pXboxResource->Data & X_D3DRESOURCE_DATA_FLAG_SPECIAL) == X_D3DRESOURCE_DATA_FLAG_SPECIAL) // Was X_D3DRESOURCE_DATA_YUV_SURFACE
+	// Don't read from unassigned Xbox resources
+	if (pXboxResource == NULL)
 		return nullptr;
 
-	if (pXboxResource->Lock == X_D3DRESOURCE_LOCK_PALETTE)
+	// Skip palette's, fixup's and pushbuffer's
+	DWORD Type = GetXboxResourceType(pXboxResource);
+	if (Type == X_D3DCOMMON_TYPE_PALETTE)
 		return nullptr;
 
-	if (pXboxResource->EmuResource8 == nullptr)
+	if (Type == X_D3DCOMMON_TYPE_FIXUP)
+		return nullptr;
+
+	if (Type == X_D3DCOMMON_TYPE_PUSHBUFFER)		
+		return nullptr;
+
+	// Skip all special resources (amongst which X_D3DRESOURCE_DATA_YUV_SURFACE),
+	// as these put something else than a host resource in the Lock field :
+	if (IsSpecialXboxResource(pXboxResource)) // Was X_D3DRESOURCE_DATA_YUV_SURFACE
+		return nullptr;
+
+	XTL::IDirect3DResource8 *result = pXboxResource->EmuResource8;
+
+	// Once we reach this point, we expect a resource to be present
+	if (result == nullptr)
 	{
 		__asm int 3;
 		//EmuWarning("EmuResource is not a valid pointer!");
 	}
 
-	return pXboxResource->EmuResource8;
+	return result;
 }
 
 XTL::IDirect3DSurface8 *GetHostSurface(XTL::X_D3DResource *pXboxResource)
@@ -289,28 +317,23 @@ XTL::IDirect3DBaseTexture8 *GetHostBaseTexture(XTL::X_D3DResource *pXboxResource
 
 XTL::IDirect3DTexture8 *GetHostTexture(XTL::X_D3DResource *pXboxResource)
 {
-	if (pXboxResource == NULL)
-		return nullptr;
-
-	if (GetXboxResourceType(pXboxResource) != X_D3DCOMMON_TYPE_TEXTURE)
-		return nullptr;
+	return (XTL::IDirect3DTexture8 *)GetHostBaseTexture(pXboxResource);
 
 	// TODO : Check for 1 face?
-
-	return pXboxResource->EmuTexture8;
 }
 
 XTL::IDirect3DCubeTexture8 *GetHostCubeTexture(XTL::X_D3DResource *pXboxResource)
 {
-	if (pXboxResource == NULL)
-		return nullptr;
-
-	if (GetXboxResourceType(pXboxResource) != X_D3DCOMMON_TYPE_TEXTURE)
-		return nullptr;
+	return (XTL::IDirect3DCubeTexture8 *)GetHostBaseTexture(pXboxResource);
 
 	// TODO : Check for 6 faces?
+}
 
-	return pXboxResource->EmuCubeTexture8;
+XTL::IDirect3DVolumeTexture8 *GetHostVolumeTexture(XTL::X_D3DResource *pXboxResource)
+{
+	return (XTL::IDirect3DVolumeTexture8 *)GetHostBaseTexture(pXboxResource);
+
+	// TODO : Check for 3 dimensions?
 }
 
 XTL::IDirect3DIndexBuffer8 *GetHostIndexBuffer(XTL::X_D3DResource *pXboxResource)
@@ -345,14 +368,14 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 	if (pData == NULL)
 		return nullptr;
 
-	if ((pXboxResource->Data & X_D3DRESOURCE_DATA_FLAG_SPECIAL) == X_D3DRESOURCE_DATA_FLAG_SPECIAL)
+	if (IsSpecialXboxResource(pXboxResource))
 	{
 		switch (pData) {
 		case X_D3DRESOURCE_DATA_BACK_BUFFER:
 			return nullptr;
 		case X_D3DRESOURCE_DATA_YUV_SURFACE:
 			// YUV surfaces are marked as such in the Data field,
-			// and their data is put in their Lock field :s
+			// and their data is put in their Lock field :
 			pData = pXboxResource->Lock;
 			// TODO : What about X_D3DRESOURCE_LOCK_FLAG_NOSIZE?
 			break;
@@ -370,19 +393,26 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 	DWORD Type = GetXboxResourceType(pXboxResource);
 	switch (Type) {
 	case X_D3DCOMMON_TYPE_VERTEXBUFFER:
+		pData |= MM_SYSTEM_PHYSICAL_MAP;
 		break;
 	case X_D3DCOMMON_TYPE_INDEXBUFFER:
+		assert(false); // Index buffers are not allowed to be registered
 		break;
 	case X_D3DCOMMON_TYPE_PUSHBUFFER:
+		// Push-buffers always set 'Data' to the virtual address.
+		pData &= ~MM_SYSTEM_PHYSICAL_MAP;
 		break;
 	case X_D3DCOMMON_TYPE_PALETTE:
 		pData |= MM_SYSTEM_PHYSICAL_MAP;
 		break;
 	case X_D3DCOMMON_TYPE_TEXTURE:
+		pData |= MM_SYSTEM_PHYSICAL_MAP;
 		break;
 	case X_D3DCOMMON_TYPE_SURFACE:
+		pData |= MM_SYSTEM_PHYSICAL_MAP;
 		break;
 	case X_D3DCOMMON_TYPE_FIXUP:
+		assert(false); // Fixup's are not allowed to be registered
 		break;
 	default:
 		CxbxKrnlCleanup("Unhandled resource type");
@@ -447,12 +477,14 @@ XTL::X_D3DVertexBuffer *EmuNewD3DVertexBuffer()
 	return result;
 }
 
+#if 0 // never called
 XTL::X_D3DPalette *EmuNewD3DPalette()
 {
 	XTL::X_D3DPalette *result = (XTL::X_D3DPalette *)g_MemoryManager.AllocateZeroed(1, sizeof(XTL::X_D3DPalette));
 	result->Common = X_D3DCOMMON_D3DCREATED | X_D3DCOMMON_TYPE_PALETTE | 1; // Set refcount to 1
 	return result;
 }
+#endif
 
 VOID CxbxSetPixelContainerHeader
 (
@@ -1352,21 +1384,19 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 // check if a resource has been registered yet (if not, register it)
 static void EmuVerifyResourceIsRegistered(XTL::X_D3DResource *pResource)
 {
-    // 0xEEEEEEEE and 0xFFFFFFFF are somehow set in Halo :(
-    if(pResource->Lock != 0 && pResource->Lock != 0xEEEEEEEE && pResource->Lock != 0xFFFFFFFF)
+	// Skip resources without data
+	if (pResource->Data == NULL)
+		return;
+
+    // Already "Registered" implicitly
+    if(IsSpecialXboxResource(pResource))
         return;
 
 	// Skip resources with unknown size
 	if (pResource->Lock == X_D3DRESOURCE_LOCK_FLAG_NOSIZE)
 		return;
 
-	// Skip resources without data
-	if (pResource->Data == NULL)
-		return;
-
-    // Already "Registered" implicitly
-    if((pResource->Data & X_D3DRESOURCE_DATA_FLAG_SPECIAL) == X_D3DRESOURCE_DATA_FLAG_SPECIAL)
-        return;
+	// Note : palette's, fixup's and pushbuffer's ARE allowed!
 
 	if (std::find(g_RegisteredResources.begin(), g_RegisteredResources.end(), pResource->Data) != g_RegisteredResources.end()) {
 		return;
@@ -8401,6 +8431,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
     return hRet;
 }
 
+#if 0 // patch DISABLED
 // ******************************************************************
 // * patch: D3DDevice_CreatePalette
 // ******************************************************************
@@ -8416,7 +8447,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette)
 
     return D3D_OK;
 }
+#endif
 
+#if 0 // patch DISABLED
 // ******************************************************************
 // * patch: D3DDevice_CreatePalette2
 // ******************************************************************
@@ -8459,6 +8492,7 @@ XTL::X_D3DPalette * WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette2)
 
     return pPalette;
 }
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_SetPalette
