@@ -256,6 +256,32 @@ inline boolean IsSpecialXboxResource(const XTL::X_D3DResource *pXboxResource)
 	return ((pXboxResource->Data & X_D3DRESOURCE_DATA_FLAG_SPECIAL) == X_D3DRESOURCE_DATA_FLAG_SPECIAL);
 }
 
+inline boolean IsResourceTypeGPUReadable(const DWORD ResourceType)
+{
+	switch (ResourceType) {
+	case X_D3DCOMMON_TYPE_VERTEXBUFFER:
+		return true;
+	case X_D3DCOMMON_TYPE_INDEXBUFFER:
+		/// assert(false); // Index buffers are not allowed to be registered
+		break;
+	case X_D3DCOMMON_TYPE_PUSHBUFFER:
+		return false;
+	case X_D3DCOMMON_TYPE_PALETTE:
+		return true;
+	case X_D3DCOMMON_TYPE_TEXTURE:
+		return true;
+	case X_D3DCOMMON_TYPE_SURFACE:
+		return true;
+	case X_D3DCOMMON_TYPE_FIXUP:
+		// assert(false); // Fixup's are not allowed to be registered
+		break;
+	default:
+		CxbxKrnlCleanup("Unhandled resource type");
+	}
+
+	return false;
+}
+
 // TODO : Once all accesses to the Lock/Emu* union fields are
 // done through these functions, switch the implementation to an
 // associative map, so that we no longer abuse any Xbox fields.
