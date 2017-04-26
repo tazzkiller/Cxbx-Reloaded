@@ -5305,7 +5305,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_AddRef)
 
 	// If this is the first reference on a surface
 	if (uRet == 1)
-		if (pThis->Common & X_D3DCOMMON_TYPE_SURFACE)
+		if (GetXboxResourceType(pThis) == X_D3DCOMMON_TYPE_SURFACE)
 			// Try to AddRef the parent too
 			if (((X_D3DSurface *)pThis)->Parent != NULL)
 				((X_D3DSurface *)pThis)->Parent->Common++;
