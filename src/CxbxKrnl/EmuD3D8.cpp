@@ -4812,19 +4812,15 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 	int Size = 256; // TODO Get actual size, not working : g_MemoryManager.QueryRemainingAllocationSize((void *)pTextureData);
 
-	// If the texture is not already in our data structure, add it
-	if (g_ConvertedTextures.find(pTextureData) == g_ConvertedTextures.end()) {
-		ConvertedTexture buffer;
-		memset(&buffer, 0, sizeof(ConvertedTexture));
-		g_ConvertedTextures[pTextureData] = buffer;
-	};
-
 	// TODO : Don't hash every time (peek at how the vertex buffer cache avoids this)
 	uint32_t uiHash = pPixelContainer->Format ^ pPixelContainer->Size; // seed with characteristics
 	uiHash = XXHash32::hash((void *)pTextureData, (uint64_t)Size, uiHash);
 	if (pPalette != NULL)
 		// TODO : Use actual palette size (but how to retrieve?)
 		uiHash = XXHash32::hash((void *)pPalette, (uint64_t)256 * sizeof(D3DCOLOR), uiHash);
+
+	// Reference the converted texture (when the texture is not present, it's added) :
+	ConvertedTexture &convertedTexture = g_ConvertedTextures[pTextureData];
 
 	union {
 		IDirect3DBaseTexture8 *result = nullptr;
@@ -4835,18 +4831,22 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		IDirect3DSurface8       *EmuSurface8;
 	};
 
-	// Check if the data doesn't need an updated conversion
-	result = (XTL::IDirect3DBaseTexture8 *)g_ConvertedTextures[pTextureData].pHostTexture;
+	// Check if the data needs an updated conversion or not
+	result = (XTL::IDirect3DBaseTexture8 *)convertedTexture.pHostTexture;
 	if (result != nullptr)
 	{
-		if (uiHash == g_ConvertedTextures[pTextureData].Hash)
+		if (uiHash == convertedTexture.Hash)
+			// Hash is still the same - assume the converted resource doesn't require updating
+			// TODO : Maybe, if the converted resource gets too old, an update might still be wise
+			// to cater for differences that didn't cause a hash-difference (slight chance, but still).s
 			return result;
 
+		convertedTexture = {};
 		result->Release();
-		g_ConvertedTextures[pTextureData].pHostTexture = nullptr;
+		result = nullptr;
 	}
-		
-	g_ConvertedTextures[pTextureData].Hash = uiHash;
+
+	convertedTexture.Hash = uiHash;
 
 	DWORD dwCommonType = GetXboxResourceType(pPixelContainer); // TODO : Remove by splitting this over texture and surface variants
 	HRESULT hRet = S_OK; // TODO : Remove ASAP
