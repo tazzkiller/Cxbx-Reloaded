@@ -69,6 +69,8 @@ extern X_D3DTILE EmuD3DTileCache[0x08];
 // EmuD3DActiveTexture
 extern X_D3DPixelContainer *EmuD3DActiveTexture[TEXTURE_STAGES];
 
+XTL::IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, const DWORD *pPalette);
+
 // ******************************************************************
 // * patch: Direct3D_CreateDevice
 // ******************************************************************
