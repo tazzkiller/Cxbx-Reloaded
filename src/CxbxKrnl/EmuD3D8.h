@@ -1547,15 +1547,6 @@ PVOID WINAPI EMUPATCH(D3D_AllocContiguousMemory)
 );
 #endif
 
-// ******************************************************************
-// * patch: D3DTexture_GetLevelDesc
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DTexture_GetLevelDesc)
-(
-    UINT Level,
-    X_D3DSURFACE_DESC* pDesc
-);
-
 #if 0 // patch disabled
 // ******************************************************************
 // * patch: Direct3D_CheckDeviceMultiSampleType

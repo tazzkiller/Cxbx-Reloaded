@@ -75,7 +75,7 @@ OOVPA_XREF(D3D_BlockOnTime, 5849, 6, XREF_D3D_BLOCKONTIME, XRefZero)
 OOVPA_END;
 
 // ******************************************************************
-// * D3DTexture_GetLevelDesc
+// * D3DTexture_GetLevelDesc / Get2DSurfaceDesc
 // ******************************************************************
 // * NOTE: We are actually intercepting Get2DSurfaceDesc, because
 // *       GetLevelDesc Simply redirects to that function

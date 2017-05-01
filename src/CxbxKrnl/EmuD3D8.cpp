@@ -9017,30 +9017,6 @@ PVOID WINAPI XTL::EMUPATCH(D3D_AllocContiguousMemory)
 }
 #endif
 
-// ******************************************************************
-// * patch: IDirect3DTexture8_GetLevelDesc
-// ******************************************************************
-HRESULT WINAPI XTL::EMUPATCH(D3DTexture_GetLevelDesc)
-(
-    UINT Level,
-    X_D3DSURFACE_DESC* pDesc
-)
-{
-	FUNC_EXPORTS
-
-    // debug trace
-    DbgPrintf( "EmuD3D8: EmuIDirect3DTexture8_GetLevelDesc\n"
-               "(\n"
-               "   Level               : 0x%.08X\n"
-               "   pDesc               : 0x%.08X\n"
-               ");\n",
-               Level,pDesc);
-
-    
-
-    return D3D_OK;
-}
-
 #if 0 // patch disabled
 // ******************************************************************
 // * patch: Direct3D_CheckDeviceMultiSampleType
