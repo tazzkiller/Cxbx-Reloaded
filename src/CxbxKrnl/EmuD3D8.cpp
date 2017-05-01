@@ -4884,14 +4884,13 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 		// If YUY2 is not supported in hardware, we'll actually mark this as a special fake texture
 		// TODO : Do we actually need to set these?
-		pPixelContainer->Common = X_D3DCOMMON_TYPE_TEXTURE | 1; // Set refcount to 1
 		pPixelContainer->Data = X_D3DRESOURCE_DATA_YUV_SURFACE;
 		pPixelContainer->Lock = (DWORD)g_MemoryManager.Allocate(g_dwOverlayP * g_dwOverlayH);
-		pPixelContainer->Format = (X_D3DFMT_YUY2 << X_D3DFORMAT_FORMAT_SHIFT);
+//		pPixelContainer->Format = (X_D3DFMT_YUY2 << X_D3DFORMAT_FORMAT_SHIFT);
 
-		pPixelContainer->Size = (g_dwOverlayW & X_D3DSIZE_WIDTH_MASK);
-		pPixelContainer->Size |= (g_dwOverlayH << X_D3DSIZE_HEIGHT_SHIFT) & X_D3DSIZE_HEIGHT_MASK;
-		pPixelContainer->Size |= (g_dwOverlayP << X_D3DSIZE_PITCH_SHIFT) & X_D3DSIZE_PITCH_MASK;
+//		pPixelContainer->Size = (g_dwOverlayW & X_D3DSIZE_WIDTH_MASK);
+//		pPixelContainer->Size |= (g_dwOverlayH << X_D3DSIZE_HEIGHT_SHIFT) & X_D3DSIZE_HEIGHT_MASK;
+//		pPixelContainer->Size |= (g_dwOverlayP << X_D3DSIZE_PITCH_SHIFT) & X_D3DSIZE_PITCH_MASK;
 	}
 	else
 	{
