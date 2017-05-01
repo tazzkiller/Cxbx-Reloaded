@@ -299,15 +299,31 @@ typedef struct {
 
 std::map<xbaddr, ConvertedTexture> g_ConvertedTextures;
 
+inline bool IsYuvSurface(XTL::X_D3DResource *pXboxResource)
+{
+	// Was : return (pXboxResource->Data == X_D3DRESOURCE_DATA_YUV_SURFACE);
+	if (GetXboxResourceType(pXboxResource) == X_D3DCOMMON_TYPE_SURFACE)
+		if (GetXboxPixelContainerFormat((XTL::X_D3DPixelContainer *)pXboxResource) == XTL::X_D3DFMT_YUY2)
+			return true;
+
+	return false;
+}
+
 XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
 {
 	if (pXboxResource == NULL)
 		return nullptr;
 
-	if (IsSpecialXboxResource(pXboxResource)) // Was X_D3DRESOURCE_DATA_YUV_SURFACE
+	switch (GetXboxResourceType(pXboxResource)) {
+	case X_D3DCOMMON_TYPE_PUSHBUFFER:
 		return nullptr;
+	case X_D3DCOMMON_TYPE_PALETTE:
+		return nullptr;
+	case X_D3DCOMMON_TYPE_FIXUP:
+		return nullptr;
+	}
 
-	if (pXboxResource->Lock == X_D3DRESOURCE_LOCK_PALETTE)
+	if (IsSpecialXboxResource(pXboxResource)) // Was X_D3DRESOURCE_DATA_YUV_SURFACE
 		return nullptr;
 
 	if (pXboxResource->EmuResource8 == nullptr)
@@ -408,7 +424,7 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 		case X_D3DRESOURCE_DATA_YUV_SURFACE:
 			// YUV surfaces are marked as such in the Data field,
 			// and their data is put in their Lock field :s
-			pData = pXboxResource->Lock;
+			pData = pXboxResource->Data;
 			// TODO : What about X_D3DRESOURCE_LOCK_FLAG_NOSIZE?
 			break;
 		case X_D3DRESOURCE_DATA_RENDER_TARGET:
@@ -440,6 +456,7 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 	case X_D3DCOMMON_TYPE_TEXTURE:
 		break;
 	case X_D3DCOMMON_TYPE_SURFACE:
+		pData |= MM_SYSTEM_PHYSICAL_MAP;
 		break;
 	case X_D3DCOMMON_TYPE_FIXUP:
 		break;
@@ -2196,6 +2213,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CopyRects)
     return hRet;
 }
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreateImageSurface
 // ******************************************************************
@@ -2236,6 +2254,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateImageSurface)
 
     return hRet;
 }
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_GetGammaRamp
@@ -3251,6 +3270,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShader)
     return hRet;
 }
 
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreateTexture2
 // ******************************************************************
@@ -3288,7 +3308,9 @@ XTL::X_D3DResource * WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture2)
 
     return pTexture;
 }
+#endif
 
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreateTexture
 // ******************************************************************
@@ -3435,7 +3457,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture)
 
     return hRet;
 }
+#endif
 
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreateVolumeTexture
 // ******************************************************************
@@ -3599,8 +3623,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateCubeTexture)
 
     return hRet;
 }
+#endif
 
-#if 0
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreateIndexBuffer
 // ******************************************************************
@@ -3656,7 +3681,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer)
 
     return hRet;
 }
+#endif
 
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreateIndexBuffer2
 // ******************************************************************
@@ -3681,7 +3708,7 @@ XTL::X_D3DIndexBuffer * WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer2)(UINT 
 #endif
 BOOL g_bBadIndexData = FALSE;
 
-#if 0
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: D3DDevice_SetIndices
 // ******************************************************************
@@ -3735,7 +3762,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
     {
         EmuVerifyResourceIsRegistered(pTexture);
 
-        if(pTexture->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
+        if(IsYuvSurface(pTexture))
         {
             //
             // NOTE: TODO: This is almost a hack! :)
@@ -4884,15 +4911,15 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 		// If YUY2 is not supported in hardware, we'll actually mark this as a special fake texture
 		// TODO : Do we actually need to set these?
-		pPixelContainer->Data = X_D3DRESOURCE_DATA_YUV_SURFACE;
-		pPixelContainer->Lock = (DWORD)g_MemoryManager.Allocate(g_dwOverlayP * g_dwOverlayH);
+//		pPixelContainer->Data = X_D3DRESOURCE_DATA_YUV_SURFACE;
+//		pPixelContainer->Lock = (DWORD)g_MemoryManager.Allocate(g_dwOverlayP * g_dwOverlayH);
 //		pPixelContainer->Format = (X_D3DFMT_YUY2 << X_D3DFORMAT_FORMAT_SHIFT);
 
 //		pPixelContainer->Size = (g_dwOverlayW & X_D3DSIZE_WIDTH_MASK);
 //		pPixelContainer->Size |= (g_dwOverlayH << X_D3DSIZE_HEIGHT_SHIFT) & X_D3DSIZE_HEIGHT_MASK;
 //		pPixelContainer->Size |= (g_dwOverlayP << X_D3DSIZE_PITCH_SHIFT) & X_D3DSIZE_PITCH_MASK;
 	}
-	else
+
 	{
 		if (bSwizzled || bCompressed)
 		{
@@ -5331,7 +5358,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
 		return 0;
 	}
 
-	if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
+	if(IsYuvSurface(pThis))
     {
 		uRet = (--pThis->Common) & X_D3DCOMMON_REFCOUNT_MASK;
         if (uRet == 0)
@@ -5340,7 +5367,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
                 g_pCachedYuvSurface = NULL;
 
             // free memory associated with this special resource handle
-            g_MemoryManager.Free((PVOID)pThis->Lock);
+            g_MemoryManager.Free((PVOID)pThis->Data);
         }
         
 		EMUPATCH(D3DDevice_EnableOverlay)(FALSE);
@@ -5353,12 +5380,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
     } else {
         IDirect3DResource8 *pResource8 = pThis->EmuResource8;
 
-        if(pThis->Lock == X_D3DRESOURCE_LOCK_PALETTE)
-        {
-            g_MemoryManager.Free((void*)pThis->Data);
-            uRet = --pThis->Lock; // TODO : This makes no sense (as it mangles X_D3DRESOURCE_LOCK_PALETTE) but crashes otherwise?!
-        }
-        else if(pResource8 != nullptr)
+		if(pResource8 != nullptr)
         {
             #ifdef _DEBUG_TRACE_VB
             D3DRESOURCETYPE Type = pResource8->GetType();
@@ -5554,7 +5576,7 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
     {
 		DbgPrintf("EmuTexture8: = 0x%.08X\n", pPixelContainer->EmuTexture8 );
 
-		if(pPixelContainer->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
+		if(IsYuvSurface(pPixelContainer))
 		{
 			hRet = E_FAIL;
 		}
@@ -5634,7 +5656,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DSurface_GetDesc)
 
     EmuVerifyResourceIsRegistered(pThis);
 
-    if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
+    if(IsYuvSurface(pThis))
     {
         pDesc->Format = X_D3DFMT_YUY2;
         pDesc->Height = g_dwOverlayH;
@@ -5720,10 +5742,10 @@ HRESULT WINAPI XTL::EMUPATCH(D3DSurface_LockRect)
 	}
 
 
-    if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
+    if(IsYuvSurface(pThis))
     {
         pLockedRect->Pitch = g_dwOverlayP;
-        pLockedRect->pBits = (PVOID)pThis->Lock;
+        pLockedRect->pBits = (PVOID)pThis->Data;
 
         hRet = D3D_OK;
     }
@@ -5821,7 +5843,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel2)
 	else
 	{
 		EmuVerifyResourceIsRegistered(pThis);
-		if (pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
+		if (IsYuvSurface(pThis))
 		{
 			result = (X_D3DSurface*)pThis;
 		}
@@ -5880,10 +5902,10 @@ HRESULT WINAPI XTL::EMUPATCH(D3DTexture_LockRect)
     EmuVerifyResourceIsRegistered(pThis);
 
     // check if we have an unregistered YUV2 resource
-    if( (pThis != nullptr) && (pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE))
+    if( (pThis != nullptr) && IsYuvSurface(pThis))
     {
         pLockedRect->Pitch = g_dwOverlayP;
-        pLockedRect->pBits = (PVOID)pThis->Lock;
+        pLockedRect->pBits = (PVOID)pThis->Data;
 
         hRet = D3D_OK;
     }
@@ -8289,6 +8311,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
     return hRet;
 }
 
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreatePalette
 // ******************************************************************
@@ -8304,7 +8327,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette)
 
     return D3D_OK;
 }
+#endif
 
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreatePalette2
 // ******************************************************************
@@ -8347,6 +8372,7 @@ XTL::X_D3DPalette * WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette2)
 
     return pPalette;
 }
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_SetPalette
@@ -9440,6 +9466,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawRectPatch)
 		   "   pRectPatchInfo            : 0x%.08X\n"
            ");\n",
            Handle, *pNumSegs, pRectPatchInfo);
+
+	CxbxUpdateNativeD3DResources();
 
 	HRESULT hRet = g_pD3DDevice8->DrawRectPatch( Handle, pNumSegs, pRectPatchInfo );
 

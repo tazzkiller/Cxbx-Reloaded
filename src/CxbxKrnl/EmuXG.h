@@ -42,7 +42,7 @@ typedef struct _XGPOINT3D
 }
 XGPOINT3D;
 
-// patch disabled
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: XGIsSwizzledFormat
 // ******************************************************************
@@ -50,6 +50,7 @@ PVOID WINAPI EMUPATCH(XGIsSwizzledFormat)
 (
     X_D3DFORMAT     Format
 );
+#endif
 
 /* Leave unpatched
 // ******************************************************************

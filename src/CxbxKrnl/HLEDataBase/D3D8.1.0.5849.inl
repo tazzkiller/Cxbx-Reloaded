@@ -208,7 +208,7 @@ OOVPATable D3D8_5849[] = {
 	REGISTER_OOVPA(D3DDevice_SetRenderState_ShadowFunc, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_YuvEnable, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShader, 5558, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetIndices, 5558, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetIndices, 5558, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SetTexture, 5233, PATCH),
 	REGISTER_OOVPA(D3DDevice_LazySetStateVB, 5558, XREF),
 	REGISTER_OOVPA(D3DDevice_BeginPush, 5558, PATCH),
@@ -249,7 +249,7 @@ OOVPATable D3D8_5849[] = {
 	REGISTER_OOVPA(D3DDevice_BlockOnFence, 5233, PATCH),
 	REGISTER_OOVPA(D3D_AllocContiguousMemory, 5788, DISABLED), // Just calls MmAllocateContiguousMemory. Was PATCH
 	REGISTER_OOVPA(Get2DSurfaceDesc, 5849, DISABLED),
-	REGISTER_OOVPA(D3DDevice_CreateTexture2, 5788, PATCH),
+	REGISTER_OOVPA(D3DDevice_CreateTexture2, 5788, DISABLED),
 	REGISTER_OOVPA(Lock2DSurface, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShaderConstant4, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShaderConstant1, 5788, PATCH),
@@ -330,8 +330,8 @@ OOVPATable D3D8_5849[] = {
 	REGISTER_OOVPA(D3D_SetFence, 5849, XREF),
 	REGISTER_OOVPA(D3DDevice_GetViewportOffsetAndScale, 5849, PATCH),
 	REGISTER_OOVPA(D3DDevice_CreateStateBlock, 5849, PATCH),
-	REGISTER_OOVPA(D3DDevice_CreateIndexBuffer2, 5558, PATCH),
-	REGISTER_OOVPA(D3DDevice_CreatePalette2, 5558, PATCH),
+	REGISTER_OOVPA(D3DDevice_CreateIndexBuffer2, 5558, DISABLED),
+	REGISTER_OOVPA(D3DDevice_CreatePalette2, 5558, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SwitchTexture, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_DeletePixelShader, 5344, PATCH),
 };

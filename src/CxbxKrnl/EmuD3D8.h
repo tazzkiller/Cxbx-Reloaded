@@ -242,6 +242,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_CopyRects)
     CONST POINT        *pDestPointsArray
 );
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreateImageSurface
 // ******************************************************************
@@ -252,6 +253,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_CreateImageSurface)
     X_D3DFORMAT         Format,
     X_D3DSurface      **ppBackBuffer
 );
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_GetGammaRamp
@@ -448,6 +450,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_SetPixelShader)
     DWORD           Handle
 );
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreateTexture2
 // ******************************************************************
@@ -461,7 +464,9 @@ X_D3DResource * WINAPI EMUPATCH(D3DDevice_CreateTexture2)
     X_D3DFORMAT         Format,
     D3DRESOURCETYPE     D3DResource
 );
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreateTexture
 // ******************************************************************
@@ -475,7 +480,9 @@ HRESULT WINAPI EMUPATCH(D3DDevice_CreateTexture)
     D3DPOOL             Pool,
     X_D3DTexture      **ppTexture
 );
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreateVolumeTexture
 // ******************************************************************
@@ -490,7 +497,9 @@ HRESULT WINAPI EMUPATCH(D3DDevice_CreateVolumeTexture)
     D3DPOOL              Pool,
     X_D3DVolumeTexture **ppVolumeTexture
 );
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreateCubeTexture
 // ******************************************************************
@@ -503,7 +512,9 @@ HRESULT WINAPI EMUPATCH(D3DDevice_CreateCubeTexture)
     D3DPOOL              Pool,
     X_D3DCubeTexture  **ppCubeTexture
 );
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreateIndexBuffer
 // ******************************************************************
@@ -515,12 +526,19 @@ HRESULT WINAPI EMUPATCH(D3DDevice_CreateIndexBuffer)
     D3DPOOL              Pool,
     X_D3DIndexBuffer   **ppIndexBuffer
 );
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreateIndexBuffer2
 // ******************************************************************
-X_D3DIndexBuffer * WINAPI EMUPATCH(D3DDevice_CreateIndexBuffer2)(UINT Length);
+X_D3DIndexBuffer * WINAPI EMUPATCH(D3DDevice_CreateIndexBuffer2)
+(
+	UINT Length
+);
+#endif
 
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: D3DDevice_SetIndices
 // ******************************************************************
@@ -529,6 +547,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_SetIndices)
     X_D3DIndexBuffer   *pIndexData,
     UINT                BaseVertexIndex
 );
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_SetTexture
@@ -1331,6 +1350,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_LightEnable)
 // ******************************************************************
 ULONG WINAPI EMUPATCH(D3DDevice_Release)();
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreatePalette
 // ******************************************************************
@@ -1339,7 +1359,9 @@ HRESULT WINAPI EMUPATCH(D3DDevice_CreatePalette)
     X_D3DPALETTESIZE    Size,
     X_D3DPalette      **ppPalette
 );
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreatePalette2
 // ******************************************************************
@@ -1347,6 +1369,7 @@ X_D3DPalette * WINAPI EMUPATCH(D3DDevice_CreatePalette2)
 (
     X_D3DPALETTESIZE    Size
 );
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_SetRenderTarget
