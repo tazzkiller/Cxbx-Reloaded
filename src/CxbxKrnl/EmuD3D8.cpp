@@ -5551,22 +5551,6 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
 
     HRESULT hRet;
 
-    if(dwLevel == 0xFEFEFEFE)
-    {
-		DbgPrintf("EmuSurface8: = 0x%.08X\n", pPixelContainer->EmuSurface8 );
-        hRet = pPixelContainer->EmuSurface8->GetDesc(&SurfaceDesc);
-
-        /*
-        static int dwDumpSurface = 0;
-
-        char szBuffer[255];
-
-        sprintf(szBuffer, "C:\\Aaron\\Textures\\Surface%.03d.bmp", dwDumpSurface++);
-
-        D3DXSaveSurfaceToFile(szBuffer, D3DXIFF_BMP, pPixelContainer->EmuSurface8, NULL, NULL);
-        */
-    }
-    else
     {
 		DbgPrintf("EmuTexture8: = 0x%.08X\n", pPixelContainer->EmuTexture8 );
 
@@ -5622,29 +5606,6 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
     }
 
     
-
-    return;
-}
-
-// ******************************************************************
-// * patch: Get2DSurfaceDescD
-// ******************************************************************
-VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDescD)
-(
-    X_D3DPixelContainer *pPixelContainer,
-    X_D3DSURFACE_DESC   *pDesc
-)
-{
-	FUNC_EXPORTS
-
-        DbgPrintf("EmuD3D8: EmuGet2DSurfaceDescD\n"
-               "(\n"
-               "   pPixelContainer     : 0x%.08X\n"
-               "   pDesc               : 0x%.08X\n"
-               ");\n",
-               pPixelContainer, pDesc);
-        
-		EMUPATCH(Get2DSurfaceDesc)(pPixelContainer, 0xFEFEFEFE, pDesc);
 
     return;
 }
