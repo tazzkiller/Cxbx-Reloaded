@@ -1905,7 +1905,7 @@ OOVPATable D3D8_4134[] = {
 	REGISTER_OOVPA(D3DVolumeTexture_LockBox, 3925, DISABLED),	// Just calls Lock2DSurface
 	REGISTER_OOVPA(D3DCubeTexture_LockRect, 3925, DISABLED),	// Just calls Lock2DSurface
 	REGISTER_OOVPA(D3DTexture_GetSurfaceLevel, 3925, PATCH),
-    // REGISTER_OOVPA(Get2DSurfaceDesc, 3925, PATCH),
+    // REGISTER_OOVPA(Get2DSurfaceDesc, 3925, DISABLED),
 
     // ********************** END WARNING UNTESTED!!! *******************
 
@@ -1943,8 +1943,8 @@ OOVPATable D3D8_4134[] = {
 	REGISTER_OOVPA(D3DDevice_SetMaterial, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_LightEnable, 4134, PATCH),
 	REGISTER_OOVPA(D3DVertexBuffer_Lock, 4034, PATCH),
-	REGISTER_OOVPA(Get2DSurfaceDesc, 4134, PATCH),
-	REGISTER_OOVPA(D3DSurface_GetDesc, 4134, PATCH),
+	REGISTER_OOVPA(Get2DSurfaceDesc, 4134, DISABLED),
+	REGISTER_OOVPA(D3DSurface_GetDesc, 4134, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_StencilFail, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_NormalizeNormals, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_Reset, 4134, PATCH),

@@ -5523,6 +5523,7 @@ VOID WINAPI XTL::EMUPATCH(Lock3DSurface)
     return;
 }
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: Get2DSurfaceDesc
 // ******************************************************************
@@ -5609,7 +5610,9 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
 
     return;
 }
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: IDirect3DSurface8_GetDesc
 // ******************************************************************
@@ -5679,6 +5682,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DSurface_GetDesc)
 
     return hRet;
 }
+#endif
 
 // ******************************************************************
 // * patch: IDirect3DSurface8_LockRect

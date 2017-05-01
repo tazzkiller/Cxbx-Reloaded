@@ -744,6 +744,7 @@ VOID WINAPI EMUPATCH(Lock3DSurface)
 	DWORD				Flags
 );
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: Get2DSurfaceDesc
 // ******************************************************************
@@ -753,7 +754,9 @@ VOID WINAPI EMUPATCH(Get2DSurfaceDesc)
     DWORD                dwLevel,
     X_D3DSURFACE_DESC   *pDesc
 );
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: IDirect3DSurface8_GetDesc
 // ******************************************************************
@@ -762,6 +765,7 @@ HRESULT WINAPI EMUPATCH(D3DSurface_GetDesc)
     X_D3DResource      *pThis,
     X_D3DSURFACE_DESC  *pDesc
 );
+#endif
 
 // ******************************************************************
 // * patch: IDirect3DSurface8_LockRect
