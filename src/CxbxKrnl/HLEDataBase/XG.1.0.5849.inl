@@ -35,7 +35,7 @@
 // ******************************************************************
 // * XG_5849
 // ******************************************************************
-OOVPATable XG_5849[1] = {
+OOVPATable XG_5849[] = {
 
 	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, DISABLED),
     REGISTER_OOVPA(XGSwizzleRect, 3911, DISABLED),

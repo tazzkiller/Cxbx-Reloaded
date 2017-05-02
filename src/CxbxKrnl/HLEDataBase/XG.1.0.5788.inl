@@ -50,7 +50,7 @@ OOVPA_END;
 // ******************************************************************
 // * XG_5788
 // ******************************************************************
-OOVPATable XG_5788[1] = {
+OOVPATable XG_5788[] = {
 
 	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, DISABLED),
     REGISTER_OOVPA(XGSwizzleRect, 3911, DISABLED),

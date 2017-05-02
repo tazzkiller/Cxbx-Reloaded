@@ -101,3 +101,5 @@ src/Version.h
 *.opendb
 *.db
 *.xbe
+*.ipch
+*.ipch
