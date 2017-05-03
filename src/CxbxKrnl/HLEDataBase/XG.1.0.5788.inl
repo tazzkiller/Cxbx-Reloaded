@@ -53,8 +53,8 @@ OOVPA_END;
 OOVPATable XG_5788[] = {
 
 	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, DISABLED),
-    REGISTER_OOVPA(XGSwizzleRect, 3911, DISABLED),
-	REGISTER_OOVPA(XGUnswizzleRect, 3911, DISABLED),
+    // REGISTER_OOVPA(XGSwizzleRect, 3911, DISABLED), // TODO : Uncomment
+	// REGISTER_OOVPA(XGUnswizzleRect, 3911, DISABLED), // TODO : Uncomment
 	// REGISTER_OOVPA(XFONT_OpenBitmapFontFromMemory, 5788, PATCH),
 };
 

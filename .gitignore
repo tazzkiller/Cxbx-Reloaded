@@ -102,4 +102,3 @@ src/Version.h
 *.db
 *.xbe
 *.ipch
-*.ipch

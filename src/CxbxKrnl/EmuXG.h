@@ -52,7 +52,7 @@ PVOID WINAPI EMUPATCH(XGIsSwizzledFormat)
 );
 #endif
 
-/* Leave unpatched
+#if 0 // Leave unpatched
 // ******************************************************************
 // * patch: XGSwizzleRect
 // ******************************************************************
@@ -67,7 +67,7 @@ VOID WINAPI EMUPATCH(XGSwizzleRect)
     CONST LPPOINT pPoint,
     DWORD         BytesPerPixel
 );
-*/
+#endif
 
 // ******************************************************************
 // * patch: XGSwizzleBox
