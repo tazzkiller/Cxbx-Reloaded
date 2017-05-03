@@ -4830,6 +4830,13 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (pTextureData == NULL)
 		return nullptr; // TODO : Cleanup without data?
 
+	DWORD dwCommonType = GetXboxResourceType(pPixelContainer); 
+/* TODO : Is the following correct???
+	if (IsResourceTypeGPUReadable(dwCommonType))
+		if (pPixelContainer->Common & X_D3DCOMMON_D3DCREATED)
+			pTextureData |= MM_SYSTEM_PHYSICAL_MAP;
+*/
+
 	int Size = 256; // TODO Get actual size, not working : g_MemoryManager.QueryRemainingAllocationSize((void *)pTextureData);
 
 	// TODO : Don't hash every time (peek at how the vertex buffer cache avoids this)
@@ -4861,7 +4868,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 	convertedTexture.Hash = uiHash;
 
-	DWORD dwCommonType = GetXboxResourceType(pPixelContainer); // TODO : Remove by splitting this over texture and surface variants
+	// TODO : Remove by splitting this over texture and surface variants
 	HRESULT hRet = S_OK; // TODO : Remove ASAP
 
 	D3DFORMAT   PCFormat = EmuXB2PC_D3DFormat(X_Format);
