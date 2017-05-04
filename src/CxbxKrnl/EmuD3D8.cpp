@@ -303,7 +303,7 @@ typedef struct {
 
 std::map<xbaddr, ConvertedTexture> g_ConvertedTextures;
 
-inline bool IsYuvSurface(XTL::X_D3DResource *pXboxResource)
+inline bool IsYuvSurface(const XTL::X_D3DResource *pXboxResource)
 {
 	// Was : return (pXboxResource->Data == X_D3DRESOURCE_DATA_YUV_SURFACE);
 	if (GetXboxResourceType(pXboxResource) == X_D3DCOMMON_TYPE_SURFACE)
@@ -311,6 +311,18 @@ inline bool IsYuvSurface(XTL::X_D3DResource *pXboxResource)
 			return true;
 
 	return false;
+}
+
+inline bool IsXboxResourceLocked(const XTL::X_D3DResource *pXboxResource)
+{
+	bool result = pXboxResource->Common & X_D3DCOMMON_ISLOCKED;
+	return result;
+}
+
+inline bool IsXboxResourceD3DCreated(const XTL::X_D3DResource *pXboxResource)
+{
+	bool result = pXboxResource->Common & X_D3DCOMMON_D3DCREATED;
+	return result;
 }
 
 XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
@@ -462,15 +474,13 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 
 	if (IsSpecialXboxResource(pXboxResource))
 	{
+		// TODO : What about X_D3DRESOURCE_LOCK_FLAG_NOSIZE?
 		switch (pData) {
 		case X_D3DRESOURCE_DATA_BACK_BUFFER:
 			return nullptr;
-		case X_D3DRESOURCE_DATA_YUV_SURFACE:
-			// YUV surfaces are marked as such in the Data field,
-			// and their data is put in their Lock field :s
-			pData = pXboxResource->Data;
-			// TODO : What about X_D3DRESOURCE_LOCK_FLAG_NOSIZE?
-			break;
+//		case X_D3DRESOURCE_DATA_YUV_SURFACE:
+//			pData = pXboxResource->Data;
+//			break;
 		case X_D3DRESOURCE_DATA_RENDER_TARGET:
 			return nullptr;
 		case X_D3DRESOURCE_DATA_DEPTH_STENCIL:
@@ -532,6 +542,7 @@ inline XTL::X_D3DPALETTESIZE GetXboxPaletteSize(const XTL::X_D3DPalette *pPalett
 
 	return PaletteSize;
 }
+
 
 int GetD3DResourceRefCount(XTL::IDirect3DResource8 *EmuResource)
 {
@@ -3723,7 +3734,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 			pHostBaseTexture = GetHostBaseTexture(pTexture);
 
 			// Remove old locks before setting
-			/*if(pTexture->Common & X_D3DCOMMON_ISLOCKED)
+			/*if(IsXboxResourceLocked(pTexture))
 			{
 				((IDirect3DTexture8*)pHostBaseTexture)->UnlockRect(0);
 				pTexture->Common &= ~X_D3DCOMMON_ISLOCKED;
@@ -4639,7 +4650,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	DWORD dwCommonType = GetXboxResourceType(pPixelContainer); 
 /* TODO : Is the following correct???
 	if (IsResourceTypeGPUReadable(dwCommonType))
-		if (pPixelContainer->Common & X_D3DCOMMON_D3DCREATED)
+		if (IsXboxResourceD3DCreated(pPixelContainer))
 			pTextureData |= MM_SYSTEM_PHYSICAL_MAP;
 */
 
@@ -4900,8 +4911,27 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				g_ConvertedTextures[pTextureData].pHostTexture = pHostCubeTexture;
 				SetHostCubeTexture(pPixelContainer, pHostCubeTexture);
 				DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created CubeTexture (0x%.08X, 0x%.08X)\n", pPixelContainer, pHostCubeTexture);
+				result = pHostCubeTexture;
 			}
 			else
+			/*
+			XTL::IDirect3DVolumeTexture8 *pHostVolumeTexture = nullptr;
+
+			hRet = g_pD3DDevice8->CreateVolumeTexture
+			(
+			Width, Height, Depth, Levels,
+			0,  // TODO: Xbox Allows a border to be drawn (maybe hack this in software ;[)
+			PCFormat, D3DPOOL_MANAGED, &pHostVolumeTexture
+			);
+
+			if(FAILED(hRet))
+			EmuWarning("CreateVolumeTexture Failed! (0x%.08X)", hRet);
+			else
+			{
+			SetHostVolumeTexture(*ppVolumeTexture, pHostVolumeTexture);
+			DbgPrintf("EmuD3D8: Created Volume Texture : 0x%.08X (0x%.08X)\n", *ppVolumeTexture, pHostVolumeTexture);
+			}
+			*/
 			{
 				//    printf("CreateTexture(%d, %d, %d, 0, %d (X=0x%.08X), D3DPOOL_MANAGED)\n", dwWidth, dwHeight,
 				//       dwMipMapLevels, PCFormat, X_Format);
@@ -4938,6 +4968,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 					g_ConvertedTextures[pTextureData].pHostTexture = pHostTexture;
 					SetHostTexture(pPixelContainer, pHostTexture);
 					DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created Texture (0x%.08X, 0x%.08X)\n", pPixelContainer, pHostTexture);
+					result = pHostTexture;
 				}
 			}
 		}
@@ -5148,7 +5179,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 			sprintf(szBuffer, _DEBUG_DUMP_TEXTURE_REGISTER "%.03d-RegSurface%.03d.dds", X_Format, dwDumpSurface++);
 
-			D3DXSaveSurfaceToFile(szBuffer, D3DXIFF_DDS, GetHostSurface(pResource), NULL, NULL);
+			D3DXSaveSurfaceToFile(szBuffer, D3DXIFF_DDS, result, NULL, NULL);
 		}
 		else
 		{
@@ -5164,7 +5195,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 					sprintf(szBuffer, _DEBUG_DUMP_TEXTURE_REGISTER "%.03d-RegCubeTex%.03d-%d.dds", X_Format, dwDumpCube++, v);
 
-					GetHostCubeTexture(pResource)->GetCubeMapSurface((D3DCUBEMAP_FACES)v, 0, &pSurface);
+					GetHostCubeTexture(pPixelContainer)->GetCubeMapSurface((D3DCUBEMAP_FACES)v, 0, &pSurface);
 
 					D3DXSaveSurfaceToFile(szBuffer, D3DXIFF_DDS, pSurface, NULL, NULL);
 				}
@@ -5177,13 +5208,13 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 				sprintf(szBuffer, _DEBUG_DUMP_TEXTURE_REGISTER "%.03d-RegTexture%.03d.dds", X_Format, dwDumpTex++);
 
-				D3DXSaveTextureToFile(szBuffer, D3DXIFF_DDS, GetHostTexture(pResource), NULL);
+				D3DXSaveTextureToFile(szBuffer, D3DXIFF_DDS, result, NULL);
 			}
 		}
 #endif
 	}
 
-	SetHostTexture(pPixelContainer, (XTL::IDirect3DTexture8 *)result);
+	XTL::EMUPATCH(D3DDevice_SetTexture)(0, pPixelContainer);
 
 	return result;
 }
@@ -5210,12 +5241,12 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_AddRef)
 	ULONG uRet = (++(pThis->Common)) & X_D3DCOMMON_REFCOUNT_MASK;
 
 	// Index buffers don't have a native resource assigned
-	if ((pThis->Common & X_D3DCOMMON_TYPE_MASK) != X_D3DCOMMON_TYPE_INDEXBUFFER) {
+	if (GetXboxResourceType(pThis) != X_D3DCOMMON_TYPE_INDEXBUFFER) {
 		EmuVerifyResourceIsRegistered(pThis);
 
 		// If this is the first reference on a surface
 		if (uRet == 1)
-			if (pThis->Common & X_D3DCOMMON_TYPE_SURFACE)
+			if (GetXboxResourceType(pThis) == X_D3DCOMMON_TYPE_SURFACE)
 				// Try to AddRef the parent too
 				if (((X_D3DSurface *)pThis)->Parent != NULL)
 					((X_D3DSurface *)pThis)->Parent->Common++;
@@ -5253,54 +5284,50 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
 		return 0;
 	}
 
-	if(IsYuvSurface(pThis))
+	if (IsYuvSurface(pThis))
+		EMUPATCH(D3DDevice_EnableOverlay)(FALSE);
+
+	uRet = (--pThis->Common) & X_D3DCOMMON_REFCOUNT_MASK;
+    if (uRet == 0)
     {
-		uRet = (--pThis->Common) & X_D3DCOMMON_REFCOUNT_MASK;
-        if (uRet == 0)
-        {
+		if(IsYuvSurface(pThis))
+		{
             if(g_pCachedYuvSurface == pThis)
                 g_pCachedYuvSurface = NULL;
 
             // free memory associated with this special resource handle
             g_MemoryManager.Free((PVOID)pThis->Data);
-        }
-        
-		EMUPATCH(D3DDevice_EnableOverlay)(FALSE);
-    } else if ((pThis->Common & X_D3DCOMMON_TYPE_MASK) == X_D3DCOMMON_TYPE_INDEXBUFFER)  {
-		if ((pThis->Common & X_D3DCOMMON_REFCOUNT_MASK) == 1) {
+	    } else if (GetXboxResourceType(pThis) == X_D3DCOMMON_TYPE_INDEXBUFFER)  {
 			CxbxRemoveIndexBuffer((PWORD)GetDataFromXboxResource(pThis));
+		} else {
+			IDirect3DResource8 *pHostResource = GetHostResource(pThis);
+
+			if (pHostResource != nullptr)
+			{
+#ifdef _DEBUG_TRACE_VB
+				D3DRESOURCETYPE Type = pHostResource->GetType();
+#endif
+
+				/*
+				 * Temporarily disable this until we figure out correct reference counting!
+				uRet = pHostResource->Release();
+				if(uRet == 0 && pThis->Common)
+				{
+					DbgPrintf("EmuIDirect3DResource8_Release : Cleaned up a Resource!\n");
+
+					#ifdef _DEBUG_TRACE_VB
+					if(Type == D3DRTYPE_VERTEXBUFFER)
+					{
+						g_VBTrackTotal.remove(pHostResource);
+						g_VBTrackDisable.remove(pHostResource);
+					}
+					#endif
+
+					//delete pThis;
+				} */
+			}
+
 		}
-
-		uRet = pThis->Common--; // Release
-    } else {
-        IDirect3DResource8 *pHostResource = GetHostResource(pThis);
-
-        if(pHostResource != nullptr)
-        {
-            #ifdef _DEBUG_TRACE_VB
-            D3DRESOURCETYPE Type = pHostResource->GetType();
-            #endif
-
-			/*
-			 * Temporarily disable this until we figure out correct reference counting!
-			uRet = pHostResource->Release();
-            if(uRet == 0 && pThis->Common)
-            {
-                DbgPrintf("EmuIDirect3DResource8_Release : Cleaned up a Resource!\n");
-
-                #ifdef _DEBUG_TRACE_VB
-                if(Type == D3DRTYPE_VERTEXBUFFER)
-                {
-                    g_VBTrackTotal.remove(pHostResource);
-                    g_VBTrackDisable.remove(pHostResource);
-                }
-                #endif
-
-                //delete pThis;
-            } */
-        }
-
-        pThis->Common--; // Release
     }
 
     return uRet;
