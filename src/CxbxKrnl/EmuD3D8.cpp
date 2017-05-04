@@ -5140,7 +5140,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				{
 					g_ConvertedTextures[pTextureData].pHostTexture = pHostTexture;
 					SetHostTexture(pPixelContainer, pHostTexture);
-					DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created Texture (0x%.08X, 0x%.08X)\n", pResource, pHostTexture);
+					DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created Texture (0x%.08X, 0x%.08X)\n", pPixelContainer, pHostTexture);
 				}
 			}
 		}
