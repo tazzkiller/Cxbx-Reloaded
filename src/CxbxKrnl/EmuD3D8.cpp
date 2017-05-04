@@ -55,6 +55,7 @@ namespace xboxkrnl
 #include "MemoryManager.h"
 #include "EmuXTL.h"
 #include "HLEDatabase.h"
+#include "Logging.h"
 
 #include <assert.h>
 #include <process.h>
@@ -9343,7 +9344,7 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_InsertFence)()
     // TODO: Actually implement this
     DWORD dwRet = 0x8000BEEF;
 
-    
+	LOG_UNIMPLEMENTED();
 
     return dwRet;
 }
@@ -9365,6 +9366,7 @@ BOOL WINAPI XTL::EMUPATCH(D3DDevice_IsFencePending)
            Fence);
 
     // TODO: Implement
+	LOG_UNIMPLEMENTED();
 
     
 
@@ -9388,6 +9390,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_BlockOnFence)
            Fence);
 
     // TODO: Implement
+	LOG_UNIMPLEMENTED();
 
     
 }
@@ -9409,7 +9412,7 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_BlockUntilNotBusy)
            pThis);
 
     // TODO: Implement
-
+	LOG_UNIMPLEMENTED();
     // 
 
     return;
@@ -9460,6 +9463,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetScissors)
            Count, Exclusive, pRects);
 
     // TODO: Implement
+	LOG_UNIMPLEMENTED();
 
     
 
@@ -9593,7 +9597,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_InsertCallback)
 	g_CallbackType = Type;
 	g_CallbackParam = Context;
 
-		
+	LOG_UNIMPLEMENTED();
 }
 
 // ******************************************************************
@@ -9942,9 +9946,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_PrimeVertexCache)
            VertexCount, pIndexData);
 
 	// TODO: Implement
-	EmuWarning("PrimeVertexCache is not supported!");
-
-		
+	LOG_UNIMPLEMENTED();
 
 	return S_OK;
 }
@@ -9967,7 +9969,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_SampleAlpha)
 
 	// TODO: Implement?
 
-	EmuWarning("SampleAlpha not supported!");
+	LOG_UNIMPLEMENTED();
 
 		
 
@@ -10090,7 +10092,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetModelView)
 		   pModelView, pInverseModelView, pComposite);
 
 	// TODO: Implement
-//	CxbxKrnlCleanup("SetModelView not yet implemented (should be easy fix, tell blueshogun)");
+	LOG_UNIMPLEMENTED();
 
 		
 
@@ -10128,7 +10130,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginPushBuffer)
 	// can emulate this functionality rather easily.
 //	CxbxKrnlCleanup("BeginPushBuffer is not yet implemented!\n"
 	//				"This is going to be a difficult fix for Direct3D but NOT OpenGL!");
-	EmuWarning("BeginPushBuffer is not yet implemented!");
+	LOG_UNIMPLEMENTED();
 
 		
 
@@ -10324,8 +10326,7 @@ void WINAPI XTL::EMUPATCH(D3D_BlockOnTime)( DWORD Unknown1, int Unknown2 )
 	// the function that is calling it, and emulate that instead!!!  If necessary,
 	// create an XRef...
 
-//	__asm int 3;
-	CxbxKrnlCleanup("D3D::BlockOnTime not implemented (tell blueshogun)");
+	LOG_UNIMPLEMENTED();
 
 		
 }
@@ -10344,7 +10345,7 @@ void WINAPI XTL::EMUPATCH(D3D_BlockOnResource)( X_D3DResource* pResource )
 
 	// TODO: Implement
 	// NOTE: Azurik appears to call this directly from numerous points
-
+	LOG_UNIMPLEMENTED();
 		
 }
 
@@ -10366,7 +10367,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPushBufferOffset)
 	// TODO: Implement
 	*pOffset = 0;
 
-		
+	LOG_UNIMPLEMENTED();
 
 	return S_OK;
 }
