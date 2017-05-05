@@ -497,26 +497,28 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 	if (IsResourceTypeGPUReadable(Type))
 		pData |= MM_SYSTEM_PHYSICAL_MAP;
 #else
-	switch (Type) {
-	case X_D3DCOMMON_TYPE_VERTEXBUFFER:
-		break;
-	case X_D3DCOMMON_TYPE_INDEXBUFFER:
-		break;
-	case X_D3DCOMMON_TYPE_PUSHBUFFER:
-		break;
-	case X_D3DCOMMON_TYPE_PALETTE:
-		pData |= MM_SYSTEM_PHYSICAL_MAP;
-		break;
-	case X_D3DCOMMON_TYPE_TEXTURE:
-		break;
-	case X_D3DCOMMON_TYPE_SURFACE:
-		pData |= MM_SYSTEM_PHYSICAL_MAP;
-		break;
-	case X_D3DCOMMON_TYPE_FIXUP:
-		break;
-	default:
-		CxbxKrnlCleanup("Unhandled resource type");
-	}
+	if (IsXboxResourceD3DCreated(pXboxResource))
+		switch (Type) {
+		case X_D3DCOMMON_TYPE_VERTEXBUFFER:
+			pData |= MM_SYSTEM_PHYSICAL_MAP;
+			break;
+		case X_D3DCOMMON_TYPE_INDEXBUFFER:
+			break;
+		case X_D3DCOMMON_TYPE_PUSHBUFFER:
+			break;
+		case X_D3DCOMMON_TYPE_PALETTE:
+			pData |= MM_SYSTEM_PHYSICAL_MAP;
+			break;
+		case X_D3DCOMMON_TYPE_TEXTURE:
+			break;
+		case X_D3DCOMMON_TYPE_SURFACE:
+			pData |= MM_SYSTEM_PHYSICAL_MAP;
+			break;
+		case X_D3DCOMMON_TYPE_FIXUP:
+			break;
+		default:
+			CxbxKrnlCleanup("Unhandled resource type");
+		}
 #endif
 
 	return (uint08*)pData;
@@ -1570,11 +1572,6 @@ typedef struct {
 
 std::map<PWORD, ConvertedIndexBuffer> g_ConvertedIndexBuffers;
 	
-void CxbxRemoveIndexBuffer(PWORD pData)
-{
-	// HACK: Never Free
-}
-
 void CxbxUpdateActiveIndexBuffer
 (
 	PWORD         pIndexData,
@@ -5274,33 +5271,40 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
 
 	LOG_FUNC_ONE_ARG(pThis);
 
-    ULONG uRet = 0;
+	ULONG uRet;
 
-	// HACK: In case the clone technique fails...
 	if(!pThis)
 	{
+		// HACK: In case the clone technique fails...
 		EmuWarning("NULL texture!");
-
-		return 0;
+		uRet = 0;
 	}
+	else
+	{
+		// HACK: Disable overlay when a YUV surface is released (regardless which refcount, apparently)
+		if (IsYuvSurface(pThis))
+			EMUPATCH(D3DDevice_EnableOverlay)(FALSE);
 
-	if (IsYuvSurface(pThis))
-		EMUPATCH(D3DDevice_EnableOverlay)(FALSE);
-
-	uRet = (--pThis->Common) & X_D3DCOMMON_REFCOUNT_MASK;
-    if (uRet == 0)
-    {
-		if(IsYuvSurface(pThis))
+		uRet = (--(pThis->Common)) & X_D3DCOMMON_REFCOUNT_MASK;
+		if (uRet == 0)
 		{
-            if(g_pCachedYuvSurface == pThis)
-                g_pCachedYuvSurface = NULL;
-
-            // free memory associated with this special resource handle
-            g_MemoryManager.Free((PVOID)pThis->Data);
-	    } else if (GetXboxResourceType(pThis) == X_D3DCOMMON_TYPE_INDEXBUFFER)  {
-			CxbxRemoveIndexBuffer((PWORD)GetDataFromXboxResource(pThis));
-		} else {
 			IDirect3DResource8 *pHostResource = GetHostResource(pThis);
+
+			if(g_pIndexBuffer == pThis)
+				g_pIndexBuffer = NULL;
+
+			if (g_pVertexBuffer == pThis)
+				g_pVertexBuffer = NULL;
+
+			if (g_pCachedRenderTarget == pThis)
+				g_pCachedRenderTarget = NULL;
+
+			if (g_pCachedDepthStencil == pThis)
+				g_pCachedDepthStencil = NULL;
+
+			if (g_pCachedYuvSurface == pThis)
+				g_pCachedYuvSurface = NULL;
+
 
 			if (pHostResource != nullptr)
 			{
@@ -5327,6 +5331,14 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
 				} */
 			}
 
+			if (IsXboxResourceD3DCreated(pThis))
+			{
+				void *XboxData = GetDataFromXboxResource(pThis);
+
+				if (XboxData != NULL)
+					if (g_MemoryManager.IsAllocated(XboxData)) // Prevents problems for now (don't free partial or unallocated memory)
+						; // g_MemoryManager.Free(XboxData); // TODO : This crashes on "MemoryManager attempted to free only a part of a block"
+			}
 		}
     }
 
