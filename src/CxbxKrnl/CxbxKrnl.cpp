@@ -59,6 +59,7 @@ namespace xboxkrnl
 #include <shlobj.h>
 #include <clocale>
 #include <Shlwapi.h>
+#include <time.h> // For time()
 
 /* prevent name collisions */
 namespace NtDll
@@ -320,6 +321,11 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 
 #pragma optimize("", off)
 
+void CxbxPopupMessage(const char *message)
+{
+	MessageBox(NULL, message, "Cxbx-Reloaded", MB_OK | MB_ICONEXCLAMATION);
+}
+
 void CxbxKrnlMain(int argc, char* argv[])
 {
 	// Skip '/load' switch
@@ -357,14 +363,14 @@ void CxbxKrnlMain(int argc, char* argv[])
 		// verify base of code of our executable is 0x00001000
 		if (ExeNtHeader->OptionalHeader.BaseOfCode != CXBX_BASE_OF_CODE)
 		{
-			MessageBox(NULL, "Cxbx-Reloaded executuable requires it's base of code to be 0x00001000", "Cxbx-Reloaded", MB_OK);
+			CxbxPopupMessage("Cxbx-Reloaded executuable requires it's base of code to be 0x00001000");
 			return; // TODO : Halt(0); 
 		}
 
 		// verify virtual_memory_placeholder is located at 0x00011000
 		if ((UINT_PTR)(&(virtual_memory_placeholder[0])) != (XBE_IMAGE_BASE + CXBX_BASE_OF_CODE))
 		{
-			MessageBox(NULL, "virtual_memory_placeholder is not loaded to base address 0x00011000 (which is a requirement for Xbox emulation)", "Cxbx-Reloaded", MB_OK);
+			CxbxPopupMessage("virtual_memory_placeholder is not loaded to base address 0x00011000 (which is a requirement for Xbox emulation)");
 			return; // TODO : Halt(0); 
 		}
 
@@ -403,7 +409,7 @@ void CxbxKrnlMain(int argc, char* argv[])
 	EEPROM = CxbxRestoreEEPROM(szFilePath_EEPROM_bin);
 	if (EEPROM == nullptr)
 	{
-		MessageBox(NULL, "Couldn't init EEPROM!", "Cxbx-Reloaded", MB_OK);
+		CxbxPopupMessage("Couldn't init EEPROM!");
 		return; // TODO : Halt(0); 
 	}
 
@@ -438,7 +444,7 @@ void CxbxKrnlMain(int argc, char* argv[])
 			xbaddr section_end = CxbxKrnl_Xbe->m_SectionHeader[i].dwVirtualAddr + CxbxKrnl_Xbe->m_SectionHeader[i].dwSizeofRaw;
 			if (section_end >= XBE_MAX_VA)
 			{
-				MessageBox(NULL, "Couldn't load XBE section - please report this!", "Cxbx-Reloaded", MB_OK);
+				CxbxPopupMessage("Couldn't load XBE section - please report this!");
 				return; // TODO : Halt(0); 
 			}
 		}
@@ -555,8 +561,8 @@ void CxbxKrnlInit
 	g_CurrentProcessHandle = GetCurrentProcess();
 	CxbxInitPerformanceCounters();
 #ifdef _DEBUG
-//	MessageBoxA(NULL, "Attach a Debugger", "DEBUG", 0);
-//  Debug child processes using https://marketplace.visualstudio.com/items?itemName=GreggMiskelly.MicrosoftChildProcessDebuggingPowerTool
+	//	MessageBoxA(NULL, "Attach a Debugger", "DEBUG", 0);
+	//  Debug child processes using https://marketplace.visualstudio.com/items?itemName=GreggMiskelly.MicrosoftChildProcessDebuggingPowerTool
 #endif
 
 	// debug console allocation (if configured)
@@ -574,23 +580,30 @@ void CxbxKrnlInit
 			freopen("CONIN$", "rt", stdin);
 			SetConsoleTitle("Cxbx-Reloaded : Kernel Debug Console");
 			SetConsoleTextAttribute(StdHandle, FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);
-			printf("[0x%X] EmuMain: Cxbx-Reloaded Version %s\n", GetCurrentThreadId(), _CXBX_VERSION);
-			printf("[0x%X] EmuMain: Debug Console Allocated (DM_CONSOLE).\n", GetCurrentThreadId());
 		}
 	}
-	else if (DbgMode == DM_FILE)
+	else 
 	{
 		FreeConsole();
-		freopen(szDebugFilename, "wt", stdout);
-		printf("[0x%X] EmuMain: Cxbx-Reloaded Version %s\n", GetCurrentThreadId(), _CXBX_VERSION);
-		printf("[0x%X] EmuMain: Debug Console Allocated (DM_FILE).\n", GetCurrentThreadId());
+		if (DbgMode == DM_FILE)
+			freopen(szDebugFilename, "wt", stdout);
+		else
+		{
+			char buffer[16];
+			if (GetConsoleTitle(buffer, 16) != NULL)
+				freopen("nul", "w", stdout);
+		}
 	}
-	else
+
+	// Write a header to the log
 	{
-		char buffer[16];
-		FreeConsole();
-		if (GetConsoleTitle(buffer, 16) != NULL)
-			freopen("nul", "w", stdout);
+		printf("[0x%X] EmuMain: Cxbx-Reloaded Version %s\n", GetCurrentThreadId(), _CXBX_VERSION);
+
+		time_t startTime = time(nullptr);
+		struct tm* tm_info = localtime(&startTime);
+		char timeString[26];
+		strftime(timeString, 26, "%F %T", tm_info);
+		printf("[0x%X] EmuMain: Log started at %s\n", GetCurrentThreadId(), timeString);
 	}
 
 	// debug trace
@@ -878,7 +891,7 @@ void CxbxKrnlCleanup(const char *szErrorMessage, ...)
 
         printf("%s\n", szBuffer1);
 
-        MessageBox(NULL, szBuffer1, "CxbxKrnl", MB_OK | MB_ICONEXCLAMATION);
+		CxbxPopupMessage(szBuffer1);
     }
 
     printf("CxbxKrnl: Terminating Process\n");

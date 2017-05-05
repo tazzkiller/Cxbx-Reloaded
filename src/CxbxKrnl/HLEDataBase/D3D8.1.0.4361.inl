@@ -1017,14 +1017,14 @@ OOVPATable D3D8_4361[] = {
 	REGISTER_OOVPA(D3DDevice_SetRenderState_StencilFail, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_NormalizeNormals, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDeviceCaps, 3925, DISABLED),
-	REGISTER_OOVPA(D3DDevice_CreatePalette, 3925, PATCH),
+	REGISTER_OOVPA(D3DDevice_CreatePalette, 3925, DISABLED),
 	REGISTER_OOVPA(D3DDevice_CreateIndexBuffer, 3925, DISABLED), // TODO: This needs to be verified on 4361, not just 4242!
 	REGISTER_OOVPA(D3DDevice_SetRenderState_ZBias, 3925, PATCH),
 	REGISTER_OOVPA(D3DResource_AddRef, 3925, PATCH),
 	REGISTER_OOVPA(D3DResource_Release, 3925, PATCH),
-	REGISTER_OOVPA(D3DPalette_Lock, 3925, PATCH),
+	REGISTER_OOVPA(D3DPalette_Lock, 3925, DISABLED),
 	REGISTER_OOVPA(D3DCubeTexture_LockRect, 3925, PATCH), // TODO: This needs to be verified on 4361, not just 4242!
-	REGISTER_OOVPA(D3DDevice_SetPalette, 4361, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetPalette, 4361, DISABLED),
 	REGISTER_OOVPA(D3DDevice_Reset, 4134, PATCH),
 	REGISTER_OOVPA(D3D_KickOffAndWaitForIdle, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_TwoSidedLighting, 4134, PATCH),
