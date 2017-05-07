@@ -1262,7 +1262,7 @@ OOVPATable D3D8_4034[] = {
 	REGISTER_OOVPA(D3DDevice_Present, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDepthStencilSurface, 3925, PATCH),
 	REGISTER_OOVPA(D3DResource_IsBusy, 3925, PATCH),
-	REGISTER_OOVPA(Get2DSurfaceDesc, 3925, PATCH),
+	REGISTER_OOVPA(Get2DSurfaceDesc, 3925, DISABLED),
 	// ********************** END WARNING UNTESTED!!! *******************
 
 	REGISTER_OOVPA(D3DDevice_SetVertexShaderConstant, 4034, PATCH),
