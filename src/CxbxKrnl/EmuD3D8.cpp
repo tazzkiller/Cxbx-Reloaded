@@ -2807,10 +2807,10 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
     }
 
     LPD3DXBUFFER pRecompiledBuffer = NULL;
-    DWORD        *pRecompiledDeclaration;
+    DWORD        *pRecompiledDeclaration = NULL;
     DWORD        *pRecompiledFunction = NULL;
     DWORD        VertexShaderSize = 0;
-    DWORD        DeclarationSize;
+    DWORD        DeclarationSize = 0;
     DWORD        Handle = 0;
 
     HRESULT hRet = XTL::EmuRecompileVshDeclaration((DWORD*)pDeclaration,
@@ -9379,9 +9379,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_PersistDisplay)()
 
 
 // ******************************************************************
-// * patch: D3DDevice_Unknown1
+// * patch: D3D_CMiniport_GetDisplayCapabilities
 // ******************************************************************
-void WINAPI XTL::EMUPATCH(D3DDevice_Unknown1)()
+void WINAPI XTL::EMUPATCH(D3D_CMiniport_GetDisplayCapabilities)()
 {
 	FUNC_EXPORTS
 
@@ -9769,7 +9769,7 @@ void WINAPI XTL::EMUPATCH(D3D_BlockOnTime)( DWORD Unknown1, int Unknown2 )
 	// create an XRef...
 
 	//__asm int 3;
-//	CxbxKrnlCleanup("D3D::BlockOnTime not implemented (tell blueshogun)");
+	EmuWarning("D3D::BlockOnTime not implemented (tell blueshogun)");
 
 	LOG_UNIMPLEMENTED();
 }
@@ -10036,9 +10036,6 @@ void WINAPI XTL::EMUPATCH(D3D_LazySetPointParams)( void* Device )
 	LOG_FUNC_ONE_ARG(Device);
 
 	LOG_UNIMPLEMENTED();
-
-	// Don't emulate this! Just look at the stack trace and go from there!
-//	__asm int 3;
 }
 
 // ******************************************************************
