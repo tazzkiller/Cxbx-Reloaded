@@ -67,7 +67,7 @@ extern VOID EmuD3DCleanup();
 extern X_D3DTILE EmuD3DTileCache[0x08];
 
 // EmuD3DActiveTexture
-extern X_D3DPixelContainer *EmuD3DActiveTexture[TEXTURE_STAGES];
+extern X_D3DPixelContainer *EmuD3DActiveTexture[X_D3DTS_STAGECOUNT];
 
 // ******************************************************************
 // * patch: Direct3D_CreateDevice

@@ -45,6 +45,8 @@ extern DWORD *EmuD3DDeferredRenderState;
 // EmuD3DDeferredTextureState
 extern DWORD *EmuD3DDeferredTextureState;
 
+extern void InitD3DDeferredStates();
+
 extern void EmuUpdateDeferredStates();
 
 #endif

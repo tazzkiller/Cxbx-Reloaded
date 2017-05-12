@@ -147,15 +147,15 @@ static DWORD                        g_dwVertexShaderUsage = 0;
 static DWORD                        g_VertexShaderSlots[136];
 
 // cached palette pointer
-static PVOID g_pCurrentPalette[TEXTURE_STAGES] = { nullptr, nullptr, nullptr, nullptr };
+static PVOID g_pCurrentPalette[X_D3DTS_STAGECOUNT] = { nullptr, nullptr, nullptr, nullptr };
 
-static XTL::X_VERTEXSHADERCONSTANTMODE g_VertexShaderConstantMode = X_VSCM_192;
+static XTL::X_VERTEXSHADERCONSTANTMODE g_VertexShaderConstantMode = X_D3DSCM_192CONSTANTS;
 
 // cached Direct3D tiles
 XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 
 // cached active texture
-XTL::X_D3DPixelContainer *XTL::EmuD3DActiveTexture[TEXTURE_STAGES] = {0,0,0,0};
+XTL::X_D3DPixelContainer *XTL::EmuD3DActiveTexture[X_D3DTS_STAGECOUNT] = {0,0,0,0};
 
 // information passed to the create device proxy thread
 struct EmuD3D8CreateDeviceProxyData
@@ -1465,7 +1465,7 @@ static DWORD WINAPI EmuUpdateTickCount(LPVOID)
 
         // trigger vblank callback
         {
-            g_VBData.VBlank++;
+            g_VBData.VBlankCounter++;
 
 			// TODO: Fixme.  This may not be right...
 			g_SwapData.SwapVBlank = 1;
@@ -1477,7 +1477,7 @@ static DWORD WINAPI EmuUpdateTickCount(LPVOID)
                     
             }
 
-            g_VBData.Swap = 0;
+            g_VBData.SwapCounter = 0;
 
 			// TODO: This can't be accurate...
 			g_SwapData.TimeUntilSwapVBlank = 0;
@@ -1569,7 +1569,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                     {
                         EmuWarning("MultiSampleType 0x%.08X is not supported!", g_EmuCDPD.pPresentationParameters->MultiSampleType);
 
-                        g_EmuCDPD.pPresentationParameters->MultiSampleType = XTL::D3DMULTISAMPLE_NONE;
+                        g_EmuCDPD.pPresentationParameters->MultiSampleType = XTL::X_D3DMULTISAMPLE_NONE;
 
                         // TODO: Check card for multisampling abilities
             //            if(pPresentationParameters->MultiSampleType == X_D3DMULTISAMPLE_2_SAMPLES_MULTISAMPLE_QUINCUNX) // = 0x00001121
@@ -1929,7 +1929,7 @@ static void EmuUnswizzleTextureStages()
 {
 	LOG_INIT; // Allows use of DEBUG_D3DRESULT
 
-	for( int i = 0; i < TEXTURE_STAGES; i++ )
+	for( int i = 0; i < X_D3DTS_STAGECOUNT; i++ )
 	{
 		XTL::X_D3DPixelContainer *pPixelContainer = XTL::EmuD3DActiveTexture[i];
 		if (pPixelContainer == NULL)
@@ -2245,8 +2245,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayFieldStatus)(X_D3DFIELD_STATUS *pF
 	LOG_FUNC_ONE_ARG(pFieldStatus);
 
 #if 1
-    pFieldStatus->Field = (g_VBData.VBlank%2 == 0) ? X_D3DFIELD_ODD : X_D3DFIELD_EVEN;
-    pFieldStatus->VBlankCount = g_VBData.VBlank;
+    pFieldStatus->Field = (g_VBData.VBlankCounter%2 == 0) ? X_D3DFIELD_ODD : X_D3DFIELD_EVEN;
+    pFieldStatus->VBlankCount = g_VBData.VBlankCounter;
 #else
 	pFieldStatus->Field = X_D3DFIELD_PROGRESSIVE;
 	pFieldStatus->VBlankCount = 0;
@@ -3179,7 +3179,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
         hRet = XTL::EmuRecompileVshFunction((DWORD*)pFunction,
                                             &pRecompiledBuffer,
                                             &VertexShaderSize,
-                                            g_VertexShaderConstantMode == X_VSCM_NONERESERVED,
+                                            g_VertexShaderConstantMode == X_D3DSCM_NORESERVEDCONSTANTS,
 											&bUseDeclarationOnly);
         if(SUCCEEDED(hRet))
         {
@@ -4210,7 +4210,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
     }
 
     /*
-    static IDirect3DTexture8 *pDummyTexture[TEXTURE_STAGES] = {nullptr, nullptr, nullptr, nullptr};
+    static IDirect3DTexture8 *pDummyTexture[X_D3DTS_STAGECOUNT] = {nullptr, nullptr, nullptr, nullptr};
 
     if(pDummyTexture[Stage] == nullptr)
     {
@@ -4260,10 +4260,10 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 		LOG_FUNC_ARG(Format)
 		LOG_FUNC_END;
 
-    DWORD StageLookup[TEXTURE_STAGES] = { 0x00081b00, 0x00081b40, 0x00081b80, 0x00081bc0 };
+    DWORD StageLookup[X_D3DTS_STAGECOUNT] = { 0x00081b00, 0x00081b40, 0x00081b80, 0x00081bc0 };
     DWORD Stage = -1;
 
-    for(int v=0;v<TEXTURE_STAGES;v++)
+    for(int v=0;v<X_D3DTS_STAGECOUNT;v++)
     {
         if(StageLookup[v] == Method)
         {
@@ -4844,9 +4844,9 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
 
 		// TODO : Check if this should be done at Swap-not-Present-time too :
 		// not really accurate because you definately dont always present on every vblank
-		g_VBData.Swap = g_VBData.VBlank;
+		g_VBData.SwapCounter = g_VBData.VBlankCounter;
 
-		if (g_VBData.VBlank == g_VBLastSwap + 1)
+		if (g_VBData.VBlankCounter == g_VBLastSwap + 1)
 			g_VBData.Flags = 1; // D3DVBLANK_SWAPDONE
 		else
 		{
@@ -7675,7 +7675,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
 
     // Store viewport offset and scale in constant registers 58 (c-38) and
     // 59 (c-37) used for screen space transformation.
-    if(g_VertexShaderConstantMode != X_VSCM_NONERESERVED)
+    if(g_VertexShaderConstantMode != X_D3DSCM_NORESERVEDCONSTANTS)
     {
         // TODO: Proper solution.
         static float vScale[] = { (2.0f / 640), (-2.0f / 480), 0.0f, 0.0f };
@@ -8282,7 +8282,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPalette)
 	//    g_pD3DDevice9->SetPaletteEntries(Stage?, (PALETTEENTRY*)pPalette->Data);
 	//    g_pD3DDevice9->SetCurrentTexturePalette(Stage, Stage);
 
-	if (Stage < TEXTURE_STAGES)
+	if (Stage < X_D3DTS_STAGECOUNT)
 		// Cache palette data and size
 		g_pCurrentPalette[Stage] = GetDataFromXboxResource(pPalette);
 

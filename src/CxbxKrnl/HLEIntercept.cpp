@@ -44,6 +44,7 @@
 #include "EmuShared.h"
 #include "HLEDataBase.h"
 #include "HLEIntercept.h"
+#include "EmuD3D8\State.h" // For InitD3DDeferredStates()
 #include "xxhash32.h"
 #include <Shlwapi.h>
 
@@ -214,15 +215,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 			XTL::EmuD3DDeferredTextureState = (DWORD*)g_SymbolAddresses["D3DDeferredTextureState"];
 			XRefDataBase[XREF_D3DDEVICE] = g_SymbolAddresses["D3DDEVICE"];
 
-			// TODO: Move this into a function rather than duplicating from HLE scanning code
-			for (int v = 0; v<44; v++) {
-				XTL::EmuD3DDeferredRenderState[v] = XTL::X_D3DRS_UNK;
-			}
-
-			for (int s = 0; s<4; s++) {
-				for (int v = 0; v<32; v++)
-					XTL::EmuD3DDeferredTextureState[v + s * 32] = X_D3DTSS_UNK;
-			}
+			InitD3DDeferredStates();
 
 			g_HLECacheUsed = true;
 		}
@@ -483,11 +476,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
                             XRefDataBase[XREF_D3DRS_ROPZREAD]              = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset + 2*4;
                             XRefDataBase[XREF_D3DRS_DONOTCULLUNCOMPRESSED] = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset + 3*4;
 
-                            for(int v=0;v<44;v++)
-                            {
-                                XTL::EmuD3DDeferredRenderState[v] = XTL::X_D3DRS_UNK;
-                            }
-
 							g_SymbolAddresses["D3DDeferredRenderState"] = (DWORD)XTL::EmuD3DDeferredRenderState;
 							printf("HLE: 0x%.08X -> EmuD3DDeferredRenderState\n", XTL::EmuD3DDeferredRenderState);
 							//DbgPrintf("HLE: 0x%.08X -> XREF_D3DRS_ROPZCMPALWAYSREAD\n", XRefDataBase[XREF_D3DRS_ROPZCMPALWAYSREAD] );
@@ -540,12 +528,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 								XTL::EmuD3DDeferredTextureState = (DWORD*)(DerivedAddr_D3DTSS_TEXCOORDINDEX - Decrement);
 
-								for(int s=0;s<4;s++)
-                                {
-                                    for(int v=0;v<32;v++)
-                                        XTL::EmuD3DDeferredTextureState[v+s*32] = X_D3DTSS_UNK;
-                                }
-
 								g_SymbolAddresses["D3DDeferredTextureState"] = (DWORD)XTL::EmuD3DDeferredTextureState;
 								printf("HLE: 0x%.08X -> EmuD3DDeferredTextureState\n", XTL::EmuD3DDeferredTextureState);
                             }
@@ -555,7 +537,9 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
                                 CxbxKrnlCleanup("EmuD3DDeferredTextureState was not found!");
                             }
                         }
-                    }
+
+						InitD3DDeferredStates();
+					}
                 }
 
 				printf("HLE: * Searching HLE database for %s version 1.0.%d... ", LibraryName.c_str(), BuildVersion);
