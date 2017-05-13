@@ -630,13 +630,13 @@ inline bool IsYuvSurface(const XTL::X_D3DResource *pXboxResource)
 
 inline bool IsXboxResourceLocked(const XTL::X_D3DResource *pXboxResource)
 {
-	bool result = pXboxResource->Common & X_D3DCOMMON_ISLOCKED;
+	bool result = (pXboxResource->Common & X_D3DCOMMON_ISLOCKED) > 0;
 	return result;
 }
 
 inline bool IsXboxResourceD3DCreated(const XTL::X_D3DResource *pXboxResource)
 {
-	bool result = pXboxResource->Common & X_D3DCOMMON_D3DCREATED;
+	bool result = (pXboxResource->Common & X_D3DCOMMON_D3DCREATED) > 0;
 	return result;
 }
 
@@ -877,7 +877,7 @@ XTL::D3DCOLOR *GetXboxActivePalette(const int Stage)
 	if (pPalette == NULL)
 		return NULL;
 
-	if (GetXboxResourceType(pPalette) != X_D3DCOMMON_TYPE_PALETTE)
+	if (GetXboxCommonResourceType(pPalette) != X_D3DCOMMON_TYPE_PALETTE)
 		CxbxPopupMessage("GetXboxActivePalette read a non-palette, offset is wrong, please report XDK version and title!");
 
 	XTL::D3DCOLOR *StagePalette = (XTL::D3DCOLOR *)GetDataFromXboxResource(pPalette);
@@ -1926,7 +1926,7 @@ static void EmuVerifyResourceIsRegistered(XTL::X_D3DResource *pResource)
 	}
 
 	// Experiment : delay registration (meaning : conversion) of textures
-	DWORD dwCommonType = GetXboxResourceType(pResource);
+	DWORD dwCommonType = GetXboxCommonResourceType(pResource);
 	if (dwCommonType != X_D3DCOMMON_TYPE_TEXTURE)
 	{
 		XTL::EMUPATCH(D3DResource_Register)(pResource, /* Base = */NULL);
@@ -2161,7 +2161,6 @@ void CxbxUpdateActiveIndexBuffer
 
 	if (FAILED(hRet))
 		CxbxKrnlCleanup("CxbxUpdateActiveIndexBuffer: SetIndices Failed!");
-	}
 }
 
 #define DETECTME	0xDE1EC13E
@@ -2191,6 +2190,7 @@ void CxbxInitializeD3DDevice()
 		// Complete guesswork, based on other g_BuildVersion-checks :
 		if (g_BuildVersion <= 4361)
 			X_D3DDevice_Active_Palette -= 96;
+	}
 }
 
 // ******************************************************************
@@ -5823,7 +5823,7 @@ XTL::X_D3DRESOURCETYPE WINAPI XTL::EMUPATCH(D3DResource_GetType)
 	EmuVerifyResourceIsRegistered(pThis);
 
 	// Check for Xbox specific resources (Azurik may need this)
-	DWORD dwType = GetXboxResourceType(pThis);
+	DWORD dwType = GetXboxCommonResourceType(pThis);
 
 	switch(dwType)
 	{
