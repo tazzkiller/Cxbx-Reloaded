@@ -635,13 +635,13 @@ inline bool IsYuvSurface(const XTL::X_D3DResource *pXboxResource)
 
 inline bool IsXboxResourceLocked(const XTL::X_D3DResource *pXboxResource)
 {
-	bool result = pXboxResource->Common & X_D3DCOMMON_ISLOCKED;
+	bool result = !!(pXboxResource->Common & X_D3DCOMMON_ISLOCKED);
 	return result;
 }
 
 inline bool IsXboxResourceD3DCreated(const XTL::X_D3DResource *pXboxResource)
 {
-	bool result = pXboxResource->Common & X_D3DCOMMON_D3DCREATED;
+	bool result = !!(pXboxResource->Common & X_D3DCOMMON_D3DCREATED);
 	return result;
 }
 
@@ -650,7 +650,7 @@ XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
 	if (pXboxResource == NULL)
 		return nullptr;
 
-	switch (GetXboxResourceType(pXboxResource)) {
+	switch (GetXboxCommonResourceType(pXboxResource)) {
 	case X_D3DCOMMON_TYPE_PUSHBUFFER:
 		return nullptr;
 	case X_D3DCOMMON_TYPE_PALETTE:
@@ -4976,6 +4976,8 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	const DWORD *pPalette
 )
 {
+	LOG_INIT; // Allows use of DEBUG_D3DRESULT
+
 	if (pPixelContainer == NULL)
 		return nullptr;
 
@@ -4988,7 +4990,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (pTextureData == NULL)
 		return nullptr; // TODO : Cleanup without data?
 
-	DWORD dwCommonType = GetXboxResourceType(pPixelContainer); 
+	DWORD dwCommonType = GetXboxCommonResourceType(pPixelContainer); 
 /* TODO : Is the following correct???
 	if (IsResourceTypeGPUReadable(dwCommonType))
 		if (IsXboxResourceD3DCreated(pPixelContainer))
@@ -5185,7 +5187,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				CxbxKrnlCleanup("CreateImageSurface Failed!\n\nError: %s\nDesc: %s"/*,
 				DXGetErrorString8A(hRet), DXGetErrorDescription8A(hRet)*/);
 
-			g_ConvertedTextures[pTextureData].pHostTexture = pHostSurface;
+			g_ConvertedTextures[pTextureData].pHostTexture = pNewHostSurface;
 			SetHostSurface(pPixelContainer, pNewHostSurface);
 			DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created ImageSurface (0x%.08X, 0x%.08X)\n", pPixelContainer, pNewHostSurface);
 			DbgPrintf("EmuIDirect3DResource8_Register : Width : %d, Height : %d, Format : %d\n", dwWidth, dwHeight, PCFormat);
@@ -5325,16 +5327,16 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 				// copy over data (deswizzle if necessary)
 				if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
-                            hRet = GetHostSurface(pResource)->LockRect(&LockedRect, NULL, 0);
+					hRet = GetHostSurface(pPixelContainer)->LockRect(&LockedRect, NULL, 0);
 				else
 				{
 					if (bCubemap)
 					{
-                                hRet = GetHostCubeTexture(pResource)->LockRect((D3DCUBEMAP_FACES)r, 0, &LockedRect, NULL, 0);
+                                hRet = GetHostCubeTexture(pPixelContainer)->LockRect((D3DCUBEMAP_FACES)r, 0, &LockedRect, NULL, 0);
 					}
 					else
 					{
-                                hRet = GetHostTexture(pResource)->LockRect(level, &LockedRect, NULL, 0);
+                                hRet = GetHostTexture(pPixelContainer)->LockRect(level, &LockedRect, NULL, 0);
 					}
 				}
 
@@ -5485,13 +5487,13 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				}
 
 				if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
-							GetHostSurface(pResource)->UnlockRect();
+					GetHostSurface(pPixelContainer)->UnlockRect();
 				else
 				{
 					if (bCubemap)
-								GetHostCubeTexture(pResource)->UnlockRect((D3DCUBEMAP_FACES)r, 0);
+						GetHostCubeTexture(pPixelContainer)->UnlockRect((D3DCUBEMAP_FACES)r, 0);
 					else
-								GetHostTexture(pResource)->UnlockRect(level);
+						GetHostTexture(pPixelContainer)->UnlockRect(level);
 				}
 
 				dwMipOffs += dwMipWidth*dwMipHeight*dwBPP;
@@ -5579,7 +5581,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_AddRef)
 
 		// If this is the first reference on a surface
 		if (uRet == 1)
-			if (GetXboxResourceType(pThis) == X_D3DCOMMON_TYPE_SURFACE)
+			if (GetXboxCommonResourceType(pThis) == X_D3DCOMMON_TYPE_SURFACE)
 				// Try to AddRef the parent too
 				if (((X_D3DSurface *)pThis)->Parent != NULL)
 					((X_D3DSurface *)pThis)->Parent->Common++;
@@ -5716,7 +5718,7 @@ XTL::X_D3DRESOURCETYPE WINAPI XTL::EMUPATCH(D3DResource_GetType)
 	EmuVerifyResourceIsRegistered(pThis);
 
 	// Check for Xbox specific resources (Azurik may need this)
-	DWORD dwType = GetXboxResourceType(pThis);
+	DWORD dwType = GetXboxCommonResourceType(pThis);
 
 	switch(dwType)
 	{
@@ -5807,7 +5809,7 @@ VOID WINAPI XTL::EMUPATCH(Lock3DSurface)
 	DEBUG_D3DRESULT(hRet, "pHostVolumeTexture->LockBox");
 }
 
-// TODO : Can be DISABLED once CreateDevice is unpatched (because this reads Data from the first Xbox FrameBuffer)
+#if 1 // TODO : Can be DISABLED once CreateDevice is unpatched (because this reads Data from the first Xbox FrameBuffer)
 // ******************************************************************
 // * patch: Get2DSurfaceDesc
 // ******************************************************************
@@ -5844,6 +5846,8 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
 	UINT dwPitch; // dummy value
 	CxbxGetPixelContainerMeasures(pPixelContainer, dwLevel, &(pDesc->Width), &(pDesc->Height), &dwPitch, &(pDesc->Size));
 }
+#endif
+
 #if 0 // Patch disabled
 // ******************************************************************
 // * patch: IDirect3DSurface8_GetDesc

@@ -763,7 +763,7 @@ VOID WINAPI EMUPATCH(Lock3DSurface)
 	DWORD				Flags
 );
 
-#if 0 // Patch disabled
+#if 1 // TODO : Can be DISABLED once CreateDevice is unpatched (because this reads Data from the first Xbox FrameBuffer)
 // ******************************************************************
 // * patch: Get2DSurfaceDesc
 // ******************************************************************
