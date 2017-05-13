@@ -231,7 +231,7 @@ VOID XTL::CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize)
 		if (hRenderWindowThread == NULL) {
 			char szBuffer[1024] = { 0 };
 			sprintf(szBuffer, "Creating EmuRenderWindowThread Failed: %08X", GetLastError());
-			MessageBoxA(NULL, szBuffer, "CreateThread Failed", 0);
+			CxbxPopupMessage(szBuffer);
 			EmuShared::Cleanup();
 			ExitProcess(0);
 		}
@@ -1909,12 +1909,16 @@ PDWORD WINAPI XTL::EMUPATCH(D3DDevice_BeginPush)(DWORD Count)
 
 	LOG_FUNC_ONE_ARG(Count);
 
+	if (g_pPrimaryPB != nullptr)
+	{
+		EmuWarning("D3DDevice_BeginPush called without D3DDevice_EndPush in between?!");
+		delete[] g_pPrimaryPB; // prevent a memory leak
+	}
+
     DWORD *pRet = new DWORD[Count];
 
     g_dwPrimaryPBCount = Count;
     g_pPrimaryPB = pRet;
-
-    
 
     return pRet;
 }
@@ -1932,14 +1936,17 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_EndPush)(DWORD *pPush)
 //	DbgDumpPushBuffer(g_pPrimaryPB, g_dwPrimaryPBCount*sizeof(DWORD));
 #endif
 
+	if (g_pPrimaryPB == nullptr)
+		EmuWarning("D3DDevice_EndPush called without preceding D3DDevice_BeginPush?!");
+	else
+	{
+		EmuUnswizzleTextureStages();
 
-	EmuUnswizzleTextureStages();
+		EmuExecutePushBufferRaw(g_pPrimaryPB);
 
-    EmuExecutePushBufferRaw(g_pPrimaryPB);
-
-    delete[] g_pPrimaryPB;
-
-    g_pPrimaryPB = 0;
+		delete[] g_pPrimaryPB;
+		g_pPrimaryPB = nullptr;
+	}
 }
 
 // ******************************************************************
@@ -9695,7 +9702,7 @@ DWORD PushBuffer[64 * 1024 / sizeof(DWORD)];
 // ******************************************************************
 PDWORD WINAPI XTL::EMUPATCH(D3D_MakeRequestedSpace)
 (
-	DWORD MinimumSpace, 
+	DWORD MinimumSpace,
 	DWORD RequestedSpace
 )
 {
@@ -9710,6 +9717,9 @@ PDWORD WINAPI XTL::EMUPATCH(D3D_MakeRequestedSpace)
 	LOG_IGNORED();
 
 	return PushBuffer; // Return a buffer that will be filled with GPU commands
+
+	// Note: This should work together with functions like XMETAL_StartPush/
+	// D3DDevice_BeginPush(Buffer)/D3DDevice_EndPush(Buffer) and g_pPrimaryPB
 
 	// TODO : Once we start emulating the PushBuffer, this will have to be the
 	// actual pushbuffer, for which we should let CreateDevice run unpatched.

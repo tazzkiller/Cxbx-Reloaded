@@ -323,6 +323,7 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 
 void CxbxPopupMessage(const char *message)
 {
+	DbgPrintf("Popup : %s\n", message);
 	MessageBox(NULL, message, "Cxbx-Reloaded", MB_OK | MB_ICONEXCLAMATION);
 }
 
@@ -526,7 +527,7 @@ void LoadXboxKeys(std::string path)
 			memcpy(xboxkrnl::XboxEEPROMKey, &keys[0], xboxkrnl::XBOX_KEY_LENGTH);
 			memcpy(xboxkrnl::XboxCertificateKey, &keys[1], xboxkrnl::XBOX_KEY_LENGTH);
 		} else {
-			EmuWarning("Keys.bin has an incorrent filesize. Should be %d bytes", xboxkrnl::XBOX_KEY_LENGTH * 2);
+			EmuWarning("Keys.bin has an incorrect filesize. Should be %d bytes", xboxkrnl::XBOX_KEY_LENGTH * 2);
 		}
 
 		fclose(fp);
@@ -561,7 +562,7 @@ void CxbxKrnlInit
 	g_CurrentProcessHandle = GetCurrentProcess();
 	CxbxInitPerformanceCounters();
 #ifdef _DEBUG
-	//	MessageBoxA(NULL, "Attach a Debugger", "DEBUG", 0);
+//	MessageBoxA(NULL, "Attach a Debugger", "DEBUG", 0);
 	//  Debug child processes using https://marketplace.visualstudio.com/items?itemName=GreggMiskelly.MicrosoftChildProcessDebuggingPowerTool
 #endif
 
@@ -582,7 +583,7 @@ void CxbxKrnlInit
 			SetConsoleTextAttribute(StdHandle, FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);
 		}
 	}
-	else 
+	else
 	{
 		FreeConsole();
 		if (DbgMode == DM_FILE)
@@ -598,7 +599,6 @@ void CxbxKrnlInit
 	// Write a header to the log
 	{
 		printf("[0x%X] EmuMain: Cxbx-Reloaded Version %s\n", GetCurrentThreadId(), _CXBX_VERSION);
-
 		time_t startTime = time(nullptr);
 		struct tm* tm_info = localtime(&startTime);
 		char timeString[26];
@@ -881,17 +881,13 @@ void CxbxKrnlCleanup(const char *szErrorMessage, ...)
         sprintf(szBuffer1, "[0x%X] EmuMain: Received Fatal Message:\n\n* ", GetCurrentThreadId());
 
         va_start(argp, szErrorMessage);
-
         vsprintf(szBuffer2, szErrorMessage, argp);
-
         va_end(argp);
 
         strcat(szBuffer1, szBuffer2);
         strcat(szBuffer1, "\n");
 
-        printf("%s\n", szBuffer1);
-
-		CxbxPopupMessage(szBuffer1);
+		CxbxPopupMessage(szBuffer1); // Will also DbgPrintf
     }
 
     printf("CxbxKrnl: Terminating Process\n");
