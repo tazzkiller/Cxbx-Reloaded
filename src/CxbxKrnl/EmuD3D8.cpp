@@ -813,6 +813,11 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 	}
 
 	DWORD dwCommonType = GetXboxCommonResourceType(pXboxResource);
+#if 0 // TODO : Enabled this once all resources are handled correctly :
+	if (IsResourceTypeGPUReadable(dwCommonType))
+		if (IsXboxResourceD3DCreated(pXboxResource))
+			pData |= MM_SYSTEM_PHYSICAL_MAP;
+#else
 	switch (dwCommonType) {
 	case X_D3DCOMMON_TYPE_VERTEXBUFFER:
 		break;
@@ -832,6 +837,7 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 	default:
 		CxbxKrnlCleanup("Unhandled resource type");
 	}
+#endif
 
 	return (uint08*)pData;
 }
