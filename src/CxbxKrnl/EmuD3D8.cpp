@@ -545,8 +545,8 @@ inline int GetXboxPixelContainerDimensionCount(const XTL::X_D3DPixelContainer *p
 
 XTL::X_D3DRESOURCETYPE GetXboxD3DResourceType(const XTL::X_D3DResource *pXboxResource)
 {
-	DWORD Type = GetXboxCommonResourceType(pXboxResource);
-	switch (Type)
+	DWORD dwCommonType = GetXboxCommonResourceType(pXboxResource);
+	switch (dwCommonType)
 	{
 	case X_D3DCOMMON_TYPE_VERTEXBUFFER:
 		return XTL::X_D3DRTYPE_VERTEXBUFFER;
@@ -629,13 +629,13 @@ inline bool IsYuvSurface(const XTL::X_D3DResource *pXboxResource)
 
 inline bool IsXboxResourceLocked(const XTL::X_D3DResource *pXboxResource)
 {
-	bool result = pXboxResource->Common & X_D3DCOMMON_ISLOCKED;
+	bool result = (pXboxResource->Common & X_D3DCOMMON_ISLOCKED) > 0;
 	return result;
 }
 
 inline bool IsXboxResourceD3DCreated(const XTL::X_D3DResource *pXboxResource)
 {
-	bool result = pXboxResource->Common & X_D3DCOMMON_D3DCREATED;
+	bool result = (pXboxResource->Common & X_D3DCOMMON_D3DCREATED) > 0;
 	return result;
 }
 
@@ -801,8 +801,8 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 		}
 	}
 
-	DWORD Type = GetXboxCommonResourceType(pXboxResource);
-	switch (Type) {
+	DWORD dwCommonType = GetXboxCommonResourceType(pXboxResource);
+	switch (dwCommonType) {
 	case X_D3DCOMMON_TYPE_VERTEXBUFFER:
 		break;
 	case X_D3DCOMMON_TYPE_INDEXBUFFER:
@@ -5586,13 +5586,16 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_AddRef)
 	// Initially, increment the Xbox refcount and return that
 	ULONG uRet = (++(pThis->Common)) & X_D3DCOMMON_REFCOUNT_MASK;
 
-	// Index buffers don't have a native resource assigned
-	if (GetXboxCommonResourceType(pThis) != X_D3DCOMMON_TYPE_INDEXBUFFER) {
+	DWORD dwCommonType = GetXboxCommonResourceType(pThis);
+
+	if (dwCommonType == X_D3DCOMMON_TYPE_INDEXBUFFER) {
+		// Index buffers don't have a native resource assigned
+	} else {
 		EmuVerifyResourceIsRegistered(pThis);
 
 		// If this is the first reference on a surface
 		if (uRet == 1)
-			if (pThis->Common & X_D3DCOMMON_TYPE_SURFACE)
+			if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
 				// Try to AddRef the parent too
 				if (((X_D3DSurface *)pThis)->Parent != NULL)
 					((X_D3DSurface *)pThis)->Parent->Common++;
@@ -5603,7 +5606,6 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_AddRef)
 			// if there's a host resource, AddRef it too and return that
 			uRet = pHostResource->AddRef();
 	}
-
 	
     return uRet;
 }
@@ -5676,7 +5678,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
                 DbgPrintf("EmuIDirect3DResource8_Release : Cleaned up a Resource!\n");
 
                 #ifdef _DEBUG_TRACE_VB
-                if(Type == D3DRTYPE_VERTEXBUFFER)
+                if(dwCommonType == D3DRTYPE_VERTEXBUFFER)
                 {
                     g_VBTrackTotal.remove(pResource8);
                     g_VBTrackDisable.remove(pResource8);
