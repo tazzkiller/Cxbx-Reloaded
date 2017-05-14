@@ -5129,7 +5129,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
 
             if(X_Format == X_D3DFMT_YUY2)
             {
-                // cache the overlay size
+				assert(dwCommonType == X_D3DCOMMON_TYPE_SURFACE);
+
+				// cache the overlay size
                 g_dwOverlayW = dwWidth;
                 g_dwOverlayH = dwHeight;
                 g_dwOverlayP = RoundUp(g_dwOverlayW, 64) * dwBPP;
