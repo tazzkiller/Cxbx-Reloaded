@@ -4151,9 +4151,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
     if(pTexture != NULL)
     {
         EmuVerifyResourceIsRegistered(pTexture);
-		pHostBaseTexture = GetHostBaseTexture(pTexture);
-
-        if(pTexture->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
+        if(IsYuvSurface(pTexture))
         {
             //
             // NOTE: TODO: This is almost a hack! :)
@@ -4164,6 +4162,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
         }
         else
         {			
+			pHostBaseTexture = GetHostBaseTexture(pTexture);
+
 			// Remove old locks before setting
 			/*if(IsXboxResourceLocked(pTexture))
 			{
@@ -5621,17 +5621,17 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
 
     ULONG uRet = 0;
 
-	// HACK: In case the clone technique fails...
 	if(!pThis)
 	{
+		// HACK: In case the clone technique fails...
 		EmuWarning("NULL texture!");
 
 		return 0;
 	}
 
-	if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
+	if (IsYuvSurface(pThis))
     {
-		uRet = (--pThis->Common) & X_D3DCOMMON_REFCOUNT_MASK;
+		uRet = (--(pThis->Common)) & X_D3DCOMMON_REFCOUNT_MASK;
         if (uRet == 0)
         {
             if(g_pCachedYuvSurface == pThis)
@@ -5740,8 +5740,6 @@ XTL::X_D3DRESOURCETYPE WINAPI XTL::EMUPATCH(D3DResource_GetType)
 	default:
 		rType = GetHostResource(pThis)->GetType(); break;
 	}
-
-    
 
     return (X_D3DRESOURCETYPE)rType;
 }
@@ -5877,7 +5875,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DSurface_GetDesc)
 
     EmuVerifyResourceIsRegistered(pThis);
 
-    if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
+    if(IsYuvSurface(pThis))
     {
         pDesc->Format = X_D3DFMT_YUY2;
         pDesc->Height = g_dwOverlayH;
@@ -5950,7 +5948,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DSurface_LockRect)
 
     HRESULT hRet = D3D_OK;
 
-    if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
+    if(IsYuvSurface(pThis))
     {
         pLockedRect->Pitch = g_dwOverlayP;
         pLockedRect->pBits = (PVOID)pThis->Lock;
@@ -6063,7 +6061,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel2)
 	else
 	{
 		EmuVerifyResourceIsRegistered(pThis);
-		if (pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
+		if (IsYuvSurface(pThis))
 		{
 			result = (X_D3DSurface*)pThis;
 		}
@@ -6120,7 +6118,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DTexture_LockRect)
     EmuVerifyResourceIsRegistered(pThis);
 
     // check if we have an unregistered YUV2 resource
-    if( (pThis != nullptr) && (pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE))
+    if( (pThis != nullptr) && IsYuvSurface(pThis))
     {
         pLockedRect->Pitch = g_dwOverlayP;
         pLockedRect->pBits = (PVOID)pThis->Lock;
