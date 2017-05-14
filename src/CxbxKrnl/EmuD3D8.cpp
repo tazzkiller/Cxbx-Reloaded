@@ -620,8 +620,11 @@ inline boolean IsResourceTypeGPUReadable(const DWORD ResourceType)
 inline bool IsYuvSurface(const XTL::X_D3DResource *pXboxResource)
 {
 	// Was : return (pXboxResource->Data == X_D3DRESOURCE_DATA_YUV_SURFACE);
-	if (GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_SURFACE)
-		if (GetXboxPixelContainerFormat((XTL::X_D3DPixelContainer *)pXboxResource) == XTL::X_D3DFMT_YUY2)
+	DWORD dwCommonType = GetXboxCommonResourceType(pXboxResource);
+	if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
+	{
+		XTL::X_D3DFORMAT Format = GetXboxPixelContainerFormat((XTL::X_D3DPixelContainer *)pXboxResource);
+		if (Format == XTL::X_D3DFMT_YUY2)
 			return true;
 
 	return false;
@@ -5730,9 +5733,9 @@ XTL::X_D3DRESOURCETYPE WINAPI XTL::EMUPATCH(D3DResource_GetType)
 	EmuVerifyResourceIsRegistered(pThis);
 
 	// Check for Xbox specific resources (Azurik may need this)
-	DWORD dwType = GetXboxResourceType(pThis);
+	DWORD dwCommonType = GetXboxCommonResourceType(pThis);
 
-	switch(dwType)
+	switch(dwCommonType)
 	{
 	case X_D3DCOMMON_TYPE_PUSHBUFFER:
 		rType = (D3DRESOURCETYPE) 8; break;
