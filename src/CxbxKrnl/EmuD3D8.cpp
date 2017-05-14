@@ -648,10 +648,17 @@ XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
 	if (pXboxResource == NULL)
 		return nullptr;
 
-	if (IsSpecialXboxResource(pXboxResource)) // Was X_D3DRESOURCE_DATA_YUV_SURFACE
+	DWORD dwCommonType = GetXboxCommonResourceType(pXboxResource);
+	switch (dwCommonType) {
+	case X_D3DCOMMON_TYPE_PUSHBUFFER:
 		return nullptr;
+	case X_D3DCOMMON_TYPE_PALETTE:
+		return nullptr;
+	case X_D3DCOMMON_TYPE_FIXUP:
+		return nullptr;
+	}
 
-	if (pXboxResource->Lock == X_D3DRESOURCE_LOCK_PALETTE)
+	if (IsSpecialXboxResource(pXboxResource)) // Was X_D3DRESOURCE_DATA_YUV_SURFACE
 		return nullptr;
 
 	XTL::IDirect3DResource8 *result = (XTL::IDirect3DResource8 *)pXboxResource->Lock;
