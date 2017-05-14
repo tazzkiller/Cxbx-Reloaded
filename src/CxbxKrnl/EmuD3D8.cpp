@@ -77,7 +77,7 @@ BOOL                                g_bFakePixelShaderLoaded = FALSE;
 BOOL                                g_bIsFauxFullscreen = FALSE;
 BOOL								g_bHackUpdateSoftwareOverlay = FALSE;
 
-void CxbxUpdateActiveTextures(); // forward
+void CxbxUpdateTextureStages(); // forward
 
 // Static Function(s)
 static BOOL WINAPI                  EmuEnumDisplayDevices(GUID FAR *lpGUID, LPSTR lpDriverDescription, LPSTR lpDriverName, LPVOID lpContext, HMONITOR hm);
@@ -154,7 +154,7 @@ static XTL::X_VERTEXSHADERCONSTANTMODE g_VertexShaderConstantMode = X_VSCM_192;
 XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 
 // cached active texture
-XTL::X_D3DPixelContainer *XTL::EmuD3DActiveTexture[TEXTURE_STAGES] = {0,0,0,0};
+XTL::X_D3DPixelContainer *XTL::EmuD3DTextureStages[TEXTURE_STAGES] = {0,0,0,0};
 
 // information passed to the create device proxy thread
 struct EmuD3D8CreateDeviceProxyData
@@ -2204,7 +2204,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_EndPush)(DWORD *pPush)
 		EmuWarning("D3DDevice_EndPush called without preceding D3DDevice_BeginPush?!");
 	else
 	{
-		CxbxUpdateActiveTextures();
+		CxbxUpdateTextureStages();
 
 		EmuExecutePushBufferRaw(g_pPrimaryPB);
 
@@ -4064,7 +4064,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 
 	IDirect3DBaseTexture8 *pHostBaseTexture = nullptr;
 
-    EmuD3DActiveTexture[Stage] = (X_D3DPixelContainer*)pTexture;
+    EmuD3DTextureStages[Stage] = (X_D3DPixelContainer*)pTexture;
     if(pTexture != NULL)
     {
         EmuVerifyResourceIsRegistered(pTexture);
@@ -4605,7 +4605,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_RunPushBuffer)
 		LOG_FUNC_ARG(pFixup)
 		LOG_FUNC_END;
 
-	CxbxUpdateActiveTextures();
+	CxbxUpdateTextureStages();
 
 	EmuExecutePushBuffer(pPushBuffer, pFixup);    
 }
@@ -7701,18 +7701,18 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
     return hRet;
 }
 
-void CxbxUpdateActiveTextures()
+void CxbxUpdateTextureStages()
 {
 	for (int i = 0; i < TEXTURE_STAGES; i++) {
-		XTL::IDirect3DBaseTexture8 *pPixelContainer = CxbxUpdateTexture(XTL::EmuD3DActiveTexture[i], g_pCurrentPalette[i]);
-		XTL::EMUPATCH(D3DDevice_SetTexture)(i, XTL::EmuD3DActiveTexture[i]);
+		XTL::IDirect3DBaseTexture8 *pPixelContainer = CxbxUpdateTexture(XTL::EmuD3DTextureStages[i], g_pCurrentPalette[i]);
+		XTL::EMUPATCH(D3DDevice_SetTexture)(i, XTL::EmuD3DTextureStages[i]);
 	}
 }
 
 void CxbxUpdateNativeD3DResources()
 {
 	XTL::EmuUpdateDeferredStates();
-	CxbxUpdateActiveTextures();
+	CxbxUpdateTextureStages();
 /* TODO : Port these :
 	DxbxUpdateActiveVertexShader();
 	DxbxUpdateActivePixelShader();
@@ -9336,7 +9336,7 @@ XTL::X_D3DResource* WINAPI XTL::EMUPATCH(D3DDevice_GetTexture2)(DWORD Stage)
 	LOG_FUNC_ONE_ARG(Stage);
 	
 	// Get the active texture from this stage
-	X_D3DPixelContainer* pRet = EmuD3DActiveTexture[Stage];
+	X_D3DPixelContainer* pRet = EmuD3DTextureStages[Stage];
 
 	return pRet;
 }

@@ -645,7 +645,7 @@ bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT ui
 
     for(uint08 i = 0; i < 4; i++)
     {
-        X_D3DPixelContainer *pPixelContainer = EmuD3DActiveTexture[i];
+        X_D3DPixelContainer *pPixelContainer = EmuD3DTextureStages[i];
 		if (pPixelContainer)
 		{ 
 			XTL::X_D3DFORMAT XBFormat = (XTL::X_D3DFORMAT)((pPixelContainer->Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT);
