@@ -147,7 +147,7 @@ static DWORD                        g_dwVertexShaderUsage = 0;
 static DWORD                        g_VertexShaderSlots[136];
 
 // cached palette pointer
-static PVOID g_pCurrentPalette[TEXTURE_STAGES] = { nullptr, nullptr, nullptr, nullptr };
+static DWORD *g_pCurrentPalette[TEXTURE_STAGES] = { nullptr, nullptr, nullptr, nullptr };
 
 static XTL::X_VERTEXSHADERCONSTANTMODE g_VertexShaderConstantMode = X_VSCM_192;
 
@@ -626,6 +626,7 @@ inline bool IsYuvSurface(const XTL::X_D3DResource *pXboxResource)
 		XTL::X_D3DFORMAT Format = GetXboxPixelContainerFormat((XTL::X_D3DPixelContainer *)pXboxResource);
 		if (Format == XTL::X_D3DFMT_YUY2)
 			return true;
+	}
 
 	return false;
 }
@@ -4170,11 +4171,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 				pTexture->Common &= ~X_D3DCOMMON_ISLOCKED;
 			}*/
 
-
-			// Let's be SURE that the texture is unlocked AND unswizzled before
-			// we set it!!!
-		//	EmuUnswizzleTextureStages();
-
             #ifdef _DEBUG_DUMP_TEXTURE_SETTEXTURE
             if(pTexture != NULL && (pHostBaseTexture != nullptr))
             {
@@ -5402,7 +5398,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
 									BYTE *pPixelData = (BYTE*)LockedRect.pBits;
 									DWORD dwDataSize = dwMipWidth*dwMipHeight;
 									DWORD* pExpandedTexture = (DWORD*)malloc(dwDataSize * sizeof(DWORD));
-									DWORD* pTexturePalette = (DWORD*)g_pCurrentPalette[TextureStage]; // For D3DFMT_P8
+									DWORD* pTexturePalette = g_pCurrentPalette[TextureStage]; // For D3DFMT_P8
 									const ComponentEncodingInfo *encoding = EmuXBFormatComponentEncodingInfo(X_Format);
 
 									//__asm int 3;
@@ -5536,8 +5532,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
             // create palette
             {
 				DWORD dwSize = XboxD3DPaletteSizeToBytes(GetXboxPaletteSize(pPalette));
-
-                g_pCurrentPalette[TextureStage] = pBase;
 
                 pResource->Data = (DWORD)pBase;
             }
@@ -5824,7 +5818,7 @@ VOID WINAPI XTL::EMUPATCH(Lock3DSurface)
 	DEBUG_D3DRESULT(hRet, "pHostVolumeTexture->LockBox");
 }
 
-// TODO : Can be DISABLED once CreateDevice is unpatched (because this reads Data from the first Xbox FrameBuffer)
+#if 1 // TODO : Can be DISABLED once CreateDevice is unpatched (because this reads Data from the first Xbox FrameBuffer)
 // ******************************************************************
 // * patch: Get2DSurfaceDesc
 // ******************************************************************
@@ -5861,6 +5855,7 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
 	UINT dwPitch; // dummy value
 	CxbxGetPixelContainerMeasures(pPixelContainer, dwLevel, &(pDesc->Width), &(pDesc->Height), &dwPitch, &(pDesc->Size));
 }
+#endif
 
 // ******************************************************************
 // * patch: IDirect3DSurface8_GetDesc
@@ -8286,8 +8281,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPalette)
 	//    g_pD3DDevice9->SetCurrentTexturePalette(Stage, Stage);
 
 	if (Stage < TEXTURE_STAGES)
-		// Cache palette data and size
-		g_pCurrentPalette[Stage] = GetDataFromXboxResource(pPalette);
+		// Cache palette
+		g_pCurrentPalette[Stage] = (DWORD *)GetDataFromXboxResource(pPalette);
 
     return D3D_OK;
 }
