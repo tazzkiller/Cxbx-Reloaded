@@ -1952,6 +1952,9 @@ static void EmuUnswizzleTextureStages()
 		if (pPixelContainer == NULL)
 			continue;
 
+		if (IsSpecialXboxResource(pPixelContainer))
+			continue;
+
 		HRESULT hRet;
 		XTL::IDirect3DTexture8 *pHostTexture = GetHostTexture(pPixelContainer);
 		if (pHostTexture != nullptr)
