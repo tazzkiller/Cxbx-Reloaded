@@ -66,8 +66,8 @@ extern VOID EmuD3DCleanup();
 // EmuD3DTileCache (8 tiles maximum)
 extern X_D3DTILE EmuD3DTileCache[0x08];
 
-// EmuD3DActiveTexture
-extern X_D3DPixelContainer *EmuD3DActiveTexture[TEXTURE_STAGES];
+// EmuD3DTextureStages
+extern X_D3DPixelContainer *EmuD3DTextureStages[TEXTURE_STAGES];
 
 XTL::IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, const DWORD *pPalette);
 
@@ -797,6 +797,7 @@ HRESULT WINAPI EMUPATCH(D3DSurface_LockRect)
     DWORD           Flags
 );
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DBaseTexture8_GetLevelCount
 // ******************************************************************
@@ -804,7 +805,9 @@ DWORD WINAPI EMUPATCH(D3DBaseTexture_GetLevelCount)
 (
     X_D3DBaseTexture   *pThis
 );
+#endif
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DTexture8_GetSurfaceLevel2
 // ******************************************************************
@@ -813,7 +816,9 @@ X_D3DSurface * WINAPI EMUPATCH(D3DTexture_GetSurfaceLevel2)
     X_D3DTexture   *pThis,
     UINT            Level
 );
+#endif
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DTexture8_LockRect
 // ******************************************************************
@@ -825,7 +830,9 @@ HRESULT WINAPI EMUPATCH(D3DTexture_LockRect)
     CONST RECT     *pRect,
     DWORD           Flags
 );
+#endif
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DTexture8_GetSurfaceLevel
 // ******************************************************************
@@ -835,7 +842,9 @@ HRESULT WINAPI EMUPATCH(D3DTexture_GetSurfaceLevel)
     UINT            Level,
     X_D3DSurface  **ppSurfaceLevel
 );
+#endif
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DVolumeTexture8_LockBox
 // ******************************************************************
@@ -847,7 +856,9 @@ HRESULT WINAPI EMUPATCH(D3DVolumeTexture_LockBox)
     CONST D3DBOX       *pBox,
     DWORD               Flags
 );
+#endif
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DCubeTexture8_LockRect
 // ******************************************************************
@@ -860,6 +871,7 @@ HRESULT WINAPI EMUPATCH(D3DCubeTexture_LockRect)
     CONST RECT         *pRect,
     DWORD               Flags
 );
+#endif
 
 #if 0 // patch disabled
 // ******************************************************************

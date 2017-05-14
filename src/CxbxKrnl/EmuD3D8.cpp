@@ -6002,6 +6002,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DSurface_LockRect)
     return hRet;
 }
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DBaseTexture8_GetLevelCount
 // ******************************************************************
@@ -6028,7 +6029,9 @@ DWORD WINAPI XTL::EMUPATCH(D3DBaseTexture_GetLevelCount)
 
     return dwRet;
 }
+#endif
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DTexture8_GetSurfaceLevel2
 // ******************************************************************
@@ -6081,7 +6084,9 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel2)
 	
     RETURN(result);
 }
+#endif
 
+#if 0 // just calls Lock2DSurface
 // ******************************************************************
 // * patch: IDirect3DTexture8_LockRect
 // ******************************************************************
@@ -6148,7 +6153,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DTexture_LockRect)
 
     return hRet;
 }
+#endif
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DTexture8_GetSurfaceLevel
 // ******************************************************************
@@ -6167,7 +6174,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel)
 
     return D3D_OK;
 }
+#endif
 
+#if 0 // Just calls Lock3DSurface
 // ******************************************************************
 // * patch: IDirect3DVolumeTexture8_LockBox
 // ******************************************************************
@@ -6200,7 +6209,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DVolumeTexture_LockBox)
 
     return hRet;
 }
+#endif
 
+#if 0 // just calls Lock2DSurface
 // ******************************************************************
 // * patch: IDirect3DCubeTexture8_LockRect
 // ******************************************************************
@@ -6234,6 +6245,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DCubeTexture_LockRect)
 
     return hRet;
 }
+#endif
+
 
 // ******************************************************************
 // * patch: D3DDevice_Release
@@ -8317,6 +8330,7 @@ void WINAPI XTL::EMUPATCH(D3DDevice_SetSoftDisplayFilter)
 	LOG_IGNORED();
 }
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DPalette8_Lock
 // ******************************************************************
@@ -8343,7 +8357,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DPalette_Lock)
 
     return hRet;
 }
+#endif
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DPalette8_Lock2
 // ******************************************************************
@@ -8372,6 +8388,7 @@ XTL::D3DCOLOR * WINAPI XTL::EMUPATCH(D3DPalette_Lock2)
 
     return pColors;
 }
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_GetVertexShaderSize
@@ -8399,8 +8416,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderSize)
     {
         *pSize = 0;
     }
-
-    
 }
 
 // ******************************************************************
@@ -9902,6 +9917,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPushBufferOffset)
 	return D3D_OK;
 }
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DCubeTexture8_GetCubeMapSurface
 // ******************************************************************
@@ -9939,7 +9955,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DCubeTexture_GetCubeMapSurface)
 
 	return hRet;
 }
+#endif
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DCubeTexture8_GetCubeMapSurface2
 // ******************************************************************
@@ -9960,6 +9978,7 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DCubeTexture_GetCubeMapSurface2)
 
 	return pCubeMapSurface;
 }
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_GetPixelShader
