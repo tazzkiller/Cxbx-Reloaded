@@ -4904,7 +4904,13 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
     // add the offset of the current texture to the base
     pBase = (PVOID)((DWORD)pBase + pResource->Data);
 
-    // Determine the resource type, and initialize
+	if (IsResourceTypeGPUReadable(dwCommonType))
+		// Vertex buffers (and other GPU-readable types) live in Physical Memory Region
+		pBase = (void*)((xbaddr)pBase | MM_SYSTEM_PHYSICAL_MAP);
+
+	pResource->Data = (DWORD)pBase;
+
+	// Determine the resource type, and initialize
     switch(dwCommonType)
     {
         case X_D3DCOMMON_TYPE_VERTEXBUFFER:
@@ -4913,9 +4919,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
 
             X_D3DVertexBuffer *pVertexBuffer = (X_D3DVertexBuffer*)pResource;
 			XTL::IDirect3DVertexBuffer8  *pNewHostVertexBuffer = nullptr;
-
-			// Vertex buffers live in Physical Memory Region
-			pBase = (void*)((xbaddr)pBase | MM_SYSTEM_PHYSICAL_MAP);
 
             // create vertex buffer
             {
@@ -4995,8 +4998,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
 
                     break;
                 }
-
-                pResource->Data = (DWORD)pBase;
             }
 
             DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created PushBuffer (0x%.08X, 0x%.08X, 0x%.08X)\n", pResource->Data, pPushBuffer->Size, pPushBuffer->AllocationSize);
@@ -5303,7 +5304,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
                             }
                         }
 
-                        BYTE *pSrc = (BYTE*)pBase; // TODO : Fix (look at Dxbx) this, as it gives cube textures identical sides
+						BYTE *pSrc = (BYTE*)pPixelContainer->Data; // TODO : Fix (look at Dxbx) this, as it gives cube textures identical sides
 
                         if(( pResource->Data == X_D3DRESOURCE_DATA_BACK_BUFFER)
                          ||( (DWORD)pBase == X_D3DRESOURCE_DATA_BACK_BUFFER))
@@ -5322,9 +5323,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
                         }
 						else
 						{
-							if (level == 0)
-								pResource->Data = (DWORD)pSrc;
-
 							if((DWORD)pSrc == 0x80000000)
 							{
 								// TODO: Fix or handle this situation..?
