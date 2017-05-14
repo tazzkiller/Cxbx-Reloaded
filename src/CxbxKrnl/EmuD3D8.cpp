@@ -865,7 +865,6 @@ inline XTL::X_D3DPALETTESIZE GetXboxPaletteSize(const XTL::X_D3DPalette *pPalett
 	return PaletteSize;
 }
 
-
 int GetD3DResourceRefCount(XTL::IDirect3DResource8 *EmuResource)
 {
 	if (EmuResource != nullptr)
@@ -5171,10 +5170,10 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			}
 		}
 
-				// One of these will be created :
-				XTL::IDirect3DSurface8 *pNewHostSurface = nullptr;
-				XTL::IDirect3DCubeTexture8 *pNewHostCubeTexture = nullptr;
-				XTL::IDirect3DTexture8 *pNewHostTexture = nullptr;
+		// One of these will be created :
+		XTL::IDirect3DSurface8 *pNewHostSurface = nullptr;
+		XTL::IDirect3DCubeTexture8 *pNewHostCubeTexture = nullptr;
+		XTL::IDirect3DTexture8 *pNewHostTexture = nullptr;
 
 		// create the happy little texture
 		if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
@@ -5250,21 +5249,20 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			}
 			else
 			/*
-			XTL::IDirect3DVolumeTexture8 *pHostVolumeTexture = nullptr;
+			XTL::IDirect3DVolumeTexture8 *pNewHostVolumeTexture = nullptr;
 
 			hRet = g_pD3DDevice8->CreateVolumeTexture
 			(
-			Width, Height, Depth, Levels,
-			0,  // TODO: Xbox Allows a border to be drawn (maybe hack this in software ;[)
-			PCFormat, D3DPOOL_MANAGED, &pHostVolumeTexture
+				Width, Height, Depth, Levels,
+				0,  // TODO: Xbox Allows a border to be drawn (maybe hack this in software ;[)
+				PCFormat, D3DPOOL_MANAGED, &pNewHostVolumeTexture
 			);
+			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateVolumeTexture");
 
-			if(FAILED(hRet))
-			EmuWarning("CreateVolumeTexture Failed! (0x%.08X)", hRet);
-			else
+			if(SUCCEEDED(hRet))
 			{
-			SetHostVolumeTexture(*ppVolumeTexture, pHostVolumeTexture);
-			DbgPrintf("EmuD3D8: Created Volume Texture : 0x%.08X (0x%.08X)\n", *ppVolumeTexture, pHostVolumeTexture);
+				SetHostVolumeTexture(*ppVolumeTexture, pNewHostVolumeTexture);
+				DbgPrintf("EmuD3D8: Created Volume Texture : 0x%.08X (0x%.08X)\n", *ppVolumeTexture, pNewHostVolumeTexture);
 			}
 			*/
 			{
@@ -5327,16 +5325,16 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 				// copy over data (deswizzle if necessary)
 				if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
-					hRet = GetHostSurface(pPixelContainer)->LockRect(&LockedRect, NULL, 0);
+					hRet = pNewHostSurface->LockRect(&LockedRect, NULL, 0);
 				else
 				{
 					if (bCubemap)
 					{
-                                hRet = GetHostCubeTexture(pPixelContainer)->LockRect((D3DCUBEMAP_FACES)r, 0, &LockedRect, NULL, 0);
+                                hRet = pNewHostCubeTexture->LockRect((D3DCUBEMAP_FACES)r, 0, &LockedRect, NULL, 0);
 					}
 					else
 					{
-                                hRet = GetHostTexture(pPixelContainer)->LockRect(level, &LockedRect, NULL, 0);
+                                hRet = pNewHostTexture->LockRect(level, &LockedRect, NULL, 0);
 					}
 				}
 
@@ -5487,13 +5485,13 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				}
 
 				if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
-					GetHostSurface(pPixelContainer)->UnlockRect();
+					pNewHostSurface->UnlockRect();
 				else
 				{
 					if (bCubemap)
-						GetHostCubeTexture(pPixelContainer)->UnlockRect((D3DCUBEMAP_FACES)r, 0);
+						pNewHostCubeTexture->UnlockRect((D3DCUBEMAP_FACES)r, 0);
 					else
-						GetHostTexture(pPixelContainer)->UnlockRect(level);
+						pNewHostTexture->UnlockRect(level);
 				}
 
 				dwMipOffs += dwMipWidth*dwMipHeight*dwBPP;
@@ -5548,8 +5546,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		}
 #endif
 	}
-
-	XTL::EMUPATCH(D3DDevice_SetTexture)(0, pPixelContainer);
 
 	return result;
 }
@@ -7708,7 +7704,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
 void CxbxUpdateActiveTextures()
 {
 	for (int i = 0; i < TEXTURE_STAGES; i++) {
-		CxbxUpdateTexture(XTL::EmuD3DActiveTexture[i], g_pCurrentPalette[i]);
+		XTL::IDirect3DBaseTexture8 *pPixelContainer = CxbxUpdateTexture(XTL::EmuD3DActiveTexture[i], g_pCurrentPalette[i]);
+		XTL::EMUPATCH(D3DDevice_SetTexture)(i, XTL::EmuD3DActiveTexture[i]);
 	}
 }
 
