@@ -7560,7 +7560,7 @@ XTL::X_D3DVertexBuffer*g_D3DStreams[16];
 UINT g_D3DStreamStrides[16];
 
 // ******************************************************************
-// * patch: D3DDevice_GetStreamSource2
+// * patch: D3DDevice_GetStreamSource
 // ******************************************************************
 XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource2)
 (
@@ -7628,7 +7628,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
 
 	if (StreamNumber < 16)
 	{
-		// Remember these for D3DDevice_GetStreamSource2 to read:
+		// Remember these for D3DDevice_GetStreamSource to read:
 		g_D3DStreams[StreamNumber] = pStreamData;
 		g_D3DStreamStrides[StreamNumber] = Stride;
 	}

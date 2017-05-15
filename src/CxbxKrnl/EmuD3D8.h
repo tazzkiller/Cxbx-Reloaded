@@ -1253,9 +1253,9 @@ BYTE* WINAPI EMUPATCH(D3DVertexBuffer_Lock2)
 );
 
 // ******************************************************************
-// * patch: D3DDevice_GetStreamSource2
+// * patch: D3DDevice_GetStreamSource
 // ******************************************************************
-XTL::X_D3DVertexBuffer* WINAPI EMUPATCH(D3DDevice_GetStreamSource2)
+XTL::X_D3DVertexBuffer* WINAPI EMUPATCH(D3DDevice_GetStreamSource)
 (
     UINT  StreamNumber,
     UINT *pStride

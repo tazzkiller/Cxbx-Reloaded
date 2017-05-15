@@ -1787,9 +1787,9 @@ OOVPA_END;
 
 
 // ******************************************************************
-// * D3DDevice_GetStreamSource2 (Maybe same in older versions)
+// * D3DDevice_GetStreamSource (Maybe same in older versions)
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_GetStreamSource2, 4627, 7)
+OOVPA_NO_XREF(D3DDevice_GetStreamSource, 4627, 7)
 
         { 0x06, 0x34 },
         { 0x12, 0x85 },
@@ -2785,7 +2785,7 @@ REGISTER_OOVPA(D3DDevice_SetRenderState_CullMode, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_YuvEnable, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTransform, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetTransform, 4134, PATCH),
-	REGISTER_OOVPA(D3DDevice_GetStreamSource2, 4627, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetStreamSource, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetStreamSource, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShader, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShader, 4627, PATCH),
