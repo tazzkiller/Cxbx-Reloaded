@@ -87,11 +87,13 @@ inline T _log_sanitize(T value)
 	return value;
 }
 
+#if 0 // TODO FIXME : Disabled for now, as this is incorrectly called for INT types too
 // Convert booleans to strings properly
 inline const char * _log_sanitize(BOOL value)
 {
 	return value ? "TRUE" : "FALSE";
 }
+#endif
 
 // Macro to ease declaring a _log_sanitize overload (invokeable via C) for type T
 #define LOG_SANITIZE_HEADER(C, T)           \
@@ -318,6 +320,7 @@ LOGRENDER_HEADER_BY_REF(Type)                                   \
 // An example type rendering, for PULONG
 //
 
+LOGRENDER_HEADER_BY_REF(PVOID);
 LOGRENDER_HEADER_BY_REF(PULONG);
 
 #endif _LOGGING_H

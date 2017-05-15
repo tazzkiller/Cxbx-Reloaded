@@ -186,6 +186,11 @@ LOG_SANITIZE_HEADER(sanitized_wchar_pointer, wchar_t *)
 	return os << "\"";
 }
 
+LOGRENDER_HEADER_BY_REF(PVOID)
+{
+	return os << hex4((uint32_t)value);
+}
+
 LOGRENDER_HEADER_BY_REF(PULONG)
 {
 	os << hex4((uint32_t)value);
