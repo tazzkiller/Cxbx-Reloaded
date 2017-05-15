@@ -57,7 +57,6 @@ XTL::X_D3DPRIMITIVETYPE      XTL::g_IVBPrimitiveType = XTL::X_D3DPT_INVALID;
 UINT                         XTL::g_IVBTblOffs = 0;
 struct XTL::_D3DIVB         *XTL::g_IVBTable = nullptr;
 extern DWORD                 XTL::g_IVBFVF = 0;
-extern XTL::X_D3DVertexBuffer      *g_pVertexBuffer = NULL;
 
 extern DWORD				XTL::g_dwPrimPerFrame = 0;
 
@@ -238,11 +237,6 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
 			&uiStride);
         if(!pOrigVertexBuffer)
 		{
-			/*if(!g_pVertexBuffer || !GetHostVertexBuffer(g_pVertexBuffer))
-				CxbxKrnlCleanup("Unable to retrieve original buffer (Stream := %d)", uiStream);
-			else
-				pOrigVertexBuffer = GetHostVertexBuffer(g_pVertexBuffer);*/
-
 			if(pbFatalError)
 				*pbFatalError = true;
 

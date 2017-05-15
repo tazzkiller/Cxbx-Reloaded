@@ -125,9 +125,10 @@ static XTL::X_D3DIndexBuffer       *g_pIndexBuffer  = NULL; // current active in
 static DWORD                        g_dwBaseVertexIndex = 0;// current active index buffer base index
 
 // current active vertex stream
-static XTL::X_D3DVertexBuffer      *g_pVertexBuffer = NULL; // current active vertex buffer
 static XTL::IDirect3DVertexBuffer8 *g_pDummyBuffer = NULL;  // Dummy buffer, used to set unused stream sources with
-static DWORD						g_dwLastSetStream = 0;	// The last stream set by D3DDevice::SetStreamSource
+static XTL::X_D3DVertexBuffer      *g_D3DStreams[16] = {};  // The vertex buffer streams set by D3DDevice::SetStreamSource
+static UINT                         g_D3DStreamStrides[16] = {};
+
 
 // current vertical blank information
 static XTL::D3DVBLANKDATA           g_VBData = {0};
@@ -794,13 +795,9 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 
 	if (IsSpecialXboxResource(pXboxResource))
 	{
-		// TODO : What about X_D3DRESOURCE_LOCK_FLAG_NOSIZE?
 		switch (pData) {
 		case X_D3DRESOURCE_DATA_BACK_BUFFER:
 			return nullptr;
-//		case X_D3DRESOURCE_DATA_YUV_SURFACE:
-//			pData = pXboxResource->Data;
-//			break;
 		case X_D3DRESOURCE_DATA_RENDER_TARGET:
 			return nullptr;
 		case X_D3DRESOURCE_DATA_DEPTH_STENCIL:
@@ -3863,7 +3860,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVolumeTexture)
 
     return hRet;
 }
+#endif
 
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: D3DDevice_CreateCubeTexture
 // ******************************************************************
@@ -4971,7 +4970,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DResource_Register)
 
 XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 (
-	XTL::X_D3DPixelContainer *pPixelContainer, // TODO : Mark this const once we stop messing with this
+	const XTL::X_D3DPixelContainer *pPixelContainer,
 	const DWORD *pPalette
 )
 {
@@ -5147,11 +5146,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		g_dwOverlayW = dwWidth;
 		g_dwOverlayH = dwHeight;
 		g_dwOverlayP = RoundUp(g_dwOverlayW, 64) * dwBPP;
-
-		// If YUY2 is not supported in hardware, we'll actually mark this as a special fake texture
-		// Note : This is the only change to the pResource argument passed into D3DResource_Register !
-//		pPixelContainer->Data = X_D3DRESOURCE_DATA_YUV_SURFACE;
-//		pPixelContainer->Lock = (DWORD)g_MemoryManager.Allocate(g_dwOverlayP * g_dwOverlayH);
 	}
 
 	{
@@ -5626,9 +5620,6 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
 
 			if(g_pIndexBuffer == pThis)
 				g_pIndexBuffer = NULL;
-
-			if (g_pVertexBuffer == pThis)
-				g_pVertexBuffer = NULL;
 
 			if (g_pCachedRenderTarget == pThis)
 				g_pCachedRenderTarget = NULL;
@@ -7556,9 +7547,6 @@ BYTE* WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock2)
     return pbNativeData; // For now, give the native buffer memory to Xbox. TODO : pVertexBuffer->Data 
 }
 
-XTL::X_D3DVertexBuffer*g_D3DStreams[16];
-UINT g_D3DStreamStrides[16];
-
 // ******************************************************************
 // * patch: D3DDevice_GetStreamSource
 // ******************************************************************
@@ -7610,12 +7598,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
 		LOG_FUNC_ARG(pStreamData)
 		LOG_FUNC_ARG(Stride)
 		LOG_FUNC_END;
-
-	// Cache stream number
-	g_dwLastSetStream = StreamNumber;
-
-    if(StreamNumber == 0)
-        g_pVertexBuffer = pStreamData;
 
 	// Test for a non-zero stream source.  Unreal Championship gives us
 	// some funky number when going ingame.
@@ -8027,10 +8009,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 		LOG_FUNC_ARG(VertexStreamZeroStride)
 		LOG_FUNC_END;
 
-    // update index buffer, if necessary
-    if(g_pIndexBuffer != 0 && g_pIndexBuffer->Lock == X_D3DRESOURCE_LOCK_FLAG_NOSIZE)
-        CxbxKrnlCleanup("g_pIndexBuffer != 0");
-
 	CxbxUpdateNativeD3DResources();
 	CxbxUpdateActiveIndexBuffer((PWORD)pIndexData, VertexCount);
 
@@ -8258,17 +8236,8 @@ XTL::X_D3DPalette * WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette2)
 
 	pPalette->Common |= (Size << X_D3DPALETTE_COMMON_PALETTESIZE_SHIFT);
     pPalette->Data = (DWORD)g_MemoryManager.AllocateContiguous(XboxD3DPaletteSizeToBytes(Size), PAGE_SIZE);
-    pPalette->Lock = X_D3DRESOURCE_LOCK_PALETTE; // emulated reference count for palettes
-
-	// TODO: Should't we register the palette with a call to
-	// EmuIDirect3DResource8_Register? So far, it doesn't look
-	// like the palette registration code gets used.  If not, then we
-	// need to cache the palette manually during any calls to
-	// EmuD3DDevice_SetPalette for 8-bit textures to work properly.
 
     DbgPrintf("pPalette: = 0x%.08X\n", pPalette);
-
-    
 
     return pPalette;
 }
