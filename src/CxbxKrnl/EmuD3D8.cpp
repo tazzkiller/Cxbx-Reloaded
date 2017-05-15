@@ -545,8 +545,8 @@ inline int GetXboxPixelContainerDimensionCount(const XTL::X_D3DPixelContainer *p
 
 XTL::X_D3DRESOURCETYPE GetXboxD3DResourceType(const XTL::X_D3DResource *pXboxResource)
 {
-	DWORD Type = GetXboxCommonResourceType(pXboxResource);
-	switch (Type)
+	DWORD dwCommonType = GetXboxCommonResourceType(pXboxResource);
+	switch (dwCommonType)
 	{
 	case X_D3DCOMMON_TYPE_VERTEXBUFFER:
 		return XTL::X_D3DRTYPE_VERTEXBUFFER;
@@ -626,7 +626,8 @@ static std::map<XTL::X_D3DResource *, XTL::IDirect3DResource8 *> g_XboxToHostRes
 
 inline bool IsYuvSurface(const XTL::X_D3DResource *pXboxResource)
 {
-	if (GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_SURFACE)
+	DWORD dwCommonType = GetXboxCommonResourceType(pXboxResource);
+	if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
 		if (GetXboxPixelContainerFormat((XTL::X_D3DPixelContainer *)pXboxResource) == XTL::X_D3DFMT_YUY2)
 			return true;
 
@@ -669,7 +670,7 @@ XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
 
 	XTL::IDirect3DResource8 *result = g_XboxToHostResourceMappings[pXboxResource];
 	if (result == nullptr) {
-		EmuWarning("Xbox resource has no host resource mapped!");
+		EmuWarning("Xbox resource has no host resource mapped (yet)");
 	}
 
 	return result;
@@ -805,17 +806,14 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 			return nullptr;
 		case X_D3DRESOURCE_DATA_DEPTH_STENCIL:
 			return nullptr;
-		case X_D3DRESOURCE_DATA_SURFACE_LEVEL:
-			return nullptr;
 		default:
 			CxbxKrnlCleanup("Unhandled special resource type");
 		}
 	}
 
-	DWORD Type = GetXboxCommonResourceType(pXboxResource);
-	if (IsResourceTypeGPUReadable(Type))
-//		if (IsXboxResourceD3DCreated(pXboxResource))
-			pData |= MM_SYSTEM_PHYSICAL_MAP;
+	DWORD dwCommonType = GetXboxCommonResourceType(pXboxResource);
+	if (IsResourceTypeGPUReadable(dwCommonType))
+		pData |= MM_SYSTEM_PHYSICAL_MAP;
 
 	return (uint08*)pData;
 }
@@ -1857,36 +1855,41 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
     return 0;
 }
 
+XTL::IDirect3DSurface8 *CxbxUpdateSurface(const XTL::X_D3DSurface *pXboxSurface)
+{
+	return (XTL::IDirect3DSurface8 *)CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pXboxSurface, NULL);
+}
+
 // check if a resource has been converted yet (if not, do it)
 static void CxbxUpdateResource(XTL::X_D3DResource *pResource)
 {
+	// Skip unassigned resources
+	if (pResource == NULL)
+		return;
+
 	// Skip resources without data
 	if (pResource->Data == NULL)
 		return;
 
-    // Already "Registered" implicitly
-    if(IsSpecialXboxResource(pResource))
-        return;
-
-	DWORD dwCommonType = GetXboxCommonResourceType(pResource);
-
 	// Determine the resource type, and initialize
+	DWORD dwCommonType = GetXboxCommonResourceType(pResource);
 	switch (dwCommonType)
 	{
 	case X_D3DCOMMON_TYPE_VERTEXBUFFER:
 	{
+		DbgPrintf("CxbxUpdateResource :-> VertexBuffer...\n");
 		CxbxUpdateVertexBuffer((XTL::X_D3DVertexBuffer *)pResource);
 		break;
 	}
 	case X_D3DCOMMON_TYPE_SURFACE:
+	{
+		DbgPrintf("CxbxUpdateResource :-> Surface...\n");
+		CxbxUpdateSurface((XTL::X_D3DSurface *)pResource);
+		break;
+	}
 	case X_D3DCOMMON_TYPE_TEXTURE:
 	{
-		if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE) {
-			DbgPrintf("CxbxUpdateResource :-> Surface...\n");
-		}
-		else {
-			DbgPrintf("CxbxUpdateResource :-> Texture...\n");
-		}
+		DbgPrintf("CxbxUpdateResource :-> Texture...\n");
 		CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pResource, g_pCurrentPalette[0]); // HACK : Use palette from stage 0!
 		break;
 	}
@@ -2560,11 +2563,14 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CopyRects)
 		LOG_FUNC_ARG(pDestPointsArray)
 		LOG_FUNC_END;
 
-	CxbxUpdateResource(pSourceSurface);
-	CxbxUpdateResource(pDestinationSurface);
+	XTL::IDirect3DSurface8 *pHostSourceSurface = CxbxUpdateSurface(pSourceSurface);
+	XTL::IDirect3DSurface8 *pHostDestinationSurface = CxbxUpdateSurface(pDestinationSurface);
 
-	XTL::IDirect3DSurface8 *pHostSurface = GetHostSurface(pSourceSurface);
-	pHostSurface->UnlockRect(); // remove old lock
+	if (pHostSourceSurface != nullptr)
+		pHostSourceSurface->UnlockRect(); // remove old lock
+
+	if (pHostDestinationSurface != nullptr)
+		pHostDestinationSurface->UnlockRect(); // remove old lock
 
     /*
     static int kthx = 0;
@@ -2577,10 +2583,10 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CopyRects)
 
     HRESULT hRet = g_pD3DDevice8->CopyRects
     (
-		pHostSurface,
+		pHostSourceSurface,
         pSourceRectsArray,
         cRects,
-		GetHostSurface(pDestinationSurface),
+		pHostDestinationSurface,
         pDestPointsArray
     );
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CopyRects");    
@@ -4892,6 +4898,9 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		if (pPalette == NULL)
 			CxbxKrnlCleanup("CxbxUpdateTexture can't handle paletized textures without a given palette!");
 
+	if (IsSpecialXboxResource(pPixelContainer))
+		return nullptr;
+
 	xbaddr pTextureData = (xbaddr)GetDataFromXboxResource((X_D3DResource *)pPixelContainer);
 	if (pTextureData == NULL)
 		return nullptr; // TODO : Cleanup without data?
@@ -5111,7 +5120,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				dwMipMapLevels = 3;
 			}
 
-			// HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
 			// Since most modern graphics cards does not support
 			// palette based textures we need to expand it to
 			// ARGB texture format
@@ -5240,148 +5248,119 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 				BYTE *pSrc = (BYTE*)pTextureData; // TODO : Fix (look at Dxbx) this, as it gives cube textures identical sides
 
-				if (pPixelContainer->Data == X_D3DRESOURCE_DATA_BACK_BUFFER)
+				if (bSwizzled)
 				{
-					EmuWarning("Attempt to registered to another resource's data (eww!)");
+					RECT  iRect = { 0,0,0,0 };
+					POINT iPoint = { 0,0 };
 
-					// TODO: handle this horrible situation
-					BYTE *pDest = (BYTE*)LockedRect.pBits;
-					for (DWORD v = 0; v<dwMipHeight; v++)
-					{
-						memset(pDest, 0, dwMipWidth*dwBPP);
+					// First we need to unswizzle the texture data
+					XTL::EmuUnswizzleRect
+					(
+						pSrc + dwMipOffs, dwMipWidth, dwMipHeight, dwDepth, LockedRect.pBits,
+						LockedRect.Pitch, iRect, iPoint, dwBPP
+					);
+				}
+				else if (bCompressed)
+				{
+					// NOTE: compressed size is (dwWidth/2)*(dwHeight/2)/2, so each level divides by 4
 
-						pDest += LockedRect.Pitch;
-						pSrc += dwMipPitch;
-					}
+					memcpy(LockedRect.pBits, pSrc + dwCompressedOffset, dwCompressedSize >> (level * 2));
+
+					dwCompressedOffset += (dwCompressedSize >> (level * 2));
 				}
 				else
 				{
-					if ((DWORD)pSrc == 0x80000000)
+					/* TODO : // Let DirectX convert the surface (including palette formats) :
+					if(!EmuXBFormatRequiresConversionToARGB) {
+						D3DXLoadSurfaceFromMemory(
+							GetHostSurface(pResource),
+							nullptr, // no destination palette
+							&destRect,
+							pSrc, // Source buffer
+							dwMipPitch, // Source pitch
+							g_pCurrentPalette,
+							&SrcRect,
+							D3DX_DEFAULT, // D3DX_FILTER_NONE,
+							0 // No ColorKey?
+						);
+					} else {
+					*/
+					BYTE *pDest = (BYTE*)LockedRect.pBits;
+
+					if ((DWORD)LockedRect.Pitch == dwMipPitch && dwMipPitch == dwMipWidth*dwBPP)
 					{
-						// TODO: Fix or handle this situation..?
-						// This is probably an unallocated resource, mapped into contiguous memory (0x80000000)
-					}
-					else if (pSrc == nullptr)
-					{
-						// TODO: Fix or handle this situation..?
+						memcpy(pDest, pSrc + dwMipOffs, dwMipWidth*dwMipHeight*dwBPP);
 					}
 					else
 					{
-						if (bSwizzled)
+						for (DWORD v = 0; v < dwMipHeight; v++)
 						{
-							RECT  iRect = { 0,0,0,0 };
-							POINT iPoint = { 0,0 };
+							memcpy(pDest, pSrc + dwMipOffs, dwMipWidth*dwBPP);
 
-							// First we need to unswizzle the texture data
-							XTL::EmuUnswizzleRect
-							(
-								pSrc + dwMipOffs, dwMipWidth, dwMipHeight, dwDepth, LockedRect.pBits,
-								LockedRect.Pitch, iRect, iPoint, dwBPP
-							);
+							pDest += LockedRect.Pitch;
+							pSrc += dwMipPitch;
 						}
-						else if (bCompressed)
+					}
+				}
+
+				if (CacheFormat != 0) // Do we need to convert to ARGB?
+				{
+					EmuWarning("Unsupported texture format, expanding to D3DFMT_A8R8G8B8");
+
+					BYTE *pPixelData = (BYTE*)LockedRect.pBits;
+					DWORD dwDataSize = dwMipWidth*dwMipHeight;
+					DWORD* pExpandedTexture = (DWORD*)malloc(dwDataSize * sizeof(DWORD));
+					const ComponentEncodingInfo *encoding = EmuXBFormatComponentEncodingInfo(X_Format);
+
+					//__asm int 3;
+					unsigned int w = 0;
+					unsigned int x = 0;
+					for (unsigned int y = 0; y < dwDataSize; y++)
+					{
+						if (CacheFormat == D3DFMT_P8) // Palette
 						{
-							// NOTE: compressed size is (dwWidth/2)*(dwHeight/2)/2, so each level divides by 4
+							// Read P8 pixel :
+							unsigned char p = (unsigned char)pPixelData[w++];
 
-							memcpy(LockedRect.pBits, pSrc + dwCompressedOffset, dwCompressedSize >> (level * 2));
-
-							dwCompressedOffset += (dwCompressedSize >> (level * 2));
+							// Read the corresponding ARGB from the palette and store it in the new texture :
+							// HACK: Prevent crash if a pallete has not been loaded yet
+							pExpandedTexture[y] = pPalette[p];
 						}
 						else
 						{
-							/* TODO : // Let DirectX convert the surface (including palette formats) :
-							if(!EmuXBFormatRequiresConversionToARGB) {
-								D3DXLoadSurfaceFromMemory(
-									GetHostSurface(pResource),
-									nullptr, // no destination palette
-									&destRect,
-									pSrc, // Source buffer
-									dwMipPitch, // Source pitch
-									g_pCurrentPalette,
-									&SrcRect,
-									D3DX_DEFAULT, // D3DX_FILTER_NONE,
-									0 // No ColorKey?
-								);
-							} else {
-							*/
-							BYTE *pDest = (BYTE*)LockedRect.pBits;
+							uint32 value = 0;
 
-							if ((DWORD)LockedRect.Pitch == dwMipPitch && dwMipPitch == dwMipWidth*dwBPP)
-							{
-								memcpy(pDest, pSrc + dwMipOffs, dwMipWidth*dwMipHeight*dwBPP);
+							switch (dwBPP) {
+							case 1:
+								value = pPixelData[w++];
+								break;
+							case 2:
+								value = ((WORD *)pPixelData)[w++];
+								break;
+							case 4:
+								value = ((DWORD *)pPixelData)[w++];
+								break;
 							}
-							else
-							{
-								for (DWORD v = 0; v < dwMipHeight; v++)
-								{
-									memcpy(pDest, pSrc + dwMipOffs, dwMipWidth*dwBPP);
 
-									pDest += LockedRect.Pitch;
-									pSrc += dwMipPitch;
-								}
-							}
+							pExpandedTexture[y] = DecodeUInt32ToColor(encoding, value);
 						}
 
-						if (CacheFormat != 0) // Do we need to convert to ARGB?
+						// are we at the end of a line?
+						if (++x == dwMipWidth)
 						{
-							EmuWarning("Unsupported texture format, expanding to D3DFMT_A8R8G8B8");
-
-							BYTE *pPixelData = (BYTE*)LockedRect.pBits;
-							DWORD dwDataSize = dwMipWidth*dwMipHeight;
-							DWORD* pExpandedTexture = (DWORD*)malloc(dwDataSize * sizeof(DWORD));
-							const ComponentEncodingInfo *encoding = EmuXBFormatComponentEncodingInfo(X_Format);
-
-							//__asm int 3;
-							unsigned int w = 0;
-							unsigned int x = 0;
-							for (unsigned int y = 0; y < dwDataSize; y++)
-							{
-								if (CacheFormat == D3DFMT_P8) // Palette
-								{
-									// Read P8 pixel :
-									unsigned char p = (unsigned char)pPixelData[w++];
-
-									// Read the corresponding ARGB from the palette and store it in the new texture :
-									// HACK: Prevent crash if a pallete has not been loaded yet
-									pExpandedTexture[y] = pPalette[p];
-								}
-								else
-								{
-									uint32 value = 0;
-
-									switch (dwBPP) {
-									case 1:
-										value = pPixelData[w++];
-										break;
-									case 2:
-										value = ((WORD *)pPixelData)[w++];
-										break;
-									case 4:
-										value = ((DWORD *)pPixelData)[w++];
-										break;
-									}
-
-									pExpandedTexture[y] = DecodeUInt32ToColor(encoding, value);
-								}
-
-								// are we at the end of a line?
-								if (++x == dwMipWidth)
-								{
-									x = 0;
-									// Since P8 contains byte pixels instead of dword ARGB pixels,
-									// the next line resides 3 bytes additional per pixel further :
-									w += dwMipWidth * (sizeof(DWORD) - dwBPP);
-								}
-							}
-
-							//__asm int 3;
-							// Copy the expanded texture back to the buffer
-							memcpy(pPixelData, pExpandedTexture, dwDataSize * sizeof(DWORD));
-
-							// Flush unused data buffers
-							free(pExpandedTexture);
+							x = 0;
+							// Since P8 contains byte pixels instead of dword ARGB pixels,
+							// the next line resides 3 bytes additional per pixel further :
+							w += dwMipWidth * (sizeof(DWORD) - dwBPP);
 						}
 					}
+
+					//__asm int 3;
+					// Copy the expanded texture back to the buffer
+					memcpy(pPixelData, pExpandedTexture, dwDataSize * sizeof(DWORD));
+
+					// Flush unused data buffers
+					free(pExpandedTexture);
 				}
 
 				if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
@@ -7419,31 +7398,9 @@ BYTE* WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock2)
 		LOG_FUNC_ARG(Flags)
 		LOG_FUNC_END;
 
-    BYTE *pbNativeData = NULL;
+    BYTE *pbNativeData = (BYTE *)GetDataFromXboxResource(pVertexBuffer);
 
-#if 0
-	CxbxUpdateResource(pVertexBuffer);
-
-    HRESULT hRet = D3D_OK;
-	
-    IDirect3DVertexBuffer8 *pHostVertexBuffer = GetHostVertexBuffer(pVertexBuffer);
-	if (pHostVertexBuffer == nullptr)
-		EmuWarning("D3DVertexBuffer_Lock2 : pNewHostVertexBuffer == nullptr!");
-	else
-	{
-		pHostVertexBuffer->Unlock(); // remove old lock
-		hRet = pHostVertexBuffer->Lock(
-			/*OffsetToLock=*/0, 
-			/*SizeToLock=*/0/*=entire buffer*/, 
-			&pbNativeData,
-			EmuXB2PC_D3DLock(Flags) // Fixed flags check, Battlestar Galactica now displays graphics correctly
-		);
-		DEBUG_D3DRESULT(hRet, "pHostVertexBuffer->Lock");
-	}
-#endif
-	pbNativeData = (BYTE *)GetDataFromXboxResource(pVertexBuffer);
-
-    return pbNativeData; // For now, give the native buffer memory to Xbox. TODO : pXboxVertexBuffer->Data 
+    return pbNativeData;
 }
 #endif
 
@@ -7499,15 +7456,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
 		LOG_FUNC_ARG(Stride)
 		LOG_FUNC_END;
 
-	// Test for a non-zero stream source.  Unreal Championship gives us
-	// some funky number when going ingame.
-//	if(StreamNumber != 0)
-//	{
-//		EmuWarning( "StreamNumber: = %d", StreamNumber );
-//		EmuWarning( "pStreamData: = 0x%.08X (0x%.08X)", pStreamData, GetHostVertexBuffer(pStreamData));
-////		__asm int 3;
-//	}
-
 	if (StreamNumber < 16)
 	{
 		// Remember these for D3DDevice_GetStreamSource to read:
@@ -7515,21 +7463,19 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
 		g_D3DStreamStrides[StreamNumber] = Stride;
 	}
 
-    IDirect3DVertexBuffer8 *pHostVertexBuffer = NULL;
+    IDirect3DVertexBuffer8 *pHostVertexBuffer = nullptr;
 
     if(pStreamData != NULL)
-    {
 		pHostVertexBuffer = CxbxUpdateVertexBuffer(pStreamData);
-        if (pHostVertexBuffer != nullptr)
-			pHostVertexBuffer->Unlock();
-    }
 
-    #ifdef _DEBUG_TRACK_VB
-    if(pStreamData != NULL)
-    {
-        g_bVBSkipStream = g_VBTrackDisable.exists(pHostVertexBuffer);
-    }
-    #endif
+	if (pHostVertexBuffer != nullptr)
+	{
+		pHostVertexBuffer->Unlock();
+#ifdef _DEBUG_TRACK_VB
+		if (pStreamData != NULL)
+			g_bVBSkipStream = g_VBTrackDisable.exists(pHostVertexBuffer);
+#endif
+	}
 
     HRESULT hRet = g_pD3DDevice8->SetStreamSource(StreamNumber, pHostVertexBuffer, Stride);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetStreamSource");
@@ -7709,19 +7655,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
 		LOG_FUNC_END;
 
 	CxbxUpdateNativeD3DResources();
-
-/*#if 0
-	// HACK: Phantom Crash...
-//	if( (*(DWORD*)&pVertexStreamZeroData) == 0x81FC3080 || (*(DWORD*)&pVertexStreamZeroData) == 0x8191E080 )
-	if( ((*(DWORD*)&pVertexStreamZeroData) & 0xFF000FFF) == 0x81000080 )
-	{
-//		EmuWarning( "Invalid vertex data! (0x%.08X)", pVertexStreamZeroData );
-		EmuWarning( "Phantom Crash hack applied!" );
-		return;
-	}
-#else
-	return;
-#endif*/
 
     VertexPatchDesc VPDesc;
 
@@ -8062,37 +7995,20 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 		LOG_FUNC_ARG(pNewZStencil)
 		LOG_FUNC_END;
 
-    IDirect3DSurface8 *pPCRenderTarget = nullptr;
-    IDirect3DSurface8 *pPCNewZStencil  = nullptr;
+    IDirect3DSurface8 *pHostRenderTarget = nullptr;
+    IDirect3DSurface8 *pHostDepthStencil  = nullptr;
 
     if(pRenderTarget != NULL)
-    {
-		if(GetHostSurface(pRenderTarget) != nullptr)
-		{
-			CxbxUpdateResource(pRenderTarget);
-			pPCRenderTarget = GetHostSurface(pRenderTarget);
-		}
-		else
-		{
-			pPCRenderTarget = GetHostSurface(g_pCachedRenderTarget);
-		}
-    }
+		pHostRenderTarget = CxbxUpdateSurface(pRenderTarget);
+
+	if (pHostRenderTarget == nullptr)
+		pHostRenderTarget = GetHostSurface(g_pCachedRenderTarget); // Cannot update
 
     if(pNewZStencil != NULL)
-    {
-        if(GetHostSurface(pNewZStencil) != nullptr)
-        {
-            CxbxUpdateResource(pNewZStencil);
-            pPCNewZStencil = GetHostSurface(pNewZStencil);
-        }
-        else
-        {
-            pPCNewZStencil = GetHostSurface(g_pCachedDepthStencil);
-        }
-    }
+		pHostDepthStencil = CxbxUpdateSurface(pNewZStencil);
 
     // TODO: Follow that stencil!
-    HRESULT hRet = g_pD3DDevice8->SetRenderTarget(pPCRenderTarget, pPCNewZStencil);
+    HRESULT hRet = g_pD3DDevice8->SetRenderTarget(pHostRenderTarget, pHostDepthStencil);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderTarget");
 
     return hRet;
