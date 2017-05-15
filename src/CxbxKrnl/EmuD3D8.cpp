@@ -7562,7 +7562,7 @@ UINT g_D3DStreamStrides[16];
 // ******************************************************************
 // * patch: D3DDevice_GetStreamSource
 // ******************************************************************
-XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource2)
+XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource)
 (
     UINT  StreamNumber,
     UINT *pStride
