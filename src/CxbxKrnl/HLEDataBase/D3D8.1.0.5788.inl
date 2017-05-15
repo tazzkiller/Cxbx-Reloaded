@@ -1037,7 +1037,7 @@ OOVPATable D3D8_5788[] = {
 	REGISTER_OOVPA(D3D_GetDeviceCaps, 3925, DISABLED),
 	REGISTER_OOVPA(D3DDevice_DrawVertices, 5028, PATCH),
 	REGISTER_OOVPA(D3D_AllocContiguousMemory, 5788, DISABLED), // Just calls MmAllocateContiguousMemory. Was PATCH
-	REGISTER_OOVPA(Get2DSurfaceDesc, 5788, DISABLED),
+	REGISTER_OOVPA(Get2DSurfaceDesc, 5788, PATCH),
 	REGISTER_OOVPA(D3DDevice_CreateTexture2, 5788, DISABLED),
 	REGISTER_OOVPA(Lock2DSurface, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShaderConstant4, 4627, PATCH),

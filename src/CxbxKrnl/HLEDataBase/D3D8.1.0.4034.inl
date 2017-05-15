@@ -1262,7 +1262,7 @@ OOVPATable D3D8_4034[] = {
 	REGISTER_OOVPA(D3DDevice_Present, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDepthStencilSurface, 3925, PATCH),
 	REGISTER_OOVPA(D3DResource_IsBusy, 3925, PATCH),
-	REGISTER_OOVPA(Get2DSurfaceDesc, 3925, DISABLED),
+	REGISTER_OOVPA(Get2DSurfaceDesc, 3925, PATCH),
 	// ********************** END WARNING UNTESTED!!! *******************
 
 	REGISTER_OOVPA(D3DDevice_SetVertexShaderConstant, 4034, PATCH),
@@ -1325,7 +1325,7 @@ OOVPATable D3D8_4034[] = {
 	REGISTER_OOVPA(D3DDevice_SetRenderState_VertexBlend, 4034, PATCH),
 	REGISTER_OOVPA(D3D_CheckDeviceFormat, 4034, DISABLED),
 	REGISTER_OOVPA(D3D_SetPushBufferSize, 3925, DISABLED),
-	REGISTER_OOVPA(Get2DSurfaceDesc, 4034, DISABLED),
+	REGISTER_OOVPA(Get2DSurfaceDesc, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_ZEnable, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_LightEnable, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_TextureFactor, 4034, PATCH),
