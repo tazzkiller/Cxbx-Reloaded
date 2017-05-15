@@ -671,7 +671,7 @@ XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
 
 	XTL::IDirect3DResource8 *result = g_XboxToHostResourceMappings[pXboxResource];
 	if (result == nullptr) {
-		EmuWarning("Xbox resource has a host resource mapped");
+		EmuWarning("Xbox resource has no host resource mapped!");
 	}
 
 	return result;
