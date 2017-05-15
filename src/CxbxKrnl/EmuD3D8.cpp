@@ -5157,7 +5157,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				DXGetErrorString8A(hRet), DXGetErrorDescription8A(hRet)*/);
 
 			g_ConvertedTextures[pTextureData].pHostTexture = pNewHostSurface;
-			SetHostSurface(pPixelContainer, pNewHostSurface);
+			SetHostSurface((XTL::X_D3DResource *)pPixelContainer, pNewHostSurface);
 			DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created ImageSurface (0x%.08X, 0x%.08X)\n", pPixelContainer, pNewHostSurface);
 			DbgPrintf("EmuIDirect3DResource8_Register : Width : %d, Height : %d, Format : %d\n", dwWidth, dwHeight, PCFormat);
 		}
@@ -5213,7 +5213,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 					DXGetErrorString8A(hRet), DXGetErrorDescription8A(hRet)*/);
 
 				g_ConvertedTextures[pTextureData].pHostTexture = pNewHostCubeTexture;
-				SetHostCubeTexture(pPixelContainer, pNewHostCubeTexture);
+				SetHostCubeTexture((XTL::X_D3DResource *)pPixelContainer, pNewHostCubeTexture);
 				DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created CubeTexture (0x%.08X, 0x%.08X)\n", pPixelContainer, pNewHostCubeTexture);
 				result = pNewHostCubeTexture;
 			}
@@ -5269,7 +5269,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				else
             	{
 					g_ConvertedTextures[pTextureData].pHostTexture = pNewHostTexture;
-					SetHostTexture(pPixelContainer, pNewHostTexture);
+					SetHostTexture((XTL::X_D3DResource *)pPixelContainer, pNewHostTexture);
 					DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created Texture (0x%.08X, 0x%.08X)\n", pPixelContainer, pNewHostTexture);
 					result = pNewHostTexture;
             	}
