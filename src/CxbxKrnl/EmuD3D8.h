@@ -67,9 +67,10 @@ extern VOID EmuD3DCleanup();
 extern X_D3DTILE EmuD3DTileCache[0x08];
 
 // EmuD3DTextureStages
-extern X_D3DPixelContainer *EmuD3DTextureStages[TEXTURE_STAGES];
+extern X_D3DBaseTexture *EmuD3DTextureStages[TEXTURE_STAGES];
 
 XTL::IDirect3DBaseTexture8 *CxbxUpdateTexture(const XTL::X_D3DPixelContainer *pPixelContainer, const DWORD *pPalette);
+XTL::IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer *pXboxVertexBuffer);
 
 // ******************************************************************
 // * patch: Direct3D_CreateDevice
@@ -555,7 +556,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_SetIndices)
 HRESULT WINAPI EMUPATCH(D3DDevice_SetTexture)
 (
     DWORD           Stage,
-    X_D3DResource  *pTexture
+	X_D3DBaseTexture  *pTexture
 );
 
 // ******************************************************************

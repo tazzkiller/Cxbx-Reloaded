@@ -639,14 +639,14 @@ bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT ui
 
     for(uint08 i = 0; i < 4; i++)
     {
-        X_D3DPixelContainer *pPixelContainer = EmuD3DTextureStages[i];
-		if (pPixelContainer)
+		X_D3DBaseTexture *pXboxBaseTexture = EmuD3DTextureStages[i];
+		if (pXboxBaseTexture)
 		{ 
-			XTL::X_D3DFORMAT XBFormat = (XTL::X_D3DFORMAT)((pPixelContainer->Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT);
+			XTL::X_D3DFORMAT XBFormat = (XTL::X_D3DFORMAT)((pXboxBaseTexture->Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT);
 			if (EmuXBFormatIsLinear(XBFormat))
 			{
 				bHasLinearTex = bTexIsLinear[i] = true;
-				pLinearPixelContainer[i] = pPixelContainer;
+				pLinearPixelContainer[i] = pXboxBaseTexture;
 			}
         }
     }
