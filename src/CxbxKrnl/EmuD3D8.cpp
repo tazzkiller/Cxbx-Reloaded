@@ -624,6 +624,8 @@ typedef struct {
 
 std::map<xbaddr, ConvertedTexture> g_ConvertedTextures;
 
+std::map<XTL::X_D3DResource *, XTL::IDirect3DResource8 *> g_XboxToHostResourceMappings;
+
 inline bool IsYuvSurface(const XTL::X_D3DResource *pXboxResource)
 {
 	if (GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_SURFACE)
@@ -645,6 +647,11 @@ inline bool IsXboxResourceD3DCreated(const XTL::X_D3DResource *pXboxResource)
 	return result;
 }
 
+void SetHostResource(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DResource8 *pHostResource)
+{
+	g_XboxToHostResourceMappings[pXboxResource] = pHostResource;
+}
+
 XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
 {
 	if (pXboxResource == NULL)
@@ -659,12 +666,12 @@ XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
 		return nullptr;
 	}
 
-	if (IsSpecialXboxResource(pXboxResource)) // Was X_D3DRESOURCE_DATA_YUV_SURFACE
+	if (IsSpecialXboxResource(pXboxResource))
 		return nullptr;
 
-	XTL::IDirect3DResource8 *result = (XTL::IDirect3DResource8 *)pXboxResource->Lock;
+	XTL::IDirect3DResource8 *result = g_XboxToHostResourceMappings[pXboxResource];
 	if (result == nullptr) {
-		EmuWarning("EmuResource is not a valid pointer!");
+		EmuWarning("Xbox resource has a host resource mapped");
 	}
 
 	return result;
@@ -678,8 +685,7 @@ XTL::IDirect3DSurface8 *GetHostSurface(XTL::X_D3DResource *pXboxResource)
 	if(GetXboxCommonResourceType(pXboxResource) != X_D3DCOMMON_TYPE_SURFACE) // Allows breakpoint below
 		assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_SURFACE);
 
-//	return g_ConvertedTextures[pXboxResource->Data].pHostTexture;
-	return (XTL::IDirect3DSurface8 *)pXboxResource->Lock;
+	return (XTL::IDirect3DSurface8 *)GetHostResource(pXboxResource);
 }
 
 XTL::IDirect3DBaseTexture8 *GetHostBaseTexture(XTL::X_D3DResource *pXboxResource)
@@ -690,7 +696,7 @@ XTL::IDirect3DBaseTexture8 *GetHostBaseTexture(XTL::X_D3DResource *pXboxResource
 	if (GetXboxCommonResourceType(pXboxResource) != X_D3DCOMMON_TYPE_TEXTURE) // Allows breakpoint below
 		assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_TEXTURE);
 
-	return (XTL::IDirect3DBaseTexture8 *)pXboxResource->Lock;
+	return (XTL::IDirect3DBaseTexture8 *)GetHostResource(pXboxResource);
 }
 
 XTL::IDirect3DTexture8 *GetHostTexture(XTL::X_D3DResource *pXboxResource)
@@ -721,7 +727,7 @@ XTL::IDirect3DIndexBuffer8 *GetHostIndexBuffer(XTL::X_D3DResource *pXboxResource
 
 	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_INDEXBUFFER);
 
-	return (XTL::IDirect3DIndexBuffer8 *)pXboxResource->Lock;
+	return (XTL::IDirect3DIndexBuffer8 *)GetHostResource(pXboxResource);
 }
 
 XTL::IDirect3DVertexBuffer8 *GetHostVertexBuffer(XTL::X_D3DResource *pXboxResource)
@@ -731,7 +737,7 @@ XTL::IDirect3DVertexBuffer8 *GetHostVertexBuffer(XTL::X_D3DResource *pXboxResour
 
 	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_VERTEXBUFFER);
 
-	return (XTL::IDirect3DVertexBuffer8 *)pXboxResource->Lock;
+	return (XTL::IDirect3DVertexBuffer8 *)GetHostResource(pXboxResource);
 }
 
 void SetHostSurface(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DSurface8 *pHostSurface)
@@ -739,7 +745,7 @@ void SetHostSurface(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DSurface8 *p
 	assert(pXboxResource != NULL);
 	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_SURFACE);
 
-	pXboxResource->Lock = (DWORD)pHostSurface;
+	SetHostResource(pXboxResource, (XTL::IDirect3DResource8 *)pHostSurface);
 }
 
 void SetHostTexture(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DTexture8 *pHostTexture)
@@ -747,7 +753,7 @@ void SetHostTexture(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DTexture8 *p
 	assert(pXboxResource != NULL);
 	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_TEXTURE);
 
-	pXboxResource->Lock = (DWORD)pHostTexture;
+	SetHostResource(pXboxResource, (XTL::IDirect3DResource8 *)pHostTexture);
 }
 
 void SetHostCubeTexture(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DCubeTexture8 *pHostCubeTexture)
@@ -755,7 +761,7 @@ void SetHostCubeTexture(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DCubeTex
 	assert(pXboxResource != NULL);
 	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_TEXTURE);
 
-	pXboxResource->Lock = (DWORD)pHostCubeTexture;
+	SetHostResource(pXboxResource, (XTL::IDirect3DResource8 *)pHostCubeTexture);
 }
 
 void SetHostVolumeTexture(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DVolumeTexture8 *pHostVolumeTexture)
@@ -763,7 +769,7 @@ void SetHostVolumeTexture(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DVolum
 	assert(pXboxResource != NULL);
 	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_TEXTURE);
 
-	pXboxResource->Lock = (DWORD)pHostVolumeTexture;
+	SetHostResource(pXboxResource, (XTL::IDirect3DResource8 *)pHostVolumeTexture);
 }
 
 void SetHostIndexBuffer(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DIndexBuffer8 *pHostIndexBuffer)
@@ -771,7 +777,7 @@ void SetHostIndexBuffer(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DIndexBu
 	assert(pXboxResource != NULL);
 	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_INDEXBUFFER);
 
-	pXboxResource->Lock = (DWORD)pHostIndexBuffer;
+	SetHostResource(pXboxResource, (XTL::IDirect3DResource8 *)pHostIndexBuffer);
 }
 
 void SetHostVertexBuffer(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DVertexBuffer8 *pHostVertexBuffer)
@@ -779,7 +785,7 @@ void SetHostVertexBuffer(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DVertex
 	assert(pXboxResource != NULL);
 	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_VERTEXBUFFER);
 
-	pXboxResource->Lock = (DWORD)pHostVertexBuffer;
+	SetHostResource(pXboxResource, (XTL::IDirect3DResource8 *)pHostVertexBuffer);
 }
 
 void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
@@ -1880,10 +1886,6 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 // check if a resource has been registered yet (if not, register it)
 static void EmuVerifyResourceIsRegistered(XTL::X_D3DResource *pResource)
 {
-    // 0xEEEEEEEE and 0xFFFFFFFF are somehow set in Halo :(
-    if(pResource->Lock != 0 && pResource->Lock != 0xEEEEEEEE && pResource->Lock != 0xFFFFFFFF)
-        return;
-
 	// Skip resources without data
 	if (pResource->Data == NULL)
 		return;
