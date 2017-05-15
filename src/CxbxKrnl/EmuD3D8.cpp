@@ -1932,64 +1932,91 @@ static void EmuAdjustPower2(UINT *dwWidth, UINT *dwHeight)
 
 typedef struct {
 	DWORD Hash = 0;
-	DWORD IndexCount = 0;;
-	XTL::IDirect3DIndexBuffer8* pHostIndexBuffer = nullptr;
+	DWORD IndexCount = 0;
+	XTL::IDirect3DIndexBuffer8 *pConvertedHostIndexBuffer = nullptr;
 } ConvertedIndexBuffer;
 
-std::map<PWORD, ConvertedIndexBuffer> g_ConvertedIndexBuffers;
-	
+XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
+(
+	PWORD         pIndexBufferData,
+	UINT          IndexCount
+)
+{
+	static std::map<PWORD, ConvertedIndexBuffer> g_ConvertedIndexBuffers;
+
+	LOG_INIT; // Allows use of DEBUG_D3DRESULT
+
+	if (pIndexBufferData == NULL)
+		return nullptr;
+
+	// TODO : Don't hash every time (peek at how the vertex buffer cache avoids this)
+	uint32_t uiHash = 0; // TODO : seed with characteristics
+	uiHash = XXHash32::hash((void *)pIndexBufferData, (uint64_t)IndexCount * sizeof(WORD), uiHash);
+
+	// Reference the converted index buffer (when it's not present, it's added) 
+	ConvertedIndexBuffer& convertedIndexBuffer = g_ConvertedIndexBuffers[pIndexBufferData];
+
+	// Check if the data needs an updated conversion or not
+	XTL::IDirect3DIndexBuffer8 *result = convertedIndexBuffer.pConvertedHostIndexBuffer;
+	if (result != nullptr)
+	{
+		if (uiHash == convertedIndexBuffer.Hash)
+		{
+			// Hash is still the same - assume the converted resource doesn't require updating
+			// TODO : Maybe, if the converted resource gets too old, an update might still be wise
+			// to cater for differences that didn't cause a hash-difference (slight chance, but still).
+
+			// Only re-use if the size hasn't changed
+			if (convertedIndexBuffer.IndexCount >= IndexCount)
+				return result;
+		}
+
+		convertedIndexBuffer = {};
+		result->Release();
+		result = nullptr;
+	}
+
+	// Create a new native index buffer of the above determined size :
+	HRESULT hRet = g_pD3DDevice8->CreateIndexBuffer(
+		IndexCount * 2,
+		D3DUSAGE_WRITEONLY,
+		XTL::D3DFMT_INDEX16,
+		XTL::D3DPOOL_MANAGED,
+		&result);
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateIndexBuffer");
+
+	if (FAILED(hRet))
+		CxbxKrnlCleanup("CxbxUpdateIndexBuffer: IndexBuffer Create Failed!");
+
+	// Update the Index Count and the hash
+	convertedIndexBuffer.Hash = uiHash;
+	convertedIndexBuffer.IndexCount = IndexCount;
+	convertedIndexBuffer.pConvertedHostIndexBuffer = result;
+
+	// Update the host index buffer
+	BYTE* pData = nullptr;
+	result->Lock(0, 0, &pData, D3DLOCK_DISCARD);
+	if (pData == nullptr) {
+		CxbxKrnlCleanup("CxbxUpdateIndexBuffer: Could not lock index buffer!");
+	}
+
+	printf("CxbxUpdateIndexBuffer: Copying %d indices (D3DFMT_INDEX16)\n", IndexCount);
+	memcpy(pData, pIndexBufferData, IndexCount * sizeof(WORD));
+
+	result->Unlock();
+
+	return result;
+}
+
 void CxbxUpdateActiveIndexBuffer
 (
-	PWORD         pIndexData,
+	PWORD         pIndexBufferData,
 	UINT          IndexCount
 )
 {
 	LOG_INIT; // Allows use of DEBUG_D3DRESULT
 
-	// Create a reference to the active buffer
-	ConvertedIndexBuffer& indexBuffer = g_ConvertedIndexBuffers[pIndexData];
-
-	// If the size has changed, free the buffer so it will be re-created
-	if (indexBuffer.pHostIndexBuffer != nullptr &&
-		indexBuffer.IndexCount < IndexCount) {
-		indexBuffer.pHostIndexBuffer->Release();
-		indexBuffer = {};
-	}
-
-	// If we need to create an index buffer, do so.
-	if (indexBuffer.pHostIndexBuffer == nullptr) {
-		// Create a new native index buffer of the above determined size :
-		HRESULT hRet = g_pD3DDevice8->CreateIndexBuffer(
-			IndexCount * 2,
-			D3DUSAGE_WRITEONLY,
-			XTL::D3DFMT_INDEX16,
-			XTL::D3DPOOL_MANAGED,
-			&indexBuffer.pHostIndexBuffer);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateIndexBuffer");
-
-		if (FAILED(hRet))
-			CxbxKrnlCleanup("CxbxUpdateActiveIndexBuffer: IndexBuffer Create Failed!");
-	}
-
-	// If the data needs updating, do so
-	uint32_t uiHash = XXHash32::hash(pIndexData, IndexCount * 2, 0);
-	if (uiHash != indexBuffer.Hash)	{
-		// Update the Index Count and the hash
-		indexBuffer.IndexCount = IndexCount;
-		indexBuffer.Hash = uiHash;
-
-		// Update the host index buffer
-		BYTE* pData = nullptr;
-		indexBuffer.pHostIndexBuffer->Lock(0, 0, &pData, D3DLOCK_DISCARD);
-		if (pData == nullptr) {
-			CxbxKrnlCleanup("CxbxUpdateActiveIndexBuffer: Could not lock index buffer!");
-		}
-
-		printf("CxbxUpdateActiveIndexBuffer: Copying %d indices (D3DFMT_INDEX16)\n", IndexCount);
-		memcpy(pData, pIndexData, IndexCount * 2); 
-
-		indexBuffer.pHostIndexBuffer->Unlock();
-	}
+	XTL::IDirect3DIndexBuffer8 *result = CxbxUpdateIndexBuffer(pIndexBufferData, IndexCount);
 
 	// Determine active the vertex index
 	// This reads from g_pDevice->m_IndexBase in Xbox D3D
@@ -2000,7 +2027,7 @@ void CxbxUpdateActiveIndexBuffer
 	indexBase = *pdwXboxD3D_IndexBase;
 
 	// Activate the new native index buffer :
-	HRESULT hRet = g_pD3DDevice8->SetIndices(indexBuffer.pHostIndexBuffer, indexBase);
+	HRESULT hRet = g_pD3DDevice8->SetIndices(result, indexBase);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetIndices");
 
 	if (FAILED(hRet))
@@ -7998,11 +8025,13 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
     IDirect3DSurface8 *pHostRenderTarget = nullptr;
     IDirect3DSurface8 *pHostDepthStencil  = nullptr;
 
-    if(pRenderTarget != NULL)
+	if (pRenderTarget != NULL)
+	{
 		pHostRenderTarget = CxbxUpdateSurface(pRenderTarget);
 
-	if (pHostRenderTarget == nullptr)
-		pHostRenderTarget = GetHostSurface(g_pCachedRenderTarget); // Cannot update
+		if (pHostRenderTarget == nullptr)
+			pHostRenderTarget = GetHostSurface(g_pCachedRenderTarget); // X_D3DRESOURCE_DATA_RENDER_TARGET cannot CxbxUpdateSurface
+	}
 
     if(pNewZStencil != NULL)
 		pHostDepthStencil = CxbxUpdateSurface(pNewZStencil);
