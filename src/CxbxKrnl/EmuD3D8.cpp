@@ -626,7 +626,6 @@ std::map<xbaddr, ConvertedTexture> g_ConvertedTextures;
 
 inline bool IsYuvSurface(const XTL::X_D3DResource *pXboxResource)
 {
-	// Was : return (pXboxResource->Data == X_D3DRESOURCE_DATA_YUV_SURFACE);
 	if (GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_SURFACE)
 		if (GetXboxPixelContainerFormat((XTL::X_D3DPixelContainer *)pXboxResource) == XTL::X_D3DFMT_YUY2)
 			return true;
@@ -3650,9 +3649,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture)
         g_dwOverlayH = Height;
         g_dwOverlayP = Pitch;
 
-		// If YUY2 is not supported in hardware, we'll actually mark this as a special fake texture
-        Texture_Data = X_D3DRESOURCE_DATA_YUV_SURFACE;
-        pTexture->Lock = (DWORD)g_MemoryManager.Allocate(g_dwOverlayP * g_dwOverlayH);
+        Texture_Data = (DWORD)g_MemoryManager.Allocate(g_dwOverlayP * g_dwOverlayH);
 
         g_pCachedYuvSurface = (X_D3DSurface*)pTexture;
 
@@ -3802,9 +3799,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVolumeTexture)
         g_dwOverlayH = Height;
         g_dwOverlayP = RoundUp(g_dwOverlayW, 64)*2;
 
-        // If YUY2 is not supported in hardware, we'll actually mark this as a special fake texture
-        (*ppVolumeTexture)->Data = X_D3DRESOURCE_DATA_YUV_SURFACE;
-        (*ppVolumeTexture)->Lock = (DWORD)g_MemoryManager.Allocate(g_dwOverlayP * g_dwOverlayH);
+        (*ppVolumeTexture)->Data = (DWORD)g_MemoryManager.Allocate(g_dwOverlayP * g_dwOverlayH);
 		(*ppVolumeTexture)->Format = Format << X_D3DFORMAT_FORMAT_SHIFT;
 
         (*ppVolumeTexture)->Size = (g_dwOverlayW & X_D3DSIZE_WIDTH_MASK)
@@ -5796,7 +5791,7 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
 		LOG_FUNC_ARG(pDesc)
 		LOG_FUNC_END;
 
-	// TODO : Check if (pPixelContainer->Data == X_D3DRESOURCE_DATA_YUV_SURFACE) or IsYuvSurface(pPixelContainer) works too
+	// TODO : Check if IsYuvSurface(pPixelContainer) works too
 	pDesc->Format = GetXboxPixelContainerFormat(pPixelContainer);
     pDesc->Type = GetXboxD3DResourceType(pPixelContainer);
     pDesc->Usage = 0;
