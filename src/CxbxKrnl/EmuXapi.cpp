@@ -58,6 +58,7 @@ extern XInputSetStateStatus g_pXInputSetStateStatus[XINPUT_SETSTATE_SLOTS] = {0}
 
 // XInputOpen handles
 extern HANDLE g_hInputHandle[XINPUT_HANDLE_SLOTS] = {0};
+XTL::PXPP_DEVICE_TYPE g_PortDeviceTypes[XINPUT_HANDLE_SLOTS] = { 0 };
 
 bool g_bXInputOpenCalled = false;
 
@@ -88,7 +89,6 @@ XFIBER g_Fibers[256];
 
 // Number of fiber routines queued
 int	   g_FiberCount = 0;
-
 
 // ******************************************************************
 // * patch: XFormatUtilityDrive
@@ -191,18 +191,21 @@ BOOL WINAPI XTL::EMUPATCH(XGetDeviceChanges)
 		LOG_FUNC_ARG(pdwRemovals)
 	LOG_FUNC_END;
 
-	BOOL ret = FALSE;
+	// Clear parameters :
+	*pdwInsertions = 0;
+	*pdwRemovals = 0;
 
-	// If we have no connected devices, report one insertion
-	if (DeviceType->CurrentConnected == 0) {
-		*pdwInsertions = 1;
-		ret = TRUE;
-	} else	{
-		// Otherwise, report no changes
-		*pdwInsertions = 0;
+	// HACK : If we have no change connected devices, report one insertion
+	if (DeviceType->CurrentConnected == 0)
+	{
+		// Force an insertion on first controller port (0) :
+		const DWORD dwPort = 0;
+
+		DeviceType->ChangeConnected |= (1 << dwPort);
+		*pdwInsertions = (1 << dwPort);
 	}
-
-	*pdwRemovals = 0;  
+	// Return if a change occurred :
+	BOOL ret = (*pdwInsertions > 0) || (*pdwRemovals > 0);
 
 	RETURN(ret);
 }
@@ -247,6 +250,10 @@ HANDLE WINAPI XTL::EMUPATCH(XInputOpen)
             }
 
             g_hInputHandle[dwPort] = pph;
+			g_PortDeviceTypes[dwPort] = DeviceType;
+
+			// Mark this port as connected (aerox2 hits this case)
+			DeviceType->CurrentConnected |= (1 << dwPort);
         }
         else
         {
@@ -293,6 +300,16 @@ VOID WINAPI XTL::EMUPATCH(XInputClose)
 	LOG_FUNC_ONE_ARG(hDevice);
 
     POLLING_PARAMETERS_HANDLE *pph = (POLLING_PARAMETERS_HANDLE*)hDevice;
+	if (pph != NULL)
+	{
+		DWORD dwPort = pph->dwPort;
+
+		// Notify there's no connection anymore
+		g_PortDeviceTypes[dwPort]->CurrentConnected &= ~(1 << dwPort);
+		// Clean administration
+		g_PortDeviceTypes[dwPort] = NULL;
+		g_hInputHandle[dwPort] = 0;
+	}
 
     /* no longer necessary
     if(pph != NULL)
