@@ -1387,7 +1387,7 @@ X_D3DPalette * WINAPI EMUPATCH(D3DDevice_CreatePalette2)
 // ******************************************************************
 // * patch: D3DDevice_SetRenderTarget
 // ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_SetRenderTarget)
+VOID WINAPI EMUPATCH(D3DDevice_SetRenderTarget)
 (
     X_D3DSurface    *pRenderTarget,
     X_D3DSurface    *pNewZStencil
@@ -1941,7 +1941,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_GetPixelShader)
 // ******************************************************************
 // * patch: D3DDevice_SetRenderTargetFast
 // ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_SetRenderTargetFast)
+VOID WINAPI EMUPATCH(D3DDevice_SetRenderTargetFast)
 (
     X_D3DSurface	*pRenderTarget,
     X_D3DSurface	*pNewZStencil,

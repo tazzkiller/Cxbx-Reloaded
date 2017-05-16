@@ -8051,7 +8051,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_LightEnable)
 // ******************************************************************
 // * patch: D3DDevice_SetRenderTarget
 // ******************************************************************
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 (
     X_D3DSurface    *pRenderTarget,
     X_D3DSurface    *pNewZStencil
@@ -8084,8 +8084,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
     // TODO: Follow that stencil!
     HRESULT hRet = g_pD3DDevice8->SetRenderTarget(pHostRenderTarget, pHostDepthStencil);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderTarget");
-
-    return hRet;
 }
 
 #if 0 // patch disabled
@@ -9925,7 +9923,7 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface2)()
 // ******************************************************************
 // * patch: D3DDevice_SetRenderTargetFast
 // ******************************************************************
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTargetFast)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTargetFast)
 (
     X_D3DSurface	*pRenderTarget,
     X_D3DSurface	*pNewZStencil,
@@ -9938,9 +9936,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTargetFast)
 
 	// Redirect to the standard version.
 	
-	HRESULT hr = EMUPATCH(D3DDevice_SetRenderTarget)(pRenderTarget, pNewZStencil);
-
-	return hr;
+	EMUPATCH(D3DDevice_SetRenderTarget)(pRenderTarget, pNewZStencil);
 }
 
 // ******************************************************************
