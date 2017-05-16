@@ -3006,7 +3006,8 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget2)()
 
 	X_D3DSurface *result = g_pCachedRenderTarget;
 
-	EMUPATCH(D3DResource_AddRef)(result);
+	if (result != NULL)
+		result->Common++; // Was EMUPATCH(D3DResource_AddRef)(result);
 
     RETURN(result);
 }
@@ -3038,8 +3039,8 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface2)()
 	LOG_FUNC();
 
 	X_D3DSurface *result = g_pCachedDepthStencil;
-
-	EMUPATCH(D3DResource_AddRef)(result);
+	if (result != NULL)
+		result->Common++; // Was EMUPATCH(D3DResource_AddRef)(result);
 		
 	RETURN(result);
 }
@@ -7497,9 +7498,9 @@ XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource)
 	if (StreamNumber < MAX_NBR_STREAMS)
 	{ 
 		pVertexBuffer = g_D3DStreams[StreamNumber];
-		if (pVertexBuffer)
+		if (pVertexBuffer != NULL)
 		{
-			EMUPATCH(D3DResource_AddRef)(pVertexBuffer);
+			pVertexBuffer->Common++; // Was EMUPATCH(D3DResource_AddRef)(pVertexBuffer);
 			*pStride = g_D3DStreamStrides[StreamNumber];
 		}
 	}
