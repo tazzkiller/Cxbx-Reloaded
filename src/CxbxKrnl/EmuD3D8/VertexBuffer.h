@@ -41,7 +41,7 @@
 
 typedef struct _VertexPatchDesc
 {
-    IN     X_D3DPRIMITIVETYPE    PrimitiveType;
+    IN     X_D3DPRIMITIVETYPE    XboxPrimitiveType;
     IN     DWORD                 dwVertexCount;
     IN     DWORD                 dwPrimitiveCount;
     IN     DWORD                 dwOffset;
@@ -71,7 +71,7 @@ typedef struct _CACHEDSTREAM
     PATCHEDSTREAM  Stream;
     void          *pStreamUP;           // Draw..UP (instead of pOriginalStream)
     uint32         uiLength;            // The length of the stream
-    uint32         uiCount;             // XXHash32::hash() check count
+    uint32         uiCheckCount;        // XXHash32::hash() check count
     uint32         dwPrimitiveCount;
     long           lLastUsed;           // For cache removal purposes
 } CACHEDSTREAM;

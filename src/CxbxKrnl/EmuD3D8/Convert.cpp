@@ -488,18 +488,17 @@ UINT XTL::EmuD3DVertexToPrimitive[11][2] =
 // conversion table for xbox->pc primitive types
 XTL::D3DPRIMITIVETYPE XTL::EmuPrimitiveTypeLookup[] =
 {
-    /* NULL                 = 0         */ (XTL::D3DPRIMITIVETYPE)0,
-    /* D3DPT_POINTLIST      = 1,        */ XTL::D3DPT_POINTLIST,
-    /* D3DPT_LINELIST       = 2,        */ XTL::D3DPT_LINELIST,
-    /* D3DPT_LINELOOP       = 3,  Xbox  */ XTL::D3DPT_LINESTRIP,
-    /* D3DPT_LINESTRIP      = 4,        */ XTL::D3DPT_LINESTRIP,
-    /* D3DPT_TRIANGLELIST   = 5,        */ XTL::D3DPT_TRIANGLELIST,
-    /* D3DPT_TRIANGLESTRIP  = 6,        */ XTL::D3DPT_TRIANGLESTRIP,
-    /* D3DPT_TRIANGLEFAN    = 7,        */ XTL::D3DPT_TRIANGLEFAN,
-    /* D3DPT_QUADLIST       = 8,  Xbox  */ XTL::D3DPT_TRIANGLELIST,
-    /* D3DPT_QUADSTRIP      = 9,  Xbox  */ XTL::D3DPT_TRIANGLESTRIP,
-    /* D3DPT_POLYGON        = 10, Xbox  */ XTL::D3DPT_TRIANGLEFAN,
-    /* D3DPT_MAX            = 11,       */ (XTL::D3DPRIMITIVETYPE)11
+    /* NULL                   = 0         */ (XTL::D3DPRIMITIVETYPE)0,
+    /* X_D3DPT_POINTLIST      = 1,        */ XTL::D3DPT_POINTLIST,
+    /* X_D3DPT_LINELIST       = 2,        */ XTL::D3DPT_LINELIST,
+    /* X_D3DPT_LINELOOP       = 3,  Xbox  */ XTL::D3DPT_LINESTRIP,
+    /* X_D3DPT_LINESTRIP      = 4,        */ XTL::D3DPT_LINESTRIP,
+    /* X_D3DPT_TRIANGLELIST   = 5,        */ XTL::D3DPT_TRIANGLELIST,
+    /* X_D3DPT_TRIANGLESTRIP  = 6,        */ XTL::D3DPT_TRIANGLESTRIP,
+    /* X_D3DPT_TRIANGLEFAN    = 7,        */ XTL::D3DPT_TRIANGLEFAN,
+    /* X_D3DPT_QUADLIST       = 8,  Xbox  */ XTL::D3DPT_TRIANGLELIST,
+    /* X_D3DPT_QUADSTRIP      = 9,  Xbox  */ XTL::D3DPT_TRIANGLESTRIP,
+    /* X_D3DPT_POLYGON        = 10, Xbox  */ XTL::D3DPT_TRIANGLEFAN,
 };
 
 // render state conversion table

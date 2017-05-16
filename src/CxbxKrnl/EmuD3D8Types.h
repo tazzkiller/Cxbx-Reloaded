@@ -199,7 +199,6 @@ typedef enum _X_D3DPRIMITIVETYPE
     X_D3DPT_QUADSTRIP             = 9,    // Xbox only
     X_D3DPT_POLYGON               = 10,   // Xbox only
 
-    X_D3DPT_MAX                   = 11,
     X_D3DPT_INVALID               = 0x7fffffff, /* force 32-bit size enum */
 }
 X_D3DPRIMITIVETYPE;

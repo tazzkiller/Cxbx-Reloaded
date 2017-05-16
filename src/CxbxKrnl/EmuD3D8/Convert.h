@@ -209,27 +209,27 @@ inline D3DSTENCILOP EmuXB2PC_D3DSTENCILOP(X_D3DSTENCILOP Value)
 extern UINT EmuD3DVertexToPrimitive[11][2];
 
 // convert from vertex count to primitive count (Xbox)
-inline int EmuD3DVertex2PrimitiveCount(X_D3DPRIMITIVETYPE PrimitiveType, int VertexCount)
+inline int EmuD3DVertex2PrimitiveCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int VertexCount)
 {
-    return (VertexCount - EmuD3DVertexToPrimitive[PrimitiveType][1]) / EmuD3DVertexToPrimitive[PrimitiveType][0];
+    return (VertexCount - EmuD3DVertexToPrimitive[XboxPrimitiveType][1]) / EmuD3DVertexToPrimitive[XboxPrimitiveType][0];
 }
 
 // convert from primitive count to vertex count (Xbox)
-inline int EmuD3DPrimitive2VertexCount(X_D3DPRIMITIVETYPE PrimitiveType, int PrimitiveCount)
+inline int EmuD3DPrimitive2VertexCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int PrimitiveCount)
 {
-    return (PrimitiveCount * EmuD3DVertexToPrimitive[PrimitiveType][0]) + EmuD3DVertexToPrimitive[PrimitiveType][1];
+    return (PrimitiveCount * EmuD3DVertexToPrimitive[XboxPrimitiveType][0]) + EmuD3DVertexToPrimitive[XboxPrimitiveType][1];
 }
 
 // conversion table for xbox->pc primitive types
 extern D3DPRIMITIVETYPE EmuPrimitiveTypeLookup[];
 
 // convert xbox->pc primitive type
-inline D3DPRIMITIVETYPE EmuXB2PC_D3DPrimitiveType(X_D3DPRIMITIVETYPE PrimitiveType)
+inline D3DPRIMITIVETYPE EmuXB2PC_D3DPrimitiveType(X_D3DPRIMITIVETYPE XboxPrimitiveType)
 {
-    if((DWORD)PrimitiveType == 0x7FFFFFFF)
+    if((DWORD)XboxPrimitiveType == 0x7FFFFFFF)
         return D3DPT_FORCE_DWORD;
 
-    return EmuPrimitiveTypeLookup[PrimitiveType];
+    return EmuPrimitiveTypeLookup[XboxPrimitiveType];
 }
 
 extern void EmuUnswizzleRect

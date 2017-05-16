@@ -667,7 +667,7 @@ VOID WINAPI EMUPATCH(D3DDevice_RunPushBuffer)
 // ******************************************************************
 // * patch: D3DDevice_Clear
 // ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_Clear)
+VOID WINAPI EMUPATCH(D3DDevice_Clear)
 (
     DWORD                  Count,
     CONST D3DRECT         *pRects,
