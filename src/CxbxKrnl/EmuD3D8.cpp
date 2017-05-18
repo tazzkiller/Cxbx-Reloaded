@@ -7472,7 +7472,7 @@ BYTE* WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock2)
 
     BYTE *pbNativeData = (BYTE *)GetDataFromXboxResource(pVertexBuffer);
 
-    RETURN(pbNativeData);
+	return pbNativeData; // TODO : Fix BYTE* logging, so we can use RETURN(pbNativeData);
 }
 #endif
 
