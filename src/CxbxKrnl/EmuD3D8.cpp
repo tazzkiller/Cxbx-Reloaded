@@ -5493,6 +5493,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	return result;
 }
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DResource8_AddRef
 // ******************************************************************
@@ -5535,7 +5536,9 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_AddRef)
 	
     return uRet;
 }
+#endif
 
+#if 0
 // ******************************************************************
 // * patch: IDirect3DResource8_Release
 // ******************************************************************
@@ -5618,6 +5621,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
 
     return uRet;
 }
+#endif
 
 // ******************************************************************
 // * patch: IDirect3DResource8_IsBusy
