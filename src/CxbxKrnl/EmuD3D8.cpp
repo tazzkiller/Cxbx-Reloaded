@@ -643,6 +643,8 @@ void UpdateDepthStencilFlags(const XTL::X_D3DSurface *pXboxSurface)
 
 typedef struct {
 	DWORD Hash = 0;
+	//UINT XboxDataSize = 0;
+	//DWORD XboxDataSamples[16] = { }; // Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
 	void* pConvertedHostResource = nullptr;
 } ConvertedResource;
 
@@ -4967,7 +4969,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	// Make sure D3DDevice_SwitchTexture can associate a Data pointer with this texture
 	g_DataToTexture.insert(pTextureData, (void *)pPixelContainer);
 
-	int Size = 256; // TODO Get actual size, not working : g_MemoryManager.QueryRemainingAllocationSize((void *)pTextureData);
+	int Size = g_MemoryManager.QueryAllocationSize((void *)pTextureData);
 
 	// TODO : Don't hash every time (peek at how the vertex buffer cache avoids this)
 	uint32_t uiHash = pPixelContainer->Format ^ pPixelContainer->Size; // seed with characteristics
