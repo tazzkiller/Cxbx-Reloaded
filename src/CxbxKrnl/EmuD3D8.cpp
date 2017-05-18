@@ -3009,7 +3009,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget2)()
 	X_D3DSurface *result = g_pCachedRenderTarget;
 
 	if (result != NULL)
-		result->Common++; // Was EMUPATCH(D3DResource_AddRef)(result);
+		result->Common++; // EMUPATCH(D3DResource_AddRef)(result) would give too much overhead (and needless logging)
 
     RETURN(result);
 }
@@ -3042,7 +3042,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface2)()
 
 	X_D3DSurface *result = g_pCachedDepthStencil;
 	if (result != NULL)
-		result->Common++; // Was EMUPATCH(D3DResource_AddRef)(result);
+		result->Common++; // EMUPATCH(D3DResource_AddRef)(result) would give too much overhead (and needless logging)
 		
 	RETURN(result);
 }
@@ -7502,7 +7502,7 @@ XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource)
 		pVertexBuffer = g_D3DStreams[StreamNumber];
 		if (pVertexBuffer != NULL)
 		{
-			pVertexBuffer->Common++; // Was EMUPATCH(D3DResource_AddRef)(pVertexBuffer);
+			pVertexBuffer->Common++; // EMUPATCH(D3DResource_AddRef)(pVertexBuffer) would give too much overhead (and needless logging)
 			*pStride = g_D3DStreamStrides[StreamNumber];
 		}
 	}
@@ -9214,7 +9214,10 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_KickPushBuffer)()
 // ******************************************************************
 // * patch: D3DDevice_GetTexture2
 // ******************************************************************
-XTL::X_D3DResource* WINAPI XTL::EMUPATCH(D3DDevice_GetTexture2)(DWORD Stage)
+XTL::X_D3DResource* WINAPI XTL::EMUPATCH(D3DDevice_GetTexture2)
+(
+	DWORD Stage
+)
 {
 	FUNC_EXPORTS
 
@@ -9222,6 +9225,8 @@ XTL::X_D3DResource* WINAPI XTL::EMUPATCH(D3DDevice_GetTexture2)(DWORD Stage)
 	
 	// Get the active texture from this stage
 	X_D3DBaseTexture* pRet = EmuD3DTextureStages[Stage];
+	if (pRet != NULL)
+		pRet->Common++; // EMUPATCH(D3DResource_AddRef)(pRet) would give too much overhead (and needless logging)
 
 	RETURN(pRet);
 }
