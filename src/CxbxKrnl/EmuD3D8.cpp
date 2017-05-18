@@ -2794,7 +2794,7 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer2)
     // update data pointer
     pBackBuffer->Data = X_D3DRESOURCE_DATA_BACK_BUFFER;
 
-    return pBackBuffer;
+    RETURN(pBackBuffer);
 }
 
 // ******************************************************************
@@ -6288,7 +6288,7 @@ XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexBuffer2)
     g_VBTrackTotal.insert(pNewHostVertexBuffer);
     #endif
 
-    return pD3DVertexBuffer;
+    RETURN(pD3DVertexBuffer);
 }
 #endif
 
@@ -7472,7 +7472,7 @@ BYTE* WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock2)
 
     BYTE *pbNativeData = (BYTE *)GetDataFromXboxResource(pVertexBuffer);
 
-    return pbNativeData;
+    RETURN(pbNativeData);
 }
 #endif
 
@@ -7507,7 +7507,7 @@ XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource)
 		}
 	}
 
-    return pVertexBuffer;
+    RETURN(pVertexBuffer);
 }
 
 // ******************************************************************
@@ -8142,7 +8142,7 @@ XTL::X_D3DPalette * WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette2)
 
     DbgPrintf("pPalette: = 0x%.08X\n", pPalette);
 
-    return pPalette;
+    RETURN(pPalette);
 }
 #endif
 
@@ -8256,9 +8256,7 @@ XTL::D3DCOLOR * WINAPI XTL::EMUPATCH(D3DPalette_Lock2)
 
     D3DCOLOR *pColors = (D3DCOLOR*)pThis->Data;
 
-    
-
-    return pColors;
+    RETURN(pColors);
 }
 #endif
 
@@ -9225,7 +9223,7 @@ XTL::X_D3DResource* WINAPI XTL::EMUPATCH(D3DDevice_GetTexture2)(DWORD Stage)
 	// Get the active texture from this stage
 	X_D3DBaseTexture* pRet = EmuD3DTextureStages[Stage];
 
-	return pRet;
+	RETURN(pRet);
 }
 
 // ******************************************************************
@@ -9848,7 +9846,7 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DCubeTexture_GetCubeMapSurface2)
 
 	EMUPATCH(D3DCubeTexture_GetCubeMapSurface)(pThis, FaceType, Level, &pCubeMapSurface);
 
-	return pCubeMapSurface;
+	RETURN(pCubeMapSurface);
 }
 #endif
 
@@ -9920,7 +9918,7 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface2)()
 
 	EMUPATCH(D3DDevice_GetPersistedSurface)(&pSurface);
 
-	return pSurface;
+	RETURN(pSurface);
 }
 
 // ******************************************************************
