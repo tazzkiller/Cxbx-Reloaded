@@ -1359,6 +1359,15 @@ HRESULT WINAPI EMUPATCH(D3DDevice_LightEnable)
 );
 
 // ******************************************************************
+// * patch: D3DDevice_GetLightEnable
+// ******************************************************************
+HRESULT WINAPI EMUPATCH(D3DDevice_GetLightEnable)
+(
+	DWORD            Index,
+	BOOL             *bEnable
+);
+
+// ******************************************************************
 // * patch: D3DDevice_Release
 // ******************************************************************
 ULONG WINAPI EMUPATCH(D3DDevice_Release)();

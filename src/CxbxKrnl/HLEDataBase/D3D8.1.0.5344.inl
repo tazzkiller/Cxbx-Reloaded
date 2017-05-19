@@ -163,9 +163,94 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_LightEnable
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_LightEnable, 5344, 8)
+OOVPA_NO_XREF(D3DDevice_LightEnable, 5344, 25)
+#define D3DDevice_LightEnable_5558 D3DDevice_LightEnable_5344
+#define D3DDevice_LightEnable_5659 D3DDevice_LightEnable_5344
+#define D3DDevice_LightEnable_5788 D3DDevice_LightEnable_5344
+#define D3DDevice_LightEnable_5849 D3DDevice_LightEnable_5344
+#define D3DDevice_LightEnable_5933 D3DDevice_LightEnable_5344
 
-        { 0x1E, 0x8D },
+	XREF_ENTRY(0x0B, XREF_D3DDEVICE),
+	//XREF_ENTRY(0x67, XREF_D3DDEVICE_SETLIGHT),
+
+	{ 0x00, 0x83 },
+	{ 0x01, 0xEC },
+	{ 0x02, 0x68 },
+	{ 0x03, 0x53 },
+
+	{ 0x04, 0x8B },
+	{ 0x05, 0x5C },
+	{ 0x06, 0x24 },
+	{ 0x07, 0x70 },
+	{ 0x08, 0x56 },
+
+	{ 0x09, 0x8B },
+	{ 0x0A, 0x35 },
+
+	{ 0x0F, 0x3B },
+	{ 0x10, 0x9E },
+
+	// { 0x11, 0x90 }, // A4 // A8
+	// { 0x12, 0x03 }, // 07
+	{ 0x13, 0x00 },
+
+	{ 0x14, 0x00 },
+	{ 0x15, 0x57 },
+	{ 0x16, 0x73 },
+	{ 0x17, 0x13 },
+	{ 0x18, 0x8B },
+
+	{ 0x19, 0x8E },
+	// { 0x1A, 0x8C }, // A0 // A4
+	// { 0x1B, 0x03 }, // 07
+	{ 0x1C, 0x00 },
+	{ 0x1D, 0x00 },
+	{ 0x1E, 0x8D },
+	{ 0x1F, 0x04 },
+OOVPA_END;
+
+// ******************************************************************
+// * D3DDevice_GetLightEnable
+// ******************************************************************
+OOVPA_NO_XREF(D3DDevice_GetLightEnable, 5344, 30)
+#define D3DDevice_GetLightEnable_5558 D3DDevice_GetLightEnable_5344
+#define D3DDevice_GetLightEnable_5659 D3DDevice_GetLightEnable_5344
+#define D3DDevice_GetLightEnable_5788 D3DDevice_GetLightEnable_5344
+#define D3DDevice_GetLightEnable_5849 D3DDevice_GetLightEnable_5344
+#define D3DDevice_GetLightEnable_5933 D3DDevice_GetLightEnable_5344
+
+        XREF_ENTRY( 0x6D, XREF_D3DDEVICE),
+
+		{ 0x00, 0x8B },
+		{ 0x01, 0x44 },
+		{ 0x02, 0x24 },
+		{ 0x03, 0x04 },
+		{ 0x04, 0x8B },
+		{ 0x05, 0x0D },
+
+		{ 0x0A, 0x8B },
+		{ 0x0B, 0x91 },
+		{ 0x0C, 0x8C },
+		{ 0x0D, 0x03 },
+		{ 0x0E, 0x00 },
+		{ 0x0F, 0x00 },
+		{ 0x10, 0x8D },
+		{ 0x11, 0x04 },
+		{ 0x12, 0xC0 },
+		{ 0x13, 0xC1 },
+		{ 0x14, 0xE0 },
+		{ 0x15, 0x04 },
+		{ 0x16, 0x56 },
+		{ 0x17, 0x8B },
+		{ 0x18, 0xB4 },
+		{ 0x19, 0x02 },
+		{ 0x1A, 0x8C },
+		{ 0x1B, 0x00 },
+		{ 0x1C, 0x00 },
+		{ 0x1D, 0x00 },
+		{ 0x1E, 0x8B },
+		{ 0x1F, 0x54 },
+/*
         { 0x3E, 0xC7 },
         { 0x5E, 0xC7 },
         { 0x7E, 0x00 },
@@ -173,6 +258,7 @@ OOVPA_NO_XREF(D3DDevice_LightEnable, 5344, 8)
         { 0xBE, 0x01 },
         { 0xDE, 0x00 },
         { 0xFE, 0x83 },
+*/
 OOVPA_END;
 
 // ******************************************************************
@@ -884,6 +970,7 @@ OOVPATable D3D8_5344[] = {
 	REGISTER_OOVPA(D3DDevice_GetLight, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetLight, 5344, PATCH),
 	REGISTER_OOVPA(D3DDevice_LightEnable, 5344, PATCH), // Was 5233
+	REGISTER_OOVPA(D3DDevice_GetLightEnable, 5344, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawIndexedVertices, 5028, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetMaterial, 5344, PATCH), // Was 4627
 	REGISTER_OOVPA(D3DVertexBuffer_GetDesc, 5233, DISABLED),

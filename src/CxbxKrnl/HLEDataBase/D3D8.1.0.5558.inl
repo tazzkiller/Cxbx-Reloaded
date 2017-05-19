@@ -1035,6 +1035,7 @@ OOVPA_END;
 #define D3DDevice_FlushVertexCache_5558 D3DDevice_FlushVertexCache_4134
 
 
+#if 0 // unused
 // ******************************************************************
 // * D3DDevice_LightEnable
 // ******************************************************************
@@ -1063,6 +1064,7 @@ OOVPA_NO_XREF(D3DDevice_LightEnable, 5455, 13)
         { 0xFB, 0xC2 }, // (Offset,Value)-Pair #12
         { 0xFC, 0x08 }, // (Offset,Value)-Pair #13
 OOVPA_END;
+#endif
 
 // ******************************************************************
 // * D3DDevice_SetIndices
@@ -1378,7 +1380,6 @@ OOVPATable D3D8_5558[] = {
 	REGISTER_OOVPA(D3DDevice_GetLight, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetLight, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetMaterial, 5558, PATCH),
-	REGISTER_OOVPA(D3DDevice_LightEnable, 5344, PATCH),
 	REGISTER_OOVPA(D3DVertexBuffer_Lock2, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_OcclusionCullEnable, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_MultiSampleAntiAlias, 4627, PATCH),
@@ -1465,7 +1466,8 @@ OOVPATable D3D8_5558[] = {
 	REGISTER_OOVPA(D3DDevice_FlushVertexCache, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_EnableOverlay, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_LogicOp, 4627, PATCH),
-	REGISTER_OOVPA(D3DDevice_LightEnable, 5455, PATCH),
+	REGISTER_OOVPA(D3DDevice_LightEnable, 5558, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetLightEnable, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetModelView, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetBackBuffer, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_PersistDisplay, 5558, PATCH),

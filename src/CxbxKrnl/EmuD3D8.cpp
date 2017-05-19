@@ -8049,6 +8049,28 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_LightEnable)
 }
 
 // ******************************************************************
+// * patch: D3DDevice_GetLightEnable
+// ******************************************************************
+HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetLightEnable)
+(
+	DWORD            Index,
+	BOOL             *bEnable
+)
+{
+	FUNC_EXPORTS
+
+		LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(Index)
+		LOG_FUNC_ARG(bEnable)
+		LOG_FUNC_END;
+
+	HRESULT hRet = g_pD3DDevice8->GetLightEnable(Index, bEnable);
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetLightEnable");
+
+	return hRet;
+}
+
+// ******************************************************************
 // * patch: D3DDevice_SetRenderTarget
 // ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
