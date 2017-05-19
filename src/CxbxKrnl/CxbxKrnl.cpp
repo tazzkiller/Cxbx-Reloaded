@@ -340,7 +340,7 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 void CxbxPopupMessage(const char *message)
 {
 	DbgPrintf("Popup : %s\n", message);
-	MessageBox(NULL, message, "Cxbx-Reloaded", MB_OK | MB_ICONEXCLAMATION);
+	MessageBox(NULL, message, TEXT("Cxbx-Reloaded"), MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST | MB_SETFOREGROUND);
 }
 
 void CxbxKrnlMain(int argc, char* argv[])
