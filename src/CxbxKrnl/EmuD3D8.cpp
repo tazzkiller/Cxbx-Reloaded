@@ -151,7 +151,7 @@ static DWORD                        g_dwVertexShaderUsage = 0;
 static DWORD                        g_VertexShaderSlots[136];
 
 // cached palette pointer
-static DWORD *g_pCurrentPalette[TEXTURE_STAGES] = { nullptr, nullptr, nullptr, nullptr };
+static DWORD *g_pTexturePaletteStages[TEXTURE_STAGES] = { nullptr, nullptr, nullptr, nullptr };
 
 static XTL::X_VERTEXSHADERCONSTANTMODE g_VertexShaderConstantMode = X_VSCM_192;
 
@@ -1913,7 +1913,7 @@ static void CxbxUpdateResource(XTL::X_D3DResource *pResource)
 	case X_D3DCOMMON_TYPE_TEXTURE:
 	{
 		DbgPrintf("CxbxUpdateResource :-> Texture...\n");
-		CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pResource, g_pCurrentPalette[0]); // HACK : Use palette from stage 0!
+		CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pResource, g_pTexturePaletteStages[0]); // HACK : Use palette from stage 0!
 		break;
 	}
 	}
@@ -4123,7 +4123,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
     EmuD3DTextureStages[Stage] = pTexture;
     if(pTexture != NULL)
     {
-		pHostBaseTexture = CxbxUpdateTexture(pTexture, g_pCurrentPalette[Stage]);
+		pHostBaseTexture = CxbxUpdateTexture(pTexture, g_pTexturePaletteStages[Stage]);
 
 #ifdef _DEBUG_DUMP_TEXTURE_SETTEXTURE
         if(pTexture != NULL && (pHostBaseTexture != nullptr))
@@ -7612,9 +7612,13 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
 
 void CxbxUpdateTextureStages()
 {
-	for (int i = 0; i < TEXTURE_STAGES; i++) {
-		XTL::IDirect3DBaseTexture8 *pPixelContainer = CxbxUpdateTexture(XTL::EmuD3DTextureStages[i], g_pCurrentPalette[i]);
-		XTL::EMUPATCH(D3DDevice_SetTexture)(i, XTL::EmuD3DTextureStages[i]);
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
+	for (int Stage = 0; Stage < TEXTURE_STAGES; Stage++) {
+		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = CxbxUpdateTexture(XTL::EmuD3DTextureStages[Stage], g_pTexturePaletteStages[Stage]);
+
+		HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, (g_iWireframe == 0) ? pHostBaseTexture : nullptr);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTexture");
 	}
 }
 
@@ -8186,7 +8190,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPalette)
 
 	if (Stage < TEXTURE_STAGES)
 		// Cache palette data and size
-		g_pCurrentPalette[Stage] = (DWORD *)GetDataFromXboxResource(pPalette);
+		g_pTexturePaletteStages[Stage] = (DWORD *)GetDataFromXboxResource(pPalette);
 
     return D3D_OK;
 }
