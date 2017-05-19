@@ -590,7 +590,7 @@ inline boolean IsSpecialXboxResource(const XTL::X_D3DResource *pXboxResource)
 	// Don't pass in unassigned Xbox resources
 	assert(pXboxResource != NULL);
 
-	return ((pXboxResource->Data & X_D3DRESOURCE_DATA_FLAG_SPECIAL) == X_D3DRESOURCE_DATA_FLAG_SPECIAL);
+	return ((pXboxResource->Data & CXBX_D3DRESOURCE_DATA_FLAG_SPECIAL) == CXBX_D3DRESOURCE_DATA_FLAG_SPECIAL);
 }
 
 // This can be used to determine if resource Data adddresses
@@ -828,11 +828,11 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 	if (IsSpecialXboxResource(pXboxResource))
 	{
 		switch (pData) {
-		case X_D3DRESOURCE_DATA_BACK_BUFFER:
+		case CXBX_D3DRESOURCE_DATA_BACK_BUFFER:
 			return nullptr;
-		case X_D3DRESOURCE_DATA_RENDER_TARGET:
+		case CXBX_D3DRESOURCE_DATA_RENDER_TARGET:
 			return nullptr;
-		case X_D3DRESOURCE_DATA_DEPTH_STENCIL:
+		case CXBX_D3DRESOURCE_DATA_DEPTH_STENCIL:
 			return nullptr;
 		default:
 			CxbxKrnlCleanup("Unhandled special resource type");
@@ -1755,7 +1755,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 g_pCachedRenderTarget = EmuNewD3DSurface();
 				XTL::IDirect3DSurface8 *pNewHostSurface = nullptr;
 
-                g_pCachedRenderTarget->Data = X_D3DRESOURCE_DATA_RENDER_TARGET;
+                g_pCachedRenderTarget->Data = CXBX_D3DRESOURCE_DATA_RENDER_TARGET;
                 hRet = g_pD3DDevice8->GetRenderTarget(&pNewHostSurface);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
 
@@ -1764,7 +1764,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 // update z-stencil surface cache
                 g_pCachedDepthStencil = EmuNewD3DSurface();
 				pNewHostSurface = nullptr;
-				g_pCachedDepthStencil->Data = X_D3DRESOURCE_DATA_DEPTH_STENCIL;
+				g_pCachedDepthStencil->Data = CXBX_D3DRESOURCE_DATA_DEPTH_STENCIL;
 				hRet = g_pD3DDevice8->GetDepthStencilSurface(&pNewHostSurface);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetDepthStencilSurface");
 
@@ -2793,7 +2793,7 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer2)
 	
 	SetHostSurface(pBackBuffer, pNewHostSurface);
     // update data pointer
-    pBackBuffer->Data = X_D3DRESOURCE_DATA_BACK_BUFFER;
+    pBackBuffer->Data = CXBX_D3DRESOURCE_DATA_BACK_BUFFER;
 
     RETURN(pBackBuffer);
 }
@@ -6020,7 +6020,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel2)
 		else
 		{
 			result = EmuNewD3DSurface();
-			result->Data = X_D3DRESOURCE_DATA_SURFACE_LEVEL;
+			result->Data = CXBX_D3DRESOURCE_DATA_SURFACE_LEVEL;
 			result->Format = 0; // TODO : Set this
 			result->Size = 0; // TODO : Set this
 
@@ -8094,7 +8094,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 		pHostRenderTarget = CxbxUpdateSurface(pRenderTarget);
 
 		if (pHostRenderTarget == nullptr)
-			pHostRenderTarget = GetHostSurface(g_pCachedRenderTarget); // X_D3DRESOURCE_DATA_RENDER_TARGET cannot CxbxUpdateSurface
+			pHostRenderTarget = GetHostSurface(g_pCachedRenderTarget); // CXBX_D3DRESOURCE_DATA_RENDER_TARGET cannot CxbxUpdateSurface
 	}
 
 
