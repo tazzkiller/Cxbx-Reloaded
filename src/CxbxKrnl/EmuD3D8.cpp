@@ -652,6 +652,7 @@ typedef struct {
 
 static std::map<XTL::X_D3DResource *, XTL::IDirect3DResource8 *> g_XboxToHostResourceMappings;
 
+#if 0 // unused
 inline bool IsYuvSurface(const XTL::X_D3DResource *pXboxResource)
 {
 	DWORD dwCommonType = GetXboxCommonResourceType(pXboxResource);
@@ -661,6 +662,7 @@ inline bool IsYuvSurface(const XTL::X_D3DResource *pXboxResource)
 
 	return false;
 }
+#endif
 
 inline bool IsXboxResourceLocked(const XTL::X_D3DResource *pXboxResource)
 {
@@ -846,6 +848,7 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 	return (uint08*)pData;
 }
 
+#if 0 // unused
 inline XTL::X_D3DPALETTESIZE GetXboxPaletteSize(const XTL::X_D3DPalette *pPalette)
 {
 	XTL::X_D3DPALETTESIZE PaletteSize = (XTL::X_D3DPALETTESIZE)
@@ -853,7 +856,9 @@ inline XTL::X_D3DPALETTESIZE GetXboxPaletteSize(const XTL::X_D3DPalette *pPalett
 
 	return PaletteSize;
 }
+#endif
 
+#if 0 // unused
 int GetD3DResourceRefCount(XTL::IDirect3DResource8 *EmuResource)
 {
 	if (EmuResource != nullptr)
@@ -867,6 +872,7 @@ int GetD3DResourceRefCount(XTL::IDirect3DResource8 *EmuResource)
 
 	return 0;
 }
+#endif
 
 XTL::X_D3DSurface *EmuNewD3DSurface()
 {
@@ -875,6 +881,7 @@ XTL::X_D3DSurface *EmuNewD3DSurface()
 	return result;
 }
 
+#if 0 // No longer used (now we stopped patching D3DDevice_Create* functions)
 XTL::X_D3DTexture *EmuNewD3DTexture()
 {
 	XTL::X_D3DTexture *result = (XTL::X_D3DTexture *)g_MemoryManager.AllocateZeroed(1, sizeof(XTL::X_D3DTexture));
@@ -916,6 +923,7 @@ XTL::X_D3DPalette *EmuNewD3DPalette()
 	result->Common = X_D3DCOMMON_D3DCREATED | X_D3DCOMMON_TYPE_PALETTE | 1; // Set refcount to 1
 	return result;
 }
+#endif
 
 VOID CxbxSetPixelContainerHeader
 (
