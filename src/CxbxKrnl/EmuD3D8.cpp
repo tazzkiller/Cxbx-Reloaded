@@ -874,6 +874,7 @@ int GetD3DResourceRefCount(XTL::IDirect3DResource8 *EmuResource)
 }
 #endif
 
+// TODO : Avoid returning allocations outside Xbox heap, back to Xbox
 XTL::X_D3DSurface *EmuNewD3DSurface()
 {
 	XTL::X_D3DSurface *result = (XTL::X_D3DSurface *)g_MemoryManager.AllocateZeroed(1, sizeof(XTL::X_D3DSurface));
@@ -1975,7 +1976,7 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 {
 	static std::map<PWORD, ConvertedIndexBuffer> g_ConvertedIndexBuffers;
 
-	LOG_INIT; // Allows use of DEBUG_D3DRESULT
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	if (pIndexBufferData == NULL)
 		return nullptr;
@@ -2056,7 +2057,7 @@ void CxbxUpdateActiveIndexBuffer
 	UINT          IndexCount
 )
 {
-	LOG_INIT; // Allows use of DEBUG_D3DRESULT
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	XTL::IDirect3DIndexBuffer8 *result = CxbxUpdateIndexBuffer(pIndexBufferData, IndexCount);
 
@@ -4846,7 +4847,7 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 {
 	static std::map<xbaddr, ConvertedResource> g_ConvertedVertexBuffers;
 
-	LOG_INIT; // Allows use of DEBUG_D3DRESULT
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	if (pXboxVertexBuffer == NULL)
 		return nullptr;
@@ -4939,7 +4940,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 {
 	static std::map<xbaddr, ConvertedResource> g_ConvertedTextures;
 
-	LOG_INIT; // Allows use of DEBUG_D3DRESULT
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	if (pPixelContainer == NULL)
 		return nullptr;
