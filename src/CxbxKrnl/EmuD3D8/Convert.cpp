@@ -603,9 +603,7 @@ void XTL::EmuUnswizzleRect
 	DWORD dwHeight,
 	DWORD dwDepth,
 	PVOID pDstBuff,
-	DWORD dwPitch,
-	RECT rSrc, // Unused
-	POINT poDst, // Unused
+	DWORD dwDestPitch,
 	DWORD dwBPP // expressed in Bytes Per Pixel
 ) // Source : Dxbx
 {
@@ -671,13 +669,13 @@ void XTL::EmuUnswizzleRect
 		for (uint y = 0; y < dwHeight; y++) {
 			DWORD dwX = dwStartX;
 			for (uint x = 0; x < dwWidth; x++) {
-				int delta = ((dwX | dwY | dwZ) * dwBPP);
-				memcpy(pDstBuff, (PBYTE)pSrcBuff + delta, dwBPP); // copy one pixel
+				int SrcOffset = ((dwX | dwY | dwZ) * dwBPP);
+				memcpy(pDstBuff, (PBYTE)pSrcBuff + SrcOffset, dwBPP); // copy one pixel
 				pDstBuff = (PBYTE)pDstBuff + dwBPP; // Step to next pixel in destination
 				dwX = (dwX - dwMaskX) & dwMaskX; // step to next pixel in source
 			}
 
-			pDstBuff = (PBYTE)pDstBuff + dwPitch - (dwWidth * dwBPP); // step to next line in destination
+			pDstBuff = (PBYTE)pDstBuff + dwDestPitch - (dwWidth * dwBPP); // step to next line in destination
 			dwY = (dwY - dwMaskY) & dwMaskY; // step to next line in source
 		}
 

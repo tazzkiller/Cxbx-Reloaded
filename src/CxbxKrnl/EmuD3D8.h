@@ -45,7 +45,8 @@
 // initialize render window
 extern VOID CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize);
 
-extern VOID CxbxSetPixelContainerHeader
+#if 0 // unused
+extern VOID CxbxSetPixelContainerHeader1
 (
 	XTL::X_D3DPixelContainer* pPixelContainer,
 	DWORD           	Common,
@@ -56,6 +57,7 @@ extern VOID CxbxSetPixelContainerHeader
 	UINT				Dimensions,
 	UINT				Pitch
 );
+#endif
 
 // initialize direct3d
 extern VOID EmuD3DInit();
@@ -69,7 +71,7 @@ extern X_D3DTILE EmuD3DTileCache[0x08];
 // EmuD3DTextureStages
 extern X_D3DBaseTexture *EmuD3DTextureStages[TEXTURE_STAGES];
 
-XTL::IDirect3DBaseTexture8 *CxbxUpdateTexture(const XTL::X_D3DPixelContainer *pPixelContainer, const DWORD *pPalette);
+XTL::IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, const DWORD *pPalette);
 XTL::IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer *pXboxVertexBuffer);
 
 // ******************************************************************

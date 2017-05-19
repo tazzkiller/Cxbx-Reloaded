@@ -239,9 +239,7 @@ extern void EmuUnswizzleRect
 	DWORD dwHeight,
 	DWORD dwDepth,
 	PVOID pDstBuff,
-	DWORD dwPitch,
-	RECT rSrc, // Unused
-	POINT poDst, // Unused
+	DWORD dwDestPitch,
 	DWORD dwBPP // expressed in Bytes Per Pixel
 ); // NOPATCH
 
