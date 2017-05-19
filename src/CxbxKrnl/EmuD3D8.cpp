@@ -5165,9 +5165,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 	// Interpret Width/Height/BPP
 	DWORD dwBPP = EmuXBFormatBytesPerPixel(X_Format);
-	BOOL bSwizzled = EmuXBFormatIsSwizzled(X_Format);
-	BOOL bCompressed = EmuXBFormatIsCompressed(X_Format);
-	BOOL bCubemap = (pPixelContainer->Format & X_D3DFORMAT_CUBEMAP) > 0;
 	DWORD dwMipMapLevels = (pPixelContainer->Format & X_D3DFORMAT_MIPMAP_MASK) >> X_D3DFORMAT_MIPMAP_SHIFT;
 	DWORD dwDepth = 1 << ((pPixelContainer->Format & X_D3DFORMAT_PSIZE_MASK) >> X_D3DFORMAT_PSIZE_SHIFT);
 	UINT dwWidth, dwHeight, dwPitch, dwCompressedSize;
@@ -5177,7 +5174,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	DecodedPixelContainer PixelJar;
 	DecodeD3DFormatAndSize(pPixelContainer->Format, pPixelContainer->Size, PixelJar);
 
-	if (bSwizzled || bCompressed)
+	if (PixelJar.bIsSwizzled || PixelJar.bIsCompressed)
 	{
 		uint32 w = dwWidth;
 		uint32 h = dwHeight;
@@ -5313,7 +5310,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			dwMipMapLevels = 3;
 		}
 
-		if (bCubemap)
+		if (PixelJar.bIsCubeMap)
 		{
 			DbgPrintf("CreateCubeTexture(%d, %d, 0, %d, D3DPOOL_MANAGED)\n", dwWidth,
 				dwMipMapLevels, PCFormat);
@@ -5411,7 +5408,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		);
 	*/
 
-	uint nrfaces = bCubemap ? 6 : 1;
+	uint nrfaces = PixelJar.bIsCubeMap ? 6 : 1;
 	for (uint face = 0; face < nrfaces; face++)
 	{
 		// as we iterate through mipmap levels, we'll adjust the source resource offset
@@ -5426,7 +5423,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			DWORD dwMipWidthInBytes = dwMipWidth * dwBPP;
 			DWORD dwMipSizeInBytes;
 
-			if (bCompressed)
+			if (PixelJar.bIsCompressed)
 				// NOTE: compressed size is (dwWidth/2)*(dwHeight/2)/2, so each level divides by 4
 				dwMipSizeInBytes = (dwCompressedSize >> (level * 2));
 			else
@@ -5476,9 +5473,9 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				if (slice == 0)
 				{
 					// copy over data (deswizzle if necessary)
-					if (bSwizzled)
+					if (PixelJar.bIsSwizzled)
 					{
-						assert(!bCompressed); // compressed format mutually exclusive with swizzled format
+						assert(!PixelJar.bIsCompressed); // compressed format mutually exclusive with swizzled format
 
 						if (bConvertToARGB)
 						{
@@ -5509,7 +5506,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 				if (bConvertToARGB)
 				{
-					assert(!bCompressed); // compressed format never requires conversion
+					assert(!PixelJar.bIsCompressed); // compressed format never requires conversion
 
 					uint dwDestSizeInBytes = dwMipHeight * dwDestPitch;
 					uint dwDestWidthInBytes = dwMipWidth * sizeof(D3DCOLOR);
@@ -5587,7 +5584,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 						free(pTmpBuffer);
 				}
 
-				if (!bSwizzled && !bConvertToARGB)
+				if (!PixelJar.bIsSwizzled && !bConvertToARGB)
 				{
 					// No conversion needed, copy as efficient as possible
 					if (dwDestPitch == dwSrcPitch && dwMipPitch == dwMipWidthInBytes)
