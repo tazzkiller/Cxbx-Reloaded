@@ -603,7 +603,7 @@ struct DecodedPixelContainer {
 	DWORD dwMinXYValue; // 4 for compressed formats, 1 for everything else. Only applies to width & height. Depth can go to 1.
 };
 
-void DecodeD3DFormatAndSize(DWORD dwD3DFormat, DWORD dwD3DSize, DecodedPixelContainer &decoded)
+void DecodeD3DFormatAndSize(DWORD dwD3DFormat, DWORD dwD3DSize, OUT DecodedPixelContainer &decoded)
 {
 	Decoded_D3DFormat decodedFormat;
 	DecodeD3DFormat(dwD3DFormat, decodedFormat);
@@ -1110,7 +1110,7 @@ XTL::X_D3DPalette *EmuNewD3DPalette()
 }
 #endif
 
-#if 0 // unused
+#if 1 // temporarily used by GetBackBuffer2
 VOID CxbxSetPixelContainerHeader
 (
 	XTL::X_D3DPixelContainer* pPixelContainer,
@@ -1155,6 +1155,31 @@ VOID CxbxSetPixelContainerHeader
 		| (((Height - 1) << X_D3DSIZE_HEIGHT_SHIFT) & X_D3DSIZE_HEIGHT_MASK)
 		| (((Pitch - 1) << X_D3DSIZE_PITCH_SHIFT) & X_D3DSIZE_PITCH_MASK)
 		;
+}
+
+// HACK : Approximate the format
+void ConvertHostSurfaceHeaderToXbox
+(
+	XTL::IDirect3DSurface8 *pHostSurface,
+	XTL::X_D3DPixelContainer* pPixelContainer
+)
+{
+	XTL::D3DSURFACE_DESC HostSurfaceDesc;
+
+	pHostSurface->GetDesc(&HostSurfaceDesc);
+	const uint MipMapLevels = 1; // ??
+	XTL::X_D3DFORMAT X_Format = EmuPC2XB_D3DFormat(HostSurfaceDesc.Format);
+	const uint Dimensions = 2;
+	uint Pitch = HostSurfaceDesc.Width * EmuXBFormatBitsPerPixel(X_Format) / 8;
+
+	CxbxSetPixelContainerHeader(pPixelContainer,
+		pPixelContainer->Common,
+		HostSurfaceDesc.Width,
+		HostSurfaceDesc.Height,
+		MipMapLevels,
+		X_Format,
+		Dimensions,
+		Pitch);
 }
 #endif
 
@@ -1954,6 +1979,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 hRet = g_pD3DDevice8->GetRenderTarget(&pNewHostSurface);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
 
+				ConvertHostSurfaceHeaderToXbox(pNewHostSurface, g_pCachedRenderTarget);
 				SetHostSurface(g_pCachedRenderTarget, pNewHostSurface);
 
                 // update z-stencil surface cache
@@ -1965,13 +1991,8 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 
 				if (SUCCEEDED(hRet))
 				{
+					ConvertHostSurfaceHeaderToXbox(pNewHostSurface, g_pCachedDepthStencil);
 					SetHostSurface(g_pCachedDepthStencil, pNewHostSurface);
-					// Get the format of the host depth/stencil surface
-					XTL::D3DSURFACE_DESC HostSurfaceDesc;
-					pNewHostSurface->GetDesc(&HostSurfaceDesc);
-					// Convert the host format back into Xbox format and set that in the Xbox resource
-					XTL::X_D3DFORMAT XboxSurfaceFormat = EmuPC2XB_D3DFormat(HostSurfaceDesc.Format);
-					g_pCachedDepthStencil->Format |= (XboxSurfaceFormat << X_D3DFORMAT_FORMAT_SHIFT);
 				}
 
 				UpdateDepthStencilFlags(g_pCachedDepthStencil);
@@ -2986,6 +3007,8 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer2)
 	if(FAILED(hRet))
         CxbxKrnlCleanup("Unable to retrieve back buffer");
 	
+	ConvertHostSurfaceHeaderToXbox(pNewHostSurface, pBackBuffer);
+
 	SetHostSurface(pBackBuffer, pNewHostSurface);
     // update data pointer
     pBackBuffer->Data = CXBX_D3DRESOURCE_DATA_BACK_BUFFER;
@@ -5177,7 +5200,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 	// Interpret Width/Height/BPP
 	DecodedPixelContainer PixelJar;
-	DecodeD3DFormatAndSize(pPixelContainer->Format, pPixelContainer->Size, PixelJar);
+	DecodeD3DFormatAndSize(pPixelContainer->Format, pPixelContainer->Size, OUT PixelJar);
 
 #if 0 // TODO : Why was this?
 	if (PixelJar.bIsSwizzled || PixelJar.bIsCompressed)
@@ -5981,6 +6004,10 @@ VOID WINAPI XTL::EMUPATCH(Lock3DSurface)
 // ******************************************************************
 // * patch: Get2DSurfaceDesc
 // ******************************************************************
+// Dxbx : Needs a patch because it accesses _D3D__pDevice at some offset,
+// probably comparing the data of this pixelcontainer to the framebuffer
+// and setting the MultiSampleType as a result to either the device's
+// MultiSampleType or D3DMULTISAMPLE_NONE.
 VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
 (
 	X_D3DPixelContainer *pPixelContainer,
@@ -5996,23 +6023,29 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
 		LOG_FUNC_ARG(pDesc)
 		LOG_FUNC_END;
 
+	DecodedPixelContainer PixelJar;
+	DecodeD3DFormatAndSize(pPixelContainer->Format, pPixelContainer->Size, OUT PixelJar);
+
 	// TODO : Check if IsYuvSurface(pPixelContainer) works too
-	pDesc->Format = GetXboxPixelContainerFormat(pPixelContainer);
+	pDesc->Format = PixelJar.X_Format;
     pDesc->Type = GetXboxD3DResourceType(pPixelContainer);
-    pDesc->Usage = 0;
+	
+	// Include X_D3DUSAGE_RENDERTARGET or X_D3DUSAGE_DEPTHSTENCIL where appropriate, which means :
+	// only at dwLevel=0, when this is actually the active render target or depth stencil buffer.
+	pDesc->Usage = 0;
 	if (dwLevel == 0)
 	{
-		if (EmuXBFormatIsRenderTarget(pDesc->Format))
+		if (pPixelContainer = g_pCachedRenderTarget)
 			pDesc->Usage = X_D3DUSAGE_RENDERTARGET;
 		else
-			if (EmuXBFormatIsDepthBuffer(pDesc->Format))
+			if (pPixelContainer = g_pCachedDepthStencil)
 				pDesc->Usage = X_D3DUSAGE_DEPTHSTENCIL;
 	}
 
-	pDesc->MultiSampleType = (XTL::D3DMULTISAMPLE_TYPE)X_D3DMULTISAMPLE_NONE;
-
-	UINT dwPitch; // dummy value
-	CxbxGetPixelContainerMeasures(pPixelContainer, dwLevel, &(pDesc->Width), &(pDesc->Height), &dwPitch, &(pDesc->Size));
+	pDesc->Size = PixelJar.MipMapOffsets[dwLevel + 1] - PixelJar.MipMapOffsets[dwLevel];
+	pDesc->MultiSampleType = (XTL::D3DMULTISAMPLE_TYPE)X_D3DMULTISAMPLE_NONE; // TODO : If this is the active backbuffer, use the devices' multi sampling
+	pDesc->Width = PixelJar.dwWidth >> dwLevel; // ??
+	pDesc->Height = PixelJar.dwHeight >> dwLevel; // ??
 }
 #endif
 
