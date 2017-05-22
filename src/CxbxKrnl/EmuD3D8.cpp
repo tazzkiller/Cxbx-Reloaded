@@ -142,6 +142,8 @@ static DWORD                        g_VBLastSwap = 0;
 static XTL::D3DSWAPDATA				g_SwapData = {0};
 static DWORD						g_SwapLast = 0;
 
+static XTL::D3DMATERIAL8            g_pBackMaterial = { 0 };
+
 // cached Direct3D state variable(s)
 static XTL::X_D3DSurface           *g_pCachedRenderTarget = NULL;
 static XTL::X_D3DSurface           *g_pCachedDepthStencil = NULL;
@@ -8263,9 +8265,28 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetLight)
 }
 
 // ******************************************************************
+// * patch: D3DDevice_GetMaterial
+// ******************************************************************
+VOID WINAPI XTL::EMUPATCH(D3DDevice_GetMaterial)
+(
+	D3DMATERIAL8* pMaterial
+)
+{
+	FUNC_EXPORTS
+
+	LOG_FUNC_ONE_ARG(pMaterial);
+
+	if (pMaterial)
+	{
+		HRESULT hRet = g_pD3DDevice8->GetMaterial(pMaterial);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetMaterial");
+	}
+}
+
+// ******************************************************************
 // * patch: D3DDevice_SetMaterial
 // ******************************************************************
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetMaterial)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetMaterial)
 (
     CONST D3DMATERIAL8 *pMaterial
 )
@@ -8276,8 +8297,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetMaterial)
 
     HRESULT hRet = g_pD3DDevice8->SetMaterial(pMaterial);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetMaterial");
-
-	return hRet;
 }
 
 // ******************************************************************
@@ -9896,9 +9915,21 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetModelView)(D3DXMATRIX* pModelView)
 }
 
 // ******************************************************************
+// * patch: D3DDevice_GetBackMaterial
+// ******************************************************************
+VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackMaterial)(D3DMATERIAL8* pMaterial)
+{
+	FUNC_EXPORTS
+
+	LOG_FUNC_ONE_ARG(pMaterial);
+
+	*pMaterial = g_pBackMaterial;
+}
+
+// ******************************************************************
 // * patch: D3DDevice_SetBackMaterial
 // ******************************************************************
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetBackMaterial)(D3DMATERIAL8* pMaterial)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetBackMaterial)(D3DMATERIAL8* pMaterial)
 {
 	FUNC_EXPORTS
 
@@ -9906,7 +9937,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetBackMaterial)(D3DMATERIAL8* pMaterial)
 
 	LOG_NOT_SUPPORTED();
 
-	return D3D_OK;
+	g_pBackMaterial = *pMaterial;
 }
 
 #if 0 // patch disabled
@@ -10258,35 +10289,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetScissors)
 }
 
 // ******************************************************************
-// * patch: D3DDevice_GetBackMaterial
-// ******************************************************************
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetBackMaterial)(D3DMATERIAL8* pMaterial)
-{
-	FUNC_EXPORTS
-
-	LOG_FUNC_ONE_ARG(pMaterial);
-
-	LOG_NOT_SUPPORTED();
-
-	HRESULT hRet = D3D_OK;
-
-	// TODO: HACK: This is wrong, but better than nothing, right?
-	if (pMaterial)
-	{
-		HRESULT hRet = g_pD3DDevice8->GetMaterial(pMaterial);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetMaterial");
-	}
-
-	if (FAILED(hRet))
-	{
-		EmuWarning("We're lying about getting a back material!");
-		hRet = D3D_OK;
-	}
-
-	return hRet;
-}
-
-// ******************************************************************
 // * patch: D3D::LazySetPointParams
 // ******************************************************************
 void WINAPI XTL::EMUPATCH(D3D_LazySetPointParams)
@@ -10299,33 +10301,4 @@ void WINAPI XTL::EMUPATCH(D3D_LazySetPointParams)
 	LOG_FUNC_ONE_ARG(Device);
 
 	LOG_UNIMPLEMENTED();
-}
-
-// ******************************************************************
-// * patch: D3DDevice_GetMaterial
-// ******************************************************************
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetMaterial)
-(
-	D3DMATERIAL8* pMaterial
-)
-{
-	FUNC_EXPORTS
-
-	LOG_FUNC_ONE_ARG(pMaterial);
-
-	HRESULT hRet = D3D_OK;
-
-	if (pMaterial)
-	{
-		HRESULT hRet = g_pD3DDevice8->GetMaterial(pMaterial);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetMaterial");
-	}
-
-	if(FAILED(hRet))
-    {
-		EmuWarning("We're lying about getting a material!");
-        hRet = D3D_OK;
-    }
-
-	return hRet;
 }
