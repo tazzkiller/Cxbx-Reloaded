@@ -146,9 +146,14 @@ static DWORD						g_SwapLast = 0;
 
 static XTL::D3DMATERIAL8            g_pBackMaterial = { 0 };
 
+static XTL::X_D3DSurface           *g_pD3DInitialRenderTarget = NULL;
+static XTL::X_D3DSurface           *g_pD3DInitialDepthStencil = NULL;
+static XTL::IDirect3DSurface8      *g_pInitialHostRenderTarget = nullptr;
+static XTL::IDirect3DSurface8      *g_pInitialHostDepthStencil = nullptr;
+
 // cached Direct3D state variable(s)
-static XTL::X_D3DSurface           *g_pCachedRenderTarget = NULL;
-static XTL::X_D3DSurface           *g_pCachedDepthStencil = NULL;
+static XTL::X_D3DSurface           *g_pD3DActiveRenderTarget = NULL;
+static XTL::X_D3DSurface           *g_pD3DActiveDepthStencil = NULL;
 #if 0
 static XTL::X_D3DSurface           *g_pCachedYuvSurface = NULL;
 #endif
@@ -775,6 +780,7 @@ XTL::X_D3DRESOURCETYPE GetXboxD3DResourceType(const XTL::X_D3DResource *pXboxRes
 	return XTL::X_D3DRTYPE_NONE;
 }
 
+#if 0
 inline boolean IsSpecialXboxResource(const XTL::X_D3DResource *pXboxResource)
 {
 	// Don't pass in unassigned Xbox resources
@@ -782,6 +788,7 @@ inline boolean IsSpecialXboxResource(const XTL::X_D3DResource *pXboxResource)
 
 	return ((pXboxResource->Data & CXBX_D3DRESOURCE_DATA_FLAG_SPECIAL) == CXBX_D3DRESOURCE_DATA_FLAG_SPECIAL);
 }
+#endif
 
 // This can be used to determine if resource Data adddresses
 // need the MM_SYSTEM_PHYSICAL_MAP bit set or cleared
@@ -885,8 +892,10 @@ XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
 		return nullptr;
 	}
 
+#if 0
 	if (IsSpecialXboxResource(pXboxResource))
 		return nullptr;
+#endif
 
 	XTL::IDirect3DResource8 *result = g_XboxToHostResourceMappings[pXboxResource];
 	if (result == nullptr) {
@@ -1017,6 +1026,7 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 	if (pData == NULL)
 		return nullptr;
 
+#if 0
 	if (IsSpecialXboxResource(pXboxResource))
 	{
 		switch (pData) {
@@ -1030,6 +1040,7 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 			CxbxKrnlCleanup("Unhandled special resource type");
 		}
 	}
+#endif
 
 	DWORD dwCommonType = GetXboxCommonResourceType(pXboxResource);
 	if (IsResourceTypeGPUReadable(dwCommonType))
@@ -1116,7 +1127,7 @@ XTL::X_D3DPalette *EmuNewD3DPalette()
 }
 #endif
 
-#if 1 // temporarily used by GetBackBuffer2
+#if 1 // temporarily used by CxbxSetPixelContainerHeader
 VOID CxbxSetPixelContainerHeader
 (
 	XTL::X_D3DPixelContainer* pPixelContainer,
@@ -1232,6 +1243,58 @@ VOID CxbxReleaseBackBufferLock()
 		pBackBuffer->UnlockRect(); // remove old lock
 		pBackBuffer->Release();
 	}
+}
+
+void CxbxUpdateTextureStages()
+{
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
+		for (int Stage = 0; Stage < TEXTURE_STAGES; Stage++) {
+			XTL::IDirect3DBaseTexture8 *pHostBaseTexture = CxbxUpdateTexture(XTL::EmuD3DTextureStages[Stage], g_pTexturePaletteStages[Stage]);
+
+			HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, (g_iWireframe == 0) ? pHostBaseTexture : nullptr);
+			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTexture");
+		}
+}
+
+XTL::IDirect3DSurface8 *CxbxUpdateSurface(const XTL::X_D3DSurface *pXboxSurface)
+{
+	return (XTL::IDirect3DSurface8 *)CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pXboxSurface, NULL);
+}
+
+void CxbxUpdateActiveRenderTarget()
+{
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
+	XTL::IDirect3DSurface8 *pHostRenderTarget = CxbxUpdateSurface(g_pD3DActiveRenderTarget);
+	XTL::IDirect3DSurface8 *pHostDepthStencil = CxbxUpdateSurface(g_pD3DActiveDepthStencil);
+
+	HRESULT hRet = g_pD3DDevice8->SetRenderTarget(pHostRenderTarget, pHostDepthStencil);
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderTarget");
+
+	// This tries to fix VolumeFog on ATI :
+	if (FAILED(hRet))
+	{
+		// TODO : Maybe some info : http://forums.create.msdn.com/forums/t/2124.aspx
+		EmuWarning("SetRenderTarget failed! Trying ATI fix");
+		hRet = g_pD3DDevice8->SetRenderTarget(pHostRenderTarget, nullptr);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderTarget [second]");
+	}
+}
+
+void CxbxUpdateNativeD3DResources()
+{
+	/* Dxbx has :
+	DxbxUpdateActiveVertexShader();
+	DxbxUpdateActiveTextures();
+	DxbxUpdateActivePixelShader();
+	DxbxUpdateDeferredStates(); // BeginPush sample shows us that this must come *after* texture update!
+	DxbxUpdateActiveVertexBufferStreams();
+	DxbxUpdateActiveRenderTarget();
+	*/
+	CxbxUpdateTextureStages();
+	XTL::EmuUpdateDeferredStates();
+	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
 }
 
 
@@ -1978,30 +2041,38 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 }
 
                 // update render target cache
-                g_pCachedRenderTarget = EmuNewD3DSurface();
-				XTL::IDirect3DSurface8 *pNewHostSurface = nullptr;
+				g_pD3DInitialRenderTarget = EmuNewD3DSurface();
 
-                g_pCachedRenderTarget->Data = CXBX_D3DRESOURCE_DATA_RENDER_TARGET;
-                hRet = g_pD3DDevice8->GetRenderTarget(&pNewHostSurface);
+                hRet = g_pD3DDevice8->GetRenderTarget(&g_pInitialHostRenderTarget);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
 
-				ConvertHostSurfaceHeaderToXbox(pNewHostSurface, g_pCachedRenderTarget);
-				SetHostSurface(g_pCachedRenderTarget, pNewHostSurface);
+				ConvertHostSurfaceHeaderToXbox(g_pInitialHostRenderTarget, g_pD3DInitialRenderTarget);
+
+				XTL::D3DLOCKED_RECT LockedRect;
+				g_pInitialHostRenderTarget->LockRect(&LockedRect, nullptr, 0);
+				g_pD3DInitialRenderTarget->Data = (DWORD)LockedRect.pBits;// Was CXBX_D3DRESOURCE_DATA_RENDER_TARGET;
+
+				SetHostSurface(g_pD3DInitialRenderTarget, g_pInitialHostRenderTarget);
+				g_pD3DActiveRenderTarget = g_pD3DInitialRenderTarget;
 
                 // update z-stencil surface cache
-                g_pCachedDepthStencil = EmuNewD3DSurface();
-				pNewHostSurface = nullptr;
-				g_pCachedDepthStencil->Data = CXBX_D3DRESOURCE_DATA_DEPTH_STENCIL;
-				hRet = g_pD3DDevice8->GetDepthStencilSurface(&pNewHostSurface);
+				g_pD3DInitialDepthStencil = EmuNewD3DSurface();
+				hRet = g_pD3DDevice8->GetDepthStencilSurface(&g_pInitialHostDepthStencil);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetDepthStencilSurface");
 
 				if (SUCCEEDED(hRet))
 				{
-					ConvertHostSurfaceHeaderToXbox(pNewHostSurface, g_pCachedDepthStencil);
-					SetHostSurface(g_pCachedDepthStencil, pNewHostSurface);
+					ConvertHostSurfaceHeaderToXbox(g_pInitialHostDepthStencil, g_pD3DInitialDepthStencil);
+
+					XTL::D3DLOCKED_RECT LockedRect;
+					g_pInitialHostDepthStencil->LockRect(&LockedRect, nullptr, 0);
+					g_pD3DInitialDepthStencil->Data = (DWORD)LockedRect.pBits; // Was CXBX_D3DRESOURCE_DATA_DEPTH_STENCIL;
+
+					SetHostSurface(g_pD3DInitialDepthStencil, g_pInitialHostDepthStencil);
 				}
 
-				UpdateDepthStencilFlags(g_pCachedDepthStencil);
+				g_pD3DActiveDepthStencil = g_pD3DInitialDepthStencil;
+				UpdateDepthStencilFlags(g_pD3DActiveDepthStencil);
 
 				hRet = g_pD3DDevice8->CreateVertexBuffer
                 (
@@ -2098,11 +2169,6 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
     }
 
     return 0;
-}
-
-XTL::IDirect3DSurface8 *CxbxUpdateSurface(const XTL::X_D3DSurface *pXboxSurface)
-{
-	return (XTL::IDirect3DSurface8 *)CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pXboxSurface, NULL);
 }
 
 #if 0
@@ -2850,6 +2916,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CopyRects)
 		LOG_FUNC_ARG(pDestPointsArray)
 		LOG_FUNC_END;
 
+	// TODO : Do we need : CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
+
 	XTL::IDirect3DSurface8 *pHostSourceSurface = CxbxUpdateSurface(pSourceSurface);
 	XTL::IDirect3DSurface8 *pHostDestinationSurface = CxbxUpdateSurface(pDestinationSurface);
 
@@ -3020,8 +3088,11 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer2)
 	ConvertHostSurfaceHeaderToXbox(pNewHostSurface, pBackBuffer);
 
 	SetHostSurface(pBackBuffer, pNewHostSurface);
+
     // update data pointer
-    pBackBuffer->Data = CXBX_D3DRESOURCE_DATA_BACK_BUFFER;
+	XTL::D3DLOCKED_RECT LockedRect;
+	pNewHostSurface->LockRect(&LockedRect, nullptr, 0);
+	pBackBuffer->Data = (DWORD)LockedRect.pBits; // Was CXBX_D3DRESOURCE_DATA_BACK_BUFFER;
 
     RETURN(pBackBuffer);
 }
@@ -3235,8 +3306,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget2)()
 
 	LOG_FUNC();
 
-	X_D3DSurface *result = g_pCachedRenderTarget;
-
+	X_D3DSurface *result = g_pD3DActiveRenderTarget;
 	if (result != NULL)
 		result->Common++; // EMUPATCH(D3DResource_AddRef)(result) would give too much overhead (and needless logging)
 
@@ -3269,7 +3339,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface2)()
 
 	LOG_FUNC();
 
-	X_D3DSurface *result = g_pCachedDepthStencil;
+	X_D3DSurface *result = g_pD3DActiveDepthStencil;
 	if (result != NULL)
 		result->Common++; // EMUPATCH(D3DResource_AddRef)(result) would give too much overhead (and needless logging)
 		
@@ -4952,6 +5022,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
     hRet = g_pD3DDevice8->SetRenderState(D3DRS_FILLMODE, dwFillMode);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
 
+	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
+
     hRet = g_pD3DDevice8->Clear(Count, pRects, Flags, Color, Z, Stencil);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
 }
@@ -5164,13 +5236,21 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (pPixelContainer == NULL)
 		return nullptr;
 
+	if (pPixelContainer == g_pD3DInitialRenderTarget)
+		return (XTL::IDirect3DBaseTexture8 *)g_pInitialHostRenderTarget;
+
+	if (pPixelContainer == g_pD3DInitialDepthStencil)
+		return (XTL::IDirect3DBaseTexture8 *)g_pInitialHostDepthStencil;
+
 	X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pPixelContainer);
 	if (X_Format == X_D3DFMT_P8)
 		if (pPalette == NULL)
 			CxbxKrnlCleanup("CxbxUpdateTexture can't handle paletized textures without a given palette!");
 
+#if 0
 	if (IsSpecialXboxResource(pPixelContainer))
 		return nullptr;
+#endif
 
 	xbaddr pTextureData = (xbaddr)GetDataFromXboxResource((X_D3DResource *)pPixelContainer);
 	if (pTextureData == NULL)
@@ -5823,11 +5903,11 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
 			if(g_pIndexBuffer == pThis)
 				g_pIndexBuffer = NULL;
 
-			if (g_pCachedRenderTarget == pThis)
-				g_pCachedRenderTarget = NULL;
+			if (g_pD3DActiveRenderTarget == pThis)
+				g_pD3DActiveRenderTarget = NULL;
 
-			if (g_pCachedDepthStencil == pThis)
-				g_pCachedDepthStencil = NULL;
+			if (g_pD3DActiveDepthStencil == pThis)
+				g_pD3DActiveDepthStencil = NULL;
 
 			if (g_pCachedYuvSurface == pThis)
 				g_pCachedYuvSurface = NULL;
@@ -6045,10 +6125,10 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
 	pDesc->Usage = 0;
 	if (dwLevel == 0)
 	{
-		if (pPixelContainer = g_pCachedRenderTarget)
+		if (pPixelContainer = g_pD3DActiveRenderTarget)
 			pDesc->Usage = X_D3DUSAGE_RENDERTARGET;
 		else
-			if (pPixelContainer = g_pCachedDepthStencil)
+			if (pPixelContainer = g_pD3DActiveDepthStencil)
 				pDesc->Usage = X_D3DUSAGE_DEPTHSTENCIL;
 	}
 
@@ -7870,31 +7950,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
     return hRet;
 }
 
-void CxbxUpdateTextureStages()
-{
-	LOG_INIT // Allows use of DEBUG_D3DRESULT
-
-	for (int Stage = 0; Stage < TEXTURE_STAGES; Stage++) {
-		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = CxbxUpdateTexture(XTL::EmuD3DTextureStages[Stage], g_pTexturePaletteStages[Stage]);
-
-		HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, (g_iWireframe == 0) ? pHostBaseTexture : nullptr);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTexture");
-	}
-}
-
-void CxbxUpdateNativeD3DResources()
-{
-	XTL::EmuUpdateDeferredStates();
-	CxbxUpdateTextureStages();
-/* TODO : Port these :
-	DxbxUpdateActiveVertexShader();
-	DxbxUpdateActivePixelShader();
-	DxbxUpdateDeferredStates(); // BeginPush sample shows us that this must come *after* texture update!
-	DxbxUpdateActiveVertexBufferStreams();
-	DxbxUpdateActiveRenderTarget();
-*/
-}
-
 // ******************************************************************
 // * patch: D3DDevice_DrawVertices
 // ******************************************************************
@@ -7909,8 +7964,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(PrimitiveType)
-		LOG_FUNC_ARG(VertexCount)
 		LOG_FUNC_ARG(StartVertex)
+		LOG_FUNC_ARG(VertexCount)
 		LOG_FUNC_END;
 
 	// Dxbx Note : In DrawVertices and DrawIndexedVertices, PrimitiveType may not be D3DPT_POLYGON
@@ -8367,26 +8422,15 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 		LOG_FUNC_ARG(pNewZStencil)
 		LOG_FUNC_END;
 
-    IDirect3DSurface8 *pHostRenderTarget = nullptr;
-    IDirect3DSurface8 *pHostDepthStencil  = nullptr;
-
 	if (pRenderTarget != NULL)
-	{
-		pHostRenderTarget = CxbxUpdateSurface(pRenderTarget);
+		g_pD3DActiveRenderTarget = pRenderTarget;
+	else
+		g_pD3DActiveRenderTarget = g_pD3DInitialRenderTarget;
 
-		if (pHostRenderTarget == nullptr)
-			pHostRenderTarget = GetHostSurface(g_pCachedRenderTarget); // CXBX_D3DRESOURCE_DATA_RENDER_TARGET cannot CxbxUpdateSurface
-	}
-
-
-	if (pNewZStencil != NULL)
-		pHostDepthStencil = CxbxUpdateSurface(pNewZStencil);
-
+	g_pD3DActiveDepthStencil = pNewZStencil;
 	UpdateDepthStencilFlags(pNewZStencil);
 
     // TODO: Follow that stencil!
-    //HRESULT hRet = g_pD3DDevice8->SetRenderTarget(pHostRenderTarget, pHostDepthStencil);
-	//DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderTarget");
 }
 
 #if 0 // patch disabled
