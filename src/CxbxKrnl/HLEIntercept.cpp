@@ -648,10 +648,24 @@ static inline void GetOovpaEntry(OOVPA *oovpa, int index, OUT uint32 &offset, OU
 
 static boolean CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
 {
-	uint32 v = 0; // verification counter
+	// NOTE : Checking offsets uses bytes. Doing that first is probably
+	// faster than first checking (more complex) xrefs.
+
+	// Check all (Offset,Value)-pairs, stop if any does not match
+	for (uint32 v = Oovpa->XRefCount; v < Oovpa->Count; v++)
+	{
+		uint32 Offset;
+		uint08 ExpectedValue;
+
+		// get offset + value pair
+		GetOovpaEntry(Oovpa, v, Offset, ExpectedValue);
+		uint08 ActualValue = *(uint08*)(cur + Offset);
+		if (ActualValue != ExpectedValue)
+			return false;
+	}
 
 	// Check all XRefs, stop if any does not match
-	for (; v < Oovpa->XRefCount; v++)
+	for (uint32 v = 0; v < Oovpa->XRefCount; v++)
 	{
 		uint32 XRef;
 		uint08 Offset;
@@ -670,22 +684,11 @@ static boolean CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
 			continue;
 
 		xbaddr ActualAddr = *(xbaddr*)(cur + Offset);
-		// check if PC-relative or direct reference matches XRef
-		if ((ActualAddr + cur + Offset + 4 != XRefAddr) && (ActualAddr != XRefAddr))
-			return false;
-	}
-
-	// Check all (Offset,Value)-pairs, stop if any does not match
-	for (; v < Oovpa->Count; v++)
-	{
-		uint32 Offset;
-		uint08 ExpectedValue;
-
-		// get offset + value pair
-		GetOovpaEntry(Oovpa, v, Offset, ExpectedValue);
-		uint08 ActualValue = *(uint08*)(cur + Offset);
-		if (ActualValue != ExpectedValue)
-			return false;
+		// check if direct reference matches XRef
+		if (ActualAddr != XRefAddr)
+			// check if PC-relative matches XRef
+			if (ActualAddr + cur + Offset + 4 != XRefAddr)
+				return false;
 	}
 
 	// all offsets matched
