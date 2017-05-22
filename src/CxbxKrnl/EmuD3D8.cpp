@@ -85,8 +85,10 @@ static DWORD WINAPI                 EmuRenderWindow(LPVOID);
 static DWORD WINAPI                 EmuCreateDeviceProxy(LPVOID);
 static LRESULT WINAPI               EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 static DWORD WINAPI                 EmuUpdateTickCount(LPVOID);
+#if 0
 static void                         CxbxUpdateResource(XTL::X_D3DResource *pResource);
 static void                         EmuAdjustPower2(UINT *dwWidth, UINT *dwHeight);
+#endif
 
 // Static Variable(s)
 static HMONITOR                     g_hMonitor      = NULL; // Handle to DirectDraw monitor
@@ -147,7 +149,9 @@ static XTL::D3DMATERIAL8            g_pBackMaterial = { 0 };
 // cached Direct3D state variable(s)
 static XTL::X_D3DSurface           *g_pCachedRenderTarget = NULL;
 static XTL::X_D3DSurface           *g_pCachedDepthStencil = NULL;
+#if 0
 static XTL::X_D3DSurface           *g_pCachedYuvSurface = NULL;
+#endif
 static BOOL                         g_bRenderState_YuvEnabled = FALSE;
 static DWORD                        g_dwVertexShaderUsage = 0;
 static DWORD                        g_VertexShaderSlots[136];
@@ -2101,6 +2105,7 @@ XTL::IDirect3DSurface8 *CxbxUpdateSurface(const XTL::X_D3DSurface *pXboxSurface)
 	return (XTL::IDirect3DSurface8 *)CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pXboxSurface, NULL);
 }
 
+#if 0
 // check if a resource has been converted yet (if not, do it)
 static void CxbxUpdateResource(XTL::X_D3DResource *pResource)
 {
@@ -2136,7 +2141,9 @@ static void CxbxUpdateResource(XTL::X_D3DResource *pResource)
 	}
 	}
 }
+#endif
 
+#if 0
 // ensure a given width/height are powers of 2
 static void EmuAdjustPower2(UINT *dwWidth, UINT *dwHeight)
 {
@@ -2170,6 +2177,7 @@ static void EmuAdjustPower2(UINT *dwWidth, UINT *dwHeight)
     *dwWidth = NewWidth;
     *dwHeight = NewHeight;
 }
+#endif
 
 typedef struct {
 	DWORD Hash = 0;
