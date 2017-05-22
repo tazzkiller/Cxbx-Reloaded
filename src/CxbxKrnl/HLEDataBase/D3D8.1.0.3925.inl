@@ -2715,7 +2715,10 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_LightEnable
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_LightEnable, 3911, 25)
+OOVPA_XREF(D3DDevice_LightEnable, 3911, 1 + 24,
+
+	XRefNoSaveIndex,
+	XRefOne)
 #define D3DDevice_LightEnable_4361 D3DDevice_LightEnable_3911
 #define D3DDevice_LightEnable_4627 D3DDevice_LightEnable_3911
 
@@ -2768,11 +2771,15 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_GetLightEnable
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_GetLightEnable, 3911, 29) // valid upto at least 4627, next known difference is from 5344 onwards
+OOVPA_XREF(D3DDevice_GetLightEnable, 3911, 1+28, // valid upto at least 4627, next known difference is from 5344 onwards
+
+	XRefNoSaveIndex,
+	XRefOne)
 #define D3DDevice_GetLightEnable_4361 D3DDevice_GetLightEnable_3911
 #define D3DDevice_GetLightEnable_4627 D3DDevice_GetLightEnable_3911
 
         XREF_ENTRY( 0x5D, XREF_D3DDEVICE),
+
 		{ 0x00, 0x8B },
 		{ 0x01, 0x4C },
 		{ 0x02, 0x24 },
