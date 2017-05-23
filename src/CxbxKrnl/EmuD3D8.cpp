@@ -92,7 +92,7 @@ static void                         EmuAdjustPower2(UINT *dwWidth, UINT *dwHeigh
 
 // Static Variable(s)
 static HMONITOR                     g_hMonitor      = NULL; // Handle to DirectDraw monitor
-static BOOL                         g_bSupportsYUY2 = FALSE;// Does device support YUY2 overlays?
+static BOOL                         g_bYUY2OverlaysSupported = FALSE;// Does device support YUY2 overlays?
 static XTL::LPDIRECTDRAW7           g_pDD7          = NULL; // DirectDraw7
 static XTL::DDCAPS                  g_DriverCaps          = { 0 };
 #if 0
@@ -1992,18 +1992,18 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                     g_pDD7->GetFourCCCodes(&dwCodes, lpCodes);
                     lpCodes = (DWORD*)malloc(dwCodes*sizeof(DWORD));
                     g_pDD7->GetFourCCCodes(&dwCodes, lpCodes);
-                    g_bSupportsYUY2 = false;
+                    g_bYUY2OverlaysSupported = false;
                     for(DWORD v=0;v<dwCodes;v++)
                     {
                         if(lpCodes[v] == MAKEFOURCC('Y','U','Y','2'))
                         {
-                            g_bSupportsYUY2 = true;
+                            g_bYUY2OverlaysSupported = true;
                             break;
                         }
                     }
 
                     free(lpCodes);						
-                    if(!g_bSupportsYUY2)
+                    if(!g_bYUY2OverlaysSupported)
                         EmuWarning("YUY2 overlays are not supported in hardware, could be slow!");
 					else
 					{
@@ -2012,14 +2012,14 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 							DbgPrintf("EmuD3D8: Hardware accelerated YUV surfaces Enabled...\n");
 						else
 						{
-							g_bSupportsYUY2 = false;
+							g_bYUY2OverlaysSupported = false;
 							DbgPrintf("EmuD3D8: Hardware accelerated YUV surfaces Disabled...\n");
 						}
 					}
                 }
 
                 // initialize primary surface
-                if(g_bSupportsYUY2)
+                if(g_bYUY2OverlaysSupported)
                 {
                     XTL::DDSURFACEDESC2 ddsd2;
 					HRESULT hRet;
@@ -2036,7 +2036,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					{
 						CxbxKrnlCleanup("Could not create primary surface (0x%.08X)", hRet);
 						// TODO : Make up our mind: Either halt (above) or continue (below)
-						g_bSupportsYUY2 = false;
+						g_bYUY2OverlaysSupported = false;
 					}
                 }
 
@@ -6702,7 +6702,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_UpdateOverlay)
 	if (g_pDDSOverlay7 == nullptr)
 	{
 		// initialize overlay surface
-		if (g_bSupportsYUY2)
+		if (g_bYUY2OverlaysSupported)
 		{
 			XTL::DDSURFACEDESC2 ddsd2;
 
@@ -6751,7 +6751,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_UpdateOverlay)
 	}
 
 	// manually copy data over to overlay
-	if(g_bSupportsYUY2)
+	if(g_bYUY2OverlaysSupported)
 	{
 		// Make sure the overlay is allocated before using it
 		if (g_pDDSOverlay7 == nullptr) {
