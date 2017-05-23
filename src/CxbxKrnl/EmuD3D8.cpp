@@ -126,9 +126,11 @@ static int                          g_iWireframe    = 0;
 // build version
 extern uint32						g_BuildVersion;
 
+#if 0
 // current active index buffer
 static XTL::X_D3DIndexBuffer       *g_pIndexBuffer  = NULL; // current active index buffer
 static DWORD                        g_dwBaseVertexIndex = 0;// current active index buffer base index
+#endif
 
 // current active vertex stream
 static XTL::IDirect3DVertexBuffer8 *g_pDummyBuffer = NULL;  // Dummy buffer, used to set unused stream sources with
@@ -142,7 +144,9 @@ static DWORD                        g_VBLastSwap = 0;
 
 // current swap information
 static XTL::D3DSWAPDATA				g_SwapData = {0};
+#if 0
 static DWORD						g_SwapLast = 0;
+#endif
 
 static XTL::D3DMATERIAL8            g_pBackMaterial = { 0 };
 
