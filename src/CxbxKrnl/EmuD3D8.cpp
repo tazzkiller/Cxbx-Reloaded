@@ -1269,12 +1269,12 @@ void CxbxUpdateTextureStages()
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-		for (int Stage = 0; Stage < TEXTURE_STAGES; Stage++) {
-			XTL::IDirect3DBaseTexture8 *pHostBaseTexture = CxbxUpdateTexture(XTL::EmuD3DTextureStages[Stage], g_pTexturePaletteStages[Stage]);
+	for (int Stage = 0; Stage < TEXTURE_STAGES; Stage++) {
+		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = CxbxUpdateTexture(XTL::EmuD3DTextureStages[Stage], g_pTexturePaletteStages[Stage]);
 
-			HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, (g_iWireframe == 0) ? pHostBaseTexture : nullptr);
-			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTexture");
-		}
+		HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, (g_iWireframe == 0) ? pHostBaseTexture : nullptr);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTexture");
+	}
 }
 
 XTL::IDirect3DSurface8 *CxbxUpdateSurface(const XTL::X_D3DSurface *pXboxSurface)
