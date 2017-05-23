@@ -1855,15 +1855,16 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 
                 // make adjustments to parameters to make sense with windows Direct3D
                 {
-                    g_EmuCDPD.DeviceType = (g_XBVideo.GetDirect3DDevice() == 0) ? XTL::D3DDEVTYPE_HAL : XTL::D3DDEVTYPE_REF;
                     g_EmuCDPD.Adapter = g_XBVideo.GetDisplayAdapter();
+                    g_EmuCDPD.DeviceType = (g_XBVideo.GetDirect3DDevice() == 0) ? XTL::D3DDEVTYPE_HAL : XTL::D3DDEVTYPE_REF;
+					// Note: Instead of the hFocusWindow argument, we use the global g_hEmuWindow here:
+					g_EmuCDPD.hFocusWindow = g_hEmuWindow;
 
                     g_EmuCDPD.pPresentationParameters->Windowed = !g_XBVideo.GetFullscreen();
 
                     if(g_XBVideo.GetVSync())
                         g_EmuCDPD.pPresentationParameters->SwapEffect = XTL::D3DSWAPEFFECT_COPY_VSYNC;
 
-                    g_EmuCDPD.hFocusWindow = g_hEmuWindow;
 
                     g_EmuCDPD.pPresentationParameters->BackBufferFormat       = (XTL::X_D3DFORMAT)XTL::EmuXB2PC_D3DFormat(g_EmuCDPD.pPresentationParameters->BackBufferFormat);
 					g_EmuCDPD.pPresentationParameters->AutoDepthStencilFormat = (XTL::X_D3DFORMAT)XTL::EmuXB2PC_D3DFormat(g_EmuCDPD.pPresentationParameters->AutoDepthStencilFormat);
@@ -2013,7 +2014,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 // check for YUY2 overlay support TODO: accept other overlay types
                 {
                     DWORD  dwCodes = 0;
-                    DWORD *lpCodes = 0;
+                    DWORD *lpCodes = nullptr;
 
                     g_pDD7->GetFourCCCodes(&dwCodes, lpCodes);
                     lpCodes = (DWORD*)malloc(dwCodes*sizeof(DWORD));
@@ -2118,9 +2119,10 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 );
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateVertexBuffer");
 
-                for(int Streams = 0; Streams < 8; Streams++)
+                for(int Streams = 0; Streams < MAX_NBR_STREAMS; Streams++)
                 {
-                    hRet = g_pD3DDevice8->SetStreamSource(Streams, g_pDummyBuffer, 1);
+					// Dxbx note : Why do we need a dummy stream at all?
+					hRet = g_pD3DDevice8->SetStreamSource(Streams, g_pDummyBuffer, 1);
 					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetStreamSource");
 				}
 
