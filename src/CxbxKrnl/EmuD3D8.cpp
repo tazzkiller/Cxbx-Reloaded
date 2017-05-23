@@ -1788,6 +1788,25 @@ static DWORD WINAPI EmuUpdateTickCount(LPVOID)
     timeEndPeriod(0);
 }
 
+void CxbxPresent()
+{
+	LOG_INIT // 
+
+	HRESULT hRet;
+
+	hRet = g_pD3DDevice8->EndScene();
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->EndScene");
+
+	CxbxReleaseBackBufferLock();
+
+	hRet = g_pD3DDevice8->Present(nullptr, nullptr, 0, nullptr);
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Present");
+
+	// begin scene
+	hRet = g_pD3DDevice8->BeginScene();
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
+}
+
 // thread dedicated to create devices
 static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 {
@@ -2087,6 +2106,9 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetStreamSource");
 				}
 
+				hRet = g_pD3DDevice8->BeginScene();
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
+
                 // initially, show a black screen
                 // Only clear depth buffer and stencil if present
                 //
@@ -2102,18 +2124,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					/*Stencil=*/g_bHasStencilBits ? 0 : 0); // TODO : What to set these to?
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
 
-				hRet = g_pD3DDevice8->BeginScene();
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
-
-				hRet = g_pD3DDevice8->EndScene();
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->EndScene");
-
-				hRet = g_pD3DDevice8->Present(0, 0, 0, 0);
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Present");
-
-                // begin scene
-                hRet = g_pD3DDevice8->BeginScene();
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene(2nd)");
+				CxbxPresent();
 
                 // signal completion
                 g_EmuCDPD.bReady = false;
@@ -5072,16 +5083,13 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
 		if (Flags != CXBX_SWAP_PRESENT_FORWARD) // Avoid a warning when forwarded
 			EmuWarning("XTL::EmuD3DDevice_Swap: Flags != 0");
 
-	CxbxReleaseBackBufferLock();	
-
 	// TODO: Make a video option to wait for VBlank before calling Present.
 	// Makes syncing to 30fps easier (which is the native frame rate for Azurik
 	// and Halo).
 //	g_pDD7->WaitForVerticalBlank( DDWAITVB_BLOCKEND, NULL );
 //	g_pDD7->WaitForVerticalBlank( DDWAITVB_BLOCKEND, NULL );
 
-	HRESULT hRet = g_pD3DDevice8->Present(0, 0, 0, 0);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Present");
+	CxbxPresent();
 
 	if (Flags == CXBX_SWAP_PRESENT_FORWARD) // Only do this when forwarded from Present
 	{
