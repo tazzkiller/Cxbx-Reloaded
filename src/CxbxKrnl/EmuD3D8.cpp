@@ -1821,6 +1821,7 @@ void CxbxGetActiveHostBackBuffer()
 	}
 }
 
+// A wrapper for Present() with an extra safeguard to restore 'device lost' errors
 void CxbxPresent()
 {
 	LOG_INIT // 
@@ -1834,6 +1835,17 @@ void CxbxPresent()
 
 	hRet = g_pD3DDevice8->Present(nullptr, nullptr, 0, nullptr);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Present");
+
+	if (hRet == D3DERR_DEVICELOST)
+		while (hRet != D3D_OK)
+		{
+			hRet = g_pD3DDevice8->TestCooperativeLevel();
+			if (hRet == D3DERR_DEVICELOST) // Device is lost and cannot be reset yet
+				Sleep(500); // Wait a bit so we don't burn through cycles for no reason
+			else
+				if (hRet == D3DERR_DEVICENOTRESET) // Lost but we can reset it now
+					hRet = g_pD3DDevice8->Reset(&(g_EmuCDPD.NativePresentationParameters));
+		}
 
 	hRet = g_pD3DDevice8->BeginScene();
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
