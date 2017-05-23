@@ -3774,10 +3774,53 @@ OOVPA_NO_XREF(D3DDevice_IsFencePending, 3925, 11)
 OOVPA_END;
 
 // ******************************************************************
+// * D3D_CMiniport_GetDisplayCapabilities
+// ******************************************************************
+OOVPA_NO_XREF(D3D_CMiniport_GetDisplayCapabilities, 3911, 15)
+#define D3D_CMiniport_GetDisplayCapabilities_4361 D3D_CMiniport_GetDisplayCapabilities_3911
+#define D3D_CMiniport_GetDisplayCapabilities_4627 D3D_CMiniport_GetDisplayCapabilities_3911
+#define D3D_CMiniport_GetDisplayCapabilities_5233 D3D_CMiniport_GetDisplayCapabilities_3911 //??
+#define D3D_CMiniport_GetDisplayCapabilities_5344 D3D_CMiniport_GetDisplayCapabilities_3911
+#define D3D_CMiniport_GetDisplayCapabilities_5558 D3D_CMiniport_GetDisplayCapabilities_3911
+#define D3D_CMiniport_GetDisplayCapabilities_5659 D3D_CMiniport_GetDisplayCapabilities_3911
+#define D3D_CMiniport_GetDisplayCapabilities_5788 D3D_CMiniport_GetDisplayCapabilities_3911
+#define D3D_CMiniport_GetDisplayCapabilities_5849 D3D_CMiniport_GetDisplayCapabilities_3911
+#define D3D_CMiniport_GetDisplayCapabilities_5933 D3D_CMiniport_GetDisplayCapabilities_3911
+
+        // D3D_CMiniport_GetDisplayCapabilities+0x00 : xor eax, eax
+        { 0x00, 0x33 },
+        { 0x01, 0xC0 },
+        // D3D_CMiniport_GetDisplayCapabilities+0x02 : cmp ds:_D3D__AvInfo, eax
+        { 0x02, 0x39 },
+        { 0x03, 0x05 },	
+		// D3D_CMiniport_GetDisplayCapabilities+0x08 : jne
+		{ 0x08, 0x75 },
+		{ 0x09, 0x0f },
+		// D3D_CMiniport_GetDisplayCapabilities+0x0A : push #
+		{ 0x0A, 0x68 },
+		// D3D_CMiniport_GetDisplayCapabilities+0x0F : push eax
+		{ 0x0F, 0x50 },
+        // D3D_CMiniport_GetDisplayCapabilities+0x10 : push 6
+        { 0x10, 0x6A },
+        { 0x11, 0x06 },
+		// D3D_CMiniport_GetDisplayCapabilities+0x12 : push eax
+		{ 0x12, 0x50 },
+        // D3D_CMiniport_GetDisplayCapabilities+0x13 : call ds:AvSendTVEncoderOption
+        { 0x13, 0xFF },
+        { 0x14, 0x15 },
+		// D3D_CMiniport_GetDisplayCapabilities+0x19 : mov    eax, #
+		{ 0x19, 0xA1 },
+        // D3D_CMiniport_GetDisplayCapabilities+0x1E : retn
+        { 0x1E, 0xC3 },
+OOVPA_END;
+
+
+// ******************************************************************
 // * D3D8_3925
 // ******************************************************************
 OOVPATable D3D8_3925[] = {
 
+	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 3911, DISABLED),
 	REGISTER_OOVPA(Direct3D_CreateDevice, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_IsBusy, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDeviceCaps, 3925, DISABLED),

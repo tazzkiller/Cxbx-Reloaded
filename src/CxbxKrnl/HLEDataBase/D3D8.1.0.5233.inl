@@ -551,32 +551,6 @@ OOVPA_NO_XREF(D3DDevice_SetSoftDisplayFilter, 5233, 12)
 OOVPA_END;
 
 // ******************************************************************
-// * D3D_CMiniport_GetDisplayCapabilities
-// ******************************************************************
-OOVPA_NO_XREF(D3D_CMiniport_GetDisplayCapabilities, 5233, 10)
-
-        // D3D_CMiniport_GetDisplayCapabilities+0x00 : xor eax, eax
-        { 0x00, 0x33 }, // (Offset,Value)-Pair #1
-        { 0x01, 0xC0 }, // (Offset,Value)-Pair #2
-
-        // D3D_CMiniport_GetDisplayCapabilities+0x02 : cmp ds:_D3D__AvInfo, eax
-        { 0x02, 0x39 }, // (Offset,Value)-Pair #3
-        { 0x03, 0x05 }, // (Offset,Value)-Pair #4
-
-        // D3D_CMiniport_GetDisplayCapabilities+0x10 : push 6, push eax
-        { 0x10, 0x6A }, // (Offset,Value)-Pair #5
-        { 0x11, 0x06 }, // (Offset,Value)-Pair #6
-        { 0x12, 0x50 }, // (Offset,Value)-Pair #7
-
-        // D3D_CMiniport_GetDisplayCapabilities+0x13 : call ds:AvSendTVEncoderOption
-        { 0x13, 0xFF }, // (Offset,Value)-Pair #8
-        { 0x14, 0x15 }, // (Offset,Value)-Pair #9
-
-        // D3D_CMiniport_GetDisplayCapabilities+0x1E : retn
-        { 0x1E, 0xC3 }, // (Offset,Value)-Pair #10
-OOVPA_END;
-
-// ******************************************************************
 // * D3DDevice_BeginPush
 // ******************************************************************
 #define D3DDevice_BeginPush_5233 D3DDevice_BeginPush_5028
@@ -750,7 +724,7 @@ OOVPATable D3D8_5233[] = {
 	REGISTER_OOVPA(D3DDevice_GetCreationParameters, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetFlickerFilter, 5233, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetSoftDisplayFilter, 5233, PATCH),
-	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 5233, PATCH),
+	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 5233, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_TwoSidedLighting, 4134, PATCH), // Beware of the typo...
 	REGISTER_OOVPA(D3DDevice_SetRenderState_FrontFace, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_LogicOp, 4627, PATCH),

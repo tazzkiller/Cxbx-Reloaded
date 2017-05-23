@@ -9752,24 +9752,26 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_PersistDisplay)()
 	return hRet;
 }
 
-
+#if 0 // disabled, calls AvSendTVEncoderOption which calls our AvQueryAvCapabilities
 // ******************************************************************
 // * patch: D3D_CMiniport_GetDisplayCapabilities
 // ******************************************************************
-void WINAPI XTL::EMUPATCH(D3D_CMiniport_GetDisplayCapabilities)()
+DWORD WINAPI XTL::EMUPATCH(D3D_CMiniport_GetDisplayCapabilities)()
 {
 	FUNC_EXPORTS
 
 	LOG_FUNC();
 
-	// TODO: Find out what this actually is.
 	// This function was only found in Run Like Hell (5233) @ 0x11FCD0.
 	// So far, this function hasn't been found in any other XDKs.  Since
 	// the only major thing going on inside of it is a call to the kernel
 	// function AvSendTVEncoderOption, we can probably ignore it.
 
-	LOG_UNIMPLEMENTED();
+	LOG_INCOMPLETE();
+
+	return xboxkrnl::AvSendTVEncoderOption() // calls AvQueryAvCapabilities(); // AV_STANDARD_NTSC_M;
 }
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_PrimeVertexCache

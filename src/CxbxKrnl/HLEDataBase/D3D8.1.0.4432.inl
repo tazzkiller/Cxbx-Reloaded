@@ -584,6 +584,8 @@ OOVPA_END;
 // ******************************************************************
 OOVPATable D3D8_4432[]  {
 
+	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 4361, DISABLED),
+
 	REGISTER_OOVPA(Direct3D_CreateDevice, 4432, PATCH),
 	REGISTER_OOVPA(D3D_CheckDeviceFormat, 4134, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SetRenderTarget, 4134, PATCH),

@@ -1335,6 +1335,8 @@ OOVPA_END;
 // ******************************************************************
 OOVPATable D3D8_5558[] = {
 
+	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 5558, DISABLED),
+
 	REGISTER_OOVPA(Direct3D_CreateDevice, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDisplayFieldStatus, 5233, PATCH),
 	REGISTER_OOVPA(D3DDevice_LazySetStateVB, 5558, XREF),

@@ -2701,6 +2701,8 @@ OOVPA_END;
 // ******************************************************************
 OOVPATable D3D8_4627[] = {
 
+	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 4627, DISABLED),
+
 	REGISTER_OOVPA(Direct3D_CreateDevice, 4627, PATCH),
 	REGISTER_OOVPA(D3D_CreateDeviceX, 4627, XREF), // If hitting a Breakpoint, redirect to Direct3D_CreateDevice.
 	REGISTER_OOVPA(D3D_CheckDeviceFormat, 4134, DISABLED),
