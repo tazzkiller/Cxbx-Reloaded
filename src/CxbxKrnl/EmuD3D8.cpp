@@ -2239,7 +2239,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
             }
         }
 
-        Sleep(1);
+        Sleep(100);
     }
 
     return 0;
