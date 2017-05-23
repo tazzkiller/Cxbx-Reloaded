@@ -137,7 +137,6 @@ static XTL::IDirect3DVertexBuffer8 *g_pDummyBuffer = NULL;  // Dummy buffer, use
 static XTL::X_D3DVertexBuffer      *g_D3DStreams[MAX_NBR_STREAMS] = {};  // The vertex buffer streams set by D3DDevice::SetStreamSource
 static UINT                         g_D3DStreamStrides[MAX_NBR_STREAMS] = {};
 
-
 // current vertical blank information
 static XTL::D3DVBLANKDATA           g_VBData = {0};
 static DWORD                        g_VBLastSwap = 0;
@@ -150,17 +149,21 @@ static DWORD						g_SwapLast = 0;
 
 static XTL::D3DMATERIAL8            g_pBackMaterial = { 0 };
 
+static XTL::X_D3DSurface           *g_pD3DInitialBackBuffer = NULL;
 static XTL::X_D3DSurface           *g_pD3DInitialRenderTarget = NULL;
 static XTL::X_D3DSurface           *g_pD3DInitialDepthStencil = NULL;
+static XTL::IDirect3DSurface8      *g_pInitialHostBackBuffer = nullptr;
 static XTL::IDirect3DSurface8      *g_pInitialHostRenderTarget = nullptr;
 static XTL::IDirect3DSurface8      *g_pInitialHostDepthStencil = nullptr;
-
 // cached Direct3D state variable(s)
+static XTL::X_D3DSurface           *g_pD3DActiveBackBuffer = NULL;
 static XTL::X_D3DSurface           *g_pD3DActiveRenderTarget = NULL;
 static XTL::X_D3DSurface           *g_pD3DActiveDepthStencil = NULL;
+
 #if 0
 static XTL::X_D3DSurface           *g_pCachedYuvSurface = NULL;
 #endif
+
 static BOOL                         g_bRenderState_YuvEnabled = FALSE;
 static DWORD                        g_dwVertexShaderUsage = 0;
 static DWORD                        g_VertexShaderSlots[136];
@@ -2062,6 +2065,17 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 						g_bYUY2OverlaysSupported = false;
 					}
                 }
+
+				// Init backbuffer
+				g_pD3DInitialBackBuffer = EmuNewD3DSurface();
+
+				hRet = g_pD3DDevice8->GetBackBuffer(0, XTL::D3DBACKBUFFER_TYPE_MONO, &g_pInitialHostBackBuffer);
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
+
+				ConvertHostSurfaceHeaderToXbox(g_pInitialHostBackBuffer, g_pD3DInitialBackBuffer);
+
+				SetHostSurface(g_pD3DInitialBackBuffer, g_pInitialHostBackBuffer);
+				g_pD3DActiveBackBuffer = g_pD3DInitialBackBuffer;
 
                 // update render target cache
 				g_pD3DInitialRenderTarget = EmuNewD3DSurface();
@@ -5248,6 +5262,9 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 	if (pPixelContainer == NULL)
 		return nullptr;
+
+	if (pPixelContainer == g_pD3DInitialBackBuffer)
+		return (XTL::IDirect3DBaseTexture8 *)g_pInitialHostBackBuffer;
 
 	if (pPixelContainer == g_pD3DInitialRenderTarget)
 		return (XTL::IDirect3DBaseTexture8 *)g_pInitialHostRenderTarget;
