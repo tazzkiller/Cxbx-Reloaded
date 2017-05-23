@@ -5824,7 +5824,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				DEBUG_D3DRESULT(hRet, "pNewHostSurface->UnlockRect");
 			}
 			else if (pNewHostCubeTexture != nullptr) {
-				hRet = pNewHostCubeTexture->UnlockRect((D3DCUBEMAP_FACES)face, 0);
+				hRet = pNewHostCubeTexture->UnlockRect((D3DCUBEMAP_FACES)face, level);
 				DEBUG_D3DRESULT(hRet, "pNewHostCubeTexture->UnlockRect");
 			}
 			else {
