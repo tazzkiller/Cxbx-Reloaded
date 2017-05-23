@@ -5388,6 +5388,15 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (pPixelContainer == g_pInitialXboxDepthStencil)
 		return (XTL::IDirect3DBaseTexture8 *)g_pInitialHostDepthStencil;
 
+	if (pPixelContainer == g_pActiveXboxBackBuffer)
+		return (XTL::IDirect3DBaseTexture8 *)g_pActiveHostBackBuffer;
+
+	if (pPixelContainer == g_pActiveXboxRenderTarget)
+		return (XTL::IDirect3DBaseTexture8 *)g_pActiveHostRenderTarget;
+
+	if (pPixelContainer == g_pActiveXboxDepthStencil)
+		return (XTL::IDirect3DBaseTexture8 *)g_pActiveHostDepthStencil;
+
 	X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pPixelContainer);
 	if (X_Format == X_D3DFMT_P8)
 		if (pPalette == NULL)
