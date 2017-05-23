@@ -2042,6 +2042,8 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					if(FAILED(hRet))
                         CxbxKrnlCleanup("Could not initialize DirectDraw7");
 
+					g_DriverCaps = {};
+					g_DriverCaps.dwSize = sizeof(XTL::DDCAPS);
 					hRet = g_pDD7->GetCaps(&g_DriverCaps, nullptr);
 					DEBUG_D3DRESULT(hRet, "g_pDD7->GetCaps");
 
