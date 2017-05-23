@@ -1808,6 +1808,16 @@ static DWORD WINAPI EmuUpdateTickCount(LPVOID)
     timeEndPeriod(0);
 }
 
+void CxbxReleaseSurface(XTL::IDirect3DSurface8 **ppSurface)
+{
+	if (*ppSurface != nullptr)
+	{
+		(*ppSurface)->UnlockRect(); // remove old lock
+		(*ppSurface)->Release();
+		(*ppSurface) = nullptr;
+	}
+}
+
 void CxbxGetActiveHostBackBuffer()
 {
 	if (g_pActiveHostBackBuffer == nullptr)
@@ -1831,12 +1841,7 @@ void CxbxPresent()
 
 	HRESULT hRet;
 
-	if (g_pActiveHostBackBuffer != nullptr)
-	{
-		g_pActiveHostBackBuffer->UnlockRect(); // remove old lock
-		g_pActiveHostBackBuffer->Release();
-		g_pActiveHostBackBuffer = nullptr;
-	}
+	CxbxReleaseSurface(&g_pActiveHostBackBuffer);
 
 	hRet = g_pD3DDevice8->EndScene();
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->EndScene");
