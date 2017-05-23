@@ -149,16 +149,21 @@ static DWORD						g_SwapLast = 0;
 
 static XTL::D3DMATERIAL8            g_pBackMaterial = { 0 };
 
-static XTL::X_D3DSurface           *g_pD3DInitialBackBuffer = NULL;
-static XTL::X_D3DSurface           *g_pD3DInitialRenderTarget = NULL;
-static XTL::X_D3DSurface           *g_pD3DInitialDepthStencil = NULL;
-static XTL::IDirect3DSurface8      *g_pInitialHostBackBuffer = nullptr;
-static XTL::IDirect3DSurface8      *g_pInitialHostRenderTarget = nullptr;
-static XTL::IDirect3DSurface8      *g_pInitialHostDepthStencil = nullptr;
 // cached Direct3D state variable(s)
-static XTL::X_D3DSurface           *g_pD3DActiveBackBuffer = NULL;
-static XTL::X_D3DSurface           *g_pD3DActiveRenderTarget = NULL;
-static XTL::X_D3DSurface           *g_pD3DActiveDepthStencil = NULL;
+static XTL::X_D3DSurface           *g_pInitialXboxBackBuffer = NULL;
+static XTL::IDirect3DSurface8      *g_pInitialHostBackBuffer = nullptr;
+static XTL::X_D3DSurface           *g_pActiveXboxBackBuffer = NULL;
+static XTL::IDirect3DSurface8      *g_pActiveHostBackBuffer = nullptr;
+
+static XTL::X_D3DSurface           *g_pInitialXboxRenderTarget = NULL;
+static XTL::IDirect3DSurface8      *g_pInitialHostRenderTarget = nullptr;
+static XTL::X_D3DSurface           *g_pActiveXboxRenderTarget = NULL;
+static XTL::IDirect3DSurface8      *g_pActiveHostRenderTarget = nullptr;
+
+static XTL::X_D3DSurface           *g_pInitialXboxDepthStencil = NULL;
+static XTL::IDirect3DSurface8      *g_pInitialHostDepthStencil = nullptr;
+static XTL::X_D3DSurface           *g_pActiveXboxDepthStencil = NULL;
+static XTL::IDirect3DSurface8      *g_pActiveHostDepthStencil = nullptr;
 
 #if 0
 static XTL::X_D3DSurface           *g_pCachedYuvSurface = NULL;
@@ -1239,19 +1244,6 @@ VOID CxbxGetPixelContainerMeasures
 	*pSize = *pHeight * *pPitch;
 }
 
-VOID CxbxReleaseBackBufferLock()
-{
-	XTL::IDirect3DSurface8 *pBackBuffer = nullptr;
-
-	if (D3D_OK == g_pD3DDevice8->GetBackBuffer(0, XTL::D3DBACKBUFFER_TYPE_MONO, &pBackBuffer))
-	{
-		assert(pBackBuffer != nullptr);
-
-		pBackBuffer->UnlockRect(); // remove old lock
-		pBackBuffer->Release();
-	}
-}
-
 void CxbxUpdateTextureStages()
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
@@ -1273,10 +1265,10 @@ void CxbxUpdateActiveRenderTarget()
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-	XTL::IDirect3DSurface8 *pHostRenderTarget = CxbxUpdateSurface(g_pD3DActiveRenderTarget);
-	XTL::IDirect3DSurface8 *pHostDepthStencil = CxbxUpdateSurface(g_pD3DActiveDepthStencil);
+	g_pActiveHostRenderTarget = CxbxUpdateSurface(g_pActiveXboxRenderTarget);
+	g_pActiveHostDepthStencil = CxbxUpdateSurface(g_pActiveXboxDepthStencil);
 
-	HRESULT hRet = g_pD3DDevice8->SetRenderTarget(pHostRenderTarget, pHostDepthStencil);
+	HRESULT hRet = g_pD3DDevice8->SetRenderTarget(g_pActiveHostRenderTarget, g_pActiveHostDepthStencil);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderTarget");
 
 	// This tries to fix VolumeFog on ATI :
@@ -1284,7 +1276,7 @@ void CxbxUpdateActiveRenderTarget()
 	{
 		// TODO : Maybe some info : http://forums.create.msdn.com/forums/t/2124.aspx
 		EmuWarning("SetRenderTarget failed! Trying ATI fix");
-		hRet = g_pD3DDevice8->SetRenderTarget(pHostRenderTarget, nullptr);
+		hRet = g_pD3DDevice8->SetRenderTarget(g_pActiveHostRenderTarget, nullptr);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderTarget [second]");
 	}
 }
@@ -1795,23 +1787,46 @@ static DWORD WINAPI EmuUpdateTickCount(LPVOID)
     timeEndPeriod(0);
 }
 
+void CxbxGetActiveHostBackBuffer()
+{
+	if (g_pActiveHostBackBuffer == nullptr)
+	{
+		LOG_INIT // 
+
+		// Refresh the host backbuffer 
+		HRESULT hRet = g_pD3DDevice8->GetBackBuffer(0, XTL::D3DBACKBUFFER_TYPE_MONO, &g_pActiveHostBackBuffer);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetBackBuffer");
+
+		if (FAILED(hRet))
+			CxbxKrnlCleanup("Unable to retrieve back buffer");
+
+		assert(g_pActiveHostBackBuffer != nullptr);
+	}
+}
+
 void CxbxPresent()
 {
 	LOG_INIT // 
 
 	HRESULT hRet;
 
+	if (g_pActiveHostBackBuffer != nullptr)
+	{
+		g_pActiveHostBackBuffer->UnlockRect(); // remove old lock
+		g_pActiveHostBackBuffer->Release();
+		g_pActiveHostBackBuffer = nullptr;
+	}
+
 	hRet = g_pD3DDevice8->EndScene();
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->EndScene");
-
-	CxbxReleaseBackBufferLock();
 
 	hRet = g_pD3DDevice8->Present(nullptr, nullptr, 0, nullptr);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Present");
 
-	// begin scene
 	hRet = g_pD3DDevice8->BeginScene();
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
+
+	CxbxGetActiveHostBackBuffer();
 }
 
 // thread dedicated to create devices
@@ -2068,49 +2083,49 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 }
 
 				// Init backbuffer
-				g_pD3DInitialBackBuffer = EmuNewD3DSurface();
+				g_pInitialXboxBackBuffer = EmuNewD3DSurface();
 
 				hRet = g_pD3DDevice8->GetBackBuffer(0, XTL::D3DBACKBUFFER_TYPE_MONO, &g_pInitialHostBackBuffer);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
 
-				ConvertHostSurfaceHeaderToXbox(g_pInitialHostBackBuffer, g_pD3DInitialBackBuffer);
+				ConvertHostSurfaceHeaderToXbox(g_pInitialHostBackBuffer, g_pInitialXboxBackBuffer);
 
-				SetHostSurface(g_pD3DInitialBackBuffer, g_pInitialHostBackBuffer);
-				g_pD3DActiveBackBuffer = g_pD3DInitialBackBuffer;
+				SetHostSurface(g_pInitialXboxBackBuffer, g_pInitialHostBackBuffer);
+				g_pActiveXboxBackBuffer = g_pInitialXboxBackBuffer;
 
                 // update render target cache
-				g_pD3DInitialRenderTarget = EmuNewD3DSurface();
+				g_pInitialXboxRenderTarget = EmuNewD3DSurface();
 
                 hRet = g_pD3DDevice8->GetRenderTarget(&g_pInitialHostRenderTarget);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
 
-				ConvertHostSurfaceHeaderToXbox(g_pInitialHostRenderTarget, g_pD3DInitialRenderTarget);
+				ConvertHostSurfaceHeaderToXbox(g_pInitialHostRenderTarget, g_pInitialXboxRenderTarget);
 
 				XTL::D3DLOCKED_RECT LockedRect;
 				g_pInitialHostRenderTarget->LockRect(&LockedRect, nullptr, 0);
-				g_pD3DInitialRenderTarget->Data = (DWORD)LockedRect.pBits;// Was CXBX_D3DRESOURCE_DATA_RENDER_TARGET;
+				g_pInitialXboxRenderTarget->Data = (DWORD)LockedRect.pBits;// Was CXBX_D3DRESOURCE_DATA_RENDER_TARGET;
 
-				SetHostSurface(g_pD3DInitialRenderTarget, g_pInitialHostRenderTarget);
-				g_pD3DActiveRenderTarget = g_pD3DInitialRenderTarget;
+				SetHostSurface(g_pInitialXboxRenderTarget, g_pInitialHostRenderTarget);
+				g_pActiveXboxRenderTarget = g_pInitialXboxRenderTarget;
 
                 // update z-stencil surface cache
-				g_pD3DInitialDepthStencil = EmuNewD3DSurface();
+				g_pInitialXboxDepthStencil = EmuNewD3DSurface();
 				hRet = g_pD3DDevice8->GetDepthStencilSurface(&g_pInitialHostDepthStencil);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetDepthStencilSurface");
 
 				if (SUCCEEDED(hRet))
 				{
-					ConvertHostSurfaceHeaderToXbox(g_pInitialHostDepthStencil, g_pD3DInitialDepthStencil);
+					ConvertHostSurfaceHeaderToXbox(g_pInitialHostDepthStencil, g_pInitialXboxDepthStencil);
 
 					XTL::D3DLOCKED_RECT LockedRect;
 					g_pInitialHostDepthStencil->LockRect(&LockedRect, nullptr, 0);
-					g_pD3DInitialDepthStencil->Data = (DWORD)LockedRect.pBits; // Was CXBX_D3DRESOURCE_DATA_DEPTH_STENCIL;
+					g_pInitialXboxDepthStencil->Data = (DWORD)LockedRect.pBits; // Was CXBX_D3DRESOURCE_DATA_DEPTH_STENCIL;
 
-					SetHostSurface(g_pD3DInitialDepthStencil, g_pInitialHostDepthStencil);
+					SetHostSurface(g_pInitialXboxDepthStencil, g_pInitialHostDepthStencil);
 				}
 
-				g_pD3DActiveDepthStencil = g_pD3DInitialDepthStencil;
-				UpdateDepthStencilFlags(g_pD3DActiveDepthStencil);
+				g_pActiveXboxDepthStencil = g_pInitialXboxDepthStencil;
+				UpdateDepthStencilFlags(g_pActiveXboxDepthStencil);
 
 				hRet = g_pD3DDevice8->CreateVertexBuffer
                 (
@@ -3119,24 +3134,19 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer2)
     //*/
 
 	static X_D3DSurface *pBackBuffer = EmuNewD3DSurface();
-	XTL::IDirect3DSurface8 *pNewHostSurface = nullptr;
 
     if(BackBuffer == -1)
         BackBuffer = 0;
 
-    HRESULT hRet = g_pD3DDevice8->GetBackBuffer(BackBuffer, D3DBACKBUFFER_TYPE_MONO, &pNewHostSurface);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetBackBuffer");
+	CxbxGetActiveHostBackBuffer();
 
-	if(FAILED(hRet))
-        CxbxKrnlCleanup("Unable to retrieve back buffer");
-	
-	ConvertHostSurfaceHeaderToXbox(pNewHostSurface, pBackBuffer);
+	ConvertHostSurfaceHeaderToXbox(g_pActiveHostBackBuffer, pBackBuffer);
 
-	SetHostSurface(pBackBuffer, pNewHostSurface);
+	SetHostSurface(pBackBuffer, g_pActiveHostBackBuffer);
 
     // update data pointer
 	XTL::D3DLOCKED_RECT LockedRect;
-	pNewHostSurface->LockRect(&LockedRect, nullptr, 0);
+	g_pActiveHostBackBuffer->LockRect(&LockedRect, nullptr, 0);
 	pBackBuffer->Data = (DWORD)LockedRect.pBits; // Was CXBX_D3DRESOURCE_DATA_BACK_BUFFER;
 
     RETURN(pBackBuffer);
@@ -3339,7 +3349,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget)
 
 	*ppRenderTarget = EMUPATCH(D3DDevice_GetRenderTarget2)();
 
-    return D3D_OK;
+    return D3D_OK; // Never returns D3DERR_NOTFOUND (D3DDevice_GetDepthStencilSurface does)
 }
 
 // ******************************************************************
@@ -3351,7 +3361,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget2)()
 
 	LOG_FUNC();
 
-	X_D3DSurface *result = g_pD3DActiveRenderTarget;
+	X_D3DSurface *result = g_pActiveXboxRenderTarget;
 	if (result != NULL)
 		result->Common++; // EMUPATCH(D3DResource_AddRef)(result) would give too much overhead (and needless logging)
 
@@ -3387,7 +3397,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface2)()
 
 	LOG_FUNC();
 
-	X_D3DSurface *result = g_pD3DActiveDepthStencil;
+	X_D3DSurface *result = g_pActiveXboxDepthStencil;
 	if (result != NULL)
 		result->Common++; // EMUPATCH(D3DResource_AddRef)(result) would give too much overhead (and needless logging)
 		
@@ -5281,13 +5291,13 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (pPixelContainer == NULL)
 		return nullptr;
 
-	if (pPixelContainer == g_pD3DInitialBackBuffer)
+	if (pPixelContainer == g_pInitialXboxBackBuffer)
 		return (XTL::IDirect3DBaseTexture8 *)g_pInitialHostBackBuffer;
 
-	if (pPixelContainer == g_pD3DInitialRenderTarget)
+	if (pPixelContainer == g_pInitialXboxRenderTarget)
 		return (XTL::IDirect3DBaseTexture8 *)g_pInitialHostRenderTarget;
 
-	if (pPixelContainer == g_pD3DInitialDepthStencil)
+	if (pPixelContainer == g_pInitialXboxDepthStencil)
 		return (XTL::IDirect3DBaseTexture8 *)g_pInitialHostDepthStencil;
 
 	X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pPixelContainer);
@@ -5951,11 +5961,11 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
 			if(g_pIndexBuffer == pThis)
 				g_pIndexBuffer = NULL;
 
-			if (g_pD3DActiveRenderTarget == pThis)
-				g_pD3DActiveRenderTarget = NULL;
+			if (g_pActiveXboxRenderTarget == pThis)
+				g_pActiveXboxRenderTarget = NULL;
 
-			if (g_pD3DActiveDepthStencil == pThis)
-				g_pD3DActiveDepthStencil = NULL;
+			if (g_pActiveXboxDepthStencil == pThis)
+				g_pActiveXboxDepthStencil = NULL;
 
 			if (g_pCachedYuvSurface == pThis)
 				g_pCachedYuvSurface = NULL;
@@ -6173,10 +6183,10 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
 	pDesc->Usage = 0;
 	if (dwLevel == 0)
 	{
-		if (pPixelContainer = g_pD3DActiveRenderTarget)
+		if (pPixelContainer = g_pActiveXboxRenderTarget)
 			pDesc->Usage = X_D3DUSAGE_RENDERTARGET;
 		else
-			if (pPixelContainer = g_pD3DActiveDepthStencil)
+			if (pPixelContainer = g_pActiveXboxDepthStencil)
 				pDesc->Usage = X_D3DUSAGE_DEPTHSTENCIL;
 	}
 
@@ -6871,56 +6881,52 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_UpdateOverlay)
 	}
 	else // No hardware overlay
 	{
+		HRESULT hRet;
 
-		IDirect3DSurface8 *pBackBufferSurface = nullptr;
-		HRESULT hRet = g_pD3DDevice8->GetBackBuffer(0, D3DBACKBUFFER_TYPE_MONO, &pBackBufferSurface);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetBackBuffer - Unable to get backbuffer surface!");
+		// load the YUY2 into the backbuffer
+		CxbxGetActiveHostBackBuffer();
 
-		// if we obtained the backbuffer, load the YUY2 into the backbuffer
-		if (SUCCEEDED(hRet)) {
-			// Get backbuffer dimenions; TODO : remember this once, at creation/resize time
-			D3DSURFACE_DESC BackBufferDesc;
-			pBackBufferSurface->GetDesc(&BackBufferDesc);
+		// Get backbuffer dimenions; TODO : remember this once, at creation/resize time
+		D3DSURFACE_DESC BackBufferDesc;
+		hRet = g_pActiveHostBackBuffer->GetDesc(&BackBufferDesc);
+		DEBUG_D3DRESULT(hRet, "g_pActiveHostBackBuffer->GetDesc");
 
-			// Limit the width and height of the output to the backbuffer dimensions.
-			// This will (hopefully) prevent exceptions in Blinx - The Time Sweeper 
-			// (see https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/issues/285)
-			{
-				// Use our (bounded) copy when bounds exceed :
-				if (EmuDestRect.right > (LONG)BackBufferDesc.Width) {
-					EmuDestRect.right = (LONG)BackBufferDesc.Width;
-					DstRect = &EmuDestRect;
-				}
-
-				if (EmuDestRect.bottom > (LONG)BackBufferDesc.Height) {
-					EmuDestRect.bottom = (LONG)BackBufferDesc.Height;
-					DstRect = &EmuDestRect;
-				}
+		// Limit the width and height of the output to the backbuffer dimensions.
+		// This will (hopefully) prevent exceptions in Blinx - The Time Sweeper 
+		// (see https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/issues/285)
+		{
+			// Use our (bounded) copy when bounds exceed :
+			if (EmuDestRect.right > (LONG)BackBufferDesc.Width) {
+				EmuDestRect.right = (LONG)BackBufferDesc.Width;
+				DstRect = &EmuDestRect;
 			}
 
-			// Use D3DXLoadSurfaceFromMemory() to do conversion, stretching and filtering
-			// avoiding the need for YUY2toARGB() (might become relevant when porting to D3D9 or OpenGL)
-			// see https://msdn.microsoft.com/en-us/library/windows/desktop/bb172902(v=vs.85).aspx
-			hRet = D3DXLoadSurfaceFromMemory(
-				/* pDestSurface = */ pBackBufferSurface,
-				/* pDestPalette = */ nullptr, // Palette not needed for YUY2
-				/* pDestRect = */DstRect, // Either the unmodified original (can be NULL) or a pointer to our local variable
-				/* pSrcMemory = */ pYUY2SourceBuffer, // Source buffer
-				/* SrcFormat = */ D3DFMT_YUY2,
-				/* SrcPitch = */ g_dwOverlayP,
-				/* pSrcPalette = */ nullptr, // Palette not needed for YUY2
-				/* SrcRect = */ &EmuSourRect,
-				/* Filter = */ D3DX_FILTER_POINT, // Dxbx note : D3DX_FILTER_LINEAR gives a smoother image, but 'bleeds' across borders
-				/* ColorKey = */ EnableColorKey ? ColorKey : 0);
-			DEBUG_D3DRESULT(hRet, "D3DXLoadSurfaceFromMemory - UpdateOverlay could not convert buffer!\n");
-
-			pBackBufferSurface->Release();
+			if (EmuDestRect.bottom > (LONG)BackBufferDesc.Height) {
+				EmuDestRect.bottom = (LONG)BackBufferDesc.Height;
+				DstRect = &EmuDestRect;
+			}
 		}
+
+		// Use D3DXLoadSurfaceFromMemory() to do conversion, stretching and filtering
+		// avoiding the need for YUY2toARGB() (might become relevant when porting to D3D9 or OpenGL)
+		// see https://msdn.microsoft.com/en-us/library/windows/desktop/bb172902(v=vs.85).aspx
+		hRet = D3DXLoadSurfaceFromMemory(
+			/* pDestSurface = */ g_pActiveHostBackBuffer,
+			/* pDestPalette = */ nullptr, // Palette not needed for YUY2
+			/* pDestRect = */DstRect, // Either the unmodified original (can be NULL) or a pointer to our local variable
+			/* pSrcMemory = */ pYUY2SourceBuffer, // Source buffer
+			/* SrcFormat = */ D3DFMT_YUY2,
+			/* SrcPitch = */ g_dwOverlayP,
+			/* pSrcPalette = */ nullptr, // Palette not needed for YUY2
+			/* SrcRect = */ &EmuSourRect,
+			/* Filter = */ D3DX_FILTER_POINT, // Dxbx note : D3DX_FILTER_LINEAR gives a smoother image, but 'bleeds' across borders
+			/* ColorKey = */ EnableColorKey ? ColorKey : 0);
+		DEBUG_D3DRESULT(hRet, "D3DXLoadSurfaceFromMemory - UpdateOverlay could not convert buffer!\n");
 
 		// Update overlay if present was not called since the last call to
 		// EmuD3DDevice_UpdateOverlay.
 		if(g_bHackUpdateSoftwareOverlay)
-			g_pD3DDevice8->Present(0, 0, 0, 0);
+			CxbxPresent();
 
 		g_bHackUpdateSoftwareOverlay = TRUE;
 	}
@@ -8471,11 +8477,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 		LOG_FUNC_END;
 
 	if (pRenderTarget != NULL)
-		g_pD3DActiveRenderTarget = pRenderTarget;
-	else
-		g_pD3DActiveRenderTarget = g_pD3DInitialRenderTarget;
+		g_pActiveXboxRenderTarget = pRenderTarget;
 
-	g_pD3DActiveDepthStencil = pNewZStencil;
+	g_pActiveXboxDepthStencil = pNewZStencil;
 	UpdateDepthStencilFlags(pNewZStencil);
 
     // TODO: Follow that stencil!
@@ -9703,24 +9707,22 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_PersistDisplay)()
 	// ionship is the only game that uses this functionality that I know of.
 	// Other Unreal Engine 2.x games might as well.
 
-	IDirect3DSurface8* pBackSurface = NULL;
-	if( SUCCEEDED( g_pD3DDevice8->GetBackBuffer( 0, D3DBACKBUFFER_TYPE_MONO, &pBackSurface ) ) )
+	if(!g_pD3DDevice8)
 	{
-		//D3DXSaveSurfaceToFile( "persisted_surface.bmp", D3DXIFF_BMP, pBackSurface, NULL, NULL );
-		pBackSurface->Release();
-
-		DbgPrintf("Persisted display surface saved to persisted_surface.bmp\n");
+		EmuWarning("Direct3D device not initialized!");
+		hRet =  E_FAIL;
+	}
+	else
+	if(g_pActiveHostBackBuffer != nullptr)
+	{
+		//D3DXSaveSurfaceToFile( "persisted_surface.bmp", D3DXIFF_BMP, g_pActiveHostBackBuffer, NULL, NULL );
+		// DbgPrintf("Persisted display surface saved to persisted_surface.bmp\n");
 	}
 	else
 	{
 		EmuWarning("(Temporarily) Not persisting display. Blueshogun can fix this.");
 	}
 
-	if(!g_pD3DDevice8)
-	{
-		EmuWarning("Direct3D device not initialized!");
-		hRet =  E_FAIL;
-	}
 	/*else
 	{
 		IDirect3DSurface8* pBackBuffer = NULL;
