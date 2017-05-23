@@ -1348,9 +1348,7 @@ VOID XTL::EmuD3DInit()
 
     // create default device
     {
-        XTL::X_D3DPRESENT_PARAMETERS PresParam;
-
-        ZeroMemory(&PresParam, sizeof(PresParam));
+		XTL::X_D3DPRESENT_PARAMETERS PresParam = { 0 };
 
         PresParam.BackBufferWidth  = 640;
         PresParam.BackBufferHeight = 480;
@@ -1359,10 +1357,8 @@ VOID XTL::EmuD3DInit()
         PresParam.EnableAutoDepthStencil = TRUE;
 		PresParam.AutoDepthStencilFormat = X_D3DFMT_D24S8;
         PresParam.SwapEffect = XTL::D3DSWAPEFFECT_DISCARD;
-
             
         XTL::EMUPATCH(Direct3D_CreateDevice)(0, XTL::D3DDEVTYPE_HAL, 0, D3DCREATE_HARDWARE_VERTEXPROCESSING, &PresParam, &g_pD3DDevice8);
-            
     }
 }
 
@@ -1381,14 +1377,10 @@ static BOOL WINAPI EmuEnumDisplayDevices(GUID FAR *lpGUID, LPSTR lpDriverDescrip
     {
         g_hMonitor = hm;
         dwEnumCount = 0;
-        if(lpGUID != 0)
-        {
-            memcpy(&g_ddguid, lpGUID, sizeof(GUID));
-        }
+        if(lpGUID != nullptr)
+            g_ddguid = *lpGUID;
         else
-        {
-            memset(&g_ddguid, 0, sizeof(GUID));
-        }
+			g_ddguid = { 0 };
 
         return FALSE;
     }
@@ -1500,9 +1492,7 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
 
     // message processing loop
     {
-        MSG msg;
-
-        ZeroMemory(&msg, sizeof(msg));
+		MSG msg = { 0 };
 
         bool lPrintfOn = g_bPrintfOn;
 
@@ -2020,8 +2010,8 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 // cache device pointer
                 g_pD3DDevice8 = *g_EmuCDPD.ppReturnedDeviceInterface;
 
-                // default NULL guid
-                ZeroMemory(&g_ddguid, sizeof(GUID));
+				// default NULL guid
+				g_ddguid = { 0 };
 
 				HRESULT hRet;
 
@@ -2091,10 +2081,8 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 // initialize primary surface
                 if(g_bYUY2OverlaysSupported)
                 {
-                    XTL::DDSURFACEDESC2 ddsd2;
-					HRESULT hRet;
+					XTL::DDSURFACEDESC2 ddsd2 = { 0 };
 
-                    ZeroMemory(&ddsd2, sizeof(ddsd2));
                     ddsd2.dwSize = sizeof(ddsd2);
                     ddsd2.dwFlags = DDSD_CAPS;
                     ddsd2.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
@@ -6776,9 +6764,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_UpdateOverlay)
 		// initialize overlay surface
 		if (g_bYUY2OverlaysSupported)
 		{
-			XTL::DDSURFACEDESC2 ddsd2;
-
-			ZeroMemory(&ddsd2, sizeof(ddsd2));
+			XTL::DDSURFACEDESC2 ddsd2 = { 0 };
 
 			ddsd2.dwSize = sizeof(ddsd2);
 			ddsd2.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT;
@@ -6832,8 +6818,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_UpdateOverlay)
 			assert(g_pDDSOverlay7 != nullptr);
 		}
 
-		DDSURFACEDESC2  ddsd2;
-		ZeroMemory(&ddsd2, sizeof(ddsd2));
+		DDSURFACEDESC2  ddsd2 = { 0 };
 		ddsd2.dwSize = sizeof(ddsd2);
 
 		HRESULT hRet;
@@ -6856,9 +6841,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_UpdateOverlay)
 
 		// update overlay!
 		DWORD dwUpdateFlags = DDOVER_SHOW;
-		DDOVERLAYFX ddofx;
+		DDOVERLAYFX ddofx = { 0 };
 
-		ZeroMemory(&ddofx, sizeof(ddofx));
 		ddofx.dwSize = sizeof(DDOVERLAYFX);
 		if (EnableColorKey) {
 			if (g_DriverCaps.dwCKeyCaps & DDCKEYCAPS_DESTOVERLAY)
