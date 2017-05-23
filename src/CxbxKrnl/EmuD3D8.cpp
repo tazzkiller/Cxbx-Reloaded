@@ -6864,8 +6864,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_UpdateOverlay)
 		ZeroMemory(&ddofx, sizeof(ddofx));
 		ddofx.dwSize = sizeof(DDOVERLAYFX);
 		if (EnableColorKey) {
-			{
 			if (g_DriverCaps.dwCKeyCaps & DDCKEYCAPS_DESTOVERLAY)
+			{
 				dwUpdateFlags |= DDOVER_KEYDESTOVERRIDE | DDOVER_DDFX;
 				ddofx.dckDestColorkey.dwColorSpaceLowValue = ColorKey;
 				ddofx.dckDestColorkey.dwColorSpaceHighValue = ColorKey;
