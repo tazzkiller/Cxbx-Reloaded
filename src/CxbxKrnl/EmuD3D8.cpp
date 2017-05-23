@@ -2773,36 +2773,6 @@ VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle2)(DWORD dwDummy1, DWORD dwDu
 }
 
 // ******************************************************************
-// * patch: D3DDevice_SetGammaRamp
-// ******************************************************************
-VOID WINAPI XTL::EMUPATCH(D3DDevice_SetGammaRamp)
-(
-    DWORD                   dwFlags,
-    CONST X_D3DGAMMARAMP   *pRamp
-)
-{
-	FUNC_EXPORTS
-
-	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(dwFlags)
-		LOG_FUNC_ARG(pRamp)
-		LOG_FUNC_END;
-
-    // remove D3DSGR_IMMEDIATE
-    DWORD dwPCFlags = dwFlags & (~0x00000002);
-    D3DGAMMARAMP PCRamp;
-
-    for(int v=0;v<255;v++)
-    {
-        PCRamp.red[v]   = pRamp->red[v];
-        PCRamp.green[v] = pRamp->green[v];
-        PCRamp.blue[v]  = pRamp->blue[v];
-    }
-
-//    g_pD3DDevice8->SetGammaRamp(dwPCFlags, &PCRamp);
-}
-
-// ******************************************************************
 // * patch: D3DDevice_AddRef
 // ******************************************************************
 ULONG WINAPI XTL::EMUPATCH(D3DDevice_AddRef)()
@@ -3006,18 +2976,49 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetGammaRamp)
 
 	LOG_FUNC_ONE_ARG(pRamp);
 
-    D3DGAMMARAMP *pGammaRamp = (D3DGAMMARAMP *)malloc(sizeof(D3DGAMMARAMP));
+    D3DGAMMARAMP HostGammaRamp;
 
-    g_pD3DDevice8->GetGammaRamp(pGammaRamp);
+    g_pD3DDevice8->GetGammaRamp(&HostGammaRamp);
 
-    for(int v=0;v<256;v++)
-    {
-        pRamp->red[v] = (BYTE)pGammaRamp->red[v];
-        pRamp->green[v] = (BYTE)pGammaRamp->green[v];
-        pRamp->blue[v] = (BYTE)pGammaRamp->blue[v];
+	for (int v = 0; v<256; v++)
+	{
+		// Convert host double byte to xbox single byte :
+		pRamp->red[v] = (BYTE)(HostGammaRamp.red[v] / 0x101);
+        pRamp->green[v] = (BYTE)(HostGammaRamp.green[v] / 0x101);
+        pRamp->blue[v] = (BYTE)(HostGammaRamp.blue[v] / 0x101);
     }
+}
 
-	free(pGammaRamp);
+// ******************************************************************
+// * patch: D3DDevice_SetGammaRamp
+// ******************************************************************
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetGammaRamp)
+(
+	DWORD                   dwFlags,
+	CONST X_D3DGAMMARAMP   *pRamp
+)
+{
+	FUNC_EXPORTS
+
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(dwFlags)
+		LOG_FUNC_ARG(pRamp)
+		LOG_FUNC_END;
+
+	// remove D3DSGR_IMMEDIATE
+	DWORD dwPCFlags = dwFlags & (~0x00000002);
+
+	D3DGAMMARAMP HostGammaRamp;
+
+	for (int v = 0; v<256; v++)
+	{
+		// Convert xbox single byte to host double byte :
+		HostGammaRamp.red[v] = ((WORD)(pRamp->red[v])) * 0x101;
+		HostGammaRamp.green[v] = ((WORD)(pRamp->green[v])) * 0x101;
+		HostGammaRamp.blue[v] = ((WORD)(pRamp->blue[v])) * 0x101;
+	}
+
+	g_pD3DDevice8->SetGammaRamp(dwPCFlags, &HostGammaRamp);
 }
 
 // ******************************************************************
