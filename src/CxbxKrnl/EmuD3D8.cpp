@@ -2995,6 +2995,19 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateImageSurface)
 }
 #endif
 
+inline BYTE DownsampleWordToByte(WORD value)
+{
+	return (value >> 8);
+}
+
+inline WORD UpsampleByteToWord(BYTE value)
+{
+	// Make the error uniform instead of skewed -
+	// estimate it with a value right in the centre
+	// https://stackoverflow.com/a/16976296/12170
+	return (value << 8) + 127;
+}
+
 // ******************************************************************
 // * patch: D3DDevice_GetGammaRamp
 // ******************************************************************
@@ -3014,9 +3027,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetGammaRamp)
 	for (int v = 0; v<256; v++)
 	{
 		// Convert host double byte to xbox single byte :
-		pRamp->red[v] = (BYTE)(HostGammaRamp.red[v] / 0x101);
-        pRamp->green[v] = (BYTE)(HostGammaRamp.green[v] / 0x101);
-        pRamp->blue[v] = (BYTE)(HostGammaRamp.blue[v] / 0x101);
+		pRamp->red[v] = DownsampleWordToByte(HostGammaRamp.red[v]);
+        pRamp->green[v] = DownsampleWordToByte(HostGammaRamp.green[v]);
+        pRamp->blue[v] = DownsampleWordToByte(HostGammaRamp.blue[v]);
     }
 }
 
@@ -3044,9 +3057,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetGammaRamp)
 	for (int v = 0; v<256; v++)
 	{
 		// Convert xbox single byte to host double byte :
-		HostGammaRamp.red[v] = ((WORD)(pRamp->red[v])) * 0x101;
-		HostGammaRamp.green[v] = ((WORD)(pRamp->green[v])) * 0x101;
-		HostGammaRamp.blue[v] = ((WORD)(pRamp->blue[v])) * 0x101;
+		HostGammaRamp.red[v] = UpsampleByteToWord(pRamp->red[v]);
+		HostGammaRamp.green[v] = UpsampleByteToWord(pRamp->green[v]);
+		HostGammaRamp.blue[v] = UpsampleByteToWord(pRamp->blue[v]);
 	}
 
 	g_pD3DDevice8->SetGammaRamp(dwPCFlags, &HostGammaRamp);
