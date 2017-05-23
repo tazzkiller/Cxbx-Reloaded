@@ -1900,6 +1900,9 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					g_EmuCDPD.CreationParameters.hFocusWindow = g_hEmuWindow;
 					// g_EmuCDPD.CreationParameters.BehaviorFlags := ?;
 
+					// Make sure we're working with an empty structure
+					g_EmuCDPD.NativePresentationParameters = { 0 };
+
 					// retrieve resolution from configuration
 					g_EmuCDPD.NativePresentationParameters.BackBufferWidth = g_EmuCDPD.pPresentationParameters->BackBufferWidth;
 					g_EmuCDPD.NativePresentationParameters.BackBufferHeight = g_EmuCDPD.pPresentationParameters->BackBufferHeight;
@@ -1952,7 +1955,8 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					if (g_EmuCDPD.NativePresentationParameters.SwapEffect == XTL::D3DSWAPEFFECT_DISCARD)
 					{
 						// TODO: Support Xbox extensions if possible
-						//EmuWarning("MultiSampleType 0x%.08X is not supported!", g_EmuCDPD.pPresentationParameters->MultiSampleType);
+						// if(g_EmuCDPD.pPresentationParameters->MultiSampleType != 0) {
+						//	EmuWarning("MultiSampleType 0x%.08X is not supported!", g_EmuCDPD.pPresentationParameters->MultiSampleType);
 
 						//g_EmuCDPD.NativePresentationParameters.MultiSampleType = EmuXB2PC_D3DMULTISAMPLE_TYPE(g_EmuCDPD.pPresentationParameters->MultiSampleType);
 
@@ -2078,9 +2082,6 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 
 				HRESULT hRet;
 
-				hRet = g_pD3DDevice8->BeginScene();
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
-
                 // enumerate device guid for this monitor, for directdraw
 				hRet = XTL::DirectDrawEnumerateExA(EmuEnumDisplayDevices, NULL, DDENUM_ATTACHEDSECONDARYDEVICES);
 				DEBUG_D3DRESULT(hRet, "DirectDrawEnumerateExA");
@@ -2165,50 +2166,55 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					}
                 }
 
-				// Init backbuffer
-				g_pInitialXboxBackBuffer = EmuNewD3DSurface();
-
-				hRet = g_pD3DDevice8->GetBackBuffer(0, XTL::D3DBACKBUFFER_TYPE_MONO, &g_pInitialHostBackBuffer);
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
-
-				ConvertHostSurfaceHeaderToXbox(g_pInitialHostBackBuffer, g_pInitialXboxBackBuffer);
-
-				SetHostSurface(g_pInitialXboxBackBuffer, g_pInitialHostBackBuffer);
-				g_pActiveXboxBackBuffer = g_pInitialXboxBackBuffer;
-
-                // update render target cache
-				g_pInitialXboxRenderTarget = EmuNewD3DSurface();
-
-                hRet = g_pD3DDevice8->GetRenderTarget(&g_pInitialHostRenderTarget);
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
-
-				ConvertHostSurfaceHeaderToXbox(g_pInitialHostRenderTarget, g_pInitialXboxRenderTarget);
-
-				XTL::D3DLOCKED_RECT LockedRect;
-				g_pInitialHostRenderTarget->LockRect(&LockedRect, nullptr, 0);
-				g_pInitialXboxRenderTarget->Data = (DWORD)LockedRect.pBits;// Was CXBX_D3DRESOURCE_DATA_RENDER_TARGET;
-
-				SetHostSurface(g_pInitialXboxRenderTarget, g_pInitialHostRenderTarget);
-				g_pActiveXboxRenderTarget = g_pInitialXboxRenderTarget;
-
-                // update z-stencil surface cache
-				g_pInitialXboxDepthStencil = EmuNewD3DSurface();
-				hRet = g_pD3DDevice8->GetDepthStencilSurface(&g_pInitialHostDepthStencil);
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetDepthStencilSurface");
-
-				if (SUCCEEDED(hRet))
+				// HACK : Try to map Xbox to Host for : BackBuffer, RenderTarget and DepthStencil
+				// TODO : This doesn't really help, and introduces host-allocated resources into
+				// Xbox-land - it would be (much) better if we could run Xbox CreateDevice unpatched!
 				{
-					ConvertHostSurfaceHeaderToXbox(g_pInitialHostDepthStencil, g_pInitialXboxDepthStencil);
+					// Init backbuffer
+					g_pInitialXboxBackBuffer = EmuNewD3DSurface();
+
+					hRet = g_pD3DDevice8->GetBackBuffer(0, XTL::D3DBACKBUFFER_TYPE_MONO, &g_pInitialHostBackBuffer);
+					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
+
+					ConvertHostSurfaceHeaderToXbox(g_pInitialHostBackBuffer, g_pInitialXboxBackBuffer);
+
+					SetHostSurface(g_pInitialXboxBackBuffer, g_pInitialHostBackBuffer);
+					g_pActiveXboxBackBuffer = g_pInitialXboxBackBuffer;
+
+					// update render target cache
+					g_pInitialXboxRenderTarget = EmuNewD3DSurface();
+
+					hRet = g_pD3DDevice8->GetRenderTarget(&g_pInitialHostRenderTarget);
+					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
+
+					ConvertHostSurfaceHeaderToXbox(g_pInitialHostRenderTarget, g_pInitialXboxRenderTarget);
 
 					XTL::D3DLOCKED_RECT LockedRect;
-					g_pInitialHostDepthStencil->LockRect(&LockedRect, nullptr, 0);
-					g_pInitialXboxDepthStencil->Data = (DWORD)LockedRect.pBits; // Was CXBX_D3DRESOURCE_DATA_DEPTH_STENCIL;
+					g_pInitialHostRenderTarget->LockRect(&LockedRect, nullptr, 0);
+					g_pInitialXboxRenderTarget->Data = (DWORD)LockedRect.pBits;// Was CXBX_D3DRESOURCE_DATA_RENDER_TARGET;
 
-					SetHostSurface(g_pInitialXboxDepthStencil, g_pInitialHostDepthStencil);
+					SetHostSurface(g_pInitialXboxRenderTarget, g_pInitialHostRenderTarget);
+					g_pActiveXboxRenderTarget = g_pInitialXboxRenderTarget;
+
+					// update z-stencil surface cache
+					g_pInitialXboxDepthStencil = EmuNewD3DSurface();
+					hRet = g_pD3DDevice8->GetDepthStencilSurface(&g_pInitialHostDepthStencil);
+					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetDepthStencilSurface");
+
+					if (SUCCEEDED(hRet))
+					{
+						ConvertHostSurfaceHeaderToXbox(g_pInitialHostDepthStencil, g_pInitialXboxDepthStencil);
+
+						XTL::D3DLOCKED_RECT LockedRect;
+						g_pInitialHostDepthStencil->LockRect(&LockedRect, nullptr, 0);
+						g_pInitialXboxDepthStencil->Data = (DWORD)LockedRect.pBits; // Was CXBX_D3DRESOURCE_DATA_DEPTH_STENCIL;
+
+						SetHostSurface(g_pInitialXboxDepthStencil, g_pInitialHostDepthStencil);
+					}
+
+					g_pActiveXboxDepthStencil = g_pInitialXboxDepthStencil;
+					UpdateDepthStencilFlags(g_pActiveXboxDepthStencil);
 				}
-
-				g_pActiveXboxDepthStencil = g_pInitialXboxDepthStencil;
-				UpdateDepthStencilFlags(g_pActiveXboxDepthStencil);
 
 				hRet = g_pD3DDevice8->CreateVertexBuffer
                 (
@@ -2224,7 +2230,10 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetStreamSource");
 				}
 
-                // initially, show a black screen
+				hRet = g_pD3DDevice8->BeginScene();
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
+
+				// initially, show a black screen
                 // Only clear depth buffer and stencil if present
                 //
                 // Avoids following DirectX Debug Runtime error report
