@@ -732,10 +732,10 @@ void DecodeD3DFormatAndSize(DWORD dwD3DFormat, DWORD dwD3DSize, OUT DecodedPixel
 void CxbxPitchedCopy(BYTE *pDest, BYTE *pSrc, DWORD dwDestPitch, DWORD dwSrcPitch, DWORD dwWidthInBytes, DWORD dwHeight)
 {
 	// No conversion needed, copy as efficient as possible
-	if (dwSrcPitch == dwWidthInBytes && dwDestPitch == dwWidthInBytes)
+	if ((dwSrcPitch == dwWidthInBytes) && (dwDestPitch == dwWidthInBytes))
 	{
 		// source and destination rows align, so copy all rows in one go
-		memcpy(pDest, pSrc, dwWidthInBytes * dwHeight);
+		memcpy(pDest, pSrc, dwHeight * dwWidthInBytes);
 	}
 	else
 	{
@@ -6841,17 +6841,12 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_UpdateOverlay)
 		if(SUCCEEDED(hRet))
 		{
 			// copy data
-			BYTE *pDest = (BYTE *)ddsd2.lpSurface;
-			BYTE *pSour = (BYTE*)pYUY2SourceBuffer;
+			DWORD dwOverlayWidthInBytes = g_dwOverlayW * 2; // 2 = EmuXBFormatBytesPerPixel(D3DFMT_YUY2);
 
-			int p = g_dwOverlayW * 2; // 2 = EmuXBFormatBytesPerPixel(D3DFMT_YUY2);
-			int h = g_dwOverlayH;
-
-			// TODO: sucker the game into rendering directly to the overlay (speed boost)
 			CxbxPitchedCopy(
-				pDest, pSour,
+				(BYTE *)ddsd2.lpSurface, pYUY2SourceBuffer,
 				ddsd2.lPitch, g_dwOverlayP,
-				p, h);
+				dwOverlayWidthInBytes, g_dwOverlayH);
 
 			hRet = g_pDDSOverlay7->Unlock(NULL);
 			DEBUG_D3DRESULT(hRet, "g_pDDSOverlay7->Unlock");
