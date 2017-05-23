@@ -157,7 +157,7 @@ extern thread_local std::string _logPrefix;
 
 #define LOG_INIT \
 	LOG_THREAD_INIT \
-	static std::string _logFuncPrefix; \
+	static thread_local std::string _logFuncPrefix; \
 	if (_logFuncPrefix.length() == 0) {	\
 		std::stringstream tmp; \
 		tmp << _logPrefix << __FILENAME__ << " : " << __func__; \
