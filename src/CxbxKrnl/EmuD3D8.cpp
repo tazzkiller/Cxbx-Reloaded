@@ -67,7 +67,7 @@ namespace xboxkrnl
 // Global(s)
 HWND                                g_hEmuWindow   = NULL; // rendering window
 XTL::LPDIRECT3DDEVICE8              g_pD3DDevice8  = NULL; // Direct3D8 Device
-XTL::LPDIRECTDRAWSURFACE7           g_pDDSPrimary  = NULL; // DirectDraw7 Primary Surface
+XTL::LPDIRECTDRAWSURFACE7           g_pDDSPrimary7 = NULL; // DirectDraw7 Primary Surface
 XTL::LPDIRECTDRAWSURFACE7           g_pDDSOverlay7 = nullptr; // DirectDraw7 Overlay Surface
 XTL::LPDIRECTDRAWCLIPPER            g_pDDClipper   = nullptr; // DirectDraw7 Clipper
 DWORD                               g_CurrentVertexShader = 0;
@@ -2029,7 +2029,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                     ddsd2.dwFlags = DDSD_CAPS;
                     ddsd2.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 
-                    hRet = g_pDD7->CreateSurface(&ddsd2, &g_pDDSPrimary, 0);
+                    hRet = g_pDD7->CreateSurface(&ddsd2, &g_pDDSPrimary7, nullptr);
 					DEBUG_D3DRESULT(hRet, "g_pDD7->CreateSurface");
 
 					if (FAILED(hRet))
@@ -2147,10 +2147,10 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				}
 
 				// cleanup directdraw surface
-                if(g_pDDSPrimary != nullptr)
+                if(g_pDDSPrimary7 != nullptr)
                 {
-                    g_pDDSPrimary->Release();
-                    g_pDDSPrimary = nullptr;
+                    g_pDDSPrimary7->Release();
+                    g_pDDSPrimary7 = nullptr;
                 }
 
                 // cleanup directdraw
@@ -6651,7 +6651,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_EnableOverlay)
 
     if(Enable == FALSE && (g_pDDSOverlay7 != nullptr))
     {
-        g_pDDSOverlay7->UpdateOverlay(NULL, g_pDDSPrimary, NULL, DDOVER_HIDE, 0);
+        g_pDDSOverlay7->UpdateOverlay(NULL, g_pDDSPrimary7, NULL, DDOVER_HIDE, 0);
 
         // cleanup overlay clipper
         if(g_pDDClipper != nullptr)
@@ -6819,7 +6819,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_UpdateOverlay)
 		// Get the screen (multi-monitor-compatible) coordinates of the client area :
 		MapWindowPoints(g_hEmuWindow, HWND_DESKTOP, (LPPOINT)&EmuDestRect, 2);
 
-		hRet = g_pDDSOverlay7->UpdateOverlay(&EmuSourRect, g_pDDSPrimary, &EmuDestRect, dwUpdateFlags, &ddofx);
+		hRet = g_pDDSOverlay7->UpdateOverlay(&EmuSourRect, g_pDDSPrimary7, &EmuDestRect, dwUpdateFlags, &ddofx);
 		DEBUG_D3DRESULT(hRet, "g_pDDSOverlay7->UpdateOverlay");
 	}
 	else // No hardware overlay
