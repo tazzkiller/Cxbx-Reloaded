@@ -3372,6 +3372,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface)
 
     *ppZStencilSurface = EMUPATCH(D3DDevice_GetDepthStencilSurface2)();
 
+	if (*ppZStencilSurface == NULL)
+		return D3DERR_NOTFOUND;
+
     return D3D_OK;
 }
 
