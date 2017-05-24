@@ -610,19 +610,25 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
 bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT uiStream)
 {
     // Check for active linear textures.
-	bool bHasLinearTex = false, bTexIsLinear[TEXTURE_STAGES] = { false };
-    X_D3DPixelContainer *pLinearPixelContainer[TEXTURE_STAGES];
+	bool bHasLinearTex = false;
+	struct { bool bTexIsLinear; int Width; int Height; } pActivePixelContainer[TEXTURE_STAGES] = { 0 };
 
     for(uint i = 0; i < TEXTURE_STAGES; i++)
     {
 		X_D3DBaseTexture *pXboxBaseTexture = EmuD3DTextureStages[i];
 		if (pXboxBaseTexture)
 		{ 
+			// TODO : Use GetXboxPixelContainerFormat
 			XTL::X_D3DFORMAT XBFormat = (XTL::X_D3DFORMAT)((pXboxBaseTexture->Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT);
 			if (EmuXBFormatIsLinear(XBFormat))
 			{
-				bHasLinearTex = bTexIsLinear[i] = true;
-				pLinearPixelContainer[i] = pXboxBaseTexture;
+				// This is often hit by the help screen in XDK samples.
+				bHasLinearTex = true;
+				// Remember linearity, width and height :
+				pActivePixelContainer[i].bTexIsLinear = true;
+				// TODO : Use DecodeD3DSize
+				pActivePixelContainer[i].Width = (pXboxBaseTexture->Size & X_D3DSIZE_WIDTH_MASK) + 1;
+				pActivePixelContainer[i].Height = ((pXboxBaseTexture->Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
 			}
         }
     }
@@ -675,74 +681,47 @@ bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT ui
         }
     }
 
-    // Locate texture coordinate offset in vertex structure.
-    uint uiOffset = 0;
-    if(pPatchDesc->hVertexShader & D3DFVF_XYZRHW)
-        uiOffset += (sizeof(FLOAT) * 4);
-    else
-    {
-        if(pPatchDesc->hVertexShader & D3DFVF_XYZ)
-            uiOffset += (sizeof(FLOAT) * 3 );
-        else if(pPatchDesc->hVertexShader & D3DFVF_XYZB1)
-            uiOffset += (sizeof(FLOAT) *4 );
-        else if(pPatchDesc->hVertexShader & D3DFVF_XYZB2)
-            uiOffset += (sizeof(FLOAT) * 5);
-        else if(pPatchDesc->hVertexShader & D3DFVF_XYZB3)
-            uiOffset += (sizeof(FLOAT) * 6);
-        else if(pPatchDesc->hVertexShader & D3DFVF_XYZB4)
-            uiOffset += (sizeof(FLOAT) * 7);
-
-        if(pPatchDesc->hVertexShader & D3DFVF_NORMAL)
-            uiOffset += (sizeof(FLOAT) * 3);
-    }
-
-    if(pPatchDesc->hVertexShader & D3DFVF_DIFFUSE)
-        uiOffset += sizeof(DWORD);
-    if(pPatchDesc->hVertexShader & D3DFVF_SPECULAR)
-        uiOffset += sizeof(DWORD);
-
-    DWORD dwTexN = (pPatchDesc->hVertexShader & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
-
     // Normalize texture coordinates.
-    for(uint uiVertex = 0; uiVertex < uiVertexCount; uiVertex++)
+    DWORD dwTexN = (pPatchDesc->hVertexShader & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
+	// Don't normalize coordinates not used by the shader :
+	while (dwTexN < TEXTURE_STAGES) // X_D3DTS_STAGECOUNT
+	{
+		pActivePixelContainer[dwTexN].bTexIsLinear = false;
+		dwTexN++;
+	}
+
+	// Locate texture coordinate offset in vertex structure.
+	UINT uiOffset = DxbxFVFToVertexSizeInBytes(pPatchDesc->hVertexShader, /*bIncludeTextures=*/false);
+	FLOAT *pUVData = (FLOAT*)(pData + uiOffset);
+
+	for(uint uiVertex = 0; uiVertex < uiVertexCount; uiVertex++)
     {
-		uint08 *pUVData = pData + (uiVertex * uiStride) + uiOffset;
-
-        if(dwTexN >= 1)
+        if(pActivePixelContainer[0].bTexIsLinear)
         {
-            if(bTexIsLinear[0])
-            {
-                ((FLOAT*)pUVData)[0] /= ( pLinearPixelContainer[0]->Size & X_D3DSIZE_WIDTH_MASK) + 1;
-                ((FLOAT*)pUVData)[1] /= ((pLinearPixelContainer[0]->Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
-            }
-            pUVData += sizeof(FLOAT) * 2;
+            pUVData[0] /= pActivePixelContainer[0].Width;
+            pUVData[1] /= pActivePixelContainer[0].Height;
         }
 
-        if(dwTexN >= 2)
-        {
-            if(bTexIsLinear[1])
-            {
-                ((FLOAT*)pUVData)[0] /= ( pLinearPixelContainer[1]->Size & X_D3DSIZE_WIDTH_MASK) + 1;
-                ((FLOAT*)pUVData)[1] /= ((pLinearPixelContainer[1]->Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
-            }
-            pUVData += sizeof(FLOAT) * 2;
+		if (pActivePixelContainer[1].bTexIsLinear)
+		{
+            pUVData[2] /= pActivePixelContainer[1].Width;
+            pUVData[3] /= pActivePixelContainer[1].Height;
         }
 
-        if(dwTexN >= 3)
-        {
-            if(bTexIsLinear[2])
-            {
-                ((FLOAT*)pUVData)[0] /= ( pLinearPixelContainer[2]->Size & X_D3DSIZE_WIDTH_MASK) + 1;
-                ((FLOAT*)pUVData)[1] /= ((pLinearPixelContainer[2]->Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
-            }
-            pUVData += sizeof(FLOAT) * 2;
+		if (pActivePixelContainer[2].bTexIsLinear)
+		{
+            pUVData[4] /= pActivePixelContainer[2].Width;
+            pUVData[5] /= pActivePixelContainer[2].Height;
         }
 
-        if((dwTexN >= 4) && bTexIsLinear[3])
-        {
-            ((FLOAT*)pUVData)[0] /= ( pLinearPixelContainer[3]->Size & X_D3DSIZE_WIDTH_MASK) + 1;
-            ((FLOAT*)pUVData)[1] /= ((pLinearPixelContainer[3]->Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
+		if (pActivePixelContainer[3].bTexIsLinear)
+		{
+            pUVData[6] /= pActivePixelContainer[3].Width;
+            pUVData[7] /= pActivePixelContainer[3].Height;
         }
+
+
+		pUVData = (FLOAT *)((uint08*)pUVData + uiStride);
     }
 
     if(pNewVertexBuffer != nullptr)
