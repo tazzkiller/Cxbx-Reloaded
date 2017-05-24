@@ -1000,7 +1000,9 @@ XTL::IDirect3DVertexBuffer8 *GetHostVertexBuffer(XTL::X_D3DResource *pXboxResour
 void SetHostSurface(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DSurface8 *pHostSurface)
 {
 	assert(pXboxResource != NULL);
-	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_SURFACE);
+
+	if (GetXboxCommonResourceType(pXboxResource) != X_D3DCOMMON_TYPE_SURFACE) // Allows breakpoint below
+		assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_SURFACE); // Hit by LensFlare XDK sample
 
 	SetHostResource(pXboxResource, (XTL::IDirect3DResource8 *)pHostSurface);
 }
@@ -3221,7 +3223,10 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer2)
 	}
     //*/
 
-	static X_D3DSurface *pBackBuffer = EmuNewD3DSurface();
+	// When pBackBuffer is declared static, LensFlare XDK sample fails in SetHostSurface
+	// probably because it's been freeed by the Xbox heap (while host allocates it).
+	// Conclusion : We don't want this patch. We want CreateDevice running unpatched...
+	X_D3DSurface *pBackBuffer = EmuNewD3DSurface();
 
     if(BackBuffer == -1)
         BackBuffer = 0;
@@ -5627,6 +5632,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		}
 		else if (PixelJar.bIs3D)
 		{
+			// Hit by XDK sample FuzzyTeapot
 			DbgPrintf("CreateVolumeTexture(%d, %d, 0, %d, D3DPOOL_MANAGED)\n", 
 				PixelJar.dwWidth, PixelJar.dwMipMapLevels, PCFormat);
 
