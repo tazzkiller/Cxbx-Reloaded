@@ -270,25 +270,8 @@ extern void XTL::EmuExecutePushBufferRaw
 
             if(VshHandleIsFVF(dwVertexShader))
             {
-                /*if(dwVertexShader & D3DFVF_XYZRHW)	{ dwStride += sizeof(FLOAT)*4; }
-				if(dwVertexShader & D3DFVF_XYZ)		{ dwStride += sizeof(FLOAT)*3; }
-				if(dwVertexShader & D3DFVF_XYZB1)	{ dwStride += sizeof(FLOAT); }
-				if(dwVertexShader & D3DFVF_XYZB2)	{ dwStride += sizeof(FLOAT)*2; }
-				if(dwVertexShader & D3DFVF_XYZB3)	{ dwStride += sizeof(FLOAT)*3; }
-				if(dwVertexShader & D3DFVF_XYZB4)	{ dwStride += sizeof(FLOAT)*4; }*/
 
-				if((dwVertexShader & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW){ dwStride += sizeof(FLOAT)*4; }
-				if((dwVertexShader & D3DFVF_POSITION_MASK) == D3DFVF_XYZ)   { dwStride += sizeof(FLOAT)*3; }
-				if((dwVertexShader & D3DFVF_POSITION_MASK) == D3DFVF_XYZB1)	{ dwStride += sizeof(FLOAT)*4; }
-				if((dwVertexShader & D3DFVF_POSITION_MASK) == D3DFVF_XYZB2)	{ dwStride += sizeof(FLOAT)*5; }
-				if((dwVertexShader & D3DFVF_POSITION_MASK) == D3DFVF_XYZB3)	{ dwStride += sizeof(FLOAT)*6; }
-				if((dwVertexShader & D3DFVF_POSITION_MASK) == D3DFVF_XYZB4)	{ dwStride += sizeof(FLOAT)*7; }
-
-				if(dwVertexShader & D3DFVF_NORMAL)  { dwStride += sizeof(FLOAT)*3; }
-                if(dwVertexShader & D3DFVF_DIFFUSE) { dwStride += sizeof(DWORD); }
-                if(dwVertexShader & D3DFVF_SPECULAR) { dwStride += sizeof(DWORD); }
-
-                dwStride += ((dwVertexShader & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT)*sizeof(FLOAT)*2;
+				dwStride = DxbxFVFToVertexSizeInBytes(dwVertexShader, /*bIncludeTextures=*/true);
             }
 
             /*
