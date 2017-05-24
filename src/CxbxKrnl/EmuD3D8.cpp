@@ -4762,7 +4762,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Begin)
     g_IVBFVF = 0;
 
     // default values
-    ZeroMemory(g_IVBTable, sizeof(XTL::_D3DIVB)*IVB_TABLE_SIZE);
+    memset(g_IVBTable, 0, sizeof(XTL::_D3DIVB)*IVB_TABLE_SIZE);
 
     if(g_pIVBVertexBuffer == nullptr)
     {
@@ -9625,7 +9625,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetProjectionViewportMatrix)
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetTransform - Unable to get projection matrix!");
 
 	// Clear the destination matrix
-	::ZeroMemory(&Out, sizeof(D3DMATRIX));
+	Out = { 0 }; // Was ::ZeroMemory(&Out, sizeof(D3DMATRIX));
 
 	// Create the Viewport matrix manually
 	// Direct3D8 doesn't give me everything I need in a viewport structure
