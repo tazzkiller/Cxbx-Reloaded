@@ -1045,8 +1045,6 @@ VOID XTL::EmuFlushIVB()
 
     DWORD *pdwVB = (DWORD*)g_pIVBVertexBuffer;
 
-    UINT uiStride = 0;
-
     // Parse IVB table with current FVF shader if possible.
     bool bFVF = VshHandleIsFVF(g_CurrentVertexShader);
     DWORD dwCurFVF;
@@ -1161,16 +1159,13 @@ VOID XTL::EmuFlushIVB()
         }
 
 		uint VertexBufferUsage = (BYTE *)pdwVB - (BYTE *)g_pIVBVertexBuffer;
-
-		if (v == 0)
-		{
-			// Stride is equal to the delta of the first vertex
-			uiStride = VertexBufferUsage;
-		}
-
 		if (VertexBufferUsage >= IVB_BUFFER_SIZE)
 			CxbxKrnlCleanup("Overflow g_pIVBVertexBuffer  : %d", v);
 	}
+
+	// Dxbx note : Instead of calculating this above (when v=0),
+	// we use a tooling function to determine the vertex stride :
+	UINT uiStride = DxbxFVFToVertexSizeInBytes(dwCurFVF, /*bIncludeTextures=*/true);
 
     VertexPatchDesc VPDesc;
 
