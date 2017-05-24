@@ -137,16 +137,19 @@ extern DWORD                   g_IVBFVF;
 
 extern struct _D3DIVB
 {
-    XTL::D3DXVECTOR3 Position;   // Position
-    FLOAT            Rhw;        // Rhw
-	FLOAT			 Blend1;	 // Blend1		
-    XTL::DWORD       dwSpecular; // Specular
-    XTL::DWORD       dwDiffuse;  // Diffuse
-    XTL::D3DXVECTOR3 Normal;     // Normal
-    XTL::D3DXVECTOR2 TexCoord1;  // TexCoord1
-    XTL::D3DXVECTOR2 TexCoord2;  // TexCoord2
-    XTL::D3DXVECTOR2 TexCoord3;  // TexCoord3
-    XTL::D3DXVECTOR2 TexCoord4;  // TexCoord4
+    XTL::D3DXVECTOR3 Position;
+    FLOAT            Rhw;
+	FLOAT			 Blend1;
+	FLOAT			 Blend2;	 // Dxbx addition : for D3DFVF_XYZB2 TODO : Where should we set these?
+	FLOAT			 Blend3;	 // Dxbx addition : for D3DFVF_XYZB3
+	FLOAT			 Blend4;	 // Dxbx addition : for D3DFVF_XYZB4
+	XTL::D3DCOLOR    Specular;
+    XTL::D3DCOLOR    Diffuse;
+    XTL::D3DXVECTOR3 Normal;
+    XTL::D3DXVECTOR2 TexCoord1;
+    XTL::D3DXVECTOR2 TexCoord2;
+    XTL::D3DXVECTOR2 TexCoord3;
+    XTL::D3DXVECTOR2 TexCoord4;
 }
 *g_IVBTable;
 

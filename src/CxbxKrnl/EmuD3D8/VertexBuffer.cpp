@@ -1116,16 +1116,16 @@ VOID XTL::EmuFlushIVB()
 
         if(dwCurFVF & D3DFVF_DIFFUSE)
         {
-            *(DWORD*)pdwVB++ = g_IVBTable[v].dwDiffuse;
+            *(DWORD*)pdwVB++ = g_IVBTable[v].Diffuse;
 
-            DbgPrintf("IVB Diffuse := 0x%.08X\n", g_IVBTable[v].dwDiffuse);
+            DbgPrintf("IVB Diffuse := 0x%.08X\n", g_IVBTable[v].Diffuse);
         }
 
         if(dwCurFVF & D3DFVF_SPECULAR)
         {
-            *(DWORD*)pdwVB++ = g_IVBTable[v].dwSpecular;
+            *(DWORD*)pdwVB++ = g_IVBTable[v].Specular;
 
-            DbgPrintf("IVB Specular := 0x%.08X\n", g_IVBTable[v].dwSpecular);
+            DbgPrintf("IVB Specular := 0x%.08X\n", g_IVBTable[v].Specular);
         }
 
         if(dwTexN >= 1)

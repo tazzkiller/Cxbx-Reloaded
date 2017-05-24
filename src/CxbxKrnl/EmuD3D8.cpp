@@ -4892,7 +4892,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
             DWORD cg = FtoDW(b) << 8;
             DWORD cb = FtoDW(c) << 0;
 
-            g_IVBTable[o].dwDiffuse = ca | cr | cg | cb;
+            g_IVBTable[o].Diffuse = ca | cr | cg | cb;
 
             g_IVBFVF |= D3DFVF_DIFFUSE;
 			break;
@@ -4905,7 +4905,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
             DWORD cg = FtoDW(b) << 8;
             DWORD cb = FtoDW(c) << 0;
 
-            g_IVBTable[o].dwSpecular = ca | cr | cg | cb;
+            g_IVBTable[o].Specular = ca | cr | cg | cb;
 
             g_IVBFVF |= D3DFVF_SPECULAR;
 			break;
@@ -4988,9 +4988,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
             g_IVBTable[o].Rhw = d;
 
             // Copy current color to next vertex
-            g_IVBTable[o+1].dwDiffuse  = g_IVBTable[o].dwDiffuse;
-            g_IVBTable[o+1].dwSpecular = g_IVBTable[o].dwSpecular;
-
+            g_IVBTable[o+1].Diffuse  = g_IVBTable[o].Diffuse;
+            g_IVBTable[o+1].Specular = g_IVBTable[o].Specular;
+			// Dxbx note : Must we copy Blend1 (blendweight) too?
             g_IVBTblOffs++;
 
             g_IVBFVF |= D3DFVF_XYZRHW;
