@@ -53,6 +53,71 @@ bool g_bPBSkipPusher = false;
 
 static void DbgDumpMesh(WORD *pIndexData, DWORD dwCount);
 
+int XTL::DxbxFVF_GetTextureSize(DWORD dwFVF, int aTextureIndex)
+// Determine the size (in bytes) of the texture format (indexed 0 .. 3).
+// This is the reverse of the D3DFVF_TEXCOORDSIZE[0..3] macros.
+{
+	switch ((dwFVF >> ((aTextureIndex * 2) + 16)) & 3) {
+	case D3DFVF_TEXTUREFORMAT1: return 1 * sizeof(FLOAT);
+	case D3DFVF_TEXTUREFORMAT2: return 2 * sizeof(FLOAT);
+	case D3DFVF_TEXTUREFORMAT3: return 3 * sizeof(FLOAT);
+	case D3DFVF_TEXTUREFORMAT4: return 4 * sizeof(FLOAT);
+	default:
+		//assert(false || "DxbxFVF_GetTextureSize : Unhandled case");
+		return 0;
+	}
+}
+
+// Dxbx Note: This code is taken from EmuExecutePushBufferRaw and occured
+// in EmuFlushIVB too, so it's generalize in this single implementation.
+UINT XTL::DxbxFVFToVertexSizeInBytes(DWORD dwFVF, BOOL bIncludeTextures)
+{
+/*
+	X_D3DFVF_POSITION_MASK    = $00E; // Dec  /2  #fl
+
+	X_D3DFVF_XYZ              = $002; //  2 > 1 > 3
+	X_D3DFVF_XYZRHW           = $004; //  4 > 2 > 4
+	X_D3DFVF_XYZB1            = $006; //  6 > 3 > 4
+	X_D3DFVF_XYZB2            = $008; //  8 > 4 > 5
+	X_D3DFVF_XYZB3            = $00a; // 10 > 5 > 6
+	X_D3DFVF_XYZB4            = $00c; // 12 > 6 > 7
+*/
+	// Divide the D3DFVF by two, this gives almost the number of floats needed for the format :
+	UINT Result = (dwFVF & D3DFVF_POSITION_MASK) >> 1;
+	if (Result >= (D3DFVF_XYZB1 >> 1))
+		// Any format from D3DFVF_XYZB1 and above need 1 extra float :
+		Result++;
+	else
+		// The other formats (XYZ and XYZRHW) need 2 extra floats :
+		Result += 2;
+
+	// Express the size in bytes, instead of floats :
+	Result *= sizeof(FLOAT);
+
+	// D3DFVF_NORMAL cannot be combined with D3DFVF_XYZRHW :
+	if ((dwFVF & D3DFVF_POSITION_MASK) != D3DFVF_XYZRHW)
+		if (dwFVF & D3DFVF_NORMAL)
+			Result += sizeof(FLOAT) * 3;
+
+	if (dwFVF & D3DFVF_DIFFUSE)
+		Result += sizeof(XTL::D3DCOLOR);
+
+	if (dwFVF & D3DFVF_SPECULAR)
+		Result += sizeof(XTL::D3DCOLOR);
+
+	if (bIncludeTextures)
+	{
+		int NrTextures = ((dwFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT);
+		while (NrTextures > 0)
+		{
+			NrTextures--;
+			Result += DxbxFVF_GetTextureSize(dwFVF, NrTextures);
+		}
+	}
+
+	return Result;
+}
+
 void XTL::EmuExecutePushBuffer
 (
     X_D3DPushBuffer       *pPushBuffer,
