@@ -1201,13 +1201,7 @@ VOID XTL::EmuFlushIVB()
     if(bFVF)
         g_pD3DDevice8->SetVertexShader(dwCurFVF);
 
-    g_pD3DDevice8->DrawPrimitiveUP(
-		EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
-        VPDesc.dwPrimitiveCount,
-        VPDesc.pVertexStreamZeroData,
-        VPDesc.uiVertexStreamZeroStride);
-
-	g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
+	DxbxDrawPrimitiveUP(VPDesc);
 
     if(bFVF)
         g_pD3DDevice8->SetVertexShader(g_CurrentVertexShader);

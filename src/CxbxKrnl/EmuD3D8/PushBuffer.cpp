@@ -329,15 +329,7 @@ extern void XTL::EmuExecutePushBufferRaw
 
                 bool bPatched = VertPatch.Apply(&VPDesc, NULL);
 
-                g_pD3DDevice8->DrawPrimitiveUP
-                (
-                    HostPrimitiveType,
-                    VPDesc.dwPrimitiveCount,
-                    VPDesc.pVertexStreamZeroData,
-                    VPDesc.uiVertexStreamZeroStride
-                );
-
-				g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
+				DxbxDrawPrimitiveUP(VPDesc);
 
                 VertPatch.Restore();
             }

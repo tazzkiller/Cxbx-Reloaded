@@ -8161,6 +8161,86 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 	}
 }
 
+void XTL::DxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
+{
+	LOG_INIT //
+
+	UINT VertexCount = VPDesc.dwVertexCount; // Dxbx addition : Use the new VertexCount
+
+	UINT uiStartIndex = 0;
+	UINT uiNumVertices = VertexCount;
+
+	if (VPDesc.XboxPrimitiveType == X_D3DPT_QUADLIST)
+	{
+#if 1
+		EmuWarning("DxbxDrawPrimitiveUP : PrimitiveType X_D3DPT_QUADLIST not unsupported yet!");
+#else // TODO : Port this completely
+		// Draw quadlists using a single 'quad-to-triangle mapping' index buffer :
+
+		// Assure & activate that special index buffer :
+		PWORD pwIndexData = DxbxAssureQuadListIndexBuffer({ NrOfQuadVertices = }VertexCount);
+
+		// Convert quad vertex-count & start to triangle vertex count & start :
+		UINTVertexCount = QuadToTriangleVertexCount(VertexCount);
+
+		g_pD3DDevice.DrawIndexedPrimitiveUP
+		(
+			D3DPT_TRIANGLELIST,
+			{ MinVertexIndex = }0,
+			{ NumVertexIndices = }VertexCount,
+			{ PrimitiveCount = }VPDesc.dwPrimitiveCount * TRIANGLES_PER_QUAD,
+			pwIndexData,
+			D3DFMT_INDEX16,
+			VPDesc.pVertexStreamZeroData,
+			VPDesc.uiVertexStreamZeroStride
+		);
+#endif
+	}
+	else
+	{
+		HRESULT hRet;
+
+		// UINT PrimitiveCount = EmuD3DVertex2PrimitiveCount(XboxPrimitiveType, VertexCount);
+
+		// Other primitives than X_D3DPT_QUADLIST can be drawn normally :
+		hRet = g_pD3DDevice8->DrawPrimitiveUP
+		(
+			EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
+			VPDesc.dwPrimitiveCount,
+			VPDesc.pVertexStreamZeroData,
+			VPDesc.uiVertexStreamZeroStride
+		);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawPrimitiveUP");
+
+		if (VPDesc.XboxPrimitiveType == X_D3DPT_LINELOOP)
+		{
+			// Note : XDK samples reaching this case : DebugKeyboard, Gamepad, Tiling, ShadowBuffer
+
+			/*static?*/ BYTE DxbxClosingLineVertices[256];
+
+			// Close line-loops using a final single line, drawn from the end to the start vertex :
+			memcpy(/*dest=*/&(DxbxClosingLineVertices[0]),
+				/*src=*/VPDesc.pVertexStreamZeroData,
+				VPDesc.uiVertexStreamZeroStride);
+			memcpy(/*dest=*/&(DxbxClosingLineVertices[VPDesc.uiVertexStreamZeroStride]),
+				/*src =*/((BYTE*)VPDesc.pVertexStreamZeroData) + (VPDesc.uiVertexStreamZeroStride * (VertexCount - 1)),
+				VPDesc.uiVertexStreamZeroStride);
+
+			void *pVertexStreamZeroData = &DxbxClosingLineVertices[0]; // Needed for D3D9
+			hRet = g_pD3DDevice8->DrawPrimitiveUP
+			(
+				D3DPT_LINELIST,
+				/*PrimitiveCount =*/1,
+				pVertexStreamZeroData,
+				VPDesc.uiVertexStreamZeroStride
+			);
+			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawPrimitiveUP");
+		}
+	}
+
+	g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
+}
+
 // ******************************************************************
 // * patch: D3DDevice_DrawVerticesUP
 // ******************************************************************
@@ -8202,16 +8282,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
         if(!g_bVBSkipStream)
         #endif
         {
-			HRESULT hRet = g_pD3DDevice8->DrawPrimitiveUP
-			(
-				EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
-				VPDesc.dwPrimitiveCount,
-				VPDesc.pVertexStreamZeroData,
-				VPDesc.uiVertexStreamZeroStride
-			);
-			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawPrimitiveUP");
-
-			g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
+			DxbxDrawPrimitiveUP(VPDesc);
         }
     }
 
