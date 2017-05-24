@@ -203,7 +203,7 @@ extern void XTL::EmuExecutePushBufferRaw
 
             dwStride = 0;
 
-            if(!VshHandleIsVertexShader(dwVertexShader))
+            if(VshHandleIsFVF(dwVertexShader))
             {
                 /*if(dwVertexShader & D3DFVF_XYZRHW)	{ dwStride += sizeof(FLOAT)*4; }
 				if(dwVertexShader & D3DFVF_XYZ)		{ dwStride += sizeof(FLOAT)*3; }

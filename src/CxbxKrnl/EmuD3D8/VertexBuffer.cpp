@@ -369,7 +369,7 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
 {
     // FVF buffers doesn't have Xbox extensions, but texture coordinates may
     // need normalization if used with linear textures.
-    if(!VshHandleIsVertexShader(pPatchDesc->hVertexShader))
+    if(VshHandleIsFVF(pPatchDesc->hVertexShader))
     {
         if(pPatchDesc->hVertexShader & D3DFVF_TEXCOUNT_MASK)
         {
@@ -1048,7 +1048,7 @@ VOID XTL::EmuFlushIVB()
     UINT uiStride = 0;
 
     // Parse IVB table with current FVF shader if possible.
-    bool bFVF = !VshHandleIsVertexShader(g_CurrentVertexShader);
+    bool bFVF = VshHandleIsFVF(g_CurrentVertexShader);
     DWORD dwCurFVF;
     if(bFVF && ((g_CurrentVertexShader & D3DFVF_POSITION_MASK) != D3DFVF_XYZRHW))
     {
