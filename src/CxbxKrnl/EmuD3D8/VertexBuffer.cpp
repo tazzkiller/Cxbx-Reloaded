@@ -1050,15 +1050,7 @@ VOID XTL::EmuFlushIVB()
 
 	for(uint v=0;v<g_IVBTblOffs;v++)
     {
-        if(dwPos == D3DFVF_XYZ)
-        {
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
-
-            DbgPrintf("IVB Position := {%f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z);
-        }
-        else if(dwPos == D3DFVF_XYZRHW)
+        if(dwPos == D3DFVF_XYZRHW)
         {
             *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
             *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
@@ -1067,29 +1059,73 @@ VOID XTL::EmuFlushIVB()
 
             DbgPrintf("IVB Position := {%f, %f, %f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z, g_IVBTable[v].Position.z, g_IVBTable[v].Rhw);
         }
-		else if(dwPos == D3DFVF_XYZB1)
-        {
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
-			*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend1;
+		else // XYZRHW cannot be combined with NORMAL, but the other XYZ formats can :
+		{
+			if (dwPos == D3DFVF_XYZ)
+			{
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
 
-			DbgPrintf("IVB Position := {%f, %f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z, g_IVBTable[v].Blend1);
-        }
-        else
-        {
-			CxbxKrnlCleanup("Unsupported Position Mask (FVF := 0x%.08X dwPos := 0x%.08X)", dwCurFVF, dwPos);
-        }
+				DbgPrintf("IVB Position := {%f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z);
+			}
+			else if (dwPos == D3DFVF_XYZB1)
+			{
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend1;
 
-//      if(dwPos == D3DFVF_NORMAL)	// <- This didn't look right but if it is, change it back...
-		if(dwCurFVF & D3DFVF_NORMAL)
-        {
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].Normal.x;
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].Normal.y;
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].Normal.z;
+				DbgPrintf("IVB Position := {%f, %f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z, g_IVBTable[v].Blend1);
+			}
+			else if (dwPos == D3DFVF_XYZB2)
+			{
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend1;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend2;
 
-            DbgPrintf("IVB Normal := {%f, %f, %f}\n", g_IVBTable[v].Normal.x, g_IVBTable[v].Normal.y, g_IVBTable[v].Normal.z);
-        }
+				DbgPrintf("IVB Position := {%f, %f, %f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z, g_IVBTable[v].Blend1, g_IVBTable[v].Blend2);
+			}
+			else if (dwPos == D3DFVF_XYZB3)
+			{
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend1;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend2;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend3;
+
+				DbgPrintf("IVB Position := {%f, %f, %f, %f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z, g_IVBTable[v].Blend1, g_IVBTable[v].Blend2, g_IVBTable[v].Blend3);
+			}
+			else if (dwPos == D3DFVF_XYZB4)
+			{
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend1;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend2;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend3;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend4;
+
+				DbgPrintf("IVB Position := {%f, %f, %f, %f, %f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z, g_IVBTable[v].Blend1, g_IVBTable[v].Blend2, g_IVBTable[v].Blend3, g_IVBTable[v].Blend4);
+			}
+			else
+			{
+				CxbxKrnlCleanup("Unsupported Position Mask (FVF := 0x%.08X dwPos := 0x%.08X)", dwCurFVF, dwPos);
+			}
+
+			//      if(dwPos == D3DFVF_NORMAL)	// <- This didn't look right but if it is, change it back...
+			if (dwCurFVF & D3DFVF_NORMAL)
+			{
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Normal.x;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Normal.y;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].Normal.z;
+
+				DbgPrintf("IVB Normal := {%f, %f, %f}\n", g_IVBTable[v].Normal.x, g_IVBTable[v].Normal.y, g_IVBTable[v].Normal.z);
+			}
+		}
 
         if(dwCurFVF & D3DFVF_DIFFUSE)
         {
@@ -1105,36 +1141,39 @@ VOID XTL::EmuFlushIVB()
             DbgPrintf("IVB Specular := 0x%.08X\n", g_IVBTable[v].Specular);
         }
 
-        if(dwTexN >= 1)
+		// TODO -oDxbx : Handle other sizes than D3DFVF_TEXCOORDSIZE2 too!
+		// See D3DTSS_TEXTURETRANSFORMFLAGS values other than D3DTTFF_COUNT2
+		// See and/or X_D3DVSD_DATATYPEMASK values other than D3DVSDT_FLOAT2
+		if(dwTexN >= 1)
         {
             *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord1.x;
             *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord1.y;
 
             DbgPrintf("IVB TexCoord1 := {%f, %f}\n", g_IVBTable[v].TexCoord1.x, g_IVBTable[v].TexCoord1.y);
-        }
 
-        if(dwTexN >= 2)
-        {
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord2.x;
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord2.y;
+			if(dwTexN >= 2)
+			{
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord2.x;
+				*(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord2.y;
 
-            DbgPrintf("IVB TexCoord2 := {%f, %f}\n", g_IVBTable[v].TexCoord2.x, g_IVBTable[v].TexCoord2.y);
-        }
+				DbgPrintf("IVB TexCoord2 := {%f, %f}\n", g_IVBTable[v].TexCoord2.x, g_IVBTable[v].TexCoord2.y);
 
-        if(dwTexN >= 3)
-        {
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord3.x;
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord3.y;
+				if(dwTexN >= 3)
+				{
+					*(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord3.x;
+					*(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord3.y;
 
-            DbgPrintf("IVB TexCoord3 := {%f, %f}\n", g_IVBTable[v].TexCoord3.x, g_IVBTable[v].TexCoord3.y);
-        }
+					DbgPrintf("IVB TexCoord3 := {%f, %f}\n", g_IVBTable[v].TexCoord3.x, g_IVBTable[v].TexCoord3.y);
 
-        if(dwTexN >= 4)
-        {
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord4.x;
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord4.y;
+					if(dwTexN >= 4)
+					{
+						*(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord4.x;
+						*(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord4.y;
 
-            DbgPrintf("IVB TexCoord4 := {%f, %f}\n", g_IVBTable[v].TexCoord4.x, g_IVBTable[v].TexCoord4.y);
+						DbgPrintf("IVB TexCoord4 := {%f, %f}\n", g_IVBTable[v].TexCoord4.x, g_IVBTable[v].TexCoord4.y);
+					}
+				}
+			}
         }
 
 		uint VertexBufferUsage = (BYTE *)pdwVB - (BYTE *)g_pIVBVertexBuffer;

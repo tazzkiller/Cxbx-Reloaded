@@ -353,7 +353,7 @@ void XTL::EmuUpdateDeferredStates()
                 g_pD3DDevice8->SetTextureStageState(v, D3DTSS_RESULTARG, pCur[20-Adjust1]);
 
             if(pCur[21-Adjust1] != X_D3DTSS_UNK)
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_TEXTURETRANSFORMFLAGS, pCur[21-Adjust1]);
+                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_TEXTURETRANSFORMFLAGS, pCur[21-Adjust1]); // TODO : Handle all, not just D3DTTFF_COUNT2
 
             /*if(pCur[29] != X_D3DTSS_UNK)	// This is NOT a deferred texture state!
                 g_pD3DDevice8->SetTextureStageState(v, D3DTSS_BORDERCOLOR, pCur[29]);*/
