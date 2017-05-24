@@ -4929,8 +4929,11 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 
             if( (g_IVBFVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX1)
             {
-                g_IVBFVF |= D3DFVF_TEX1;
-            }
+				// Dxbx fix : Use mask, else the format might get expanded incorrectly :
+				g_IVBFVF = (g_IVBFVF & ~D3DFVF_TEXCOUNT_MASK) | D3DFVF_TEX1;
+				// Dxbx note : Correct usage of D3DFVF_TEX1 (and the other cases below)
+				// can be tested with "Daphne Xbox" (the Laserdisc Arcade Game Emulator).
+			}
 
 			break;
         }
@@ -4942,8 +4945,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 
             if( (g_IVBFVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX2)
             {
-                g_IVBFVF |= D3DFVF_TEX2;
-            }
+				// Dxbx fix : Use mask, else the format might get expanded incorrectly :
+				g_IVBFVF = (g_IVBFVF & ~D3DFVF_TEXCOUNT_MASK) | D3DFVF_TEX2;
+			}
 
 			break;
         }
@@ -4955,8 +4959,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 
             if( (g_IVBFVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX3)
             {
-                g_IVBFVF |= D3DFVF_TEX3;
-            }
+				// Dxbx fix : Use mask, else the format might get expanded incorrectly :
+				g_IVBFVF = (g_IVBFVF & ~D3DFVF_TEXCOUNT_MASK) | D3DFVF_TEX3;
+			}
 
 			break;
         }
@@ -4968,7 +4973,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 
             if( (g_IVBFVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX4)
             {
-                g_IVBFVF |= D3DFVF_TEX4;
+				// Dxbx fix : Use mask, else the format might get expanded incorrectly :
+                g_IVBFVF = (g_IVBFVF & ~D3DFVF_TEXCOUNT_MASK) | D3DFVF_TEX4;
             }
 
 	        break;
