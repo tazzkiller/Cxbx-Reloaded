@@ -4911,6 +4911,17 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 			break;
         }
 
+		case X_D3DVSDE_BACKDIFFUSE:
+		{
+			// TODO : Support backside rendering ...
+			break;
+		}
+		case X_D3DVSDE_BACKSPECULAR:
+		{
+			// TODO : Support backside rendering ...
+			break;
+		}
+
 		case X_D3DVSDE_TEXCOORD0:
         {
             g_IVBTable[o].TexCoord1.x = a;
