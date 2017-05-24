@@ -4852,7 +4852,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
             g_IVBTable[o].Position.x = a;
             g_IVBTable[o].Position.y = b;
             g_IVBTable[o].Position.z = c;
-            g_IVBTable[o].Rhw = 1.0f;
+            g_IVBTable[o].Rhw = d; // Was : 1.0f; // Dxbx note : Why set Rhw to 1.0? And why ignore d?
 
             g_IVBTblOffs++;
 
