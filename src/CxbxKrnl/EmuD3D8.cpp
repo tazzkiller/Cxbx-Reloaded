@@ -1277,6 +1277,14 @@ void CxbxUpdateTextureStages()
 
 XTL::IDirect3DSurface8 *CxbxUpdateSurface(const XTL::X_D3DSurface *pXboxSurface)
 {
+	if (pXboxSurface == NULL)
+		return nullptr;
+
+/* Note : I don't this an update of this surface's Parent is needed, but if it is, here's how :
+	if (pXboxSurface->Parent != NULL)
+		(XTL::IDirect3DSurface8 *)CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pXboxSurface->Parent, NULL);
+
+*/
 	return (XTL::IDirect3DSurface8 *)CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pXboxSurface, NULL);
 }
 
