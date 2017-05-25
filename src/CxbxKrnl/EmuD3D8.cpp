@@ -4554,7 +4554,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetIndices)
 // ******************************************************************
 // * patch: D3DDevice_SetTexture
 // ******************************************************************
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 (
     DWORD           Stage,
     X_D3DBaseTexture  *pTexture
@@ -4639,8 +4639,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
     //HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, pDummyTexture[Stage]);
     HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, (g_iWireframe == 0) ? pHostBaseTexture : nullptr);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTexture");
-
-    return hRet;
 }
 
 // ******************************************************************

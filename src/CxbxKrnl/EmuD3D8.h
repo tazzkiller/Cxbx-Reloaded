@@ -555,7 +555,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_SetIndices)
 // ******************************************************************
 // * patch: D3DDevice_SetTexture
 // ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_SetTexture)
+VOID WINAPI EMUPATCH(D3DDevice_SetTexture)
 (
     DWORD           Stage,
 	X_D3DBaseTexture  *pTexture
