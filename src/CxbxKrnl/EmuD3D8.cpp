@@ -4567,10 +4567,12 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 		LOG_FUNC_ARG(pTexture)
 		LOG_FUNC_END;
 
+    EmuD3DTextureStages[Stage] = pTexture; // Note : Is reference-counting needed?
+
+#if 0
 	IDirect3DBaseTexture8 *pHostBaseTexture = nullptr;
 
-    EmuD3DTextureStages[Stage] = pTexture;
-    if(pTexture != NULL)
+	if(pTexture != NULL)
     {
 		pHostBaseTexture = CxbxUpdateTexture(pTexture, g_pTexturePaletteStages[Stage]);
 
@@ -4639,6 +4641,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
     //HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, pDummyTexture[Stage]);
     HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, (g_iWireframe == 0) ? pHostBaseTexture : nullptr);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTexture");
+#endif
 }
 
 // ******************************************************************
