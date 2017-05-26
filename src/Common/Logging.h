@@ -155,21 +155,27 @@ extern thread_local std::string _logPrefix;
 		_logPrefix = tmp.str(); \
     }
 
-#define LOG_INIT \
+#define LOG_FUNC_INIT(func) \
 	LOG_THREAD_INIT \
 	static thread_local std::string _logFuncPrefix; \
 	if (_logFuncPrefix.length() == 0) {	\
 		std::stringstream tmp; \
-		tmp << _logPrefix << __FILENAME__ << " : " << __func__; \
+		tmp << _logPrefix << __FILENAME__ << " : " << func; \
 		_logFuncPrefix = tmp.str(); \
 	}
 
-#define LOG_FUNC_BEGIN \
-	LOG_INIT \
+#define LOG_INIT \
+	LOG_FUNC_INIT(__func__)
+
+#define LOG_FUNC_BEGIN_NO_INIT \
 	do { if(g_bPrintfOn) { \
 		bool _had_arg = false; \
 		std::stringstream msg; \
 		msg << _logFuncPrefix << "(";
+
+#define LOG_FUNC_BEGIN \
+	LOG_INIT \
+	LOG_FUNC_BEGIN_NO_INIT
 
 // LOG_FUNC_ARG writes output via all available ostream << operator overloads, sanitizing and adding detail where possible
 #define LOG_FUNC_ARG(arg) \
