@@ -5,7 +5,7 @@
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
 // *  ,;;;'````'    `;;;,  .,;;  ;;;'';;'   `;;;,  .,;;
 // *  [[[             '[[,,[['   [[[__[[\.    '[[,,[['
-// *  $$$              Y$$$P     $$""""Y$$     Y$$$P
+// *  0x0x0x              Y0x0x0xP     0x0x""""Y0x0x     Y0x0x0xP
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
@@ -36,14 +36,103 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#include "Logging.h"
 #include "CxbxKrnl/Emu.h"
 #include "CxbxKrnl/EmuXTL.h"
+//#include "EmuNV2A.h"
+#include "Convert.h" // DxbxRenderStateInfo
 
 // deferred state lookup tables
-DWORD *XTL::EmuD3DDeferredRenderState;
+DWORD *XTLEmuD3DDeferredRenderState;
 DWORD *XTL::EmuD3DDeferredTextureState;
 
 extern uint32 g_BuildVersion;
+
+namespace XTL {
+
+// Dxbx addition : Dummy value (and pointer to that) to transparently ignore unsupported render states :
+X_D3DRENDERSTATETYPE DummyRenderStateValue = X_D3DRS_FIRST;
+X_D3DRENDERSTATETYPE *DummyRenderState = &DummyRenderStateValue; // Unsupported states share this pointer value
+
+																	   // XDK version independent renderstate table, containing pointers to the original locations.
+X_D3DRENDERSTATETYPE *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED]; // 1 extra for the unsupported value
+
+DWORD (*DxbxTextureStageStateXB2PCCallback[X_D3DTSS_LAST])(DWORD Value);
+DWORD (*DxbxRenderStateXB2PCCallback[X_D3DRS_LAST])(DWORD Value);
+X_D3DRENDERSTATETYPE DxbxMapActiveVersionToMostRecent[X_D3DRS_LAST];
+X_D3DRENDERSTATETYPE DxbxMapMostRecentToActiveVersion[X_D3DRS_LAST];
+
+void DxbxBuildRenderStateMappingTable()
+{
+	if (_D3D__RenderState == nullptr)
+		return;
+
+	// Loop over all latest (5911) states :
+	X_D3DRENDERSTATETYPE State_VersionDependent = X_D3DRS_FIRST;
+	for (X_D3DRENDERSTATETYPE State = X_D3DRS_FIRST; State < X_D3DRS_LAST; State++)
+	{
+		// Check if this state is available in the active SDK version :
+		if (g_BuildVersion >= DxbxRenderStateInfo[State].V)
+		{
+			// If it is available, register this offset in the various mapping tables we use :
+			DxbxMapActiveVersionToMostRecent[State_VersionDependent] = State;
+			DxbxMapMostRecentToActiveVersion[State] = State_VersionDependent;
+			EmuMappedD3DRenderState[State] = &(_D3D__RenderState[State_VersionDependent]);
+			// Step to the next offset :
+			State_VersionDependent++;
+		}
+		else
+		{
+			// When unavailable, apply a dummy pointer, and *don't* increment the version dependent state,
+			// so the mapping table will correspond to the actual (version dependent) layout :
+			// DxbxMapActiveVersionToMostRecent shouldn't be set here, as there's no element for this state!
+			DxbxMapMostRecentToActiveVersion[State] = X_D3DRS_UNSUPPORTED;
+			EmuMappedD3DRenderState[State] = DummyRenderState;
+		}
+	}
+
+	// Initialize the dummy render state :
+	EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED] = DummyRenderState;
+
+	// Log the start address of the "deferred" render states (not needed anymore, just to keep logging the same) :
+	{
+		// Calculate the location of D3DDeferredRenderState via an XDK-dependent offset to _D3D__RenderState :
+		EmuD3DDeferredRenderState = _D3D__RenderState;
+		// Dxbx note : XTL_EmuD3DDeferredRenderState:PDWORDs cast to UIntPtr to avoid incrementing with that many array-sizes!
+		EmuD3DDeferredRenderState += DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
+		DbgPrintf("HLE: 0x%.08X -> EmuD3DDeferredRenderState", EmuD3DDeferredRenderState);
+	}
+
+	// Build a table with converter functions for all renderstates :
+	for (int i = X_D3DRS_FIRST; i < X_D3DRS_LAST; i++)
+		DxbxRenderStateXB2PCCallback[i] = (DWORD (*)(DWORD))(DxbxXBTypeInfo[DxbxRenderStateInfo[i].T].F);
+
+	// Build a table with converter functions for all texture stage states :
+	for (int i = X_D3DTSS_FIRST; i < X_D3DTSS_LAST; i++)
+		DxbxTextureStageStateXB2PCCallback[i] = (DWORD(*)(DWORD))(DxbxXBTypeInfo[DxbxTextureStageStateInfo[i].T].F);
+}
+
+// Converts the input render state from a version-dependent into a version-neutral value.
+X_D3DRENDERSTATETYPE DxbxVersionAdjust_D3DRS(const X_D3DRENDERSTATETYPE XboxRenderState_VersionDependent)
+{
+	return DxbxMapActiveVersionToMostRecent[XboxRenderState_VersionDependent];
+}
+
+void InitD3DDeferredStates()
+{
+	DxbxBuildRenderStateMappingTable();
+
+	for (int v = 0; v < 44; v++) {
+		EmuD3DDeferredRenderState[v] = X_D3DRS_UNK;
+	}
+
+	for (int s = 0; s < X_D3DTS_STAGECOUNT; s++) {
+		for (int v = 0; v < X_D3DTS_STAGESIZE; v++)
+			EmuD3DDeferredTextureState[v + s * X_D3DTS_STAGESIZE] = X_D3DTSS_UNK;
+	}
+}
+
+}; // end of namespace XTL
 
 // ******************************************************************
 // * patch: UpdateDeferredStates
@@ -447,4 +536,117 @@ void XTL::EmuUpdateDeferredStates()
         g_pD3DDevice8->SetRenderState(D3DRS_AMBIENT, 0xFFFFFFFF);
         //*/
     }
+}
+
+DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue)
+{
+	D3DRENDERSTATETYPE PCRenderState;
+	DWORD PCValue;
+
+	LOG_INIT //
+
+	// Check if the render state is mapped :
+	if (EmuMappedD3DRenderState[XboxRenderState] == DummyRenderState)
+	{
+		CxbxKrnlCleanup("Unsupported RenderState : %s (0x%.08X)", DxbxRenderStateInfo[XboxRenderState].S, (int)XboxRenderState);
+		return XboxValue;
+	}
+
+	// Set this value into the RenderState structure too (so other code will read the new current value) :
+	*(EmuMappedD3DRenderState[XboxRenderState]) = XboxValue;
+
+	// Skip Xbox extensions :
+	if (DxbxRenderStateInfo[XboxRenderState].PC == D3DRS_UNSUPPORTED)
+		return XboxValue;
+
+	// Disabled, as it messes up Nvidia rendering too much :
+	//  // Dxbx addition : Hack for Smashing drive (on ATI X1300), don't transfer fog (or everything becomes opaque) :
+	//  if (IsRunning(TITLEID_SmashingDrive)
+	//      && (XboxRenderState  in [X_D3DRS_FOGSTART, X_D3DRS_FOGEND, X_D3DRS_FOGDENSITY]))
+	//    return Result;
+
+	// Pixel shader constants are handled in DxbxUpdateActivePixelShader :
+	if (XboxRenderState >= X_D3DRS_PSCONSTANT0_0 && XboxRenderState <= X_D3DRS_PSCONSTANT1_7)
+		return XboxValue;
+	if (XboxRenderState == X_D3DRS_PSFINALCOMBINERCONSTANT0)
+		return XboxValue;
+	if (XboxRenderState == X_D3DRS_PSFINALCOMBINERCONSTANT1)
+		return XboxValue;
+
+	if (XboxRenderState >= X_D3DRS_DEFERRED_FIRST && XboxRenderState <= X_D3DRS_DEFERRED_LAST)
+	{
+		// Skip unspecified deferred render states :
+		if (XboxValue == X_D3DTSS_UNK) // TODO : These are no texture stage states, so X_D3DTSS_UNK is incorrect. Use D3DRS_UNSUPPORTED perhaps?
+			return XboxValue;
+	}
+
+	/*
+	case X_D3DRS_TEXTUREFACTOR:
+	{
+	// TODO : If no pixel shader is set, initialize all 16 pixel shader constants
+	//        (X_D3DRS_PSCONSTANT0_0..X_D3DRS_PSCONSTANT1_7) to this value too.
+	break;
+	}
+
+	case X_D3DRS_CULLMODE:
+	{
+	if (XboxValue > (DWORD)X_D3DCULL_NONE)
+	; // TODO : Update X_D3DRS_FRONTFACE too
+
+	break;
+	}
+	*/
+	if (XboxRenderState == X_D3DRS_FILLMODE)
+	{
+		// Configurable override on fillmode :
+		switch (g_iWireframe) {
+		case 0: break; // Use fillmode specified by the XBE
+		case 1: XboxValue = (DWORD)X_D3DFILL_WIREFRAME; break;
+		default: XboxValue = (DWORD)X_D3DFILL_POINT;
+		}
+	}
+
+	// Map the Xbox state to a PC state, and check if it's supported :
+	PCRenderState = DxbxRenderStateInfo[XboxRenderState].PC;
+	if (PCRenderState == D3DRS_UNSUPPORTED)
+	{
+		EmuWarning("%s is not supported!", DxbxRenderStateInfo[XboxRenderState].S);
+		return XboxValue;
+	}
+
+	if (g_pD3DDevice8 == nullptr)
+		return XboxValue;
+
+	// Convert the value from Xbox format into PC format, and set it locally :
+	PCValue = DxbxRenderStateXB2PCCallback[XboxRenderState](XboxValue);
+
+	HRESULT hRet;
+#if DXBX_USE_D3D9
+	switch (XboxRenderState) {
+	case X_D3DRS_EDGEANTIALIAS:
+		break; // TODO -oDxbx : What can we do to support this?
+	case X_D3DRS_ZBIAS:
+	{
+		// TODO -oDxbx : We need to calculate the sloped scale depth bias, here's what I know :
+		// (see http://blog.csdn.net/qq283397319/archive/2009/02/14/3889014.aspx)
+		//   bias = (max * D3DRS_SLOPESCALEDEPTHBIAS) + D3DRS_DEPTHBIAS (which is Value here)
+		// > bias - Value = max * D3DRS_SLOPESCALEDEPTHBIAS
+		// > D3DRS_SLOPESCALEDEPTHBIAS = (bias - Value) / max
+		// TODO : So, what should we use as bias and max?
+		hRet = g_pD3DDevice8->SetRenderState(D3DRS_SLOPESCALEDEPTHBIAS, F2DW(1.0)); // For now.
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+		hRet = g_pD3DDevice8->SetRenderState(D3DRS_DEPTHBIAS, PCValue);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+		break;
+	}
+	default:
+		hRet = g_pD3DDevice8->SetRenderState(PCRenderState, PCValue);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+	}
+#else
+	hRet = g_pD3DDevice8->SetRenderState(PCRenderState, PCValue);
+//	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+#endif
+
+	return PCValue;
 }

@@ -176,7 +176,7 @@ static DWORD                        g_VertexShaderSlots[136];
 // cached palette pointer
 static DWORD *g_pTexturePaletteStages[TEXTURE_STAGES] = { nullptr, nullptr, nullptr, nullptr };
 
-static XTL::X_VERTEXSHADERCONSTANTMODE g_VertexShaderConstantMode = X_VSCM_192;
+static XTL::X_VERTEXSHADERCONSTANTMODE g_VertexShaderConstantMode = XTL::X_D3DSCM_192CONSTANTS;
 
 // cached Direct3D tiles
 XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
@@ -1323,6 +1323,31 @@ void CxbxUpdateNativeD3DResources()
 	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
 }
 
+void DxbxSetRenderStateInternal
+(
+	char *Caller,
+	XTL::X_D3DRENDERSTATETYPE XboxRenderState,
+	DWORD XboxValue
+)
+{
+	LOG_FUNC_INIT(Caller)
+
+	if (Caller)
+	{
+		LOG_FUNC_BEGIN_NO_INIT
+			LOG_FUNC_ARG(XboxRenderState)
+			LOG_FUNC_ARG(XboxValue)
+			LOG_FUNC_END;
+	}
+
+	DWORD PCValue = XTL::Dxbx_SetRenderState(XboxRenderState, XboxValue);
+
+	// Dump the value that's being forwarded to PC :
+	if (PCValue != XboxValue)
+		DbgPrintf("  %s := 0x%.08X (converted from Xbox)\n", XTL::DxbxRenderStateInfo[XboxRenderState].S, PCValue);
+	else
+		DbgPrintf("  %s := 0x%.08X\n", XTL::DxbxRenderStateInfo[XboxRenderState].S, PCValue);
+}
 
 // Direct3D initialization (called before emulation begins)
 VOID XTL::EmuD3DInit()
@@ -2506,8 +2531,9 @@ void CxbxUpdateActiveIndexBuffer
 }
 
 // ******************************************************************
-// * patch: Direct3D_CreateDevice
+// * Start of all D3D patches
 // ******************************************************************
+
 HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 (
     UINT                        Adapter,
@@ -2567,9 +2593,6 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
     return g_EmuCDPD.hRet;
 }
 
-// ******************************************************************
-// * patch: IDirect3DResource8_IsBusy
-// ******************************************************************
 BOOL WINAPI XTL::EMUPATCH(D3DDevice_IsBusy)()
 {
 	FUNC_EXPORTS
@@ -2581,9 +2604,6 @@ BOOL WINAPI XTL::EMUPATCH(D3DDevice_IsBusy)()
     return FALSE;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetCreationParameters
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetCreationParameters)(D3DDEVICE_CREATION_PARAMETERS *pParameters)
 {
 	FUNC_EXPORTS
@@ -2597,9 +2617,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetCreationParameters)(D3DDEVICE_CREATION_PA
 }
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3D_CheckDeviceFormat
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3D_CheckDeviceFormat)
 (
     UINT                        Adapter,
@@ -2636,9 +2653,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_CheckDeviceFormat)
 }
 #endif
 
-// ******************************************************************
-// * patch: D3DDevice_GetDisplayFieldStatus
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayFieldStatus)(X_D3DFIELD_STATUS *pFieldStatus)
 {
 	FUNC_EXPORTS
@@ -2654,9 +2668,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayFieldStatus)(X_D3DFIELD_STATUS *pF
 #endif
 }
 
-// ******************************************************************
-// * patch: D3DDevice_BeginPush
-// ******************************************************************
 PDWORD WINAPI XTL::EMUPATCH(D3DDevice_BeginPush)(DWORD Count)
 {
 	FUNC_EXPORTS
@@ -2677,9 +2688,6 @@ PDWORD WINAPI XTL::EMUPATCH(D3DDevice_BeginPush)(DWORD Count)
     return pRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_EndPush
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_EndPush)(DWORD *pPush)
 {
 	FUNC_EXPORTS
@@ -2703,9 +2711,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_EndPush)(DWORD *pPush)
 	}
 }
 
-// ******************************************************************
-// * patch: D3DDevice_BeginVisibilityTest
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginVisibilityTest)()
 {
 	FUNC_EXPORTS
@@ -2717,9 +2722,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginVisibilityTest)()
     return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_EndVisibilityTest
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndVisibilityTest)
 (
     DWORD                       Index
@@ -2734,9 +2736,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndVisibilityTest)
     return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetBackBufferScale
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetBackBufferScale)(FLOAT x, FLOAT y)
 {
 	FUNC_EXPORTS
@@ -2749,9 +2748,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetBackBufferScale)(FLOAT x, FLOAT y)
 	LOG_IGNORED();
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetVisibilityTestResult
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVisibilityTestResult)
 (
     DWORD                       Index,
@@ -2781,9 +2777,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVisibilityTestResult)
 }
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_GetDeviceCaps
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDeviceCaps)
 (
     D3DCAPS8                   *pCaps
@@ -2801,9 +2794,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDeviceCaps)
 }
 #endif
 
-// ******************************************************************
-// * patch: D3DDevice_LoadVertexShader
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_LoadVertexShader)
 (
     DWORD                       Handle,
@@ -2830,9 +2820,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_LoadVertexShader)
     return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SelectVertexShader
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SelectVertexShader)
 (
     DWORD                       Handle,
@@ -2885,9 +2872,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SelectVertexShader)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3D_KickOffAndWaitForIdle
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle)()
 {
 	FUNC_EXPORTS
@@ -2899,9 +2883,6 @@ VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle)()
 	LOG_UNIMPLEMENTED();
 }
 
-// ******************************************************************
-// * patch: D3D_KickOffAndWaitForIdle2
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle2)(DWORD dwDummy1, DWORD dwDummy2)
 {
 	FUNC_EXPORTS
@@ -2916,9 +2897,6 @@ VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle2)(DWORD dwDummy1, DWORD dwDu
 	LOG_UNIMPLEMENTED();
 }
 
-// ******************************************************************
-// * patch: D3DDevice_AddRef
-// ******************************************************************
 ULONG WINAPI XTL::EMUPATCH(D3DDevice_AddRef)()
 {
 	FUNC_EXPORTS
@@ -2930,9 +2908,6 @@ ULONG WINAPI XTL::EMUPATCH(D3DDevice_AddRef)()
     return ret;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_BeginStateBlock
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginStateBlock)()
 {
 	FUNC_EXPORTS
@@ -2945,9 +2920,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginStateBlock)()
     return ret;
 }
 
-/*// ******************************************************************
-// * patch: D3DDevice_BeginStateBig
-// ******************************************************************
+/*
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginStateBig)()
 {
     FUNC_EXPORTS
@@ -2963,9 +2936,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginStateBig)()
     return hRet;
 }*/
 
-// ******************************************************************
-// * patch: D3DDevice_CaptureStateBlock
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CaptureStateBlock)(DWORD Token)
 {
 	FUNC_EXPORTS
@@ -2978,9 +2948,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CaptureStateBlock)(DWORD Token)
     return ret;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_ApplyStateBlock
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_ApplyStateBlock)(DWORD Token)
 {
 	FUNC_EXPORTS
@@ -2993,9 +2960,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_ApplyStateBlock)(DWORD Token)
     return ret;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_EndStateBlock
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndStateBlock)(DWORD *pToken)
 {
 	FUNC_EXPORTS
@@ -3008,9 +2972,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndStateBlock)(DWORD *pToken)
     return ret;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_CopyRects
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CopyRects)
 (
     X_D3DSurface       *pSourceSurface,
@@ -3064,9 +3025,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CopyRects)
 }
 
 #if 0 // Patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateImageSurface
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateImageSurface)
 (
     UINT                Width,
@@ -3121,9 +3079,6 @@ inline WORD UpsampleByteToWord(BYTE value)
 	return (value << 8) + 127;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetGammaRamp
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetGammaRamp)
 (
     X_D3DGAMMARAMP     *pRamp
@@ -3146,9 +3101,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetGammaRamp)
     }
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetGammaRamp
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetGammaRamp)
 (
 	DWORD                   dwFlags,
@@ -3178,9 +3130,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetGammaRamp)
 	g_pD3DDevice8->SetGammaRamp(dwPCFlags, &HostGammaRamp);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetBackBuffer2
-// ******************************************************************
 XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer2)
 (
     INT                 BackBuffer
@@ -3253,9 +3202,6 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer2)
     RETURN(pBackBuffer);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetBackBuffer
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer)
 (
     INT                 BackBuffer,
@@ -3270,9 +3216,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer)
     *ppBackBuffer = EMUPATCH(D3DDevice_GetBackBuffer2)(BackBuffer);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetViewport
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetViewport)
 (
     CONST D3DVIEWPORT8 *pViewport
@@ -3324,9 +3267,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetViewport)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetViewport
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetViewport)
 (
     D3DVIEWPORT8 *pViewport
@@ -3349,9 +3289,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetViewport)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetViewportOffsetAndScale
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetViewportOffsetAndScale)
 (
     D3DXVECTOR4 *pOffset,
@@ -3402,9 +3339,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetViewportOffsetAndScale)
     
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetShaderConstantMode
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetShaderConstantMode)
 (
     XTL::X_VERTEXSHADERCONSTANTMODE Mode
@@ -3419,9 +3353,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetShaderConstantMode)
     return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_Reset
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Reset)
 (
     X_D3DPRESENT_PARAMETERS *pPresentationParameters
@@ -3436,9 +3367,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Reset)
     return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetRenderTarget
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget)
 (
     X_D3DSurface  **ppRenderTarget
@@ -3453,9 +3381,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget)
     return D3D_OK; // Never returns D3DERR_NOTFOUND (D3DDevice_GetDepthStencilSurface does)
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetRenderTarget2
-// ******************************************************************
 XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget2)()
 {
 	FUNC_EXPORTS
@@ -3469,9 +3394,6 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget2)()
     RETURN(result);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetDepthStencilSurface
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface)
 (
     X_D3DSurface  **ppZStencilSurface
@@ -3489,9 +3411,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface)
     return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetDepthStencilSurface2
-// ******************************************************************
 XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface2)()
 {
 	FUNC_EXPORTS
@@ -3505,9 +3424,6 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface2)()
 	RETURN(result);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetTile
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetTile)
 (
     DWORD           Index,
@@ -3527,11 +3443,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetTile)
     return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetTile
-// ******************************************************************
-// * Dxbx note : SetTile is applied to SetTileNoWait in Cxbx 4361 OOPVA's!
-// ******************************************************************
+// Dxbx note : SetTile is applied to SetTileNoWait in Cxbx 4361 OOPVA's!
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTile)
 (
     DWORD               Index,
@@ -3551,9 +3463,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTile)
     return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_CreateVertexShader
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
 (
     CONST DWORD    *pDeclaration,
@@ -3607,7 +3516,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
         hRet = XTL::EmuRecompileVshFunction((DWORD*)pFunction,
                                             &pRecompiledBuffer,
                                             &VertexShaderSize,
-                                            g_VertexShaderConstantMode == X_VSCM_NONERESERVED,
+                                            g_VertexShaderConstantMode == X_D3DSCM_NORESERVEDCONSTANTS,
 											&bUseDeclarationOnly);
         if(SUCCEEDED(hRet))
         {
@@ -3735,9 +3644,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetPixelShaderConstant
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderConstant)
 (
     DWORD       Register,
@@ -3774,9 +3680,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderConstant)
     }
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetVertexShaderConstant
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderConstant)
 (
     INT         Register,
@@ -3828,9 +3731,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderConstant)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetVertexShaderConstant1
-// ******************************************************************
 VOID __fastcall XTL::EMUPATCH(D3DDevice_SetVertexShaderConstant1)
 (
     INT         Register,
@@ -3844,9 +3744,6 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetVertexShaderConstant1)
     EMUPATCH(D3DDevice_SetVertexShaderConstant)(Register, pConstantData, 1);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetVertexShaderConstant4
-// ******************************************************************
 VOID __fastcall XTL::EMUPATCH(D3DDevice_SetVertexShaderConstant4)
 (
     INT         Register,
@@ -3860,9 +3757,6 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetVertexShaderConstant4)
 	EMUPATCH(D3DDevice_SetVertexShaderConstant)(Register, pConstantData, 4);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetVertexShaderConstantNotInline
-// ******************************************************************
 VOID __fastcall XTL::EMUPATCH(D3DDevice_SetVertexShaderConstantNotInline)
 (
     INT         Register,
@@ -3877,9 +3771,6 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetVertexShaderConstantNotInline)
 	EMUPATCH(D3DDevice_SetVertexShaderConstant)(Register, pConstantData, ConstantCount / 4);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_DeletePixelShader
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_DeletePixelShader)
 (
     DWORD          Handle
@@ -3913,9 +3804,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DeletePixelShader)
 	}*/
 }
 
-// ******************************************************************
-// * patch: D3DDevice_CreatePixelShader
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePixelShader)
 (
     X_D3DPIXELSHADERDEF    *pPSDef,
@@ -4007,9 +3895,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePixelShader)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetPixelShader
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShader)
 (
     DWORD           Handle
@@ -4082,9 +3967,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShader)
 }
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateTexture2
-// ******************************************************************
 XTL::X_D3DResource * WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture2)
 (
     UINT                Width,
@@ -4128,9 +4010,6 @@ XTL::X_D3DResource * WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture2)
 #endif
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateTexture
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture)
 (
     UINT            Width,
@@ -4283,9 +4162,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture)
 #endif
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateVolumeTexture
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVolumeTexture)
 (
     UINT                 Width,
@@ -4377,9 +4253,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVolumeTexture)
 #endif
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateCubeTexture
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateCubeTexture)
 (
     UINT                 EdgeLength,
@@ -4448,9 +4321,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateCubeTexture)
 #endif
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateIndexBuffer
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer)
 (
     UINT                 Length,
@@ -4506,9 +4376,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer)
 #endif
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateIndexBuffer2
-// ******************************************************************
 XTL::X_D3DIndexBuffer * WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer2)(UINT Length)
 {
 	FUNC_EXPORTS
@@ -4533,9 +4400,6 @@ XTL::X_D3DIndexBuffer * WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer2)(UINT 
 BOOL g_bBadIndexData = FALSE;
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_SetIndices
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetIndices)
 (
     X_D3DIndexBuffer   *pIndexData,
@@ -4559,9 +4423,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetIndices)
 
 #endif
 
-// ******************************************************************
-// * patch: D3DDevice_SetTexture
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 (
     DWORD           Stage,
@@ -4652,9 +4513,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 #endif
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SwitchTexture
-// ******************************************************************
 VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 (
     DWORD           Method,
@@ -4670,7 +4528,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 		LOG_FUNC_ARG(Format)
 		LOG_FUNC_END;
 
-    DWORD StageLookup[TEXTURE_STAGES] = { 0x00081b00, 0x00081b40, 0x00081b80, 0x00081bc0 };
+    DWORD StageLookup[TEXTURE_STAGES] = { 0x00081b00, 0x00081b40, 0x00081b80, 0x00081bc0 }; // TODO : Use NV2A_ defines here
     DWORD Stage = -1;
 
     for(int v=0;v<TEXTURE_STAGES;v++)
@@ -4718,9 +4576,6 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
     }
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetDisplayMode
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayMode)
 (
     OUT X_D3DDISPLAYMODE         *pMode
@@ -4753,9 +4608,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayMode)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_Begin
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Begin)
 (
     X_D3DPRIMITIVETYPE     PrimitiveType
@@ -4788,9 +4640,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Begin)
     return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetVertexData2f
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData2f)
 (
     int     Register,
@@ -4808,9 +4657,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData2f)
 static inline DWORD FtoDW(FLOAT f) { return *((DWORD*)&f); }
 static inline FLOAT DWtoF(DWORD f) { return *((FLOAT*)&f); }
 
-// ******************************************************************
-// * patch: D3DDevice_SetVertexData2s
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData2s)
 (
     int     Register,
@@ -4827,9 +4673,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData2s)
     return EMUPATCH(D3DDevice_SetVertexData4f)(Register, DWtoF(dwA), DWtoF(dwB), 0.0f, 1.0f);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetVertexData4f
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 (
     int     Register,
@@ -5019,9 +4862,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetVertexData4ub
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4ub)
 (
 	INT		Register,
@@ -5040,9 +4880,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4ub)
     return EMUPATCH(D3DDevice_SetVertexData4f)(Register, DWtoF(dwA), DWtoF(dwB), DWtoF(dwC), DWtoF(dwD));
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetVertexData4s
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4s)
 (
 	INT		Register,
@@ -5061,9 +4898,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4s)
     return EMUPATCH(D3DDevice_SetVertexData4f)(Register, DWtoF(dwA), DWtoF(dwB), DWtoF(dwC), DWtoF(dwD));
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetVertexDataColor
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexDataColor)
 (
     int         Register,
@@ -5082,9 +4916,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexDataColor)
     return EMUPATCH(D3DDevice_SetVertexData4f)(Register, r, g, b, a);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_End
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_End)()
 {
 	FUNC_EXPORTS
@@ -5103,9 +4934,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_End)()
     return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_RunPushBuffer
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_RunPushBuffer)
 (
     X_D3DPushBuffer       *pPushBuffer,
@@ -5124,9 +4952,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_RunPushBuffer)
 	EmuExecutePushBuffer(pPushBuffer, pFixup);    
 }
 
-// ******************************************************************
-// * patch: D3DDevice_Clear
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 (
     DWORD           Count,
@@ -5207,9 +5032,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 
 #define CXBX_SWAP_PRESENT_FORWARD (256 + 4 + 1) // = CxbxPresentForwardMarker + D3DSWAP_FINISH + D3DSWAP_COPY
 
-// ******************************************************************
-// * patch: D3DDevice_Present
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Present)
 (
     CONST RECT* pSourceRect,
@@ -5231,9 +5053,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Present)
 	return EMUPATCH(D3DDevice_Swap)(CXBX_SWAP_PRESENT_FORWARD); // Xbox present ignores
 }
 
-// ******************************************************************
-// * patch: D3DDevice_Swap
-// ******************************************************************
 DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
 (
     DWORD Flags
@@ -5998,9 +5817,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 }
 
 #if 0
-// ******************************************************************
-// * patch: IDirect3DResource8_AddRef
-// ******************************************************************
 ULONG WINAPI XTL::EMUPATCH(D3DResource_AddRef)
 (
     X_D3DResource      *pThis
@@ -6043,9 +5859,6 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_AddRef)
 #endif
 
 #if 0
-// ******************************************************************
-// * patch: IDirect3DResource8_Release
-// ******************************************************************
 ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
 (
     X_D3DResource      *pThis
@@ -6127,9 +5940,6 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
 }
 #endif
 
-// ******************************************************************
-// * patch: IDirect3DResource8_IsBusy
-// ******************************************************************
 BOOL WINAPI XTL::EMUPATCH(D3DResource_IsBusy)
 (
     X_D3DResource      *pThis
@@ -6145,9 +5955,6 @@ BOOL WINAPI XTL::EMUPATCH(D3DResource_IsBusy)
 }
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: IDirect3DResource8_GetType
-// ******************************************************************
 XTL::X_D3DRESOURCETYPE WINAPI XTL::EMUPATCH(D3DResource_GetType)
 (
     X_D3DResource      *pThis
@@ -6183,9 +5990,6 @@ XTL::X_D3DRESOURCETYPE WINAPI XTL::EMUPATCH(D3DResource_GetType)
 #endif
 
 #if 0 // just calls LockSurface (and BlockOnResource)
-// ******************************************************************
-// * patch: Lock2DSurface
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(Lock2DSurface)
 (
     X_D3DPixelContainer *pPixelContainer,
@@ -6225,9 +6029,6 @@ VOID WINAPI XTL::EMUPATCH(Lock2DSurface)
 #endif
 
 #if 0 // just calls LockSurface (and BlockOnResource)
-// ******************************************************************
-// * patch: Lock3DSurface
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(Lock3DSurface)
 (
     X_D3DPixelContainer *pPixelContainer,
@@ -6265,9 +6066,6 @@ VOID WINAPI XTL::EMUPATCH(Lock3DSurface)
 #endif
 
 #if 1 // TODO : Can be DISABLED once CreateDevice is unpatched (because this reads Data from the first Xbox FrameBuffer)
-// ******************************************************************
-// * patch: Get2DSurfaceDesc
-// ******************************************************************
 // Dxbx : Needs a patch because it accesses _D3D__pDevice at some offset,
 // probably comparing the data of this pixelcontainer to the framebuffer
 // and setting the MultiSampleType as a result to either the device's
@@ -6314,9 +6112,6 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
 #endif
 
 #if 0 // Patch disabled
-// ******************************************************************
-// * patch: IDirect3DSurface8_GetDesc
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DSurface_GetDesc)
 (
     X_D3DResource      *pThis,
@@ -6388,9 +6183,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DSurface_GetDesc)
 #endif
 
 #if 0 // calls Lock2DSurface
-// ******************************************************************
-// * patch: IDirect3DSurface8_LockRect
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DSurface_LockRect)
 (
     X_D3DResource      *pThis,
@@ -6475,9 +6267,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DSurface_LockRect)
 #endif
 
 #if 0
-// ******************************************************************
-// * patch: IDirect3DBaseTexture8_GetLevelCount
-// ******************************************************************
 DWORD WINAPI XTL::EMUPATCH(D3DBaseTexture_GetLevelCount)
 (
     X_D3DBaseTexture   *pThis
@@ -6504,9 +6293,6 @@ DWORD WINAPI XTL::EMUPATCH(D3DBaseTexture_GetLevelCount)
 #endif
 
 #if 0
-// ******************************************************************
-// * patch: IDirect3DTexture8_GetSurfaceLevel2
-// ******************************************************************
 XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel2)
 (
     X_D3DTexture   *pThis,
@@ -6559,9 +6345,6 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel2)
 #endif
 
 #if 0 // just calls Lock2DSurface
-// ******************************************************************
-// * patch: IDirect3DTexture8_LockRect
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DTexture_LockRect)
 (
     X_D3DTexture   *pThis,
@@ -6628,9 +6411,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DTexture_LockRect)
 #endif
 
 #if 0
-// ******************************************************************
-// * patch: IDirect3DTexture8_GetSurfaceLevel
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel)
 (
     X_D3DTexture       *pThis,
@@ -6649,9 +6429,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel)
 #endif
 
 #if 0 // Just calls Lock3DSurface
-// ******************************************************************
-// * patch: IDirect3DVolumeTexture8_LockBox
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DVolumeTexture_LockBox)
 (
     X_D3DVolumeTexture *pThis,
@@ -6684,9 +6461,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DVolumeTexture_LockBox)
 #endif
 
 #if 0 // just calls Lock2DSurface
-// ******************************************************************
-// * patch: IDirect3DCubeTexture8_LockRect
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DCubeTexture_LockRect)
 (
     X_D3DCubeTexture   *pThis,
@@ -6720,9 +6494,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DCubeTexture_LockRect)
 #endif
 
 
-// ******************************************************************
-// * patch: D3DDevice_Release
-// ******************************************************************
 ULONG WINAPI XTL::EMUPATCH(D3DDevice_Release)()
 {
 	FUNC_EXPORTS
@@ -6751,10 +6522,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DDevice_Release)()
 }
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateVertexBuffer
-// ******************************************************************
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexBuffer)
+3HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexBuffer)
 (
     UINT                Length,
     DWORD               Usage,
@@ -6774,9 +6542,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexBuffer)
 #endif
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateVertexBuffer2
-// ******************************************************************
 XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexBuffer2)
 (
     UINT Length
@@ -6810,9 +6575,6 @@ XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexBuffer2)
 }
 #endif
 
-// ******************************************************************
-// * patch: D3DDevice_EnableOverlay
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_EnableOverlay)
 (
     BOOL Enable
@@ -6842,9 +6604,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_EnableOverlay)
     }
 }
 
-// ******************************************************************
-// * patch: D3DDevice_UpdateOverlay
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_UpdateOverlay)
 (
 	X_D3DSurface *pSurface,
@@ -7032,9 +6791,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_UpdateOverlay)
 	}
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetOverlayUpdateStatus
-// ******************************************************************
 BOOL WINAPI XTL::EMUPATCH(D3DDevice_GetOverlayUpdateStatus)()
 {
 	FUNC_EXPORTS
@@ -7047,9 +6803,6 @@ BOOL WINAPI XTL::EMUPATCH(D3DDevice_GetOverlayUpdateStatus)()
     return FALSE;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_BlockUntilVerticalBlank
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_BlockUntilVerticalBlank)()
 {
 	FUNC_EXPORTS
@@ -7074,9 +6827,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_BlockUntilVerticalBlank)()
 	LOG_INCOMPLETE();
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetVerticalBlankCallback
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVerticalBlankCallback)
 (
     D3DVBLANKCALLBACK pCallback
@@ -7089,9 +6839,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVerticalBlankCallback)
     g_pVBCallback = pCallback;    
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetTextureState_TexCoordIndex
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_TexCoordIndex)
 (
     DWORD Stage,
@@ -7117,48 +6864,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_TexCoordIndex)
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTextureStageState");
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_TwoSidedLighting
-// ******************************************************************
-VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_TwoSidedLighting)
-(
-    DWORD Value
-)
-{
-	FUNC_EXPORTS
-
-	LOG_FUNC_ONE_ARG(Value);
-
-	LOG_NOT_SUPPORTED();
-}
-
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_BackFillMode
-// ******************************************************************
-VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_BackFillMode)
-(
-    DWORD Value
-)
-{
-	FUNC_EXPORTS
-
-	LOG_FUNC_ONE_ARG(Value);
-
-	// blueshogun96 12/4/07
-	// I haven't had access to Cxbx sources in a few months, great to be back :)
-	//
-	// Anyway, since standard Direct3D doesn't support the back fill mode
-	// operation, this function will be ignored.  Things like this make me
-	// think even more that an OpenGL port wouldn't hurt since OpenGL supports
-	// nearly all of the missing features that Direct3D lacks.  The Xbox's version
-	// of Direct3D was specifically created to take advantage of certain NVIDIA
-	// GPU registers and provide more OpenGL-like features IHMO.
-	LOG_NOT_SUPPORTED();
-}
-
-// ******************************************************************
-// * patch: D3DDevice_SetTextureState_BorderColor
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_BorderColor)
 (
     DWORD Stage,
@@ -7176,9 +6881,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_BorderColor)
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTextureStageState");
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetTextureState_ColorKeyColor
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_ColorKeyColor)
 (
     DWORD Stage,
@@ -7195,9 +6897,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_ColorKeyColor)
 	LOG_NOT_SUPPORTED();
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetTextureState_BumpEnv
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_BumpEnv)
 (
     DWORD                      Stage,
@@ -7237,9 +6936,36 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_BumpEnv)
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTextureStageState");
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_FrontFace
-// ******************************************************************
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_TwoSidedLighting)
+(
+    DWORD Value
+)
+{
+	FUNC_EXPORTS
+
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_TWOSIDEDLIGHTING, Value);
+}
+
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_BackFillMode)
+(
+    DWORD Value
+)
+{
+	FUNC_EXPORTS
+
+	// blueshogun96 12/4/07
+	// I haven't had access to Cxbx sources in a few months, great to be back :)
+	//
+	// Anyway, since standard Direct3D doesn't support the back fill mode
+	// operation, this function will be ignored.  Things like this make me
+	// think even more that an OpenGL port wouldn't hurt since OpenGL supports
+	// nearly all of the missing features that Direct3D lacks.  The Xbox's version
+	// of Direct3D was specifically created to take advantage of certain NVIDIA
+	// GPU registers and provide more OpenGL-like features IHMO.
+
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_BACKFILLMODE, Value);
+}
+
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_FrontFace)
 (
     DWORD Value
@@ -7247,14 +6973,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_FrontFace)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	LOG_NOT_SUPPORTED();
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_FRONTFACE, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_LogicOp
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_LogicOp)
 (
     DWORD Value
@@ -7262,14 +6983,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_LogicOp)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	LOG_NOT_SUPPORTED();
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_LOGICOP, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_NormalizeNormals
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_NormalizeNormals)
 (
     DWORD Value
@@ -7279,13 +6995,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_NormalizeNormals)
 
 	LOG_FUNC_ONE_ARG(Value);
 
-    HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_NORMALIZENORMALS, Value);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_NORMALIZENORMALS, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_TextureFactor
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_TextureFactor)
 (
     DWORD Value
@@ -7293,15 +7005,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_TextureFactor)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_TEXTUREFACTOR, Value);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_TEXTUREFACTOR, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_ZBias
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_ZBias)
 (
     DWORD Value
@@ -7309,15 +7015,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_ZBias)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_ZBIAS, Value);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_ZBIAS, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_EdgeAntiAlias
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_EdgeAntiAlias)
 (
     DWORD Value
@@ -7325,18 +7025,10 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_EdgeAntiAlias)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
 //  TODO: Analyze performance and compatibility (undefined behavior on PC with triangles or points)
-//  HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_EDGEANTIALIAS, Value);
-//	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
-
-    LOG_UNIMPLEMENTED();	
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_EDGEANTIALIAS, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_FillMode
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_FillMode)
 (
     DWORD Value
@@ -7344,24 +7036,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_FillMode)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-    DWORD dwFillMode;
-
-    if(g_iWireframe == 0)
-        dwFillMode = EmuXB2PC_D3DFILLMODE(Value);
-    else if(g_iWireframe == 1)
-        dwFillMode = D3DFILL_WIREFRAME;
-    else
-        dwFillMode = D3DFILL_POINT;
-
-	HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_FILLMODE, dwFillMode);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_FILLMODE, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_FogColor
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_FogColor)
 (
     DWORD Value
@@ -7369,15 +7046,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_FogColor)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_FOGCOLOR, Value);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_FOGCOLOR, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_Dxt1NoiseEnable
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_Dxt1NoiseEnable)
 (
     DWORD Value
@@ -7385,14 +7056,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_Dxt1NoiseEnable)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	LOG_UNIMPLEMENTED();
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_DXT1NOISEENABLE, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_Simple
-// ******************************************************************
 VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Simple)
 (
     DWORD Method,
@@ -7406,134 +7072,16 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Simple)
 		LOG_FUNC_ARG(Value)
 		LOG_FUNC_END;
 
-    int State = -1;
+	X_D3DRENDERSTATETYPE XboxRenderState = DxbxXboxMethodToRenderState(Method);
 
-    // Todo: make this faster and more elegant
-    for(int v=0;v<174;v++)
-    {
-        if(EmuD3DRenderStateSimpleEncoded[v] == Method)
-        {
-            State = v;
-            break;
-        }
-    }
-
-    if(State == -1)
-        EmuWarning("RenderState_Simple(0x%.08X, 0x%.08X) is unsupported!", Method, Value);
+    if (XboxRenderState == X_D3DRS_UNK)
+        EmuWarning("D3DDevice_SetRenderState_Simple(0x%.08X, 0x%.08X) : Unknown NV2A method!", Method, Value);
     else
-    {
-        switch(State)
-        {
-            case D3DRS_COLORWRITEENABLE:
-            {
-                DWORD OrigValue = Value;
-
-                Value = 0;
-
-                if(OrigValue & (1L<<16))
-                    Value |= D3DCOLORWRITEENABLE_RED;
-                if(OrigValue & (1L<<8))
-                    Value |= D3DCOLORWRITEENABLE_GREEN;
-                if(OrigValue & (1L<<0))
-                    Value |= D3DCOLORWRITEENABLE_BLUE;
-                if(OrigValue & (1L<<24))
-                    Value |= D3DCOLORWRITEENABLE_ALPHA;
-
-                DbgPrintf("D3DRS_COLORWRITEENABLE := 0x%.08X\n", Value);
-            }
-            break;
-
-            case D3DRS_SHADEMODE:
-                Value = EmuXB2PC_D3DSHADEMODE(Value);
-                DbgPrintf("D3DRS_SHADEMODE := 0x%.08X\n", Value);
-                break;
-
-            case D3DRS_BLENDOP:
-                Value = EmuXB2PC_D3DBLENDOP(Value);
-                DbgPrintf("D3DRS_BLENDOP := 0x%.08X\n", Value);
-                break;
-
-            case D3DRS_SRCBLEND:
-                Value = EmuXB2PC_D3DBLEND(Value);
-                DbgPrintf("D3DRS_SRCBLEND := 0x%.08X\n", Value);
-                break;
-
-            case D3DRS_DESTBLEND:
-                Value = EmuXB2PC_D3DBLEND(Value);
-                DbgPrintf("D3DRS_DESTBLEND := 0x%.08X\n", Value);
-                break;
-
-            case D3DRS_ZFUNC:
-                Value = EmuXB2PC_D3DCMPFUNC(Value);
-                DbgPrintf("D3DRS_ZFUNC := 0x%.08X\n", Value);
-                break;
-
-            case D3DRS_ALPHAFUNC:
-                Value = EmuXB2PC_D3DCMPFUNC(Value);
-                DbgPrintf("D3DRS_ALPHAFUNC := 0x%.08X\n", Value);
-                break;
-
-            case D3DRS_ALPHATESTENABLE:
-                DbgPrintf("D3DRS_ALPHATESTENABLE := 0x%.08X\n", Value);
-                break;
-
-            case D3DRS_ALPHABLENDENABLE:
-                DbgPrintf("D3DRS_ALPHABLENDENABLE := 0x%.08X\n", Value);
-                break;
-
-            case D3DRS_ALPHAREF:
-                DbgPrintf("D3DRS_ALPHAREF := %lf\n", DWtoF(Value));
-                break;
-
-            case D3DRS_ZWRITEENABLE:
-                DbgPrintf("D3DRS_ZWRITEENABLE := 0x%.08X\n", Value);
-                break;
-
-            case D3DRS_DITHERENABLE:
-                DbgPrintf("D3DRS_DITHERENABLE := 0x%.08X\n", Value);
-                break;
-
-			case D3DRS_STENCILZFAIL:
-				Value = EmuXB2PC_D3DSTENCILOP(Value);
-				DbgPrintf("D3DRS_STENCILZFAIL := 0x%.08X\n", Value);
-				break;
-
-			case D3DRS_STENCILPASS:
-				Value = EmuXB2PC_D3DSTENCILOP(Value);
-				DbgPrintf("D3DRS_STENCILPASS := 0x%.08X\n", Value);
-				break;
-
-			case D3DRS_STENCILFUNC:
-				Value = EmuXB2PC_D3DCMPFUNC(Value);
-				DbgPrintf("D3DRS_STENCILFUNC := 0x%.08X\n", Value);
-				break;
-
-			case D3DRS_STENCILREF:
-				DbgPrintf("D3DRS_STENCILREF := 0x%.08X\n", Value);
-				break;
-
-			case D3DRS_STENCILMASK:
-				DbgPrintf("D3DRS_STENCILMASK := 0x%.08X\n", Value);
-				break;
-
-			case D3DRS_STENCILWRITEMASK:
-				DbgPrintf("D3DRS_STENCILWRITEMASK := 0x%.08X\n", Value);
-				break;
-
-            default:
-                CxbxKrnlCleanup("Unsupported RenderState (0x%.08X)", State);
-                break;
-        };
-
-        // TODO: verify these params as you add support for them!
-        HRESULT hRet = g_pD3DDevice8->SetRenderState((D3DRENDERSTATETYPE)State, Value);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
-	}
+		// Use a helper for the simple render states, as SetRenderStateNotInline
+		// needs to be able to call it too :
+		DxbxSetRenderStateInternal(nullptr, XboxRenderState, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_VertexBlend
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_VertexBlend)
 (
     DWORD Value
@@ -7541,25 +7089,23 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_VertexBlend)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-    // convert from Xbox direct3d to PC direct3d enumeration
-    if(Value <= 1)
-        Value = Value;
-    else if(Value == 3)
-        Value = 2;
-    else if(Value == 5)
-        Value = 3;
-    else
-        CxbxKrnlCleanup("Unsupported D3DVERTEXBLENDFLAGS (%d)", Value);
-
-	HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_VERTEXBLEND, Value);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_VERTEXBLEND, Value);
 }
+#if 0
+EmuXB2PC_D3DVERTEXBLENDFLAGS()
+{
+	// convert from Xbox direct3d to PC direct3d enumeration
+	if (Value <= 1)
+		Value = Value;
+	else if (Value == 3)
+		Value = 2;
+	else if (Value == 5)
+		Value = 3;
+	else
+		CxbxKrnlCleanup("Unsupported D3DVERTEXBLENDFLAGS (%d)", Value);
+}
+#endif
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_PSTextureModes
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_PSTextureModes)
 (
     DWORD Value
@@ -7567,26 +7113,19 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_PSTextureModes)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-    // TODO: do something..
-
-	LOG_UNIMPLEMENTED();
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_PSTEXTUREMODES, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_CullMode
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_CullMode)
 (
-    DWORD Value
+    DWORD Value // X_D3DCULL
 )
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-    // convert from Xbox D3D to PC D3D enumeration
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_CULLMODE, Value);
+#if 0
+	// convert from Xbox D3D to PC D3D enumeration
     // TODO: XDK-Specific Tables? So far they are the same
     switch(Value)
     {
@@ -7602,14 +7141,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_CullMode)
         default:
             CxbxKrnlCleanup("EmuD3DDevice_SetRenderState_CullMode: Unknown Cullmode (%d)", Value);
     }
-
-	HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_CULLMODE, Value);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+#endif
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_LineWidth
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_LineWidth)
 (
     DWORD Value
@@ -7617,16 +7151,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_LineWidth)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-    // TODO: Convert to PC format??
-//    g_pD3DDevice8->SetRenderState(D3DRS_LINEPATTERN, Value);
-	LOG_NOT_SUPPORTED();
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_LINEWIDTH, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_StencilFail
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_StencilFail)
 (
     DWORD Value
@@ -7634,45 +7161,29 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_StencilFail)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_STENCILFAIL, Value);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_STENCILFAIL, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_OcclusionCullEnable
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_OcclusionCullEnable)
 (
-    DWORD Value
+    DWORD Value // BOOL
 )
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	LOG_NOT_SUPPORTED();
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_OCCLUSIONCULLENABLE, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_StencilCullEnable
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_StencilCullEnable)
 (
-    DWORD Value
+    DWORD Value // BOOL
 )
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	LOG_NOT_SUPPORTED();
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_STENCILCULLENABLE, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_RopZCmpAlwaysRead
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_RopZCmpAlwaysRead)
 (
     DWORD Value
@@ -7680,29 +7191,19 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_RopZCmpAlwaysRead)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	LOG_NOT_SUPPORTED();
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_ROPZCMPALWAYSREAD, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_RopZRead
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_RopZRead)
 (
     DWORD Value
 )
 {
 	FUNC_EXPORTS
-
-	LOG_FUNC_ONE_ARG(Value);
-
-	LOG_NOT_SUPPORTED();
+		
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_ROPZREAD, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_DoNotCullUncompressed
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_DoNotCullUncompressed)
 (
     DWORD Value
@@ -7710,30 +7211,19 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_DoNotCullUncompressed)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	LOG_NOT_SUPPORTED();
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_DONOTCULLUNCOMPRESSED, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_ZEnable
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_ZEnable)
 (
-    DWORD Value
+    DWORD Value // BOOL
 )
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_ZENABLE, Value);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_ZENABLE, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_StencilEnable
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_StencilEnable)
 (
     DWORD Value
@@ -7741,15 +7231,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_StencilEnable)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_STENCILENABLE, Value);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_STENCILENABLE, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_MultiSampleAntiAlias
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleAntiAlias)
 (
     DWORD Value
@@ -7757,15 +7241,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleAntiAlias)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, Value);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_MULTISAMPLEANTIALIAS, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_MultiSampleMask
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleMask)
 (
     DWORD Value
@@ -7773,15 +7251,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleMask)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_MULTISAMPLEMASK, Value);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_MULTISAMPLEMASK, Value);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_MultiSampleMode
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleMode)
 (
     DWORD Value
@@ -7789,14 +7261,14 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleMode)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	LOG_NOT_SUPPORTED();
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_MULTISAMPLEMODE, Value);
+#if 0 // TODO : Dxbx has this too - is it necessary?
+	pRenderTarget = g_EmuD3DActiveRenderTarget;
+	if (pRenderTarget == g_EmuD3DFrameBuffers[0])
+		EMUPATCH(D3DDevice_SetRenderTarget)(pRenderTarget, g_EmuD3DActiveDepthStencil);
+#endif
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_MultiSampleRenderTargetMode
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleRenderTargetMode)
 (
     DWORD Value
@@ -7804,14 +7276,14 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleRenderTargetMode)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
-	LOG_NOT_SUPPORTED();
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_MULTISAMPLERENDERTARGETMODE, Value);
+#if 0 // TODO : Dxbx has this too - is it necessary?
+	pRenderTarget = g_EmuD3DActiveRenderTarget;
+	if (pRenderTarget == g_EmuD3DFrameBuffers[0])
+		EMUPATCH(D3DDevice_SetRenderTarget)(pRenderTarget, g_EmuD3DActiveDepthStencil);
+#endif
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_ShadowFunc
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_ShadowFunc)
 (
     DWORD Value
@@ -7835,13 +7307,13 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_ShadowFunc)
 
     // EmuXB2PC_D3DCMPFUNC(Value);
 
+	// Dxbx addition : Set this value into the RenderState structure too (so other code will read the new current value)
+	*(EmuMappedD3DRenderState[X_D3DRS_SHADOWFUNC]) = Value;
+
     // this warning just gets annoying
     // LOG_UNIMPLEMENTED();	
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_YuvEnable
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_YuvEnable)
 (
     BOOL Enable
@@ -7852,11 +7324,90 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_YuvEnable)
 	LOG_FUNC_ONE_ARG(Enable);
 
 	g_bRenderState_YuvEnabled = Enable;
+
+	// Dxbx addition : Set this value into the RenderState structure too (so other code will read the new current value)
+	*(EmuMappedD3DRenderState[X_D3DRS_YUVENABLE]) = (DWORD)Enable;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetTransform
-// ******************************************************************
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_SampleAlpha)
+(
+	DWORD Value
+)
+{
+	FUNC_EXPORTS
+
+	DxbxSetRenderStateInternal(
+		__func__,
+		X_D3DRS_SAMPLEALPHA, Value);
+}
+
+
+#if 0 // Dxbx note : Disabled, as we DO have EmuD3DDeferredRenderState pin-pointed correctly
+VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Deferred)
+(
+	DWORD State,
+	DWORD Value
+)
+{
+	FUNC_EXPORTS
+
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(State)
+		LOG_FUNC_ARG(Value)
+		LOG_FUNC_END;
+
+	// TODO: HACK: Technically, this function doesn't need to be emulated.
+	// The location of EmuD3DDeferredRenderState for 3911 isn't correct and at
+	// the time of writing, I don't understand how to fix it.  Until then, 
+	// I'm going to implement this in a reckless manner.  When the offset for
+	// EmuD3DDeferredRenderState is fixed for 3911, this function should be
+	// obsolete!
+
+	if (State > 81 && State < 116)
+		EmuD3DDeferredRenderState[State - 82] = Value;
+	else
+		CxbxKrnlCleanup("Unknown Deferred RenderState! (%d)\n", State);
+
+	/*
+	XDK 3911 Deferred RenderState values
+	D3DRS_FOGENABLE                 = 82,   // TRUE to enable fog blending
+	D3DRS_FOGTABLEMODE              = 83,   // D3DFOGMODE
+	D3DRS_FOGSTART                  = 84,   // float fog start (for both vertex and pixel fog)
+	D3DRS_FOGEND                    = 85,   // float fog end
+	D3DRS_FOGDENSITY                = 86,   // float fog density
+	D3DRS_RANGEFOGENABLE            = 87,   // TRUE to enable range-based fog
+	D3DRS_WRAP0                     = 88,   // D3DWRAP* flags (D3DWRAP_U, D3DWRAPCOORD_0, etc.) for 1st texture coord.
+	D3DRS_WRAP1                     = 89,   // D3DWRAP* flags (D3DWRAP_U, D3DWRAPCOORD_0, etc.) for 2nd texture coord.
+	D3DRS_WRAP2                     = 90,   // D3DWRAP* flags (D3DWRAP_U, D3DWRAPCOORD_0, etc.) for 3rd texture coord.
+	D3DRS_WRAP3                     = 91,   // D3DWRAP* flags (D3DWRAP_U, D3DWRAPCOORD_0, etc.) for 4th texture coord.
+	D3DRS_LIGHTING                  = 92,   // TRUE to enable lighting
+	D3DRS_SPECULARENABLE            = 93,   // TRUE to enable specular
+	D3DRS_LOCALVIEWER               = 94,   // TRUE to enable camera-relative specular highlights
+	D3DRS_COLORVERTEX               = 95,   // TRUE to enable per-vertex color
+	D3DRS_BACKSPECULARMATERIALSOURCE= 96,   // D3DMATERIALCOLORSOURCE (Xbox extension)
+	D3DRS_BACKDIFFUSEMATERIALSOURCE = 97,   // D3DMATERIALCOLORSOURCE (Xbox extension)
+	D3DRS_BACKAMBIENTMATERIALSOURCE = 98,   // D3DMATERIALCOLORSOURCE (Xbox extension)
+	D3DRS_BACKEMISSIVEMATERIALSOURCE= 99,   // D3DMATERIALCOLORSOURCE (Xbox extension)
+	D3DRS_SPECULARMATERIALSOURCE    = 100,  // D3DMATERIALCOLORSOURCE
+	D3DRS_DIFFUSEMATERIALSOURCE     = 101,  // D3DMATERIALCOLORSOURCE
+	D3DRS_AMBIENTMATERIALSOURCE     = 102,  // D3DMATERIALCOLORSOURCE
+	D3DRS_EMISSIVEMATERIALSOURCE    = 103,  // D3DMATERIALCOLORSOURCE
+	D3DRS_BACKAMBIENT               = 104,  // D3DCOLOR (Xbox extension)
+	D3DRS_AMBIENT                   = 105,  // D3DCOLOR
+	D3DRS_POINTSIZE                 = 106,  // float point size
+	D3DRS_POINTSIZE_MIN             = 107,  // float point size min threshold
+	D3DRS_POINTSPRITEENABLE         = 108,  // TRUE to enable point sprites
+	D3DRS_POINTSCALEENABLE          = 109,  // TRUE to enable point size scaling
+	D3DRS_POINTSCALE_A              = 110,  // float point attenuation A value
+	D3DRS_POINTSCALE_B              = 111,  // float point attenuation B value
+	D3DRS_POINTSCALE_C              = 112,  // float point attenuation C value
+	D3DRS_POINTSIZE_MAX             = 113,  // float point size max threshold
+	D3DRS_PATCHEDGESTYLE            = 114,  // D3DPATCHEDGESTYLE
+	D3DRS_PATCHSEGMENTS             = 115,  // DWORD number of segments per edge when drawing patches
+	*/
+}
+#endif
+
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTransform)
 (
     D3DTRANSFORMSTATETYPE State,
@@ -7899,9 +7450,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTransform)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetTransform
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetTransform)
 (
     D3DTRANSFORMSTATETYPE State,
@@ -7924,9 +7472,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetTransform)
 }
 
 #if 1
-// ******************************************************************
-// * patch: IDirect3DVertexBuffer8_Lock
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock)
 (
     X_D3DVertexBuffer  *pVertexBuffer,
@@ -7945,9 +7490,6 @@ VOID WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock)
 #endif
 
 #if 1 // reads g_pDevice, calls StartPush, EndPush, BlockOnNonSurfaceResource
-// ******************************************************************
-// * patch: IDirect3DVertexBuffer8_Lock2
-// ******************************************************************
 BYTE* WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock2)
 (
     X_D3DVertexBuffer  *pVertexBuffer,
@@ -7967,9 +7509,6 @@ BYTE* WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock2)
 }
 #endif
 
-// ******************************************************************
-// * patch: D3DDevice_GetStreamSource
-// ******************************************************************
 XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource)
 (
     UINT  StreamNumber,
@@ -8001,9 +7540,6 @@ XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource)
     RETURN(pVertexBuffer);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetStreamSource
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
 (
     UINT                StreamNumber,
@@ -8047,9 +7583,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
         CxbxKrnlCleanup("SetStreamSource Failed!");
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetVertexShader
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
 (
     DWORD Handle
@@ -8065,7 +7598,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
 
     // Store viewport offset and scale in constant registers 58 (c-38) and
     // 59 (c-37) used for screen space transformation.
-    if(g_VertexShaderConstantMode != X_VSCM_NONERESERVED)
+    if(g_VertexShaderConstantMode != X_D3DSCM_NORESERVEDCONSTANTS)
     {
         // TODO: Proper solution.
         static float vScale[] = { (2.0f / 640), (-2.0f / 480), 0.0f, 0.0f };
@@ -8104,9 +7637,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_DrawVertices
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 (
     X_D3DPRIMITIVETYPE PrimitiveType,
@@ -8256,9 +7786,6 @@ void XTL::DxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 	g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_DrawVerticesUP
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
 (
     X_D3DPRIMITIVETYPE  PrimitiveType,
@@ -8320,9 +7847,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
 #define VERTICES_PER_QUAD 4
 #define TRIANGLES_PER_QUAD 2
 
-// ******************************************************************
-// * patch: D3DDevice_DrawIndexedVertices
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 (
     X_D3DPRIMITIVETYPE  PrimitiveType,
@@ -8432,9 +7956,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 //#endif
 }
 
-// ******************************************************************
-// * patch: D3DDevice_DrawIndexedVerticesUP
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 (
     X_D3DPRIMITIVETYPE  PrimitiveType,
@@ -8508,9 +8029,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 	}
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetLight
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetLight)
 (
     DWORD            Index,
@@ -8530,9 +8048,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetLight)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetLight
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetLight)
 (
     DWORD            Index,
@@ -8552,9 +8067,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetLight)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetMaterial
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetMaterial)
 (
 	D3DMATERIAL8* pMaterial
@@ -8571,9 +8083,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetMaterial)
 	}
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetMaterial
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetMaterial)
 (
     CONST D3DMATERIAL8 *pMaterial
@@ -8587,9 +8096,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetMaterial)
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetMaterial");
 }
 
-// ******************************************************************
-// * patch: D3DDevice_LightEnable
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_LightEnable)
 (
     DWORD            Index,
@@ -8609,9 +8115,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_LightEnable)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetLightEnable
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetLightEnable)
 (
 	DWORD            Index,
@@ -8631,9 +8134,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetLightEnable)
 	return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderTarget
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 (
     X_D3DSurface    *pRenderTarget,
@@ -8657,9 +8157,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 }
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreatePalette
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette)
 (
     X_D3DPALETTESIZE    Size,
@@ -8690,9 +8187,6 @@ int XboxD3DPaletteSizeToBytes(const XTL::X_D3DPALETTESIZE Size)
 	return lk[Size];
 }
 
-// ******************************************************************
-// * patch: D3DDevice_CreatePalette2
-// ******************************************************************
 XTL::X_D3DPalette * WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette2)
 (
     X_D3DPALETTESIZE    Size
@@ -8713,9 +8207,6 @@ XTL::X_D3DPalette * WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette2)
 }
 #endif
 
-// ******************************************************************
-// * patch: D3DDevice_SetPalette
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPalette)
 (
     DWORD         Stage,
@@ -8739,9 +8230,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPalette)
     return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetFlickerFilter
-// ******************************************************************
 void WINAPI XTL::EMUPATCH(D3DDevice_SetFlickerFilter)
 (
     DWORD         Filter
@@ -8754,9 +8242,6 @@ void WINAPI XTL::EMUPATCH(D3DDevice_SetFlickerFilter)
 	LOG_IGNORED();
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetSoftDisplayFilter
-// ******************************************************************
 void WINAPI XTL::EMUPATCH(D3DDevice_SetSoftDisplayFilter)
 (
     BOOL Enable
@@ -8770,9 +8255,6 @@ void WINAPI XTL::EMUPATCH(D3DDevice_SetSoftDisplayFilter)
 }
 
 #if 0
-// ******************************************************************
-// * patch: IDirect3DPalette8_Lock
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DPalette_Lock)
 (
     X_D3DPalette   *pThis,
@@ -8799,9 +8281,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DPalette_Lock)
 #endif
 
 #if 0
-// ******************************************************************
-// * patch: IDirect3DPalette8_Lock2
-// ******************************************************************
 XTL::D3DCOLOR * WINAPI XTL::EMUPATCH(D3DPalette_Lock2)
 (
     X_D3DPalette   *pThis,
@@ -8827,9 +8306,6 @@ XTL::D3DCOLOR * WINAPI XTL::EMUPATCH(D3DPalette_Lock2)
 }
 #endif
 
-// ******************************************************************
-// * patch: D3DDevice_GetVertexShaderSize
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderSize)
 (
     DWORD Handle,
@@ -8855,9 +8331,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderSize)
     }
 }
 
-// ******************************************************************
-// * patch: D3DDevice_DeleteVertexShader
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_DeleteVertexShader)
 (
     DWORD Handle
@@ -8892,9 +8365,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DeleteVertexShader)
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DeleteVertexShader");    
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SelectVertexShaderDirect
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SelectVertexShaderDirect)
 (
     X_VERTEXATTRIBUTEFORMAT *pVAF,
@@ -8911,9 +8381,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SelectVertexShaderDirect)
     LOG_UNIMPLEMENTED(); 
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetShaderConstantMode
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetShaderConstantMode)
 (
     DWORD *pMode
@@ -8929,9 +8396,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetShaderConstantMode)
     }
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetVertexShader
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShader)
 (
     DWORD *pHandle
@@ -8947,9 +8411,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShader)
     }
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetVertexShaderConstant
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderConstant)
 (
     INT   Register,
@@ -8975,9 +8436,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderConstant)
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetVertexShaderConstant");    
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetVertexShaderInputDirect
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderInputDirect)
 (
     X_VERTEXATTRIBUTEFORMAT *pVAF,
@@ -8998,9 +8456,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderInputDirect)
     return 0;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetVertexShaderInput
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderInput)
 (
     DWORD              *pHandle,
@@ -9021,9 +8476,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderInput)
     return 0;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetVertexShaderInput
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderInput)
 (
     DWORD              Handle,
@@ -9045,9 +8497,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderInput)
 }
 
 
-// ******************************************************************
-// * patch: D3DDevice_RunVertexStateShader
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_RunVertexStateShader)
 (
     DWORD Address,
@@ -9064,9 +8513,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_RunVertexStateShader)
     LOG_UNIMPLEMENTED(); 
 }
 
-// ******************************************************************
-// * patch: D3DDevice_LoadVertexShaderProgram
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_LoadVertexShaderProgram)
 (
     CONST DWORD *pFunction,
@@ -9083,9 +8529,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_LoadVertexShaderProgram)
 	LOG_UNIMPLEMENTED();    
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetVertexShaderType
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderType)
 (
     DWORD  Handle,
@@ -9105,9 +8548,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderType)
     }
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetVertexShaderDeclaration
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderDeclaration)
 (
     DWORD  Handle,
@@ -9145,9 +8585,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderDeclaration)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetVertexShaderFunction
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderFunction)
 (
     DWORD  Handle,
@@ -9185,9 +8622,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderFunction)
     return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetDepthClipPlanes
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetDepthClipPlanes)
 (
     FLOAT Near,
@@ -9255,9 +8689,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetDepthClipPlanes)
 }
 
 #if 0 // DISABLED (Just calls MmAllocateContiguousMemory)
-// ******************************************************************
-// * patch: D3D_AllocContiguousMemory
-// ******************************************************************
 PVOID WINAPI XTL::EMUPATCH(D3D_AllocContiguousMemory)
 (
     SIZE_T dwSize,
@@ -9296,9 +8727,6 @@ PVOID WINAPI XTL::EMUPATCH(D3D_AllocContiguousMemory)
 #endif
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: Direct3D_CheckDeviceMultiSampleType
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(Direct3D_CheckDeviceMultiSampleType)
 (
     UINT                 Adapter,
@@ -9370,9 +8798,6 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CheckDeviceMultiSampleType)
 #endif
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3D_GetDeviceCaps
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3D_GetDeviceCaps)
 (
     UINT        Adapter,
@@ -9399,9 +8824,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_GetDeviceCaps)
 #endif
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3D_SetPushBufferSize
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3D_SetPushBufferSize)
 (
     DWORD PushBufferSize,
@@ -9425,9 +8847,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_SetPushBufferSize)
 }
 #endif
 
-// ******************************************************************
-// * patch: D3DDevice_InsertFence
-// ******************************************************************
 DWORD WINAPI XTL::EMUPATCH(D3DDevice_InsertFence)()
 {
 	FUNC_EXPORTS
@@ -9442,9 +8861,6 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_InsertFence)()
     return dwRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_IsFencePending
-// ******************************************************************
 BOOL WINAPI XTL::EMUPATCH(D3DDevice_IsFencePending)
 (
     DWORD Fence
@@ -9460,9 +8876,6 @@ BOOL WINAPI XTL::EMUPATCH(D3DDevice_IsFencePending)
 	return FALSE;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_BlockOnFence
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_BlockOnFence)
 (
     DWORD Fence
@@ -9476,9 +8889,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_BlockOnFence)
 	LOG_UNIMPLEMENTED();
 }
 
-// ******************************************************************
-// * patch: IDirect3DResource8_BlockUntilNotBusy
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DResource_BlockUntilNotBusy)
 (
     X_D3DResource *pThis
@@ -9493,9 +8903,6 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_BlockUntilNotBusy)
 }
 
 #if 0 // patch DISABLED
-// ******************************************************************
-// * patch: IDirect3DVertexBuffer8_GetDesc
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DVertexBuffer_GetDesc)
 (
     X_D3DVertexBuffer    *pThis,
@@ -9514,9 +8921,6 @@ VOID WINAPI XTL::EMUPATCH(D3DVertexBuffer_GetDesc)
 }
 #endif
 
-// ******************************************************************
-// * patch: D3DDevice_SetScissors
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetScissors)
 (
     DWORD          Count,
@@ -9539,9 +8943,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetScissors)
     return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetScreenSpaceOffset
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetScreenSpaceOffset)
 (
     FLOAT x,
@@ -9562,9 +8963,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetScreenSpaceOffset)
     return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetPixelShaderProgram
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderProgram)
 (
 	X_D3DPIXELSHADERDEF* pPSDef
@@ -9603,9 +9001,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderProgram)
 	return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: IDirect3DDevice_CreateStateBlock
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateStateBlock)
 (
 	D3DSTATEBLOCKTYPE Type,
@@ -9628,9 +9023,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateStateBlock)
 	return hRet;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_InsertCallback
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_InsertCallback)
 (
 	X_D3DCALLBACKTYPE	Type,
@@ -9654,9 +9046,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_InsertCallback)
 	LOG_INCOMPLETE();
 }
 
-// ******************************************************************
-// * patch: D3DDevice_DrawRectPatch
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawRectPatch)
 (
 	UINT					Handle,
@@ -9681,9 +9070,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawRectPatch)
 }
 
 #pragma warning(disable:4244)
-// ******************************************************************
-// * patch: D3DDevice_GetProjectionViewportMatrix
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetProjectionViewportMatrix)
 (
 	D3DXMATRIX *pProjectionViewport
@@ -9744,9 +9130,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetProjectionViewportMatrix)
 }
 #pragma warning(default:4244)
 
-// ******************************************************************
-// * patch: D3DDevice_KickOff (D3D::CDevice::KickOff)
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_KickOff)()
 {
 	FUNC_EXPORTS
@@ -9764,9 +9147,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_KickOff)()
 	LOG_UNIMPLEMENTED();
 }
 
-// ******************************************************************
-// * patch: D3DDevice_KickPushBuffer
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_KickPushBuffer)()
 {
 	FUNC_EXPORTS
@@ -9778,9 +9158,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_KickPushBuffer)()
 
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetTexture2
-// ******************************************************************
 XTL::X_D3DResource* WINAPI XTL::EMUPATCH(D3DDevice_GetTexture2)
 (
 	DWORD Stage
@@ -9798,9 +9175,6 @@ XTL::X_D3DResource* WINAPI XTL::EMUPATCH(D3DDevice_GetTexture2)
 	RETURN(pRet);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetStateVB (D3D::CDevice::SetStateVB)
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStateVB)( ULONG Unknown1 )
 {
 	FUNC_EXPORTS
@@ -9813,9 +9187,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStateVB)( ULONG Unknown1 )
 	LOG_UNIMPLEMENTED();	
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetStateUP (D3D::CDevice::SetStateUP)
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStateUP)()
 {
 	FUNC_EXPORTS
@@ -9829,9 +9200,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStateUP)()
 	
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetStipple
-// ******************************************************************
 void WINAPI XTL::EMUPATCH(D3DDevice_SetStipple)( DWORD* pPattern )
 {
 	FUNC_EXPORTS
@@ -9843,9 +9211,6 @@ void WINAPI XTL::EMUPATCH(D3DDevice_SetStipple)( DWORD* pPattern )
 	LOG_IGNORED();
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetSwapCallback
-// ******************************************************************
 void WINAPI XTL::EMUPATCH(D3DDevice_SetSwapCallback)
 (
 	D3DSWAPCALLBACK		pCallback
@@ -9858,9 +9223,6 @@ void WINAPI XTL::EMUPATCH(D3DDevice_SetSwapCallback)
     g_pSwapCallback = pCallback;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_PersistDisplay
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_PersistDisplay)()
 {
 	FUNC_EXPORTS
@@ -9929,9 +9291,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_PersistDisplay)()
 }
 
 #if 0 // disabled, calls AvSendTVEncoderOption which calls our AvQueryAvCapabilities
-// ******************************************************************
-// * patch: D3D_CMiniport_GetDisplayCapabilities
-// ******************************************************************
 DWORD WINAPI XTL::EMUPATCH(D3D_CMiniport_GetDisplayCapabilities)()
 {
 	FUNC_EXPORTS
@@ -9949,9 +9308,6 @@ DWORD WINAPI XTL::EMUPATCH(D3D_CMiniport_GetDisplayCapabilities)()
 }
 #endif
 
-// ******************************************************************
-// * patch: D3DDevice_PrimeVertexCache
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_PrimeVertexCache)
 (
 	UINT  VertexCount,
@@ -9971,99 +9327,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_PrimeVertexCache)
 	return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_SampleAlpha
-// ******************************************************************
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_SampleAlpha)
-(
-	DWORD dwSampleAlpha
-)
-{
-	FUNC_EXPORTS
-
-	LOG_FUNC_ONE_ARG(dwSampleAlpha);
-
-	// TODO: Implement?
-
-	LOG_UNIMPLEMENTED();
-
-		
-
-	return D3D_OK;
-}
-
-// ******************************************************************
-// * patch: D3DDevice_SetRenderState_Deferred
-// ******************************************************************
-VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Deferred)
-(
-	DWORD State,
-	DWORD Value
-)
-{
-	FUNC_EXPORTS
-
-	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(State)
-		LOG_FUNC_ARG(Value)
-		LOG_FUNC_END;
-
-	// TODO: HACK: Technically, this function doesn't need to be emulated.
-	// The location of EmuD3DDeferredRenderState for 3911 isn't correct and at
-	// the time of writing, I don't understand how to fix it.  Until then, 
-	// I'm going to implement this in a reckless manner.  When the offset for
-	// EmuD3DDeferredRenderState is fixed for 3911, this function should be
-	// obsolete!
-
-	if( State > 81 && State < 116 )
-		EmuD3DDeferredRenderState[State-82] = Value;
-	else
-		CxbxKrnlCleanup("Unknown Deferred RenderState! (%d)\n", State);
-
-	/*
-	XDK 3911 Deferred RenderState values
-	D3DRS_FOGENABLE                 = 82,   // TRUE to enable fog blending 
-    D3DRS_FOGTABLEMODE              = 83,   // D3DFOGMODE 
-    D3DRS_FOGSTART                  = 84,   // float fog start (for both vertex and pixel fog) 
-    D3DRS_FOGEND                    = 85,   // float fog end      
-    D3DRS_FOGDENSITY                = 86,   // float fog density  
-    D3DRS_RANGEFOGENABLE            = 87,   // TRUE to enable range-based fog 
-    D3DRS_WRAP0                     = 88,   // D3DWRAP* flags (D3DWRAP_U, D3DWRAPCOORD_0, etc.) for 1st texture coord.
-    D3DRS_WRAP1                     = 89,   // D3DWRAP* flags (D3DWRAP_U, D3DWRAPCOORD_0, etc.) for 2nd texture coord. 
-    D3DRS_WRAP2                     = 90,   // D3DWRAP* flags (D3DWRAP_U, D3DWRAPCOORD_0, etc.) for 3rd texture coord. 
-    D3DRS_WRAP3                     = 91,   // D3DWRAP* flags (D3DWRAP_U, D3DWRAPCOORD_0, etc.) for 4th texture coord. 
-    D3DRS_LIGHTING                  = 92,   // TRUE to enable lighting
-    D3DRS_SPECULARENABLE            = 93,   // TRUE to enable specular 
-    D3DRS_LOCALVIEWER               = 94,   // TRUE to enable camera-relative specular highlights
-    D3DRS_COLORVERTEX               = 95,   // TRUE to enable per-vertex color
-    D3DRS_BACKSPECULARMATERIALSOURCE= 96,   // D3DMATERIALCOLORSOURCE (Xbox extension)
-    D3DRS_BACKDIFFUSEMATERIALSOURCE = 97,   // D3DMATERIALCOLORSOURCE (Xbox extension)
-    D3DRS_BACKAMBIENTMATERIALSOURCE = 98,   // D3DMATERIALCOLORSOURCE (Xbox extension)
-    D3DRS_BACKEMISSIVEMATERIALSOURCE= 99,   // D3DMATERIALCOLORSOURCE (Xbox extension)
-    D3DRS_SPECULARMATERIALSOURCE    = 100,  // D3DMATERIALCOLORSOURCE 
-    D3DRS_DIFFUSEMATERIALSOURCE     = 101,  // D3DMATERIALCOLORSOURCE 
-    D3DRS_AMBIENTMATERIALSOURCE     = 102,  // D3DMATERIALCOLORSOURCE 
-    D3DRS_EMISSIVEMATERIALSOURCE    = 103,  // D3DMATERIALCOLORSOURCE 
-    D3DRS_BACKAMBIENT               = 104,  // D3DCOLOR (Xbox extension)
-    D3DRS_AMBIENT                   = 105,  // D3DCOLOR 
-    D3DRS_POINTSIZE                 = 106,  // float point size 
-    D3DRS_POINTSIZE_MIN             = 107,  // float point size min threshold 
-    D3DRS_POINTSPRITEENABLE         = 108,  // TRUE to enable point sprites
-    D3DRS_POINTSCALEENABLE          = 109,  // TRUE to enable point size scaling
-    D3DRS_POINTSCALE_A              = 110,  // float point attenuation A value 
-    D3DRS_POINTSCALE_B              = 111,  // float point attenuation B value 
-    D3DRS_POINTSCALE_C              = 112,  // float point attenuation C value 
-    D3DRS_POINTSIZE_MAX             = 113,  // float point size max threshold 
-    D3DRS_PATCHEDGESTYLE            = 114,  // D3DPATCHEDGESTYLE
-    D3DRS_PATCHSEGMENTS             = 115,  // DWORD number of segments per edge when drawing patches
-	*/
-
-		
-}
-
-// ******************************************************************
-// * patch: D3DDevice_DeleteStateBlock
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DeleteStateBlock)
 (
 	DWORD Token
@@ -10080,9 +9343,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DeleteStateBlock)
 }
 
 
-// ******************************************************************
-// * patch: D3DDevice_SetModelView
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetModelView)
 (
 	CONST D3DMATRIX *pModelView, 
@@ -10104,9 +9364,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetModelView)
 	return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_FlushVertexCache
-// ******************************************************************
 void WINAPI XTL::EMUPATCH(D3DDevice_FlushVertexCache)()
 {
 	FUNC_EXPORTS
@@ -10116,9 +9373,6 @@ void WINAPI XTL::EMUPATCH(D3DDevice_FlushVertexCache)()
 	LOG_UNIMPLEMENTED();
 }
 
-// ******************************************************************
-// * patch: D3DDevice_BeginPushBuffer
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginPushBuffer)
 (
 	X_D3DPushBuffer *pPushBuffer
@@ -10139,9 +9393,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginPushBuffer)
 	return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_EndPushBuffer
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndPushBuffer)()
 {
 	FUNC_EXPORTS
@@ -10153,9 +9404,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndPushBuffer)()
 	return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: XMETAL_StartPush
-// ******************************************************************
 void WINAPI XTL::EMUPATCH(XMETAL_StartPush)(void* Unknown)
 {
 	FUNC_EXPORTS
@@ -10169,9 +9417,6 @@ void WINAPI XTL::EMUPATCH(XMETAL_StartPush)(void* Unknown)
 	LOG_UNIMPLEMENTED();
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetModelView
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetModelView)(D3DXMATRIX* pModelView)
 {
 	FUNC_EXPORTS
@@ -10189,9 +9434,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetModelView)(D3DXMATRIX* pModelView)
 	return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetBackMaterial
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackMaterial)(D3DMATERIAL8* pMaterial)
 {
 	FUNC_EXPORTS
@@ -10201,9 +9443,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackMaterial)(D3DMATERIAL8* pMaterial)
 	*pMaterial = g_pBackMaterial;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetBackMaterial
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetBackMaterial)(D3DMATERIAL8* pMaterial)
 {
 	FUNC_EXPORTS
@@ -10216,9 +9455,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetBackMaterial)(D3DMATERIAL8* pMaterial)
 }
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3D_GetAdapterIdentifier
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3D_GetAdapterIdentifier)
 (
 	UINT					Adapter,
@@ -10250,9 +9486,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_GetAdapterIdentifier)
 
 DWORD PushBuffer[64 * 1024 / sizeof(DWORD)];
 
-// ******************************************************************
-// * patch: D3D_MakeRequestedSpace
-// ******************************************************************
 PDWORD WINAPI XTL::EMUPATCH(D3D_MakeRequestedSpace)
 (
 	DWORD MinimumSpace,
@@ -10282,9 +9515,6 @@ PDWORD WINAPI XTL::EMUPATCH(D3D_MakeRequestedSpace)
 }
 
 #if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_MakeSpace
-// ******************************************************************
 void WINAPI XTL::EMUPATCH(D3DDevice_MakeSpace)()
 {
 	FUNC_EXPORTS
@@ -10298,9 +9528,6 @@ void WINAPI XTL::EMUPATCH(D3DDevice_MakeSpace)()
 }
 #endif
 
-// ******************************************************************
-// * patch: D3D_SetCommonDebugRegisters
-// ******************************************************************
 void WINAPI XTL::EMUPATCH(D3D_SetCommonDebugRegisters)()
 {
 	FUNC_EXPORTS
@@ -10314,9 +9541,6 @@ void WINAPI XTL::EMUPATCH(D3D_SetCommonDebugRegisters)()
 
 }
 
-// ******************************************************************
-// * patch: D3D_BlockOnTime
-// ******************************************************************
 void WINAPI XTL::EMUPATCH(D3D_BlockOnTime)( DWORD Unknown1, int Unknown2 )
 {
 	FUNC_EXPORTS
@@ -10336,9 +9560,6 @@ void WINAPI XTL::EMUPATCH(D3D_BlockOnTime)( DWORD Unknown1, int Unknown2 )
 	LOG_UNIMPLEMENTED();
 }
 
-// ******************************************************************
-// * patch: D3D_BlockOnResource
-// ******************************************************************
 void WINAPI XTL::EMUPATCH(D3D_BlockOnResource)( X_D3DResource* pResource )
 {
 	FUNC_EXPORTS
@@ -10351,9 +9572,6 @@ void WINAPI XTL::EMUPATCH(D3D_BlockOnResource)( X_D3DResource* pResource )
 		
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetPushBufferOffset
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPushBufferOffset)
 (
 	DWORD *pOffset
@@ -10372,9 +9590,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPushBufferOffset)
 }
 
 #if 0
-// ******************************************************************
-// * patch: IDirect3DCubeTexture8_GetCubeMapSurface
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DCubeTexture_GetCubeMapSurface)
 (
 	X_D3DCubeTexture*	pThis,
@@ -10412,9 +9627,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DCubeTexture_GetCubeMapSurface)
 #endif
 
 #if 0
-// ******************************************************************
-// * patch: IDirect3DCubeTexture8_GetCubeMapSurface2
-// ******************************************************************
 XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DCubeTexture_GetCubeMapSurface2)
 (
 	X_D3DCubeTexture*	pThis,
@@ -10434,9 +9646,6 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DCubeTexture_GetCubeMapSurface2)
 }
 #endif
 
-// ******************************************************************
-// * patch: D3DDevice_GetPixelShader
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPixelShader)
 (
 	DWORD  Name,
@@ -10458,9 +9667,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPixelShader)
 	return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetPersistedSurface
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface)(X_D3DSurface **ppSurface)
 {
 	FUNC_EXPORTS
@@ -10489,9 +9695,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface)(X_D3DSurface **ppSur
 	return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetPersistedSurface2
-// ******************************************************************
 XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface2)()
 {
 	FUNC_EXPORTS
@@ -10505,9 +9708,6 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface2)()
 	RETURN(pSurface);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_SetRenderTargetFast
-// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTargetFast)
 (
     X_D3DSurface	*pRenderTarget,
@@ -10524,9 +9724,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTargetFast)
 	EMUPATCH(D3DDevice_SetRenderTarget)(pRenderTarget, pNewZStencil);
 }
 
-// ******************************************************************
-// * patch: D3DDevice_GetScissors
-// ******************************************************************
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetScissors)
 (
 	DWORD	*pCount, 
@@ -10563,9 +9760,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetScissors)
     return D3D_OK;
 }
 
-// ******************************************************************
-// * patch: D3D::LazySetPointParams
-// ******************************************************************
 void WINAPI XTL::EMUPATCH(D3D_LazySetPointParams)
 (
 	void* Device

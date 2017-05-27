@@ -1813,9 +1813,9 @@ HRESULT WINAPI EMUPATCH(D3DDevice_PrimeVertexCache)
 // ******************************************************************
 // * patch: D3DDevice_SetRenderState_SampleAlpha
 // ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_SetRenderState_SampleAlpha)
+VOID WINAPI EMUPATCH(D3DDevice_SetRenderState_SampleAlpha)
 (
-	DWORD dwSampleAlpha
+	DWORD Value
 );
 
 // ******************************************************************

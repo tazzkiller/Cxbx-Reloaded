@@ -34,10 +34,16 @@
 #ifndef STATE_H
 #define STATE_H
 
+extern int g_iWireframe;
+
+// Xbox version
 #define X_D3DRS_UNSUPPORTED (X_D3DRS_LAST + 1)
 
+// Host version
+#define D3DRS_UNSUPPORTED (D3DRENDERSTATETYPE)0
+
 // XDK version independent renderstate table, containing pointers to the original locations.
-extern DWORD *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED]; // 1 extra for the unsupported value
+extern X_D3DRENDERSTATETYPE *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED]; // 1 extra for the unsupported value
 
 // EmuD3DDeferredRenderState
 extern DWORD *EmuD3DDeferredRenderState;
@@ -45,6 +51,10 @@ extern DWORD *EmuD3DDeferredRenderState;
 // EmuD3DDeferredTextureState
 extern DWORD *EmuD3DDeferredTextureState;
 
+extern void InitD3DDeferredStates();
+
 extern void EmuUpdateDeferredStates();
+
+extern DWORD Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue);
 
 #endif

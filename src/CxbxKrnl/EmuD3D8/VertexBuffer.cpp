@@ -1025,7 +1025,7 @@ VOID XTL::EmuFlushIVB()
     DWORD *pdwVB = (DWORD*)g_pIVBVertexBuffer;
 
     // Parse IVB table with current FVF shader if possible.
-    bool bFVF = VshHandleIsFVF(g_CurrentVertexShader);
+    boolean bFVF = VshHandleIsFVF(g_CurrentVertexShader);
     DWORD dwCurFVF;
     if(bFVF && ((g_CurrentVertexShader & D3DFVF_POSITION_MASK) != D3DFVF_XYZRHW))
     {
