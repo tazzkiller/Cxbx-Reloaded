@@ -415,28 +415,27 @@ void DxbxUpdateDeferredStates()
 	if (EmuD3DDeferredTextureState == nullptr)
 		return;
 
-	// if point sprites are enabled, copy stage 3 over to 0
 	if (*EmuMappedD3DRenderState[X_D3DRS_POINTSPRITEENABLE] == (DWORD)TRUE) // Dxbx note : DWord cast to prevent warning
 	{
-		// set the point sprites texture
+#if 1	// TODO : Why must we copy the texure from stage 3 to 0 for X_D3DRS_POINTSPRITEENABLE?
+
+		// Copy the point sprites texture from stage 3 to 0
+		// (Not doing this makes PointSprites XDK sample show rectangular dots.)
 		g_pD3DDevice8->GetTexture(3, &pHostBaseTexture);
 		g_pD3DDevice8->SetTexture(0, pHostBaseTexture);
-		// TODO -oDXBX: Should we clear the pPCTexture interface (and how)?
 
-		// disable all other stages
-		IDirect3DDevice_SetTextureStageState(g_pD3DDevice8, 1, X_D3DTSS_COLOROP, D3DTOP_DISABLE);
-		IDirect3DDevice_SetTextureStageState(g_pD3DDevice8, 1, X_D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+		// Prevent memory leaks
+		if (pHostBaseTexture != nullptr)
+			pHostBaseTexture->Release(); 
+#endif
 
-		// Copy over stage 3 to 0 (ignoring stage 3):
-		DxbxTransferTextureStage(3, 0, X_D3DTSS_FIRST, X_D3DTSS_LAST);
-	}
-	else
-	{
-		// Copy stage 0 and 3 as-is :
-		DxbxTransferTextureStage(0, 0);
-		DxbxTransferTextureStage(3, 3);
+		// Transfer other texture stages for stage 3 too (not just the deferred ones)
+		DxbxTransferTextureStage(3, 3, X_D3DTSS_OTHER_FIRST, X_D3DTSS_OTHER_LAST);
 	}
 
+	// Copy stage 0 and 3 as-is :
+	DxbxTransferTextureStage(0, 0);
+	DxbxTransferTextureStage(3, 3);
 	// Handle stage 1 and 2 too :
 	DxbxTransferTextureStage(1, 1);
 	DxbxTransferTextureStage(2, 2);
