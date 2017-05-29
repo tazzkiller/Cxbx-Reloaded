@@ -1666,8 +1666,8 @@ typedef enum _TXBType {
 	xtLONG
 } TXBType;
 
-// DWORD(*TXB2PCFunc)(DWORD Value);
-// std::string(*TXB2StringFunc)(DWORD Value);
+typedef DWORD(*TXB2PCFunc)(DWORD Value);
+typedef std::string(*TXB2StringFunc)(DWORD Value);
 
 typedef struct _XBTypeInfo {
 	char *S;

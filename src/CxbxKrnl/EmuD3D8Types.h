@@ -463,8 +463,6 @@ const DWORD X_D3DPRESENTFLAG_FIELD               = 0x00000080;
 #define X_D3DUSAGE_BORDERSOURCE_TEXTURE   0x00010000L   // Xbox-only
 
 
-#define TEXTURE_STAGES 4 // X_D3DTS_STAGECOUNT
-
 typedef enum _X_D3DSET_DEPTH_CLIP_PLANES_FLAGS
 {
     X_D3DSDCP_SET_VERTEXPROGRAM_PLANES         = 1,
@@ -525,6 +523,9 @@ typedef struct _X_D3DPRESENT_PARAMETERS
     DWORD               Flags;
     UINT                FullScreen_RefreshRateInHz;
     UINT                FullScreen_PresentationInterval;
+    // The Windows DirectX8 variant ends here
+    // This check guarantees identical layout, compared to Direct3D8._D3DPRESENT_PARAMETERS_:
+    // Assert(Integer(@(PX_D3DPRESENT_PARAMETERS(nil).BufferSurfaces[0])) = SizeOf(_D3DPRESENT_PARAMETERS_));
     IDirect3DSurface8  *BufferSurfaces[3];
     IDirect3DSurface8  *DepthStencilSurface;
 }
@@ -572,6 +573,9 @@ typedef struct _X_D3DPIXELSHADERDEF	// <- blueshogun 10/1/07
    DWORD    PSTextureModes;            // Texture addressing modes
    DWORD    PSDotMapping;              // Input mapping for dot product modes
    DWORD    PSInputTexture;            // Texture source for some texture modes
+
+    // These last three DWORDs are used to define how Direct3D8 pixel shader constants map to the constant
+    // registers in each combiner stage. They are used by the Direct3D run-time software but not by the hardware.
    DWORD    PSC0Mapping;               // Mapping of c0 regs to D3D constants
    DWORD    PSC1Mapping;               // Mapping of c1 regs to D3D constants
    DWORD    PSFinalCombinerConstants;  // Final combiner constant mapping
@@ -599,7 +603,7 @@ typedef struct _PixelShader_
 	DWORD dwStatus;
 	X_D3DPIXELSHADERDEF	PSDef;
 
-	DWORD dwStageMap[TEXTURE_STAGES];
+	DWORD dwStageMap[4]; // = X_D3DTSS_STAGECOUNT
 
 }
 PIXEL_SHADER;
@@ -724,8 +728,8 @@ X_D3DPALETTESIZE;
 
 struct X_D3DPixelContainer : public X_D3DResource
 {
-    DWORD		Format;
-    DWORD       Size;
+    DWORD		Format; // Format information about the texture.
+    DWORD       Size; // Size of a non power-of-2 texture, must be zero otherwise
 };
 
 // pixel container "format" masks
@@ -734,12 +738,12 @@ struct X_D3DPixelContainer : public X_D3DResource
 #define X_D3DFORMAT_DMACHANNEL_A          0x00000001      // DMA channel A - the default for all system memory
 #define X_D3DFORMAT_DMACHANNEL_B          0x00000002      // DMA channel B - unused
 #define X_D3DFORMAT_CUBEMAP               0x00000004      // Set if the texture if a cube map
-#define X_D3DFORMAT_BORDERSOURCE_COLOR    0x00000008
+#define X_D3DFORMAT_BORDERSOURCE_COLOR    0x00000008      // If set, uses D3DTSS_BORDERCOLOR as a border
 #define X_D3DFORMAT_DIMENSION_MASK        0x000000F0      // # of dimensions
 #define X_D3DFORMAT_DIMENSION_SHIFT       4
-#define X_D3DFORMAT_FORMAT_MASK           0x0000FF00
+#define X_D3DFORMAT_FORMAT_MASK           0x0000FF00      // D3DFORMAT - See X_D3DFMT_* above
 #define X_D3DFORMAT_FORMAT_SHIFT          8
-#define X_D3DFORMAT_MIPMAP_MASK           0x000F0000
+#define X_D3DFORMAT_MIPMAP_MASK           0x000F0000      // # mipmap levels (always 1 for surfaces)
 #define X_D3DFORMAT_MIPMAP_SHIFT          16
 #define X_D3DFORMAT_USIZE_MASK            0x00F00000      // Log 2 of the U size of the base texture
 #define X_D3DFORMAT_USIZE_SHIFT           20
@@ -776,6 +780,11 @@ struct X_D3DBaseTexture : public X_D3DPixelContainer
 };
 
 struct X_D3DTexture : public X_D3DBaseTexture
+{
+
+};
+
+struct X_D3DVolume : public X_D3DBaseTexture // Dxbx addition
 {
 
 };
@@ -1120,17 +1129,19 @@ const DWORD X_D3DTSS_UNSUPPORTED = 31; // Note : Somehow, this one comes through
 const DWORD X_D3DTSS_DEFERRED_FIRST = X_D3DTSS_ADDRESSU;
 const DWORD X_D3DTSS_DEFERRED_LAST = X_D3DTSS_TEXTURETRANSFORMFLAGS;
 
-const DWORD X_D3DTSS_FIRST = X_D3DTSS_ADDRESSU;
-const DWORD X_D3DTSS_LAST = X_D3DTSS_COLORKEYCOLOR;
+const DWORD X_D3DTSS_OTHER_FIRST = X_D3DTSS_BUMPENVMAT00;
+const DWORD X_D3DTSS_OTHER_LAST = X_D3DTSS_COLORKEYCOLOR; // Not X_D3DTSS_UNSUPPORTED until we know for sure
 
-const DWORD X_D3DTS_STAGECOUNT = 4; // Dxbx addition
-const DWORD X_D3DTS_STAGESIZE = 32; // Dxbx addition
+const DWORD X_D3DTSS_FIRST = X_D3DTSS_DEFERRED_FIRST;
+const DWORD X_D3DTSS_LAST = X_D3DTSS_OTHER_LAST;
+
+#define X_D3DTSS_STAGECOUNT 4 // Dxbx addition
+const DWORD X_D3DTSS_STAGESIZE = 32; // Dxbx addition
 
 const DWORD X_PSH_COMBINECOUNT = 8; // Dxbx addition
 const DWORD X_PSH_CONSTANTCOUNT = 8; // Dxbx addition
 
 // X_D3DTEXTUREOP values :
-
 #define X_D3DTOP_DISABLE 1
 #define X_D3DTOP_SELECTARG1 2
 #define X_D3DTOP_SELECTARG2 3

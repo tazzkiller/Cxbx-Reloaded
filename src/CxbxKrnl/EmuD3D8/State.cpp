@@ -42,11 +42,9 @@
 //#include "EmuNV2A.h"
 #include "Convert.h" // DxbxRenderStateInfo
 
-// deferred state lookup tables
-DWORD *XTLEmuD3DDeferredRenderState;
-DWORD *XTL::EmuD3DDeferredTextureState;
-
 extern uint32 g_BuildVersion;
+extern int g_iWireframe;
+extern int X_D3DSCM_CORRECTION_VersionDependent;
 
 namespace XTL {
 
@@ -54,8 +52,17 @@ namespace XTL {
 X_D3DRENDERSTATETYPE DummyRenderStateValue = X_D3DRS_FIRST;
 X_D3DRENDERSTATETYPE *DummyRenderState = &DummyRenderStateValue; // Unsupported states share this pointer value
 
-																	   // XDK version independent renderstate table, containing pointers to the original locations.
-X_D3DRENDERSTATETYPE *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED]; // 1 extra for the unsupported value
+// XDK version independent renderstate table, containing pointers to the original locations.
+X_D3DRENDERSTATETYPE *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED] = { NULL }; // 1 extra for the unsupported value
+
+// Deferred state lookup tables
+DWORD *EmuD3DDeferredRenderState = NULL;
+// Texture state lookup table (same size in all XDK versions, so defined as a fixed size array) :
+DWORD *EmuD3DDeferredTextureState = NULL; // [X_D3DTSS_STAGECOUNT][X_D3DTSS_STAGESIZE] = [(Stage * X_D3DTSS_STAGESIZE) + Offset]
+
+// TODO : Set these after symbols are scanned/loaded :
+DWORD *_D3D__Device = NULL; // The Xbox1 D3D__Device
+DWORD *_D3D__RenderState = NULL;
 
 DWORD (*DxbxTextureStageStateXB2PCCallback[X_D3DTSS_LAST])(DWORD Value);
 DWORD (*DxbxRenderStateXB2PCCallback[X_D3DRS_LAST])(DWORD Value);
@@ -66,6 +73,11 @@ void DxbxBuildRenderStateMappingTable()
 {
 	if (_D3D__RenderState == nullptr)
 		return;
+
+	if (g_BuildVersion <= 4361)
+		X_D3DSCM_CORRECTION_VersionDependent = X_D3DSCM_CORRECTION;
+	else
+		X_D3DSCM_CORRECTION_VersionDependent = 0;
 
 	// Loop over all latest (5911) states :
 	X_D3DRENDERSTATETYPE State_VersionDependent = X_D3DRS_FIRST;
@@ -105,11 +117,11 @@ void DxbxBuildRenderStateMappingTable()
 
 	// Build a table with converter functions for all renderstates :
 	for (int i = X_D3DRS_FIRST; i < X_D3DRS_LAST; i++)
-		DxbxRenderStateXB2PCCallback[i] = (DWORD (*)(DWORD))(DxbxXBTypeInfo[DxbxRenderStateInfo[i].T].F);
+		DxbxRenderStateXB2PCCallback[i] = (TXB2PCFunc)(DxbxXBTypeInfo[DxbxRenderStateInfo[i].T].F);
 
 	// Build a table with converter functions for all texture stage states :
 	for (int i = X_D3DTSS_FIRST; i < X_D3DTSS_LAST; i++)
-		DxbxTextureStageStateXB2PCCallback[i] = (DWORD(*)(DWORD))(DxbxXBTypeInfo[DxbxTextureStageStateInfo[i].T].F);
+		DxbxTextureStageStateXB2PCCallback[i] = (TXB2PCFunc)(DxbxXBTypeInfo[DxbxTextureStageStateInfo[i].T].F);
 }
 
 // Converts the input render state from a version-dependent into a version-neutral value.
@@ -126,9 +138,9 @@ void InitD3DDeferredStates()
 		EmuD3DDeferredRenderState[v] = X_D3DRS_UNK;
 	}
 
-	for (int s = 0; s < X_D3DTS_STAGECOUNT; s++) {
-		for (int v = 0; v < X_D3DTS_STAGESIZE; v++)
-			EmuD3DDeferredTextureState[v + s * X_D3DTS_STAGESIZE] = X_D3DTSS_UNK;
+	for (int s = 0; s < X_D3DTSS_STAGECOUNT; s++) {
+		for (int v = 0; v < X_D3DTSS_STAGESIZE; v++)
+			EmuD3DDeferredTextureState[(s * X_D3DTSS_STAGESIZE) + v] = X_D3DTSS_UNK;
 	}
 }
 
@@ -252,18 +264,18 @@ void XTL::EmuUpdateDeferredStates()
 	int Adjust2 = bHack3925 ? 10 : 0;
 
     // Certain D3DTS values need to be checked on each Draw[Indexed]Vertices
-    if(EmuD3DDeferredTextureState != 0)
+    if(EmuD3DDeferredTextureState != NULL)
     {
-        for(int v=0;v<4;v++)
+        for(int s=0;s<X_D3DTSS_STAGECOUNT;s++)
         {
-            ::DWORD *pCur = &EmuD3DDeferredTextureState[v*32];
+            ::DWORD *pCur = &EmuD3DDeferredTextureState[s * X_D3DTSS_STAGESIZE];
 
             if(pCur[0+Adjust2] != X_D3DTSS_UNK)
             {
                 if(pCur[0+Adjust2] == 5)
                     CxbxKrnlCleanup("ClampToEdge is unsupported (temporarily)");
 
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_ADDRESSU, pCur[0+Adjust2]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_ADDRESSU, pCur[0+Adjust2]);
             }
 
             if(pCur[1+Adjust2] != X_D3DTSS_UNK)
@@ -271,7 +283,7 @@ void XTL::EmuUpdateDeferredStates()
                 if(pCur[1+Adjust2] == 5)
                     CxbxKrnlCleanup("ClampToEdge is unsupported (temporarily)");
 
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_ADDRESSV, pCur[1+Adjust2]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_ADDRESSV, pCur[1+Adjust2]);
             }
 
             if(pCur[2+Adjust2] != X_D3DTSS_UNK)
@@ -279,7 +291,7 @@ void XTL::EmuUpdateDeferredStates()
                 if(pCur[2+Adjust2] == 5)
                     CxbxKrnlCleanup("ClampToEdge is unsupported (temporarily)");
 
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_ADDRESSW, pCur[2+Adjust2]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_ADDRESSW, pCur[2+Adjust2]);
             }
 
             if(pCur[3+Adjust2] != X_D3DTSS_UNK)
@@ -287,7 +299,7 @@ void XTL::EmuUpdateDeferredStates()
                 if(pCur[3+Adjust2] == 4)
                     CxbxKrnlCleanup("QuinCunx is unsupported (temporarily)");
 
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_MAGFILTER, pCur[3+Adjust2]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_MAGFILTER, pCur[3+Adjust2]);
             }
 
             if(pCur[4+Adjust2] != X_D3DTSS_UNK)
@@ -295,7 +307,7 @@ void XTL::EmuUpdateDeferredStates()
                 if(pCur[4+Adjust2] == 4)
                     CxbxKrnlCleanup("QuinCunx is unsupported (temporarily)");
 
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_MINFILTER, pCur[4+Adjust2]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_MINFILTER, pCur[4+Adjust2]);
             }
 
             if(pCur[5+Adjust2] != X_D3DTSS_UNK)
@@ -303,17 +315,17 @@ void XTL::EmuUpdateDeferredStates()
                 if(pCur[5+Adjust2] == 4)
                     CxbxKrnlCleanup("QuinCunx is unsupported (temporarily)");
 
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_MIPFILTER, pCur[5+Adjust2]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_MIPFILTER, pCur[5+Adjust2]);
             }
 
             if(pCur[6+Adjust2] != X_D3DTSS_UNK)
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_MIPMAPLODBIAS, pCur[6+Adjust2]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_MIPMAPLODBIAS, pCur[6+Adjust2]);
 
             if(pCur[7+Adjust2] != X_D3DTSS_UNK)
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_MAXMIPLEVEL, pCur[7+Adjust2]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_MAXMIPLEVEL, pCur[7+Adjust2]);
 
             if(pCur[8+Adjust2] != X_D3DTSS_UNK)
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_MAXANISOTROPY, pCur[8+Adjust2]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_MAXANISOTROPY, pCur[8+Adjust2]);
 
             if(pCur[12-Adjust1] != X_D3DTSS_UNK)
             {
@@ -321,82 +333,82 @@ void XTL::EmuUpdateDeferredStates()
 				switch (pCur[12 - Adjust1]) 
 				{
 				case X_D3DTOP_DISABLE: 
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_DISABLE);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_DISABLE);
 					break;
 				case X_D3DTOP_SELECTARG1:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
 					break;
 				case X_D3DTOP_SELECTARG2:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_SELECTARG2);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_SELECTARG2);
 					break;
 				case X_D3DTOP_MODULATE:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_MODULATE);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_MODULATE);
 					break;
 				case X_D3DTOP_MODULATE2X:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_MODULATE2X);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_MODULATE2X);
 					break;
 				case X_D3DTOP_MODULATE4X:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_MODULATE4X);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_MODULATE4X);
 					break;
 				case X_D3DTOP_ADD:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_ADD);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_ADD);
 					break;
 				case X_D3DTOP_ADDSIGNED:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_ADDSIGNED);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_ADDSIGNED);
 					break;
 				case X_D3DTOP_ADDSIGNED2X:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_ADDSIGNED2X);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_ADDSIGNED2X);
 					break;
 				case X_D3DTOP_SUBTRACT:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_SUBTRACT);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_SUBTRACT);
 					break;
 				case X_D3DTOP_ADDSMOOTH:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_ADDSMOOTH);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_ADDSMOOTH);
 					break;
 				case X_D3DTOP_BLENDDIFFUSEALPHA:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_BLENDDIFFUSEALPHA);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_BLENDDIFFUSEALPHA);
 					break;
 				case X_D3DTOP_BLENDCURRENTALPHA:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_BLENDCURRENTALPHA);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_BLENDCURRENTALPHA);
 					break;
 				case X_D3DTOP_BLENDTEXTUREALPHA:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_BLENDTEXTUREALPHA);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_BLENDTEXTUREALPHA);
 					break;
 				case X_D3DTOP_BLENDFACTORALPHA:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_BLENDFACTORALPHA);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_BLENDFACTORALPHA);
 					break;
 				case X_D3DTOP_BLENDTEXTUREALPHAPM:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_BLENDTEXTUREALPHAPM);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_BLENDTEXTUREALPHAPM);
 					break;
 				case X_D3DTOP_PREMODULATE:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_PREMODULATE);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_PREMODULATE);
 					break;
 				case X_D3DTOP_MODULATEALPHA_ADDCOLOR:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_MODULATEALPHA_ADDCOLOR);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_MODULATEALPHA_ADDCOLOR);
 					break;
 				case X_D3DTOP_MODULATECOLOR_ADDALPHA:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_MODULATECOLOR_ADDALPHA);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_MODULATECOLOR_ADDALPHA);
 					break;
 				case X_D3DTOP_MODULATEINVALPHA_ADDCOLOR:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_MODULATEINVALPHA_ADDCOLOR);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_MODULATEINVALPHA_ADDCOLOR);
 					break;
 				case X_D3DTOP_MODULATEINVCOLOR_ADDALPHA:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_MODULATEINVCOLOR_ADDALPHA);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_MODULATEINVCOLOR_ADDALPHA);
 					break;
 				case X_D3DTOP_DOTPRODUCT3:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_DOTPRODUCT3);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_DOTPRODUCT3);
 					break;
 				case X_D3DTOP_MULTIPLYADD:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_MULTIPLYADD);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_MULTIPLYADD);
 					break;
 				case X_D3DTOP_LERP:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_LERP);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_LERP);
 					break;
 				case X_D3DTOP_BUMPENVMAP:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_MULTIPLYADD);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_MULTIPLYADD);
 					break;
 				case X_D3DTOP_BUMPENVMAPLUMINANCE:
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_BUMPENVMAPLUMINANCE);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLOROP, D3DTOP_BUMPENVMAPLUMINANCE);
 					break;
 				default:
 					CxbxKrnlCleanup("(Temporarily) Unsupported D3DTSS_COLOROP Value (%d)", pCur[12 - Adjust1]);
@@ -405,13 +417,13 @@ void XTL::EmuUpdateDeferredStates()
             }
 
             if(pCur[13-Adjust1] != X_D3DTSS_UNK)
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLORARG0, pCur[13-Adjust1]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLORARG0, pCur[13-Adjust1]);
 
             if(pCur[14-Adjust1] != X_D3DTSS_UNK)
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLORARG1, pCur[14-Adjust1]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLORARG1, pCur[14-Adjust1]);
 
             if(pCur[15-Adjust1] != X_D3DTSS_UNK)
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLORARG2, pCur[15-Adjust1]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_COLORARG2, pCur[15-Adjust1]);
 
             // TODO: Use a lookup table, this is not always a 1:1 map (same as D3DTSS_COLOROP)
             if(pCur[16-Adjust1] != X_D3DTSS_UNK)
@@ -420,29 +432,29 @@ void XTL::EmuUpdateDeferredStates()
                     CxbxKrnlCleanup("(Temporarily) Unsupported D3DTSS_ALPHAOP Value (%d)", pCur[16-Adjust1]);
 
 				if( pCur[16-Adjust1] == 14 )
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_ALPHAOP, D3DTOP_BLENDTEXTUREALPHA);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_ALPHAOP, D3DTOP_BLENDTEXTUREALPHA);
 				if( pCur[16-Adjust1] == 15 )
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_ALPHAOP, D3DTOP_BLENDFACTORALPHA);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_ALPHAOP, D3DTOP_BLENDFACTORALPHA);
 				if( pCur[16-Adjust1] == 13 )
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_ALPHAOP, D3DTOP_BLENDCURRENTALPHA);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_ALPHAOP, D3DTOP_BLENDCURRENTALPHA);
 				else
-					g_pD3DDevice8->SetTextureStageState(v, D3DTSS_ALPHAOP, pCur[16-Adjust1]);
+					g_pD3DDevice8->SetTextureStageState(s, D3DTSS_ALPHAOP, pCur[16-Adjust1]);
             }
 
             if(pCur[17-Adjust1] != X_D3DTSS_UNK)
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_ALPHAARG0, pCur[17-Adjust1]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_ALPHAARG0, pCur[17-Adjust1]);
 
             if(pCur[18-Adjust1] != X_D3DTSS_UNK)
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_ALPHAARG1, pCur[18-Adjust1]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_ALPHAARG1, pCur[18-Adjust1]);
 
             if(pCur[19-Adjust1] != X_D3DTSS_UNK)
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_ALPHAARG2, pCur[19-Adjust1]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_ALPHAARG2, pCur[19-Adjust1]);
 
             if(pCur[20-Adjust1] != X_D3DTSS_UNK)
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_RESULTARG, pCur[20-Adjust1]);
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_RESULTARG, pCur[20-Adjust1]);
 
             if(pCur[21-Adjust1] != X_D3DTSS_UNK)
-                g_pD3DDevice8->SetTextureStageState(v, D3DTSS_TEXTURETRANSFORMFLAGS, pCur[21-Adjust1]); // TODO : Handle all, not just D3DTTFF_COUNT2
+                g_pD3DDevice8->SetTextureStageState(s, D3DTSS_TEXTURETRANSFORMFLAGS, pCur[21-Adjust1]); // TODO : Handle all, not just D3DTTFF_COUNT2
 
             /*if(pCur[29] != X_D3DTSS_UNK)	// This is NOT a deferred texture state!
                 g_pD3DDevice8->SetTextureStageState(v, D3DTSS_BORDERCOLOR, pCur[29]);*/
@@ -476,10 +488,10 @@ void XTL::EmuUpdateDeferredStates()
         }
 
         // if point sprites are enabled, copy stage 3 over to 0
-        if(EmuD3DDeferredRenderState[26] == TRUE)
+        if(*EmuMappedD3DRenderState[X_D3DRS_POINTSPRITEENABLE] == TRUE)
         {
             // pCur = Texture Stage 3 States
-            ::DWORD *pCur = &EmuD3DDeferredTextureState[2*32];
+            ::DWORD *pCur = &EmuD3DDeferredTextureState[2 * X_D3DTSS_STAGESIZE];
 
             IDirect3DBaseTexture8 *pTexture;
 
@@ -487,12 +499,14 @@ void XTL::EmuUpdateDeferredStates()
             g_pD3DDevice8->GetTexture(3, &pTexture);
             g_pD3DDevice8->SetTexture(0, pTexture);
 
+			// TODO -oDXBX: Should we clear the pPCTexture interface (and how)?
+
             // disable all other stages
             g_pD3DDevice8->SetTextureStageState(1, D3DTSS_COLOROP, D3DTOP_DISABLE);
             g_pD3DDevice8->SetTextureStageState(1, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
 
             // in that case we have to copy over the stage by hand
-            for(int v=0;v<30;v++)
+            for(int v=0; v<X_D3DTSS_STAGESIZE; v++)
             {
                 if(pCur[v] != X_D3DTSS_UNK)
                 {

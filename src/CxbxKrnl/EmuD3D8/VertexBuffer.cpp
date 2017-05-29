@@ -611,9 +611,9 @@ bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT ui
 {
     // Check for active linear textures.
 	bool bHasLinearTex = false;
-	struct { bool bTexIsLinear; int Width; int Height; } pActivePixelContainer[TEXTURE_STAGES] = { 0 };
+	struct { bool bTexIsLinear; int Width; int Height; } pActivePixelContainer[X_D3DTSS_STAGECOUNT] = { 0 };
 
-    for(uint i = 0; i < TEXTURE_STAGES; i++)
+    for(uint i = 0; i < X_D3DTSS_STAGECOUNT; i++)
     {
 		X_D3DBaseTexture *pXboxBaseTexture = EmuD3DTextureStages[i];
 		if (pXboxBaseTexture)
@@ -684,7 +684,7 @@ bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT ui
     // Normalize texture coordinates.
     DWORD dwTexN = (pPatchDesc->hVertexShader & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
 	// Don't normalize coordinates not used by the shader :
-	while (dwTexN < TEXTURE_STAGES) // X_D3DTS_STAGECOUNT
+	while (dwTexN < X_D3DTSS_STAGECOUNT)
 	{
 		pActivePixelContainer[dwTexN].bTexIsLinear = false;
 		dwTexN++;

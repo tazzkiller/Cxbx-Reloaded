@@ -34,8 +34,6 @@
 #ifndef STATE_H
 #define STATE_H
 
-extern int g_iWireframe;
-
 // Xbox version
 #define X_D3DRS_UNSUPPORTED (X_D3DRS_LAST + 1)
 
@@ -49,7 +47,7 @@ extern X_D3DRENDERSTATETYPE *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED]; // 1 
 extern DWORD *EmuD3DDeferredRenderState;
 
 // EmuD3DDeferredTextureState
-extern DWORD *EmuD3DDeferredTextureState;
+extern DWORD *EmuD3DDeferredTextureState; // [X_D3DTSS_STAGECOUNT][X_D3DTSS_STAGESIZE] = [(Stage * X_D3DTSS_STAGESIZE) + Offset]
 
 extern void InitD3DDeferredStates();
 

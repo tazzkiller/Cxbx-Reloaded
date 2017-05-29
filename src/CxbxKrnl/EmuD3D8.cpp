@@ -77,6 +77,7 @@ BOOL                                g_bFakePixelShaderLoaded = FALSE;
 BOOL                                g_bIsFauxFullscreen = FALSE;
 BOOL								g_bHackUpdateSoftwareOverlay = FALSE;
 
+
 void CxbxUpdateTextureStages(); // forward
 
 // Static Function(s)
@@ -120,11 +121,12 @@ static GUID                         g_ddguid;               // DirectDraw driver
 static XTL::LPDIRECT3D8             g_pD3D8 = NULL;			// Direct3D8
 static XTL::D3DCAPS8                g_D3DCaps;              // Direct3D8 Caps
 
-// wireframe toggle
-static int                          g_iWireframe    = 0;
-
 // build version
 extern uint32						g_BuildVersion;
+// wireframe toggle
+int                                 g_iWireframe = 0;
+// version-dependent correction on shader constant numbers
+int                                 X_D3DSCM_CORRECTION_VersionDependent = 0;
 
 #if 0
 // current active index buffer
@@ -174,7 +176,7 @@ static DWORD                        g_dwVertexShaderUsage = 0;
 static DWORD                        g_VertexShaderSlots[136];
 
 // cached palette pointer
-static DWORD *g_pTexturePaletteStages[TEXTURE_STAGES] = { nullptr, nullptr, nullptr, nullptr };
+static DWORD *g_pTexturePaletteStages[X_D3DTSS_STAGECOUNT] = { nullptr, nullptr, nullptr, nullptr };
 
 static XTL::X_VERTEXSHADERCONSTANTMODE g_VertexShaderConstantMode = XTL::X_D3DSCM_192CONSTANTS;
 
@@ -182,7 +184,7 @@ static XTL::X_VERTEXSHADERCONSTANTMODE g_VertexShaderConstantMode = XTL::X_D3DSC
 XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 
 // cached active texture
-XTL::X_D3DBaseTexture *XTL::EmuD3DTextureStages[TEXTURE_STAGES] = {0,0,0,0};
+XTL::X_D3DBaseTexture *XTL::EmuD3DTextureStages[X_D3DTSS_STAGECOUNT] = {0,0,0,0};
 
 // information passed to the create device proxy thread
 struct EmuD3D8CreateDeviceProxyData
@@ -1267,7 +1269,7 @@ void CxbxUpdateTextureStages()
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-	for (int Stage = 0; Stage < TEXTURE_STAGES; Stage++) {
+	for (int Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++) {
 		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = CxbxUpdateTexture(XTL::EmuD3DTextureStages[Stage], g_pTexturePaletteStages[Stage]);
 
 		HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, (g_iWireframe == 0) ? pHostBaseTexture : nullptr);
@@ -3661,8 +3663,13 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderConstant)
 
 	// TODO: This hack is necessary for Vertex Shaders on XDKs prior to 4361, but if this
 	// causes problems with pixel shaders, feel free to comment out the hack below.
-	if(g_BuildVersion <= 4361)
-		Register += 96;
+	// HACK: Since Xbox vertex shader constants range from -96 to 95, during conversion
+	// some shaders need to add 96 to use ranges 0 to 191.  This fixes 3911 - 4361 games and XDK
+	// samples, but breaks Turok.
+	// Dxbx note : 4627 samples show that the Register value arriving in this function is already
+	// incremented with 96 (even though the code for these samples supplies 0, maybe there's a
+	// macro responsible for that?)
+	Register += X_D3DSCM_CORRECTION_VersionDependent;
 
     HRESULT hRet = g_pD3DDevice8->SetPixelShaderConstant
     (
@@ -4482,7 +4489,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
     }
 
     /*
-    static IDirect3DTexture8 *pDummyTexture[TEXTURE_STAGES] = {nullptr, nullptr, nullptr, nullptr};
+    static IDirect3DTexture8 *pDummyTexture[X_D3DTSS_STAGECOUNT] = {nullptr, nullptr, nullptr, nullptr};
 
     if(pDummyTexture[Stage] == nullptr)
     {
@@ -4528,10 +4535,10 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 		LOG_FUNC_ARG(Format)
 		LOG_FUNC_END;
 
-    DWORD StageLookup[TEXTURE_STAGES] = { 0x00081b00, 0x00081b40, 0x00081b80, 0x00081bc0 }; // TODO : Use NV2A_ defines here
+    DWORD StageLookup[X_D3DTSS_STAGECOUNT] = { 0x00081b00, 0x00081b40, 0x00081b80, 0x00081bc0 }; // TODO : Use NV2A_ defines here
     DWORD Stage = -1;
 
-    for(int v=0;v<TEXTURE_STAGES;v++)
+    for(int v=0;v<X_D3DTSS_STAGECOUNT;v++)
         if(StageLookup[v] == Method)
             Stage = v;
 
@@ -8223,7 +8230,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPalette)
 	//    g_pD3DDevice9->SetPaletteEntries(Stage?, (PALETTEENTRY*)pPalette->Data);
 	//    g_pD3DDevice9->SetCurrentTexturePalette(Stage, Stage);
 
-	if (Stage < TEXTURE_STAGES)
+	if (Stage < X_D3DTSS_STAGECOUNT)
 		// Cache palette data and size
 		g_pTexturePaletteStages[Stage] = (DWORD *)GetDataFromXboxResource(pPalette);
 
@@ -8426,9 +8433,15 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderConstant)
 		LOG_FUNC_ARG(ConstantCount)
 		LOG_FUNC_END;
 
+	// TODO -oDxbx: If we ever find a title that calls this, check if this correction
+	// should indeed be done version-dependantly (like in SetVertexShaderConstant);
+	// It seems logical that these two mirror eachother, but it could well be different:
+	Register += X_D3DSCM_CORRECTION_VersionDependent;
+	DbgPrintf("Corrected constant register : 0x%.08x\n", Register);
+
     HRESULT hRet = g_pD3DDevice8->GetVertexShaderConstant
     (
-        Register + 96,
+        Register,
         pConstantData,
         ConstantCount
     );
