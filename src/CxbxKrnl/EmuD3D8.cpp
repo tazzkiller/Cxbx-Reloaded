@@ -1325,10 +1325,14 @@ void DxbxSetRenderStateInternal
 	DWORD PCValue = XTL::Dxbx_SetRenderState(XboxRenderState, XboxValue);
 
 	// Dump the value that's being forwarded to PC :
-	if (PCValue != XboxValue)
-		DbgPrintf("  %s := 0x%.08X (converted from Xbox)\n", XTL::GetDxbxRenderStateInfo(XboxRenderState).S, PCValue);
-	else
-		DbgPrintf("  %s := 0x%.08X\n", XTL::GetDxbxRenderStateInfo(XboxRenderState).S, PCValue);
+	{
+		const XTL::RenderStateInfo &DxbxRenderStateInfo = XTL::GetDxbxRenderStateInfo(XboxRenderState);
+
+		if (PCValue != XboxValue)
+			DbgPrintf("  %s := 0x%.08X (converted from Xbox)\n", DxbxRenderStateInfo.S, PCValue);
+		else
+			DbgPrintf("  %s := 0x%.08X\n", DxbxRenderStateInfo.S, PCValue);
+	}
 }
 
 // Direct3D initialization (called before emulation begins)

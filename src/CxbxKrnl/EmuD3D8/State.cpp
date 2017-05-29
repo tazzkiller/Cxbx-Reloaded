@@ -195,6 +195,8 @@ X_D3DTEXTURESTAGESTATETYPE DxbxFromOldVersion_D3DTSS(const X_D3DTEXTURESTAGESTAT
 	return Result;
 }
 
+DWORD TransferredValues[X_D3DRS_LAST + 1] = { X_D3DRS_UNK };
+
 DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue)
 {
 	D3DRENDERSTATETYPE PCRenderState;
@@ -202,10 +204,14 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 
 	LOG_INIT //
 
+	TransferredValues[XboxRenderState] = XboxValue;
+
+	const RenderStateInfo &DxbxRenderStateInfo = GetDxbxRenderStateInfo(XboxRenderState);
+
 	// Check if the render state is mapped :
 	if (EmuMappedD3DRenderState[XboxRenderState] == DummyRenderState)
 	{
-		CxbxKrnlCleanup("Unsupported RenderState : %s (0x%.08X)", GetDxbxRenderStateInfo(XboxRenderState).S, (int)XboxRenderState);
+		CxbxKrnlCleanup("Unsupported RenderState : %s (0x%.08X)", DxbxRenderStateInfo.S, (int)XboxRenderState);
 		return XboxValue;
 	}
 
@@ -213,7 +219,7 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	*(EmuMappedD3DRenderState[XboxRenderState]) = XboxValue;
 
 	// Skip Xbox extensions :
-	if (GetDxbxRenderStateInfo(XboxRenderState).PC == D3DRS_UNSUPPORTED)
+	if (DxbxRenderStateInfo.PC == D3DRS_UNSUPPORTED)
 		return XboxValue;
 
 	// Disabled, as it messes up Nvidia rendering too much :
@@ -264,10 +270,10 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	}
 
 	// Map the Xbox state to a PC state, and check if it's supported :
-	PCRenderState = GetDxbxRenderStateInfo(XboxRenderState).PC;
+	PCRenderState = DxbxRenderStateInfo.PC;
 	if (PCRenderState == D3DRS_UNSUPPORTED)
 	{
-		EmuWarning("%s is not supported!", GetDxbxRenderStateInfo(XboxRenderState).S);
+		EmuWarning("%s is not supported!", DxbxRenderStateInfo.S);
 		return XboxValue;
 	}
 
@@ -308,8 +314,7 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	return PCValue;
 }
 
-bool  TransferAll = false; // true;
-DWORD TransferredValues[X_D3DRS_LAST + 1] = { X_D3DRS_UNK };
+bool  TransferAll = true;
 
 void DxbxTransferRenderState(const X_D3DRENDERSTATETYPE XboxRenderState)
 {
@@ -324,8 +329,6 @@ void DxbxTransferRenderState(const X_D3DRENDERSTATETYPE XboxRenderState)
 			// Prevent setting unchanged values :
 			if (TransferAll || (TransferredValues[XboxRenderState] != XboxValue))
 			{
-				TransferredValues[XboxRenderState] = XboxValue;
-
 				Dxbx_SetRenderState(XboxRenderState, XboxValue);
 			}
 		}
