@@ -771,14 +771,11 @@ DWORD DxbxXB2PC_NOP(DWORD Value)
 // TODO : Back-port these
 #define EmuXB2PC_D3DCLEAR_FLAGS DxbxXB2PC_NOP
 #define EmuXB2PC_D3DCOLORWRITEENABLE DxbxXB2PC_NOP
-#define EmuXB2PC_D3DCULL DxbxXB2PC_NOP
 #define EmuXB2PC_D3DMULTISAMPLE_TYPE DxbxXB2PC_NOP
-#define EmuXB2PC_D3DCULL DxbxXB2PC_NOP
 #define EmuXB2PC_D3DTEXTUREADDRESS DxbxXB2PC_NOP
 #define EmuXB2PC_D3DTEXTUREFILTERTYPE DxbxXB2PC_NOP
 #define EmuXB2PC_D3DTEXTUREOP DxbxXB2PC_NOP
 #define EmuXB2PC_D3DTSS DxbxXB2PC_NOP
-#define EmuXB2PC_D3DVERTEXBLENDFLAGS DxbxXB2PC_NOP
 #define EmuXB2PC_D3DWRAP DxbxXB2PC_NOP
 
 // convert from xbox to pc texture transform state types
@@ -895,6 +892,47 @@ D3DSTENCILOP EmuXB2PC_D3DSTENCILOP(X_D3DSTENCILOP Value)
 	}
 
 	return (D3DSTENCILOP)Value;
+}
+
+// convert from Xbox direct3d to PC direct3d enumeration
+D3DVERTEXBLENDFLAGS EmuXB2PC_D3DVERTEXBLENDFLAGS(X_D3DVERTEXBLENDFLAGS Value)
+{
+	// convert from Xbox direct3d to PC direct3d enumeration
+	switch (Value) {
+	case X_D3DVBF_DISABLE: return D3DVBF_DISABLE;
+	case X_D3DVBF_1WEIGHTS: return D3DVBF_1WEIGHTS;
+	case X_D3DVBF_2WEIGHTS: return D3DVBF_2WEIGHTS;
+	case X_D3DVBF_3WEIGHTS: return D3DVBF_3WEIGHTS;
+		/* Xbox only :
+			case X_D3DVBF_2WEIGHTS2MATRICES : return;
+			case X_D3DVBF_3WEIGHTS3MATRICES : return;
+			case X_D3DVBF_4WEIGHTS4MATRICES : Result := ;
+		   Xbox doesn't support :
+			D3DVBF_TWEENING = 255,
+			D3DVBF_0WEIGHTS = 256
+		*/
+	default:
+		CxbxKrnlCleanup("Unsupported D3DVERTEXBLENDFLAGS (%d)", (DWORD)Value);
+		return (D3DVERTEXBLENDFLAGS)Value;
+	}
+}
+
+D3DCULL EmuXB2PC_D3DCULL(X_D3DCULL Value)
+// convert from Xbox D3D to PC D3D enumeration
+// TODO: XDK-Specific Tables? So far they are the same
+{
+	switch (Value)
+	{
+	case X_D3DCULL_NONE:
+		return D3DCULL_NONE;
+	case X_D3DCULL_CW:
+		return D3DCULL_CW;
+	case X_D3DCULL_CCW:
+		return D3DCULL_CCW;
+	default:
+		CxbxKrnlCleanup("Unknown Cullmode (%d)", Value);
+		return (D3DCULL)Value;
+	}
 }
 
 // convert xbox->pc primitive type

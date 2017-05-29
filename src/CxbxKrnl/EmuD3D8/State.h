@@ -49,6 +49,8 @@ extern DWORD *EmuD3DDeferredRenderState;
 // EmuD3DDeferredTextureState
 extern DWORD *EmuD3DDeferredTextureState; // [X_D3DTSS_STAGECOUNT][X_D3DTSS_STAGESIZE] = [(Stage * X_D3DTSS_STAGESIZE) + Offset]
 
+extern void CxbxPitchedCopy(BYTE *pDest, BYTE *pSrc, DWORD dwDestPitch, DWORD dwSrcPitch, DWORD dwWidthInBytes, DWORD dwHeight);
+
 extern void InitD3DDeferredStates();
 
 extern void EmuUpdateDeferredStates();

@@ -727,26 +727,6 @@ void DecodeD3DFormatAndSize(DWORD dwD3DFormat, DWORD dwD3DSize, OUT DecodedPixel
 	decoded.dwMinXYValue = 1 << MinSize;
 }
 
-void CxbxPitchedCopy(BYTE *pDest, BYTE *pSrc, DWORD dwDestPitch, DWORD dwSrcPitch, DWORD dwWidthInBytes, DWORD dwHeight)
-{
-	// No conversion needed, copy as efficient as possible
-	if ((dwSrcPitch == dwWidthInBytes) && (dwDestPitch == dwWidthInBytes))
-	{
-		// source and destination rows align, so copy all rows in one go
-		memcpy(pDest, pSrc, dwHeight * dwWidthInBytes);
-	}
-	else
-	{
-		// copy source to destination per row
-		for (DWORD v = 0; v < dwHeight; v++)
-		{
-			memcpy(pDest, pSrc, dwWidthInBytes);
-			pDest += dwDestPitch;
-			pSrc += dwSrcPitch;
-		}
-	}
-}
-
 
 inline DWORD GetXboxCommonResourceType(const XTL::X_D3DResource *pXboxResource)
 {
@@ -4538,9 +4518,9 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
     DWORD StageLookup[X_D3DTSS_STAGECOUNT] = { NV2A_TX_OFFSET(0), NV2A_TX_OFFSET(1), NV2A_TX_OFFSET(2), NV2A_TX_OFFSET(3) };
     DWORD Stage = -1;
 
-    for(int v=0;v<X_D3DTSS_STAGECOUNT;v++)
-        if(StageLookup[v] == (Method & NV2A_METHOD_MASK)
-            Stage = v;
+	for (int s = 0; s < X_D3DTSS_STAGECOUNT; s++)
+		if (StageLookup[s] == (Method & NV2A_METHOD_MASK))
+			Stage = s;
 
     if(Stage == -1)
     {
@@ -7103,20 +7083,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_VertexBlend)
 
 	DxbxSetRenderStateInternal(__func__, X_D3DRS_VERTEXBLEND, Value);
 }
-#if 0
-EmuXB2PC_D3DVERTEXBLENDFLAGS()
-{
-	// convert from Xbox direct3d to PC direct3d enumeration
-	if (Value <= 1)
-		Value = Value;
-	else if (Value == 3)
-		Value = 2;
-	else if (Value == 5)
-		Value = 3;
-	else
-		CxbxKrnlCleanup("Unsupported D3DVERTEXBLENDFLAGS (%d)", Value);
-}
-#endif
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_PSTextureModes)
 (
@@ -7136,24 +7102,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_CullMode)
 	FUNC_EXPORTS
 
 	DxbxSetRenderStateInternal(__func__, X_D3DRS_CULLMODE, Value);
-#if 0
-	// convert from Xbox D3D to PC D3D enumeration
-    // TODO: XDK-Specific Tables? So far they are the same
-    switch(Value)
-    {
-        case X_D3DCULL_NONE:
-            Value = D3DCULL_NONE;
-            break;
-        case X_D3DCULL_CW:
-            Value = D3DCULL_CW;
-            break;
-        case X_D3DCULL_CCW:
-            Value = D3DCULL_CCW;
-            break;
-        default:
-            CxbxKrnlCleanup("EmuD3DDevice_SetRenderState_CullMode: Unknown Cullmode (%d)", Value);
-    }
-#endif
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_LineWidth)
