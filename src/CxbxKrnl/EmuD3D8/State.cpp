@@ -128,7 +128,7 @@ void DxbxBuildRenderStateMappingTable()
 		int delta = (intptr_t)EmuD3DDeferredRenderState - (sizeof(DWORD) * DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST]);
 		for (X_D3DRENDERSTATETYPE State = X_D3DRS_FIRST; State <= X_D3DRS_LAST; State++) {
 			if (EmuMappedD3DRenderState[State] != DummyRenderState)
-				EmuMappedD3DRenderState[State] += delta;
+				EmuMappedD3DRenderState[State] += delta / sizeof(DWORD); // Increment per DWORD (not per 4!)
 		}
 
 		_D3D__RenderState = EmuMappedD3DRenderState[X_D3DRS_FIRST];
