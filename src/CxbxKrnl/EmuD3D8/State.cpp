@@ -53,7 +53,7 @@ X_D3DRENDERSTATETYPE DummyRenderStateValue = X_D3DRS_FIRST;
 X_D3DRENDERSTATETYPE *DummyRenderState = &DummyRenderStateValue; // Unsupported states share this pointer value
 
 // XDK version independent renderstate table, containing pointers to the original locations.
-X_D3DRENDERSTATETYPE *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED] = { NULL }; // 1 extra for the unsupported value
+X_D3DRENDERSTATETYPE *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED + 1] = { NULL }; // 1 extra for the unsupported value itself
 
 // Deferred state lookup tables
 DWORD *EmuD3DDeferredRenderState = NULL;
@@ -71,17 +71,22 @@ X_D3DRENDERSTATETYPE DxbxMapMostRecentToActiveVersion[X_D3DRS_LAST];
 
 void DxbxBuildRenderStateMappingTable()
 {
-	if (_D3D__RenderState == nullptr)
-		return;
-
 	if (g_BuildVersion <= 4361)
 		X_D3DSCM_CORRECTION_VersionDependent = X_D3DSCM_CORRECTION;
 	else
 		X_D3DSCM_CORRECTION_VersionDependent = 0;
 
+	// Build a table with converter functions for all renderstates :
+	for (int i = X_D3DRS_FIRST; i <= X_D3DRS_LAST; i++)
+		DxbxRenderStateXB2PCCallback[i] = (TXB2PCFunc)(DxbxXBTypeInfo[DxbxRenderStateInfo[i].T].F);
+
+	// Build a table with converter functions for all texture stage states :
+	for (int i = X_D3DTSS_FIRST; i <= X_D3DTSS_LAST; i++)
+		DxbxTextureStageStateXB2PCCallback[i] = (TXB2PCFunc)(DxbxXBTypeInfo[DxbxTextureStageStateInfo[i].T].F);
+
 	// Loop over all latest (5911) states :
 	X_D3DRENDERSTATETYPE State_VersionDependent = X_D3DRS_FIRST;
-	for (X_D3DRENDERSTATETYPE State = X_D3DRS_FIRST; State < X_D3DRS_LAST; State++)
+	for (X_D3DRENDERSTATETYPE State = X_D3DRS_FIRST; State <= X_D3DRS_LAST; State++)
 	{
 		// Check if this state is available in the active SDK version :
 		if (g_BuildVersion >= DxbxRenderStateInfo[State].V)
@@ -103,25 +108,34 @@ void DxbxBuildRenderStateMappingTable()
 		}
 	}
 
-	// Initialize the dummy render state :
-	EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED] = DummyRenderState;
-
 	// Log the start address of the "deferred" render states (not needed anymore, just to keep logging the same) :
+	if (_D3D__RenderState != nullptr)
 	{
 		// Calculate the location of D3DDeferredRenderState via an XDK-dependent offset to _D3D__RenderState :
 		EmuD3DDeferredRenderState = _D3D__RenderState;
 		// Dxbx note : XTL_EmuD3DDeferredRenderState:PDWORDs cast to UIntPtr to avoid incrementing with that many array-sizes!
-		EmuD3DDeferredRenderState += DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
+		EmuD3DDeferredRenderState += sizeof(DWORD) * DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
 		DbgPrintf("HLE: 0x%.08X -> EmuD3DDeferredRenderState", EmuD3DDeferredRenderState);
 	}
+	else
+	{
+		// TEMPORARY work-around until _D3D__RenderState is determined via OOVPA symbol scanning;
+		// map all render states based on the first deferred render state (which we have the address
+		// of in EmuD3DDeferredRenderState) :
 
-	// Build a table with converter functions for all renderstates :
-	for (int i = X_D3DRS_FIRST; i < X_D3DRS_LAST; i++)
-		DxbxRenderStateXB2PCCallback[i] = (TXB2PCFunc)(DxbxXBTypeInfo[DxbxRenderStateInfo[i].T].F);
+		// assert(EmuD3DDeferredRenderState != NULL);
 
-	// Build a table with converter functions for all texture stage states :
-	for (int i = X_D3DTSS_FIRST; i < X_D3DTSS_LAST; i++)
-		DxbxTextureStageStateXB2PCCallback[i] = (TXB2PCFunc)(DxbxXBTypeInfo[DxbxTextureStageStateInfo[i].T].F);
+		int delta = (intptr_t)EmuD3DDeferredRenderState - (sizeof(DWORD) * DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST]);
+		for (X_D3DRENDERSTATETYPE State = X_D3DRS_FIRST; State <= X_D3DRS_LAST; State++) {
+			if (EmuMappedD3DRenderState[State] != DummyRenderState)
+				EmuMappedD3DRenderState[State] += delta;
+		}
+
+		_D3D__RenderState = EmuMappedD3DRenderState[X_D3DRS_FIRST];
+	}
+
+	// Initialize the dummy render state :
+	EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED] = DummyRenderState;
 }
 
 // Converts the input render state from a version-dependent into a version-neutral value.

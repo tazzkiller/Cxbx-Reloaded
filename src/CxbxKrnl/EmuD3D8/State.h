@@ -41,7 +41,7 @@
 #define D3DRS_UNSUPPORTED (D3DRENDERSTATETYPE)0
 
 // XDK version independent renderstate table, containing pointers to the original locations.
-extern X_D3DRENDERSTATETYPE *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED]; // 1 extra for the unsupported value
+extern X_D3DRENDERSTATETYPE *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED + 1]; // 1 extra for the unsupported value itself
 
 // EmuD3DDeferredRenderState
 extern DWORD *EmuD3DDeferredRenderState;
