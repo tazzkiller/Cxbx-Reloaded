@@ -730,10 +730,9 @@ D3DFORMAT EmuXB2PC_D3DFormat(X_D3DFORMAT Format)
 	case ((X_D3DFORMAT)0xffffffff):
 		return D3DFMT_UNKNOWN; // TODO -oCXBX: Not sure if this counts as swizzled or not...
 	default:
-		CxbxKrnlCleanup("EmuXB2PC_D3DFormat: Unknown Format (0x%.08X)", Format);
+		CxbxKrnlCleanup("Unknown X_D3DFORMAT (0x%.08X)", (DWORD)Format);
+		return D3DFMT_UNKNOWN; // Never reached
 	}
-
-	return D3DFMT_UNKNOWN;
 }
 
 // convert from pc to xbox color formats
@@ -832,7 +831,8 @@ X_D3DFORMAT EmuPC2XB_D3DFormat(D3DFORMAT Format)
 		break;
 
 	default:
-		CxbxKrnlCleanup("EmuPC2XB_D3DFormat: Unknown Format (%d)", Format);
+		CxbxKrnlCleanup("Unknown D3DFORMAT (0x%.08X)", (DWORD)Format);
+		// Never reached
     }
 
     return result;
@@ -886,7 +886,7 @@ D3DMULTISAMPLE_TYPE EmuXB2PC_D3DMULTISAMPLE_TYPE(X_D3DMULTISAMPLE_TYPE Value)
 	case X_D3DMULTISAMPLE_9_SAMPLES_SUPERSAMPLE_GAUSSIAN:
 		return D3DMULTISAMPLE_9_SAMPLES;
 	default:
-		EmuWarning("Unknown X_D3DMULTISAMPLE_TYPE (0x%X)!\nIf this value is greater than 0xFFFF contact blueshogun!", (DWORD)Value);
+		EmuWarning("Unknown X_D3DMULTISAMPLE_TYPE (0x%.08X). Using D3DMULTISAMPLE_NONE approximation.", (DWORD)Value);
 		return D3DMULTISAMPLE_NONE;
 	}
 }
@@ -915,13 +915,12 @@ D3DTRANSFORMSTATETYPE EmuXB2PC_D3DTS(X_D3DTRANSFORMSTATETYPE Value)
 		return D3DTS_WORLDMATRIX(2);
 	case X_D3DTS_WORLD3:
 		return D3DTS_WORLDMATRIX(3);
+	case X_D3DTS_MAX:
+		EmuWarning("Ignoring X_D3DTRANSFORMSTATETYPE : X_D3DTS_MAX");
+		return (D3DTRANSFORMSTATETYPE)0;
 	default:
-		if (Value == X_D3DTS_MAX)
-			EmuWarning("Ignored D3DTS_MAX");
-		else
-			CxbxKrnlCleanup("Unknown X_D3DTRANSFORMSTATETYPE (%d)", (DWORD)Value);
-
-		return (D3DTRANSFORMSTATETYPE)0; // Never reached
+		CxbxKrnlCleanup("Unknown X_D3DTRANSFORMSTATETYPE (0x%.08X)", (DWORD)Value);
+		return (D3DTRANSFORMSTATETYPE)Value; // Never reached
 	}
 }
 
@@ -952,9 +951,8 @@ X_D3DTRANSFORMSTATETYPE EmuPC2XB_D3DTSS(D3DTRANSFORMSTATETYPE State)
 	if ((uint32)State > 255)
 		return (D3DTRANSFORMSTATETYPE)(State - 250);
 
-	CxbxKrnlCleanup("Unknown Host Transform State Type (%d)", State);
-
-	return State;
+	CxbxKrnlCleanup("Unknown D3DTRANSFORMSTATETYPE (0x%.08X)", (DWORD)State);
+	return State; // Never reached
 }
 #endif
 
@@ -973,18 +971,14 @@ D3DBLENDOP EmuXB2PC_D3DBLENDOP(X_D3DBLENDOP Value)
 	case X_D3DBLENDOP_MAX:
 		return D3DBLENDOP_MAX;
 	case X_D3DBLENDOP_ADDSIGNED:
-	{
-		EmuWarning("Unsupported X_D3DBLENDOP : D3DBLENDOP_ADDSIGNED. Used approximation.\n");
+		EmuWarning("Unsupported X_D3DBLENDOP : X_D3DBLENDOP_ADDSIGNED. Using D3DBLENDOP_ADD approximation.");
 		return D3DBLENDOP_ADD;
-	};
 	case X_D3DBLENDOP_REVSUBTRACTSIGNED:
-	{
-		EmuWarning("Unsupported X_D3DBLENDOP : D3DBLENDOP_REVSUBTRACTSIGNED. Used approximation.\n");
+		EmuWarning("Unsupported X_D3DBLENDOP : X_D3DBLENDOP_REVSUBTRACTSIGNED. Using D3DBLENDOP_REVSUBTRACT approximation.");
 		return D3DBLENDOP_REVSUBTRACT;
-	}
 	default:
 		CxbxKrnlCleanup("Unknown X_D3DBLENDOP (0x%.08X)", (DWORD)Value);
-		return (D3DBLENDOP)Value;
+		return (D3DBLENDOP)Value; // Never reached
 	}
 }
 
@@ -1022,13 +1016,12 @@ D3DBLEND EmuXB2PC_D3DBLEND(X_D3DBLEND Value)
 		// Note : Xbox doesn't support D3DBLEND_BOTHSRCALPHA and D3DBLEND_BOTHINVSRCALPHA
 		default:
 			CxbxKrnlCleanup("Unknown X_D3DBLEND (0x%.08X)", (DWORD)Value);
-			return (D3DBLEND)Value;
+			return (D3DBLEND)Value; // Never reached
 		}
 
-		EmuWarning("Unsupported X_D3DBLEND (0x%.08X). Used approximation.\n", (DWORD)Value);
+		EmuWarning("Unsupported X_D3DBLEND (0x%.08X). Using D3DBLEND_ONE approximation.", (DWORD)Value);
+		return D3DBLEND_ONE;
 	}
-
-	return D3DBLEND_ONE;
 }
 
 // convert from xbox to pc comparison functions
@@ -1054,7 +1047,7 @@ D3DCMPFUNC EmuXB2PC_D3DCMPFUNC(X_D3DCMPFUNC Value)
 		return D3DCMP_ALWAYS;
 	default:
 		CxbxKrnlCleanup("Unknown X_D3DCMPFUNC (0x%.08X)", (DWORD)Value);
-		return (D3DCMPFUNC)Value;
+		return (D3DCMPFUNC)Value; // Never reached
 	}
 }
 
@@ -1071,7 +1064,7 @@ D3DFILLMODE EmuXB2PC_D3DFILLMODE(X_D3DFILLMODE Value)
 		return D3DFILL_SOLID;
 	default:
 		CxbxKrnlCleanup("Unknown X_D3DFILLMODE (0x%.08X)", (DWORD)Value);
-		return (D3DFILLMODE)Value;
+		return (D3DFILLMODE)Value; // Never reached
 	}
 }
 
@@ -1086,7 +1079,7 @@ D3DSHADEMODE EmuXB2PC_D3DSHADEMODE(X_D3DSHADEMODE Value)
 		return D3DSHADE_GOURAUD;
 	default:
 		CxbxKrnlCleanup("Unknown X_D3DSHADEMODE (0x%.08X)", (DWORD)Value);
-		return (D3DSHADEMODE)Value;
+		return (D3DSHADEMODE)Value; // Never reached
 	}
 }
 
@@ -1113,25 +1106,52 @@ D3DSTENCILOP EmuXB2PC_D3DSTENCILOP(X_D3DSTENCILOP Value)
 		return D3DSTENCILOP_DECR;
 	default:
 		CxbxKrnlCleanup("Unknown X_D3DSTENCILOP (0x%.08X)", (DWORD)Value);
-		return (D3DSTENCILOP)Value;
+		return (D3DSTENCILOP)Value; // Never reached
 	}
 }
 
 DWORD EmuXB2PC_D3DTEXTUREADDRESS(DWORD Value)
 {
-	if (Value == X_D3DTADDRESS_CLAMPTOEDGE)
+	switch (Value) {
+	case X_D3DTADDRESS_WRAP:
+		return D3DTADDRESS_WRAP;
+	case X_D3DTADDRESS_MIRROR:
+		return D3DTADDRESS_MIRROR;
+	case X_D3DTADDRESS_CLAMP:
+		return D3DTADDRESS_CLAMP;
+	case X_D3DTADDRESS_BORDER:
+		return D3DTADDRESS_BORDER;
+	case X_D3DTADDRESS_CLAMPTOEDGE:
 		// Note : PC has D3DTADDRESS_MIRRORONCE in it's place
-		EmuWarning("ClampToEdge is unsupported (temporarily)");
-
-	return Value;
+		EmuWarning("Unsupported X_D3DTEXTUREADDRESS : X_D3DTADDRESS_CLAMPTOEDGE. Using D3DTADDRESS_CLAMP approximation.");
+		return D3DTADDRESS_CLAMP;
+	default:
+		CxbxKrnlCleanup("Unknown X_D3DTEXTUREADDRESS (0x%.08X)", (DWORD)Value);
+		return (DWORD)Value; // Never reached
+	}
 }
 
 DWORD EmuXB2PC_D3DTEXTUREFILTERTYPE(DWORD Value)
 {
-	if (Value == 4)
-		CxbxKrnlCleanup("QuinCunx is unsupported (temporarily)");
-
-	return Value;
+	switch (Value) {
+	case X_D3DTEXF_NONE:
+		return D3DTEXF_NONE;
+	case X_D3DTEXF_POINT:
+		return D3DTEXF_POINT;
+	case X_D3DTEXF_LINEAR:
+		return D3DTEXF_LINEAR;
+	case X_D3DTEXF_ANISOTROPIC:
+		return D3DTEXF_ANISOTROPIC;
+	case X_D3DTEXF_QUINCUNX:
+		// Note : PC has D3DTEXF_FLATCUBIC in it's place
+		CxbxKrnlCleanup("X_D3DTEXF_QUINCUNX is unsupported (temporarily)");
+		// Never reached
+	case X_D3DTEXF_GAUSSIANCUBIC:
+		return D3DTEXF_GAUSSIANCUBIC;
+	default:
+		CxbxKrnlCleanup("Unknown X_D3DTEXTUREFILTERTYPE (0x%.08X)", (DWORD)Value);
+		return (DWORD)0; // Never reached
+	}
 }
 
 // convert from Xbox direct3d to PC direct3d enumeration
@@ -1152,8 +1172,8 @@ D3DVERTEXBLENDFLAGS EmuXB2PC_D3DVERTEXBLENDFLAGS(X_D3DVERTEXBLENDFLAGS Value)
 			D3DVBF_0WEIGHTS = 256
 		*/
 	default:
-		CxbxKrnlCleanup("Unsupported X_D3DVERTEXBLENDFLAGS (%d)", (DWORD)Value);
-		return (D3DVERTEXBLENDFLAGS)Value;
+		CxbxKrnlCleanup("Unsupported X_D3DVERTEXBLENDFLAGS (0x%.08X)", (DWORD)Value);
+		return (D3DVERTEXBLENDFLAGS)Value; // Never reached
 	}
 }
 
@@ -1205,8 +1225,8 @@ D3DTEXTUREOP EmuXB2PC_D3DTEXTUREOP(X_D3DTEXTUREOP Value)
 	case X_D3DTOP_BUMPENVMAP: return D3DTOP_BUMPENVMAP;
 	case X_D3DTOP_BUMPENVMAPLUMINANCE: return D3DTOP_BUMPENVMAPLUMINANCE;
 	default:
-		CxbxKrnlCleanup("Unsupported X_D3DTEXTUREOP (%d)", (DWORD)Value);
-		return (D3DTEXTUREOP)Value;
+		CxbxKrnlCleanup("Unsupported X_D3DTEXTUREOP (0x%.08X)", (DWORD)Value);
+		return (D3DTEXTUREOP)Value; // Never reached
 	}
 }
 
@@ -1241,8 +1261,8 @@ D3DCULL EmuXB2PC_D3DCULL(X_D3DCULL Value)
 	case X_D3DCULL_CCW:
 		return D3DCULL_CCW;
 	default:
-		CxbxKrnlCleanup("Unknown X_D3DCULL (%d)", (DWORD)Value);
-		return (D3DCULL)Value;
+		CxbxKrnlCleanup("Unknown X_D3DCULL (0x%.08X)", (DWORD)Value);
+		return (D3DCULL)Value; // Never reached
 	}
 }
 
