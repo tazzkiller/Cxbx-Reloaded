@@ -1277,6 +1277,15 @@ const DWORD X_D3DTADDRESS_CLAMP = 3;
 const DWORD X_D3DTADDRESS_BORDER = 4;
 const DWORD X_D3DTADDRESS_CLAMPTOEDGE = 5;
 
+// X_D3DTEXTUREFILTERTYPE values :
+const DWORD X_D3DTEXF_NONE = 0;          // filtering disabled (valid for mip filter only)
+const DWORD X_D3DTEXF_POINT = 1;         // nearest
+const DWORD X_D3DTEXF_LINEAR = 2;        // linear interpolation
+const DWORD X_D3DTEXF_ANISOTROPIC = 3;   // anisotropic
+const DWORD X_D3DTEXF_QUINCUNX = 4;      // quincunx kernel (Xbox extension)
+const DWORD X_D3DTEXF_GAUSSIANCUBIC = 5; // different cubic kernel
+
+
 // Clear flags
 #define X_D3DCLEAR_ZBUFFER  0x00000001
 #define X_D3DCLEAR_STENCIL  0x00000002
