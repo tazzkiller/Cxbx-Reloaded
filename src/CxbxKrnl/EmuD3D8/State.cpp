@@ -40,9 +40,11 @@
 #include "CxbxKrnl/Emu.h"
 #include "CxbxKrnl/EmuXTL.h"
 //#include "EmuNV2A.h"
-#include "Convert.h" // DxbxRenderStateInfo
+#include "Convert.h" // GetDxbxRenderStateInfo()
 
+// D3D build version
 extern uint32 g_BuildVersion;
+
 extern int g_iWireframe;
 extern int X_D3DSCM_CORRECTION_VersionDependent;
 
@@ -78,7 +80,7 @@ void DxbxBuildRenderStateMappingTable()
 
 	// Build a table with converter functions for all renderstates :
 	for (int i = X_D3DRS_FIRST; i <= X_D3DRS_LAST; i++)
-		DxbxRenderStateXB2PCCallback[i] = (TXB2PCFunc)(DxbxXBTypeInfo[DxbxRenderStateInfo[i].T].F);
+		DxbxRenderStateXB2PCCallback[i] = (TXB2PCFunc)(DxbxXBTypeInfo[GetDxbxRenderStateInfo(i).T].F);
 
 	// Build a table with converter functions for all texture stage states :
 	for (int i = X_D3DTSS_FIRST; i <= X_D3DTSS_LAST; i++)
@@ -89,7 +91,7 @@ void DxbxBuildRenderStateMappingTable()
 	for (X_D3DRENDERSTATETYPE State = X_D3DRS_FIRST; State <= X_D3DRS_LAST; State++)
 	{
 		// Check if this state is available in the active SDK version :
-		if (g_BuildVersion >= DxbxRenderStateInfo[State].V)
+		if (g_BuildVersion >= GetDxbxRenderStateInfo(State).V)
 		{
 			// If it is available, register this offset in the various mapping tables we use :
 			DxbxMapActiveVersionToMostRecent[State_VersionDependent] = State;
@@ -113,8 +115,7 @@ void DxbxBuildRenderStateMappingTable()
 	{
 		// Calculate the location of D3DDeferredRenderState via an XDK-dependent offset to _D3D__RenderState :
 		EmuD3DDeferredRenderState = _D3D__RenderState;
-		// Dxbx note : XTL::EmuD3DDeferredRenderState:PDWORDs cast to UIntPtr to avoid incrementing with that many array-sizes!
-		EmuD3DDeferredRenderState += sizeof(DWORD) * DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
+		EmuD3DDeferredRenderState += DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
 		DbgPrintf("HLE: 0x%.08X -> EmuD3DDeferredRenderState\n", EmuD3DDeferredRenderState);
 	}
 	else
@@ -129,7 +130,7 @@ void DxbxBuildRenderStateMappingTable()
 		for (X_D3DRENDERSTATETYPE State = X_D3DRS_FIRST; State <= X_D3DRS_LAST; State++) {
 			if (EmuMappedD3DRenderState[State] != DummyRenderState) {
 				EmuMappedD3DRenderState[State] += delta / sizeof(DWORD); // Increment per DWORD (not per 4!)
-				DbgPrintf("HLE: 0x%.08X -> %s\n", EmuMappedD3DRenderState[State], DxbxRenderStateInfo[State].S);
+				DbgPrintf("HLE: 0x%.08X -> %s\n", EmuMappedD3DRenderState[State], GetDxbxRenderStateInfo(State).S);
 			}
 		}
 
@@ -204,7 +205,7 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	// Check if the render state is mapped :
 	if (EmuMappedD3DRenderState[XboxRenderState] == DummyRenderState)
 	{
-		CxbxKrnlCleanup("Unsupported RenderState : %s (0x%.08X)", DxbxRenderStateInfo[XboxRenderState].S, (int)XboxRenderState);
+		CxbxKrnlCleanup("Unsupported RenderState : %s (0x%.08X)", GetDxbxRenderStateInfo(XboxRenderState).S, (int)XboxRenderState);
 		return XboxValue;
 	}
 
@@ -212,7 +213,7 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	*(EmuMappedD3DRenderState[XboxRenderState]) = XboxValue;
 
 	// Skip Xbox extensions :
-	if (DxbxRenderStateInfo[XboxRenderState].PC == D3DRS_UNSUPPORTED)
+	if (GetDxbxRenderStateInfo(XboxRenderState).PC == D3DRS_UNSUPPORTED)
 		return XboxValue;
 
 	// Disabled, as it messes up Nvidia rendering too much :
@@ -263,10 +264,10 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	}
 
 	// Map the Xbox state to a PC state, and check if it's supported :
-	PCRenderState = DxbxRenderStateInfo[XboxRenderState].PC;
+	PCRenderState = GetDxbxRenderStateInfo(XboxRenderState).PC;
 	if (PCRenderState == D3DRS_UNSUPPORTED)
 	{
-		EmuWarning("%s is not supported!", DxbxRenderStateInfo[XboxRenderState].S);
+		EmuWarning("%s is not supported!", GetDxbxRenderStateInfo(XboxRenderState).S);
 		return XboxValue;
 	}
 
@@ -307,8 +308,8 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	return PCValue;
 }
 
-bool  TransferAll = true;
-DWORD TransferredValues[X_D3DRS_LAST + 1];
+bool  TransferAll = false; // true;
+DWORD TransferredValues[X_D3DRS_LAST + 1] = { X_D3DRS_UNK };
 
 void DxbxTransferRenderState(const X_D3DRENDERSTATETYPE XboxRenderState)
 {
@@ -316,7 +317,7 @@ void DxbxTransferRenderState(const X_D3DRENDERSTATETYPE XboxRenderState)
 
 	// Check if (this render state is supported (so we don't trigger a warning) :
 	if (EmuMappedD3DRenderState[XboxRenderState] != DummyRenderState)
-		if (DxbxRenderStateInfo[XboxRenderState].PC != D3DRS_UNSUPPORTED)
+		if (GetDxbxRenderStateInfo(XboxRenderState).PC != D3DRS_UNSUPPORTED)
 		{
 			// Read the current Xbox value, and set it locally :
 			XboxValue = *EmuMappedD3DRenderState[XboxRenderState];

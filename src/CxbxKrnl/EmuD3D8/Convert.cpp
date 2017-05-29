@@ -41,6 +41,9 @@
 #include "CxbxKrnl/EmuXTL.h"
 #include "Convert.h"
 
+// D3D build version
+extern uint32 g_BuildVersion;
+
 // About format color components:
 // A = alpha, byte : 0 = fully opaque, 255 = fully transparent
 // X = ignore these component bits
@@ -330,43 +333,80 @@ D3DPRIMITIVETYPE EmuPrimitiveTypeLookup[] =
 
 // Table of Xbox-to-PC and Value-to-String converters for all registered types :
 const XBTypeInfo DxbxXBTypeInfo[] = {
+	/*xt_Unknown=*/
     {"Unknown",                  &DxbxXB2PC_NOP},
 
-    {"BOOL",                     &DxbxXB2PC_NOP,                &BOOL2String},                  // Xbox = PC
-    {"BYTE",                     &DxbxXB2PC_NOP},                                               // Xbox = PC
+    /*xtBOOL=*/
+	{"BOOL",                     &DxbxXB2PC_NOP,                &BOOL2String},                  // Xbox = PC
+	/*xtBYTE=*/
+	{"BYTE",                     &DxbxXB2PC_NOP},                                               // Xbox = PC
+	/*xtD3DBLEND=*/
     {"D3DBLEND",                 &EmuXB2PC_D3DBLEND,            &X_D3DBLEND2String},
+	/*xtD3DBLENDOP=*/
     {"D3DBLENDOP",               &EmuXB2PC_D3DBLENDOP,          &X_D3DBLENDOP2String},
+	/*xtD3DCLEAR=*/
     {"D3DCLEAR",                 &EmuXB2PC_D3DCLEAR_FLAGS,      &X_D3DCLEAR2String},
+	/*xtD3DCMPFUNC=*/
     {"D3DCMPFUNC",               &EmuXB2PC_D3DCMPFUNC,          &X_D3DCMPFUNC2String},
+	/*xtD3DCOLOR=*/
     {"D3DCOLOR",                 &DxbxXB2PC_NOP},                                               // Xbox = PC
+	/*xtD3DCOLORWRITEENABLE=*/
     {"D3DCOLORWRITEENABLE",      &EmuXB2PC_D3DCOLORWRITEENABLE, &X_D3DCOLORWRITEENABLE2String},
+	/*xtD3DCUBEMAP_FACES=*/
     {"D3DCUBEMAP_FACES",         &DxbxXB2PC_NOP,                &X_D3DCUBEMAP_FACES2String},
+	/*xtD3DCULL=*/
     {"D3DCULL",                  &EmuXB2PC_D3DCULL,             &X_D3DCULL2String},
+	/*xtD3DDCC=*/
     {"D3DDCC",                   &DxbxXB2PC_NOP,                &X_D3DDCC2String,               true},
-    {"D3DFILLMODE",              &EmuXB2PC_D3DFILLMODE,         &X_D3DFILLMODE2String},
-    {"D3DFOGMODE",               &DxbxXB2PC_NOP,                &X_D3DFOGMODE2String},          // Xbox = PC
+    /*xtD3DFILLMODE=*/
+	{"D3DFILLMODE",              &EmuXB2PC_D3DFILLMODE,         &X_D3DFILLMODE2String},
+    /*xtD3DFOGMODE=*/
+	{"D3DFOGMODE",               &DxbxXB2PC_NOP,                &X_D3DFOGMODE2String},          // Xbox = PC
+	/*xtD3DFORMAT=*/
     {"D3DFORMAT",                &EmuXB2PC_D3DFormat,           &X_D3DFORMAT2String},
+	/*xtD3DFRONT=*/
     {"D3DFRONT",                 &DxbxXB2PC_NOP,                &X_D3DFRONT2String,             true},
+	/*xtD3DLOGICOP=*/
     {"D3DLOGICOP",               &DxbxXB2PC_NOP,                &X_D3DLOGICOP2String,           true},
+	/*xtD3DMCS=*/
     {"D3DMCS",                   &DxbxXB2PC_NOP,                &X_D3DMCS2String},              // Xbox = PC
+	/*xtD3DMULTISAMPLE_TYPE=*/
     {"D3DMULTISAMPLE_TYPE",      &EmuXB2PC_D3DMULTISAMPLE_TYPE, &X_D3DMULTISAMPLE_TYPE2String},
+	/*xtD3DMULTISAMPLEMODE=*/
     {"D3DMULTISAMPLEMODE",       &DxbxXB2PC_NOP,                &X_D3DMULTISAMPLEMODE2String,   true},
+	/*xtD3DPRIMITIVETYPE=*/
     {"D3DPRIMITIVETYPE",         &EmuXB2PC_D3DPrimitiveType,    &X_D3DPRIMITIVETYPE2String},
+	/*xtD3DRESOURCETYPE=*/
     {"D3DRESOURCETYPE",          &DxbxXB2PC_NOP,                &X_D3DRESOURCETYPE2String},
+	/*xtD3DSAMPLEALPHA=*/
     {"D3DSAMPLEALPHA",           &DxbxXB2PC_NOP,                &X_D3DSAMPLEALPHA2String,       true},
+	/*xtD3DSHADEMODE=*/
     {"D3DSHADEMODE",             &EmuXB2PC_D3DSHADEMODE,        &X_D3DSHADEMODE2String},
+	/*xtD3DSTENCILOP=*/
     {"D3DSTENCILOP",             &EmuXB2PC_D3DSTENCILOP,        &X_D3DSTENCILOP2String},
+	/*xtD3DSWATH=*/
     {"D3DSWATH",                 &DxbxXB2PC_NOP,                &X_D3DSWATH2String,             true},
+	/*xtD3DTEXTUREADDRESS=*/ // Used for TextureStageState X_D3DTSS_ADDRESSU, X_D3DTSS_ADDRESSV and X_D3DTSS_ADDRESSW
     {"D3DTEXTUREADDRESS",        &EmuXB2PC_D3DTEXTUREADDRESS,   &X_D3DTEXTUREADDRESS2String},
+	/*xtD3DTEXTUREFILTERTYPE=*/ // Used for TextureStageState X_D3DTSS_MAGFILTER, X_D3DTSS_MINFILTER and X_D3DTSS_MIPFILTER
     {"D3DTEXTUREFILTERTYPE",     &EmuXB2PC_D3DTEXTUREFILTERTYPE},
+	/*xtD3DTEXTUREOP=*/ // Used for TextureStageState X_D3DTSS_COLOROP and X_D3DTSS_ALPHAOP
     {"D3DTEXTUREOP",             &EmuXB2PC_D3DTEXTUREOP,        &X_D3DTEXTUREOP2String},
+	/*xtD3DTEXTURESTAGESTATETYPE = */
     {"D3DTEXTURESTAGESTATETYPE", &EmuXB2PC_D3DTSS,              &X_D3DTEXTURESTAGESTATETYPE2String},
+	/*xtD3DTRANSFORMSTATETYPE = */
     {"D3DTRANSFORMSTATETYPE",    &EmuXB2PC_D3DTS,               &X_D3DTRANSFORMSTATETYPE2String},
+	/*xtD3DVERTEXBLENDFLAGS = */
     {"D3DVERTEXBLENDFLAGS",      &EmuXB2PC_D3DVERTEXBLENDFLAGS, &X_D3DVERTEXBLENDFLAGS2String},
+	/*xtD3DVSDE = */
     {"D3DVSDE",                  &DxbxXB2PC_NOP,                &X_D3DVSDE2String},
+	/*xtD3DWRAP = */
     {"D3DWRAP",                  &EmuXB2PC_D3DWRAP,             &X_D3DWRAP2String},
+	/*xtDWORD = */
     {"DWORD",                    &DxbxXB2PC_NOP},                                               // Xbox = PC
+	/*xtFloat = */
     {"Float",                    &DxbxXB2PC_NOP,                &DWFloat2String},               // Xbox = PC
+	/*xtLONG = */
     {"LONG",                     &DxbxXB2PC_NOP},                                               // Xbox = PC
 };
 
@@ -543,7 +583,8 @@ const RenderStateInfo DxbxRenderStateInfo[] = {
 #endif
 	{ "D3DRS_MULTISAMPLEANTIALIAS"        /*= 152*/, 3424, xtBOOL,                NV2A_MULTISAMPLE_CONTROL, D3DRS_MULTISAMPLEANTIALIAS },
 	{ "D3DRS_MULTISAMPLEMASK"             /*= 153*/, 3424, xtDWORD,               NV2A_MULTISAMPLE_CONTROL, D3DRS_MULTISAMPLEMASK },
-//  { "D3DRS_MULTISAMPLETYPE"             /*= 154*/, 3424, xtD3DMULTISAMPLE_TYPE, 0 }, // [-3911] \_ aliasses  D3DMULTISAMPLE_TYPE
+// For D3DRS_MULTISAMPLETYPE, see DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4361
+//  { "D3DRS_MULTISAMPLETYPE"             /*= 154*/, 3424, xtD3DMULTISAMPLE_TYPE, 0 }, // [-3911] \_ aliasses  D3DMULTISAMPLE_TYPE - 
 	{ "D3DRS_MULTISAMPLEMODE"             /*= 154*/, 4361, xtD3DMULTISAMPLEMODE,  0 }, // [4361+] /            D3DMULTISAMPLEMODE for the backbuffer
 	{ "D3DRS_MULTISAMPLERENDERTARGETMODE" /*= 155*/, 4242, xtD3DMULTISAMPLEMODE,  NV2A_RT_FORMAT },
 	{ "D3DRS_SHADOWFUNC"                  /*= 156*/, 3424, xtD3DCMPFUNC,          NV2A_TX_RCOMP },
@@ -557,6 +598,18 @@ const RenderStateInfo DxbxRenderStateInfo[] = {
 	{ "D3DRS_ROPZREAD"                    /*= 164*/, 3911, xtBOOL,                0 },
 	{ "D3DRS_DONOTCULLUNCOMPRESSED"       /*= 165*/, 3911, xtBOOL,                0 }
 };
+
+const RenderStateInfo DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4361 =
+	{ "D3DRS_MULTISAMPLETYPE"             /*= 154*/, 3424, xtD3DMULTISAMPLE_TYPE, 0 }; // [-3911] \_ aliasses  D3DMULTISAMPLE_TYPE
+
+const RenderStateInfo &GetDxbxRenderStateInfo(int State)
+{
+	if (State == X_D3DRS_MULTISAMPLETYPE)
+		if (g_BuildVersion < 4361)
+			return DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4361;
+
+	return DxbxRenderStateInfo[State];
+}
 
 /*Direct3D8 states unused :
 	D3DRS_LINEPATTERN
@@ -1086,8 +1139,7 @@ D3DSHADEMODE EmuXB2PC_D3DSHADEMODE(X_D3DSHADEMODE Value)
 // convert from xbox to pc stencilop modes
 D3DSTENCILOP EmuXB2PC_D3DSTENCILOP(X_D3DSTENCILOP Value)
 {
-	switch (Value)
-	{
+	switch (Value) {
 	case X_D3DSTENCILOP_ZERO:
 		return D3DSTENCILOP_ZERO;
 	case X_D3DSTENCILOP_KEEP:
@@ -1145,7 +1197,7 @@ DWORD EmuXB2PC_D3DTEXTUREFILTERTYPE(DWORD Value)
 	case X_D3DTEXF_QUINCUNX:
 		// Note : PC has D3DTEXF_FLATCUBIC in it's place
 		CxbxKrnlCleanup("X_D3DTEXF_QUINCUNX is unsupported (temporarily)");
-		// Never reached
+		return (DWORD)0; // Never reached
 	case X_D3DTEXF_GAUSSIANCUBIC:
 		return D3DTEXF_GAUSSIANCUBIC;
 	default:
@@ -1235,7 +1287,7 @@ DWORD EmuXB2PC_D3DCLEAR_FLAGS(DWORD Value)
 	DWORD Result = 0;
 	// Dxbx note : Xbox can clear A,R,G and B independently, but PC has to clear them all :
 	if (Value & X_D3DCLEAR_TARGET) Result |= D3DCLEAR_TARGET;
-	if (Value & X_D3DCLEAR_ZBUFFER)  Result |= D3DCLEAR_ZBUFFER;
+	if (Value & X_D3DCLEAR_ZBUFFER) Result |= D3DCLEAR_ZBUFFER;
 	if (Value & X_D3DCLEAR_STENCIL) Result |= D3DCLEAR_STENCIL;
 	return Result;
 }

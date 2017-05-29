@@ -58,6 +58,7 @@ static inline void EmuInstallPatch(xbaddr FunctionAddr, void *Patch);
 std::unordered_map<std::string, xbaddr> g_SymbolAddresses;
 bool g_HLECacheUsed = false;
 
+// D3D build version
 uint32 g_BuildVersion;
 
 bool bLLE_APU = false; // Set this to true for experimental APU (sound) LLE

@@ -121,8 +121,6 @@ static GUID                         g_ddguid;               // DirectDraw driver
 static XTL::LPDIRECT3D8             g_pD3D8 = NULL;			// Direct3D8
 static XTL::D3DCAPS8                g_D3DCaps;              // Direct3D8 Caps
 
-// build version
-extern uint32						g_BuildVersion;
 // wireframe toggle
 int                                 g_iWireframe = 0;
 // version-dependent correction on shader constant numbers
@@ -1328,9 +1326,9 @@ void DxbxSetRenderStateInternal
 
 	// Dump the value that's being forwarded to PC :
 	if (PCValue != XboxValue)
-		DbgPrintf("  %s := 0x%.08X (converted from Xbox)\n", XTL::DxbxRenderStateInfo[XboxRenderState].S, PCValue);
+		DbgPrintf("  %s := 0x%.08X (converted from Xbox)\n", XTL::GetDxbxRenderStateInfo(XboxRenderState).S, PCValue);
 	else
-		DbgPrintf("  %s := 0x%.08X\n", XTL::DxbxRenderStateInfo[XboxRenderState].S, PCValue);
+		DbgPrintf("  %s := 0x%.08X\n", XTL::GetDxbxRenderStateInfo(XboxRenderState).S, PCValue);
 }
 
 // Direct3D initialization (called before emulation begins)
@@ -3651,7 +3649,10 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderConstant)
 	// Dxbx note : 4627 samples show that the Register value arriving in this function is already
 	// incremented with 96 (even though the code for these samples supplies 0, maybe there's a
 	// macro responsible for that?)
-	Register += X_D3DSCM_CORRECTION_VersionDependent;
+	if (X_D3DSCM_CORRECTION_VersionDependent > 0) {
+		Register += X_D3DSCM_CORRECTION_VersionDependent;
+		DbgPrintf("Corrected constant register : 0x%.08x\n", Register);
+	}
 
     HRESULT hRet = g_pD3DDevice8->SetPixelShaderConstant
     (
@@ -3700,8 +3701,10 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderConstant)
 	// some shaders need to add 96 to use ranges 0 to 192.  This fixes 3911 - 4361 games and XDK
 	// samples, but breaks Turok.
 
-	if(g_BuildVersion <= 4361)
-		Register += 96;
+	if (X_D3DSCM_CORRECTION_VersionDependent > 0) {
+		Register += X_D3DSCM_CORRECTION_VersionDependent;
+		DbgPrintf("Corrected constant register : 0x%.08x\n", Register);
+	}
 
     HRESULT hRet = g_pD3DDevice8->SetVertexShaderConstant
     (
@@ -8389,8 +8392,10 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderConstant)
 	// TODO -oDxbx: If we ever find a title that calls this, check if this correction
 	// should indeed be done version-dependantly (like in SetVertexShaderConstant);
 	// It seems logical that these two mirror eachother, but it could well be different:
-	Register += X_D3DSCM_CORRECTION_VersionDependent;
-	DbgPrintf("Corrected constant register : 0x%.08x\n", Register);
+	if (X_D3DSCM_CORRECTION_VersionDependent > 0) {
+		Register += X_D3DSCM_CORRECTION_VersionDependent;
+		DbgPrintf("Corrected constant register : 0x%.08x\n", Register);
+	}
 
     HRESULT hRet = g_pD3DDevice8->GetVertexShaderConstant
     (

@@ -1722,7 +1722,7 @@ RenderStateInfo;
 
 #define D3DRS_NONE ((D3DRENDERSTATETYPE)0)
 
-extern const RenderStateInfo DxbxRenderStateInfo[];
+extern const RenderStateInfo &GetDxbxRenderStateInfo(int State);
 
 typedef struct _TextureStageStateInfo {
     char *S;  // String representation.
