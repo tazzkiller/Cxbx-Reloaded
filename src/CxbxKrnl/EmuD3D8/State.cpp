@@ -313,25 +313,36 @@ void DxbxTransferRenderState(const X_D3DRENDERSTATETYPE XboxRenderState)
 	DWORD XboxValue;
 
 	// Check if (this render state is supported (so we don't trigger a warning) :
-	if ((EmuMappedD3DRenderState[XboxRenderState] != DummyRenderState)
-		&& (DxbxRenderStateInfo[XboxRenderState].PC != D3DRS_UNSUPPORTED))
-	{
-		// Read the current Xbox value, and set it locally :
-		XboxValue = *EmuMappedD3DRenderState[XboxRenderState];
-		// Prevent setting unchanged values :
-		if (TransferAll || (TransferredValues[XboxRenderState] != XboxValue))
+	if (EmuMappedD3DRenderState[XboxRenderState] != DummyRenderState)
+		if (DxbxRenderStateInfo[XboxRenderState].PC != D3DRS_UNSUPPORTED)
 		{
-			TransferredValues[XboxRenderState] = XboxValue;
+			// Read the current Xbox value, and set it locally :
+			XboxValue = *EmuMappedD3DRenderState[XboxRenderState];
+			// Prevent setting unchanged values :
+			if (TransferAll || (TransferredValues[XboxRenderState] != XboxValue))
+			{
+				TransferredValues[XboxRenderState] = XboxValue;
 
-			Dxbx_SetRenderState(XboxRenderState, XboxValue);
+				Dxbx_SetRenderState(XboxRenderState, XboxValue);
+			}
 		}
-	}
 }
 
-// TODO : Move and port this for real
-void IDirect3DDevice_SetTextureStageState(LPDIRECT3DDEVICE8 g_pD3DDevice8, int WriteStage, int State, DWORD PCValue)
+// TODO : Move this
+HRESULT IDirect3DDevice_SetTextureStageState(LPDIRECT3DDEVICE8 g_pD3DDevice8, DWORD Sampler, X_D3DTEXTURESTAGESTATETYPE Type, DWORD PCValue)
 {
-	g_pD3DDevice8->SetTextureStageState(WriteStage, (D3DTEXTURESTAGESTATETYPE)State, PCValue);
+	D3DTEXTURESTAGESTATETYPE PCState = EmuXB2PC_D3DTSS(Type);
+
+	if (PCState == D3DSAMP_UNSUPPORTED)
+		return D3D_OK;
+
+#ifdef DXBX_USE_D3D9
+	// For Direct3D9, everything below D3DSAMP_MAXANISOTROPY needs to call SetSamplerState :
+	if (Type <= X_D3DTSS_MAXANISOTROPY)
+		return aDirect3DDevice8->SetSamplerState(Sampler, PCState, PCValue);
+
+#endif
+	return g_pD3DDevice8->SetTextureStageState(Sampler, PCState, PCValue);
 }
 
 HRESULT DxbxTransferTextureStageState(int ReadStage, int WriteStage, X_D3DTEXTURESTAGESTATETYPE State)
@@ -353,7 +364,7 @@ HRESULT DxbxTransferTextureStageState(int ReadStage, int WriteStage, X_D3DTEXTUR
 	PCValue = DxbxTextureStageStateXB2PCCallback[State](XboxValue);
 	// TODO : Prevent setting unchanged values
 	// Transfer over the deferred texture stage state to PC :
-	IDirect3DDevice_SetTextureStageState(g_pD3DDevice8, WriteStage, State, PCValue);
+	Result = IDirect3DDevice_SetTextureStageState(g_pD3DDevice8, WriteStage, State, PCValue);
 
 	return Result;
 } // DxbxTransferTextureStageState

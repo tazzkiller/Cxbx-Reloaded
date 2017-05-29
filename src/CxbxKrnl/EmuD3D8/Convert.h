@@ -141,7 +141,7 @@ extern D3DSHADEMODE EmuXB2PC_D3DSHADEMODE(X_D3DSHADEMODE Value);
 extern D3DSTENCILOP EmuXB2PC_D3DSTENCILOP(X_D3DSTENCILOP Value);
 extern DWORD EmuXB2PC_D3DTEXTUREADDRESS(DWORD Value);
 extern DWORD EmuXB2PC_D3DTEXTUREFILTERTYPE(DWORD Value);
-extern DWORD EmuXB2PC_D3DTEXTUREOP(X_D3DTEXTUREOP Value);
+extern D3DTEXTUREOP EmuXB2PC_D3DTEXTUREOP(X_D3DTEXTUREOP Value);
 // convert from xbox to pc texture transform state types
 extern D3DTRANSFORMSTATETYPE EmuXB2PC_D3DTS(X_D3DTRANSFORMSTATETYPE State);
 // convert from xbox to pc texture stage state
@@ -151,7 +151,7 @@ extern D3DVERTEXBLENDFLAGS EmuXB2PC_D3DVERTEXBLENDFLAGS(X_D3DVERTEXBLENDFLAGS Va
 extern DWORD EmuXB2PC_D3DWRAP(DWORD Value);
 
 // table used for vertex->primitive count conversion
-extern UINT EmuD3DVertexToPrimitive[11][2];
+extern UINT EmuD3DVertexToPrimitive[X_D3DPT_POLYGON + 1][2];
 
 // convert from vertex count to primitive count (Xbox)
 inline int EmuD3DVertex2PrimitiveCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int VertexCount)

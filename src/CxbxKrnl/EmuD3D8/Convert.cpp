@@ -297,7 +297,7 @@ namespace XTL
 {
 
 // lookup table for converting vertex count to primitive count
-UINT EmuD3DVertexToPrimitive[11][2] =
+UINT EmuD3DVertexToPrimitive[X_D3DPT_POLYGON + 1][2] =
 {
 	{ 0, 0 }, // NULL
 	{ 1, 0 }, // X_D3DPT_POINTLIST
@@ -922,10 +922,10 @@ D3DTRANSFORMSTATETYPE EmuXB2PC_D3DTS(X_D3DTRANSFORMSTATETYPE State)
 // convert from xbox to pc texture stage state
 D3DSAMPLERSTATETYPE EmuXB2PC_D3DTSS(X_D3DTEXTURESTAGESTATETYPE Value)
 {
-  if (Value <= X_D3DTSS_LAST)
-    return DxbxTextureStageStateInfo[Value].PC;
-  else
-    return D3DSAMP_UNSUPPORTED;
+	if (Value <= X_D3DTSS_LAST)
+		return DxbxTextureStageStateInfo[Value].PC;
+	else
+		return D3DSAMP_UNSUPPORTED;
 }
 
 #if 0
@@ -1136,7 +1136,7 @@ DWORD EmuXB2PC_D3DCOLORWRITEENABLE(X_D3DCOLORWRITEENABLE Value)
 	return Result;
 }
 
-DWORD EmuXB2PC_D3DTEXTUREOP(X_D3DTEXTUREOP Value)
+D3DTEXTUREOP EmuXB2PC_D3DTEXTUREOP(X_D3DTEXTUREOP Value)
 {
 	switch (Value) {
 	case X_D3DTOP_DISABLE: return D3DTOP_DISABLE;
@@ -1170,7 +1170,7 @@ DWORD EmuXB2PC_D3DTEXTUREOP(X_D3DTEXTUREOP Value)
 	case X_D3DTOP_BUMPENVMAP: return D3DTOP_BUMPENVMAP;
 	case X_D3DTOP_BUMPENVMAPLUMINANCE: return D3DTOP_BUMPENVMAPLUMINANCE;
 	default:
-		return 0;
+		return D3DTOP_DISABLE; // Was : (D3DTEXTUREOP)0;
 	}
 }
 
