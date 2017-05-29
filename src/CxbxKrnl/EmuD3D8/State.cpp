@@ -351,7 +351,7 @@ HRESULT IDirect3DDevice_SetTextureStageState(LPDIRECT3DDEVICE8 g_pD3DDevice8, DW
 	return g_pD3DDevice8->SetTextureStageState(Sampler, PCState, PCValue);
 }
 
-HRESULT DxbxTransferTextureStageState(int ReadStage, int WriteStage, X_D3DTEXTURESTAGESTATETYPE State)
+HRESULT DxbxTransferTextureStageState(int Stage, X_D3DTEXTURESTAGESTATETYPE State)
 {
 	DWORD XboxValue;
 	DWORD PCValue;
@@ -362,7 +362,7 @@ HRESULT DxbxTransferTextureStageState(int ReadStage, int WriteStage, X_D3DTEXTUR
 		// TODO -oDxbx : Emulate these Xbox extensions somehow
 		return Result;
 
-	XboxValue = EmuD3DDeferredTextureState[(ReadStage * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(State)];
+	XboxValue = EmuD3DDeferredTextureState[(Stage * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(State)];
 	if (XboxValue == X_D3DTSS_UNK)
 		return Result;
 
@@ -370,7 +370,7 @@ HRESULT DxbxTransferTextureStageState(int ReadStage, int WriteStage, X_D3DTEXTUR
 	PCValue = DxbxTextureStageStateXB2PCCallback[State](XboxValue);
 	// TODO : Prevent setting unchanged values
 	// Transfer over the deferred texture stage state to PC :
-	Result = IDirect3DDevice_SetTextureStageState(g_pD3DDevice8, WriteStage, State, PCValue);
+	Result = IDirect3DDevice_SetTextureStageState(g_pD3DDevice8, Stage, State, PCValue);
 
 	return Result;
 } // DxbxTransferTextureStageState
@@ -395,16 +395,14 @@ void CxbxPitchedCopy(BYTE *pDest, BYTE *pSrc, DWORD dwDestPitch, DWORD dwSrcPitc
 	}
 }
 
-void DxbxTransferTextureStage(int ReadStage, int WriteStage, int StateFrom = X_D3DTSS_DEFERRED_FIRST, int StateTo = X_D3DTSS_DEFERRED_LAST)
+void DxbxTransferTextureStage(int Stage, int StateFrom = X_D3DTSS_DEFERRED_FIRST, int StateTo = X_D3DTSS_DEFERRED_LAST)
 {
 	for (int State = StateFrom; State <= StateTo; State++)
-		DxbxTransferTextureStageState(ReadStage, WriteStage, State);
+		DxbxTransferTextureStageState(Stage, State);
 }
 
 void DxbxUpdateDeferredStates()
 {
-	XTL::IDirect3DBaseTexture8 *pHostBaseTexture;
-
 	// Generic transfer of all Xbox deferred render states to PC :
 	for (int State = X_D3DRS_DEFERRED_FIRST; State <= X_D3DRS_DEFERRED_LAST; State++)
 		DxbxTransferRenderState((X_D3DRENDERSTATETYPE)State);
@@ -418,27 +416,26 @@ void DxbxUpdateDeferredStates()
 	if (*EmuMappedD3DRenderState[X_D3DRS_POINTSPRITEENABLE] == (DWORD)TRUE) // Dxbx note : DWord cast to prevent warning
 	{
 #if 1	// TODO : Why must we copy the texure from stage 3 to 0 for X_D3DRS_POINTSPRITEENABLE?
+		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = nullptr;
 
 		// Copy the point sprites texture from stage 3 to 0
 		// (Not doing this makes PointSprites XDK sample show rectangular dots.)
-		g_pD3DDevice8->GetTexture(3, &pHostBaseTexture);
-		g_pD3DDevice8->SetTexture(0, pHostBaseTexture);
-
-		// Prevent memory leaks
-		if (pHostBaseTexture != nullptr)
-			pHostBaseTexture->Release(); 
+		if (SUCCEEDED(g_pD3DDevice8->GetTexture(3, &pHostBaseTexture)))
+		{
+			g_pD3DDevice8->SetTexture(0, pHostBaseTexture);
+			if (pHostBaseTexture != nullptr)
+				pHostBaseTexture->Release(); // Prevent memory leaks
+		}
 #endif
-
 		// Transfer other texture stages for stage 3 too (not just the deferred ones)
-		DxbxTransferTextureStage(3, 3, X_D3DTSS_OTHER_FIRST, X_D3DTSS_OTHER_LAST);
+		DxbxTransferTextureStage(3, X_D3DTSS_OTHER_FIRST, X_D3DTSS_OTHER_LAST);
 	}
 
-	// Copy stage 0 and 3 as-is :
-	DxbxTransferTextureStage(0, 0);
-	DxbxTransferTextureStage(3, 3);
-	// Handle stage 1 and 2 too :
-	DxbxTransferTextureStage(1, 1);
-	DxbxTransferTextureStage(2, 2);
+	// Transfer all deferred texture stage state's from Xbox to Host in the order 0, 3, 1 and 2
+	DxbxTransferTextureStage(0);
+	DxbxTransferTextureStage(3);
+	DxbxTransferTextureStage(1);
+	DxbxTransferTextureStage(2);
 
 	// Dxbx note : If we don't transfer the stages in this order, many XDK samples
 	// either don't show the controller image in their help screen, or (like in
