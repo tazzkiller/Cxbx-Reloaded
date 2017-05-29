@@ -463,6 +463,95 @@ const DWORD X_D3DPRESENTFLAG_FIELD               = 0x00000080;
 #define X_D3DUSAGE_BORDERSOURCE_TEXTURE   0x00010000L   // Xbox-only
 
 
+typedef enum _X_D3DVERTEXBLENDFLAGS {
+    X_D3DVBF_DISABLE           = 0,     // Disable vertex blending
+    X_D3DVBF_1WEIGHTS          = 1,     // 2 matrix blending
+    X_D3DVBF_2WEIGHTS2MATRICES = 2,     // Xbox ext. nsp.
+    X_D3DVBF_2WEIGHTS          = 3,     // 3 matrix blending
+    X_D3DVBF_3WEIGHTS3MATRICES = 4,     // Xbox ext. nsp.
+    X_D3DVBF_3WEIGHTS          = 5,     // 4 matrix blending
+    X_D3DVBF_4WEIGHTS4MATRICES = 6,     // Xbox ext. nsp.
+
+    X_D3DVBF_MAX               = 7,
+    X_D3DVBF_FORCE_DWORD       = 0x7fffffff
+}
+X_D3DVERTEXBLENDFLAGS;
+
+typedef enum _D3DCOPYRECTCOLORFORMAT {
+    D3DCOPYRECT_COLOR_FORMAT_DEFAULT                 = 0,
+    D3DCOPYRECT_COLOR_FORMAT_Y8                      = 1,
+    D3DCOPYRECT_COLOR_FORMAT_X1R5G5B5_Z1R5G5B5       = 2,
+    D3DCOPYRECT_COLOR_FORMAT_X1R5G5B5_O1R5G5B5       = 3,
+    D3DCOPYRECT_COLOR_FORMAT_R5G6B5                  = 4,
+    D3DCOPYRECT_COLOR_FORMAT_Y16                     = 5,
+    D3DCOPYRECT_COLOR_FORMAT_X8R8G8B8_Z8R8G8B8       = 6,
+    D3DCOPYRECT_COLOR_FORMAT_X8R8G8B8_O8R8G8B8       = 7,
+    D3DCOPYRECT_COLOR_FORMAT_X1A7R8G8B8_Z1A7R8G8B8   = 8,
+    D3DCOPYRECT_COLOR_FORMAT_X1A7R8G8B8_O1A7R8G8B8   = 9,
+    D3DCOPYRECT_COLOR_FORMAT_A8R8G8B8                = 10,
+    D3DCOPYRECT_COLOR_FORMAT_Y32                     = 11,
+    D3DCOPYRECT_COLOR_FORMAT_FORCE_DWORD             = 0x7fffffff //* force 32-bit size enum */
+}
+D3DCOPYRECTCOLORFORMAT;
+
+typedef enum _D3DCOPYRECTOPERATION
+{
+    D3DCOPYRECT_SRCCOPY_AND         = 0,
+    D3DCOPYRECT_ROP_AND             = 1,
+    D3DCOPYRECT_BLEND_AND           = 2,
+    D3DCOPYRECT_SRCCOPY             = 3,
+    D3DCOPYRECT_SRCCOPY_PREMULT     = 4,
+    D3DCOPYRECT_BLEND_PREMULT       = 5,
+    D3DCOPYRECT_FORCE_DWORD         = 0x7fffffff // force 32-bit size enum */
+}
+D3DCOPYRECTOPERATION;
+
+typedef struct _D3DCOPYRECTSTATE {
+	D3DCOPYRECTCOLORFORMAT ColorFormat;
+	D3DCOPYRECTOPERATION Operation;
+
+	BOOL ColorKeyEnable;
+	DWORD ColorKeyValue;
+
+    // D3DCOPYRECT_BLEND_AND alpha value
+    // The VALUE_FRACTION bits (30:21) contain the 10 bit unsigned fraction of the alpha value.
+    // The VALUE bits (31:31) contain the 1 bit signed integer of the alpha value.
+	DWORD BlendAlpha;
+
+    // D3DCOPYRECT_*_PREMULT alpha value
+    // Contains an alpha value for all four channels.
+	DWORD PremultAlpha;
+
+    // Clipping Rect
+	DWORD ClippingPoint;    // y_x S16_S16
+	DWORD ClippingSize;     // height_width U16_U16
+
+}
+D3DCOPYRECTSTATE,
+* PD3DCOPYRECTSTATE;
+
+typedef struct _D3DCOPYRECTROPSTATE {            // Xbox extension
+    DWORD Rop;              // Ternary raster operation.
+                            //   DSTINVERT:0x55, SRCCOPY:0xCC,
+                            //   SRCPAINT:0xEE, SRCINVERT:0x66,
+                            //   ...
+
+	DWORD Shape;            // 0:8X_8Y, 1:64X_1Y, 2:1X_64Y
+	DWORD PatternSelect;    // 1:monochrome, 2:color
+
+	DWORD MonoColor0;       // Color to use when bit is "0"
+	DWORD MonoColor1;       // Color to use when bit is "1"
+
+	DWORD MonoPattern0;     // 8x8 = 64 bit pattern
+	DWORD MonoPattern1;     //
+
+	PDWORD ColorPattern;       // Color Pattern used if PatternSelect == color
+                                // 32-bit: Array of 64 DWORDS
+                                // 16-bit: Array of 32 DWORDS
+}
+D3DCOPYRECTROPSTATE,
+* PD3DCOPYRECTROPSTATE;
+
 typedef enum _X_D3DSET_DEPTH_CLIP_PLANES_FLAGS
 {
     X_D3DSDCP_SET_VERTEXPROGRAM_PLANES         = 1,
