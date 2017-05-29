@@ -1301,7 +1301,7 @@ void CxbxUpdateNativeD3DResources()
 	DxbxUpdateActiveRenderTarget();
 	*/
 	CxbxUpdateTextureStages();
-	XTL::EmuUpdateDeferredStates();
+	XTL::DxbxUpdateDeferredStates(); // BeginPush sample shows us that this must come *after* texture update!
 	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
 }
 

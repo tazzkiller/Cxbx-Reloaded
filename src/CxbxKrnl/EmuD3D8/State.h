@@ -53,7 +53,7 @@ extern void CxbxPitchedCopy(BYTE *pDest, BYTE *pSrc, DWORD dwDestPitch, DWORD dw
 
 extern void InitD3DDeferredStates();
 
-extern void EmuUpdateDeferredStates();
+extern void DxbxUpdateDeferredStates();
 
 extern DWORD Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue);
 

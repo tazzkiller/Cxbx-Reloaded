@@ -1020,7 +1020,7 @@ bool XTL::VertexPatcher::Restore()
 
 VOID XTL::EmuFlushIVB()
 {
-    XTL::EmuUpdateDeferredStates();
+    XTL::DxbxUpdateDeferredStates();
 
     DWORD *pdwVB = (DWORD*)g_pIVBVertexBuffer;
 
