@@ -1322,6 +1322,8 @@ void DxbxSetRenderStateInternal
 			LOG_FUNC_END;
 	}
 
+	LOG_FINIT
+
 	DWORD PCValue = XTL::Dxbx_SetRenderState(XboxRenderState, XboxValue);
 
 	// Dump the value that's being forwarded to PC :

@@ -167,6 +167,9 @@ extern thread_local std::string _logPrefix;
 #define LOG_INIT \
 	LOG_FUNC_INIT(__func__)
 
+#define LOG_FINIT \
+	_logFuncPrefix.clear(); // Reset prefix, to show caller changes
+
 #define LOG_FUNC_BEGIN_NO_INIT \
 	do { if(g_bPrintfOn) { \
 		bool _had_arg = false; \
