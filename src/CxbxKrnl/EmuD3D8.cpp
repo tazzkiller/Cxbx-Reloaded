@@ -5594,6 +5594,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				pSrc += PixelJar.MipMapOffsets[level];
 				if (PixelJar.bIsCubeMap) {
 					pSrc += PixelJar.dwFacePitch * face;
+					// pDest is already locked by face, so doesn't need stepping
 				}
 				else {
 					if (PixelJar.bIs3D)
