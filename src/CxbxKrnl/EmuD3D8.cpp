@@ -4535,11 +4535,11 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 		LOG_FUNC_ARG(Format)
 		LOG_FUNC_END;
 
-    DWORD StageLookup[X_D3DTSS_STAGECOUNT] = { 0x00081b00, 0x00081b40, 0x00081b80, 0x00081bc0 }; // TODO : Use NV2A_ defines here
+    DWORD StageLookup[X_D3DTSS_STAGECOUNT] = { NV2A_TX_OFFSET(0), NV2A_TX_OFFSET(1), NV2A_TX_OFFSET(2), NV2A_TX_OFFSET(3) };
     DWORD Stage = -1;
 
     for(int v=0;v<X_D3DTSS_STAGECOUNT;v++)
-        if(StageLookup[v] == Method)
+        if(StageLookup[v] == (Method & NV2A_METHOD_MASK)
             Stage = v;
 
     if(Stage == -1)
@@ -4981,21 +4981,21 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 		LOG_FUNC_END;
 
     // make adjustments to parameters to make sense with windows d3d
+    DWORD PCFlags = 0;
     {
-        DWORD newFlags = 0;
 
 		if (Flags & X_D3DCLEAR_TARGET) {
 			// TODO: D3DCLEAR_TARGET_A, *R, *G, *B don't exist on windows
 			if ((Flags & X_D3DCLEAR_TARGET) != X_D3DCLEAR_TARGET)
 				EmuWarning("Unsupported : Partial D3DCLEAR_TARGET flag(s) for D3DDevice_Clear : 0x%.08X", Flags & X_D3DCLEAR_TARGET);
 		
-			newFlags |= D3DCLEAR_TARGET;
+			PCFlags |= D3DCLEAR_TARGET;
 		}
 
         // Do not needlessly clear Z Buffer
 		if (Flags & X_D3DCLEAR_ZBUFFER) {
 			if (g_bHasDepthBits)
-				newFlags |= D3DCLEAR_ZBUFFER;
+				PCFlags |= D3DCLEAR_ZBUFFER;
 			else
 				EmuWarning("Ignored D3DCLEAR_ZBUFFER flag (there's no Depth component in the DepthStencilSurface)");
 		}
@@ -5006,35 +5006,40 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 		//    [424] Direct3D8: (ERROR) :Invalid flag D3DCLEAR_ZBUFFER: no zbuffer is associated with device. Clear failed. 
 		if (Flags & X_D3DCLEAR_STENCIL) {
 			if (g_bHasStencilBits)
-				newFlags |= D3DCLEAR_STENCIL;
+				PCFlags |= D3DCLEAR_STENCIL;
 			else
 				EmuWarning("Ignored D3DCLEAR_STENCIL flag (there's no Stencil component in the DepthStencilSurface)");
 		}
 
         if(Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL))
             EmuWarning("Unsupported Flag(s) for D3DDevice_Clear : 0x%.08X", Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL));
-
-        Flags = newFlags;
     }
 
-	DWORD dwFillMode;
+	// Since we filter the flags, make sure there are some left (else, clear isn't necessary) :
+	if (PCFlags > 0)
+	{
+		HRESULT hRet;
 
-	if(g_iWireframe == 0)
-        dwFillMode = D3DFILL_SOLID;
-    else if(g_iWireframe == 1)
-        dwFillMode = D3DFILL_WIREFRAME;
-    else
-        dwFillMode = D3DFILL_POINT;
+		{ // TODO : Dxbx doesn't do this - should we?
+			DWORD dwFillMode;
 
-	HRESULT hRet;
+			if (g_iWireframe == 0)
+				dwFillMode = D3DFILL_SOLID;
+			else if (g_iWireframe == 1)
+				dwFillMode = D3DFILL_WIREFRAME;
+			else
+				dwFillMode = D3DFILL_POINT;
 
-    hRet = g_pD3DDevice8->SetRenderState(D3DRS_FILLMODE, dwFillMode);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+			hRet = g_pD3DDevice8->SetRenderState(D3DRS_FILLMODE, dwFillMode);
+			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+		}
 
-	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
+		// Before clearing, make sure the correct output surfaces are used
+		CxbxUpdateActiveRenderTarget(); // TODO : Or should we have to call DxbxUpdateNativeD3DResources ?
 
-    hRet = g_pD3DDevice8->Clear(Count, pRects, Flags, Color, Z, Stencil);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
+		hRet = g_pD3DDevice8->Clear(Count, pRects, PCFlags, Color, Z, Stencil);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
+	}
 }
 
 #define CXBX_SWAP_PRESENT_FORWARD (256 + 4 + 1) // = CxbxPresentForwardMarker + D3DSWAP_FINISH + D3DSWAP_COPY

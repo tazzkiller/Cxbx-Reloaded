@@ -507,7 +507,7 @@ XTL::X_D3DRENDERSTATETYPE XTL::DxbxXboxMethodToRenderState(const X_NV2AMETHOD aM
 	// TODO : The list below is incomplete - use DxbxRenderStateInfo to complete this.
 
 	// Dxbx note : Let the compiler sort this out, should be much quicker :
-	switch (aMethod & 0x00001ffc)
+	switch (aMethod & NV2A_METHOD_MASK)
 	{
 	case /*0x00000100*/NV2A_NOP: return X_D3DRS_PS_RESERVED; // XDK 3424 uses 0x00000100 (NOP), while 3911 onwards uses 0x00001d90 (SET_COLOR_CLEAR_VALUE)
 	case /*0x000002A4*/NV2A_FOG_ENABLE: return X_D3DRS_FOGENABLE;

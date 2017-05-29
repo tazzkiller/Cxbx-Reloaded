@@ -1624,6 +1624,7 @@ extern void EmuUnswizzleRect
 #define  NV2A_VIEWPORT_TRANSLATE_Z							0x00001f08
 #define  NV2A_VIEWPORT_TRANSLATE_W							0x00001f0c
 
+#define NV2A_METHOD_MASK 0x00001FFC
 
 typedef enum _TXBType {
 	xt_Unknown = 0, // Defined as zero, to coincide with default value of DxbxRenderStateInfo.T and DxbxTextureStageStateInfo.T
