@@ -132,7 +132,7 @@ extern D3DFORMAT EmuXB2PC_D3DFormat(X_D3DFORMAT Format);
 // convert from xbox to pc d3d lock flags
 extern DWORD EmuXB2PC_D3DLock(DWORD Flags);
 // convert from xbox to pc multisample formats
-extern D3DMULTISAMPLE_TYPE EmuXB2PC_D3DMULTISAMPLE_TYPE(X_D3DMULTISAMPLE_TYPE Type);
+extern D3DMULTISAMPLE_TYPE EmuXB2PC_D3DMULTISAMPLE_TYPE(X_D3DMULTISAMPLE_TYPE Value);
 // convert xbox->pc primitive type
 extern D3DPRIMITIVETYPE EmuXB2PC_D3DPrimitiveType(X_D3DPRIMITIVETYPE XboxPrimitiveType);
 // convert from xbox to pc shade modes
@@ -143,7 +143,7 @@ extern DWORD EmuXB2PC_D3DTEXTUREADDRESS(DWORD Value);
 extern DWORD EmuXB2PC_D3DTEXTUREFILTERTYPE(DWORD Value);
 extern D3DTEXTUREOP EmuXB2PC_D3DTEXTUREOP(X_D3DTEXTUREOP Value);
 // convert from xbox to pc texture transform state types
-extern D3DTRANSFORMSTATETYPE EmuXB2PC_D3DTS(X_D3DTRANSFORMSTATETYPE State);
+extern D3DTRANSFORMSTATETYPE EmuXB2PC_D3DTS(X_D3DTRANSFORMSTATETYPE Value);
 // convert from xbox to pc texture stage state
 extern D3DSAMPLERSTATETYPE EmuXB2PC_D3DTSS(X_D3DTEXTURESTAGESTATETYPE Value);
 // convert from Xbox direct3d to PC direct3d enumeration

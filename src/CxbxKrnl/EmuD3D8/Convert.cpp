@@ -860,35 +860,41 @@ DWORD EmuXB2PC_D3DLock(DWORD Flags)
 }
 
 // convert from xbox to pc multisample formats
-D3DMULTISAMPLE_TYPE EmuXB2PC_D3DMULTISAMPLE_TYPE(X_D3DMULTISAMPLE_TYPE Type)
+D3DMULTISAMPLE_TYPE EmuXB2PC_D3DMULTISAMPLE_TYPE(X_D3DMULTISAMPLE_TYPE Value)
 {
-	switch ((DWORD)Type & 0xFFFF)
-	{
+	switch ((DWORD)Value & 0xFFFF) {
 	case X_D3DMULTISAMPLE_NONE:
 		return D3DMULTISAMPLE_NONE;
 	case X_D3DMULTISAMPLE_2_SAMPLES_MULTISAMPLE_LINEAR: 
-	case X_D3DMULTISAMPLE_2_SAMPLES_MULTISAMPLE_QUINCUNX: 
-	case X_D3DMULTISAMPLE_2_SAMPLES_SUPERSAMPLE_HORIZONTAL_LINEAR: 
+		return D3DMULTISAMPLE_2_SAMPLES;
+	case X_D3DMULTISAMPLE_2_SAMPLES_MULTISAMPLE_QUINCUNX:
+		return D3DMULTISAMPLE_2_SAMPLES;
+	case X_D3DMULTISAMPLE_2_SAMPLES_SUPERSAMPLE_HORIZONTAL_LINEAR:
+		return D3DMULTISAMPLE_2_SAMPLES;
 	case X_D3DMULTISAMPLE_2_SAMPLES_SUPERSAMPLE_VERTICAL_LINEAR:
 		return D3DMULTISAMPLE_2_SAMPLES;
 	case X_D3DMULTISAMPLE_4_SAMPLES_MULTISAMPLE_LINEAR: 
-	case X_D3DMULTISAMPLE_4_SAMPLES_MULTISAMPLE_GAUSSIAN: 
-	case X_D3DMULTISAMPLE_4_SAMPLES_SUPERSAMPLE_LINEAR: 
+		return D3DMULTISAMPLE_4_SAMPLES;
+	case X_D3DMULTISAMPLE_4_SAMPLES_MULTISAMPLE_GAUSSIAN:
+		return D3DMULTISAMPLE_4_SAMPLES;
+	case X_D3DMULTISAMPLE_4_SAMPLES_SUPERSAMPLE_LINEAR:
+		return D3DMULTISAMPLE_4_SAMPLES;
 	case X_D3DMULTISAMPLE_4_SAMPLES_SUPERSAMPLE_GAUSSIAN:
 		return D3DMULTISAMPLE_4_SAMPLES;
 	case X_D3DMULTISAMPLE_9_SAMPLES_MULTISAMPLE_GAUSSIAN: 
+		return D3DMULTISAMPLE_9_SAMPLES;
 	case X_D3DMULTISAMPLE_9_SAMPLES_SUPERSAMPLE_GAUSSIAN:
 		return D3DMULTISAMPLE_9_SAMPLES;
 	default:
-		EmuWarning("Unknown Multisample Type (0x%X)!\x0d\x0a. If this value is greater than 0xFFFF contact blueshogun!", Type);
+		EmuWarning("Unknown X_D3DMULTISAMPLE_TYPE (0x%X)!\nIf this value is greater than 0xFFFF contact blueshogun!", (DWORD)Value);
 		return D3DMULTISAMPLE_NONE;
 	}
 }
 
 // convert from xbox to pc texture transform state types
-D3DTRANSFORMSTATETYPE EmuXB2PC_D3DTS(X_D3DTRANSFORMSTATETYPE State)
+D3DTRANSFORMSTATETYPE EmuXB2PC_D3DTS(X_D3DTRANSFORMSTATETYPE Value)
 {
-	switch (State) {
+	switch (Value) {
 	case X_D3DTS_VIEW:
 		return D3DTS_VIEW;
 	case X_D3DTS_PROJECTION:
@@ -902,18 +908,18 @@ D3DTRANSFORMSTATETYPE EmuXB2PC_D3DTS(X_D3DTRANSFORMSTATETYPE State)
 	case X_D3DTS_TEXTURE3:
 		return D3DTS_TEXTURE3;
 	case X_D3DTS_WORLD:
-		return D3DTS_WORLD; // TODO : Use D3DTS_WORLDMATRIX(0) ?
+		return D3DTS_WORLDMATRIX(0);
 	case X_D3DTS_WORLD1:
-		return D3DTS_WORLD1;
+		return D3DTS_WORLDMATRIX(1);
 	case X_D3DTS_WORLD2:
-		return D3DTS_WORLD2;
+		return D3DTS_WORLDMATRIX(2);
 	case X_D3DTS_WORLD3:
-		return D3DTS_WORLD3;
+		return D3DTS_WORLDMATRIX(3);
 	default:
-		if (State == X_D3DTS_MAX)
+		if (Value == X_D3DTS_MAX)
 			EmuWarning("Ignored D3DTS_MAX");
 		else
-			CxbxKrnlCleanup("Unknown Xbox Transform State Type (%d)", (DWORD)State);
+			CxbxKrnlCleanup("Unknown X_D3DTRANSFORMSTATETYPE (%d)", (DWORD)Value);
 
 		return (D3DTRANSFORMSTATETYPE)0; // Never reached
 	}
@@ -955,8 +961,7 @@ X_D3DTRANSFORMSTATETYPE EmuPC2XB_D3DTSS(D3DTRANSFORMSTATETYPE State)
 // convert from xbox to pc blend ops
 D3DBLENDOP EmuXB2PC_D3DBLENDOP(X_D3DBLENDOP Value)
 {
-	switch (Value)
-	{
+	switch (Value) {
 	case X_D3DBLENDOP_ADD:
 		return D3DBLENDOP_ADD;
 	case X_D3DBLENDOP_SUBTRACT:
@@ -969,20 +974,18 @@ D3DBLENDOP EmuXB2PC_D3DBLENDOP(X_D3DBLENDOP Value)
 		return D3DBLENDOP_MAX;
 	case X_D3DBLENDOP_ADDSIGNED:
 	{
-		EmuWarning("Unsupported Xbox D3DBLENDOP : D3DBLENDOP_ADDSIGNED. Used approximation.\n");
+		EmuWarning("Unsupported X_D3DBLENDOP : D3DBLENDOP_ADDSIGNED. Used approximation.\n");
 		return D3DBLENDOP_ADD;
 	};
 	case X_D3DBLENDOP_REVSUBTRACTSIGNED:
 	{
-		EmuWarning("Unsupported Xbox D3DBLENDOP : D3DBLENDOP_REVSUBTRACTSIGNED. Used approximation.\n");
-
+		EmuWarning("Unsupported X_D3DBLENDOP : D3DBLENDOP_REVSUBTRACTSIGNED. Used approximation.\n");
 		return D3DBLENDOP_REVSUBTRACT;
 	}
+	default:
+		CxbxKrnlCleanup("Unknown X_D3DBLENDOP (0x%.08X)", (DWORD)Value);
+		return (D3DBLENDOP)Value;
 	}
-
-	CxbxKrnlCleanup("Unknown D3DBLENDOP (0x%.08X)", Value);
-
-	return (D3DBLENDOP)Value;
 }
 
 // convert from xbox to pc blend types 
@@ -1013,15 +1016,16 @@ D3DBLEND EmuXB2PC_D3DBLEND(X_D3DBLEND Value)
 		case X_D3DBLEND_CONSTANTCOLOR   : return D3DBLEND_SRCCOLOR;
 		case X_D3DBLEND_INVCONSTANTCOLOR: return D3DBLEND_INVSRCCOLOR;
 #endif
+		// Not supported in D3D8 and D3D9 :
 		case X_D3DBLEND_CONSTANTALPHA   : return D3DBLEND_SRCALPHA;
 		case X_D3DBLEND_INVCONSTANTALPHA: return D3DBLEND_INVSRCALPHA;
 		// Note : Xbox doesn't support D3DBLEND_BOTHSRCALPHA and D3DBLEND_BOTHINVSRCALPHA
 		default:
-			CxbxKrnlCleanup("Unknown Xbox D3DBLEND Extension (0x%.08X)", (DWORD)Value);
-			return D3DBLEND_SRCCOLOR;
+			CxbxKrnlCleanup("Unknown X_D3DBLEND (0x%.08X)", (DWORD)Value);
+			return (D3DBLEND)Value;
 		}
 
-		EmuWarning("Unsupported Xbox D3DBLEND Extension (0x%.08X). Used approximation.\n", (DWORD)Value);
+		EmuWarning("Unsupported X_D3DBLEND (0x%.08X). Used approximation.\n", (DWORD)Value);
 	}
 
 	return D3DBLEND_ONE;
@@ -1030,7 +1034,28 @@ D3DBLEND EmuXB2PC_D3DBLEND(X_D3DBLEND Value)
 // convert from xbox to pc comparison functions
 D3DCMPFUNC EmuXB2PC_D3DCMPFUNC(X_D3DCMPFUNC Value)
 {
-	return (D3DCMPFUNC)(((DWORD)Value & 0xF) + 1);
+	// Was : (D3DCMPFUNC)(((DWORD)Value & 0xF) + 1);
+	switch (Value) {
+	case X_D3DCMP_NEVER:
+		return D3DCMP_NEVER;
+	case X_D3DCMP_LESS:
+		return D3DCMP_LESS;
+	case X_D3DCMP_EQUAL:
+		return D3DCMP_EQUAL;
+	case X_D3DCMP_LESSEQUAL:
+		return D3DCMP_LESSEQUAL;
+	case X_D3DCMP_GREATER:
+		return D3DCMP_GREATER;
+	case X_D3DCMP_NOTEQUAL:
+		return D3DCMP_NOTEQUAL;
+	case X_D3DCMP_GREATEREQUAL:
+		return D3DCMP_GREATEREQUAL;
+	case X_D3DCMP_ALWAYS:
+		return D3DCMP_ALWAYS;
+	default:
+		CxbxKrnlCleanup("Unknown X_D3DCMPFUNC (0x%.08X)", (DWORD)Value);
+		return (D3DCMPFUNC)Value;
+	}
 }
 
 // convert from xbox to pc fill modes
@@ -1041,16 +1066,28 @@ D3DFILLMODE EmuXB2PC_D3DFILLMODE(X_D3DFILLMODE Value)
 	case X_D3DFILL_POINT:
 		return D3DFILL_POINT;
 	case X_D3DFILL_WIREFRAME:
-		return  D3DFILL_WIREFRAME;
-	default: // X_D3DFILL_SOLID:
-		return  D3DFILL_SOLID;
+		return D3DFILL_WIREFRAME;
+	case X_D3DFILL_SOLID:
+		return D3DFILL_SOLID;
+	default:
+		CxbxKrnlCleanup("Unknown X_D3DFILLMODE (0x%.08X)", (DWORD)Value);
+		return (D3DFILLMODE)Value;
 	}
 }
 
 // convert from xbox to pc shade modes
 D3DSHADEMODE EmuXB2PC_D3DSHADEMODE(X_D3DSHADEMODE Value)
 {
-	return (D3DSHADEMODE)(((DWORD)Value & 0x3) + 1);
+	// Was :  (D3DSHADEMODE)(((DWORD)Value & 0x3) + 1);
+	switch (Value) {
+	case X_D3DSHADE_FLAT:
+		return D3DSHADE_FLAT;
+	case X_D3DSHADE_GOURAUD:
+		return D3DSHADE_GOURAUD;
+	default:
+		CxbxKrnlCleanup("Unknown X_D3DSHADEMODE (0x%.08X)", (DWORD)Value);
+		return (D3DSHADEMODE)Value;
+	}
 }
 
 // convert from xbox to pc stencilop modes
@@ -1058,28 +1095,26 @@ D3DSTENCILOP EmuXB2PC_D3DSTENCILOP(X_D3DSTENCILOP Value)
 {
 	switch (Value)
 	{
-	case 0x1e00:
-		return D3DSTENCILOP_KEEP;
-	case 0:
+	case X_D3DSTENCILOP_ZERO:
 		return D3DSTENCILOP_ZERO;
-	case 0x1e01:
+	case X_D3DSTENCILOP_KEEP:
+		return D3DSTENCILOP_KEEP;
+	case X_D3DSTENCILOP_REPLACE:
 		return D3DSTENCILOP_REPLACE;
-	case 0x1e02:
+	case X_D3DSTENCILOP_INCRSAT:
 		return D3DSTENCILOP_INCRSAT;
-	case 0x1e03:
+	case X_D3DSTENCILOP_DECRSAT:
 		return D3DSTENCILOP_DECRSAT;
-	case 0x150a:
+	case X_D3DSTENCILOP_INVERT:
 		return D3DSTENCILOP_INVERT;
-	case 0x8507:
+	case X_D3DSTENCILOP_INCR:
 		return D3DSTENCILOP_INCR;
-	case 0x8508:
+	case X_D3DSTENCILOP_DECR:
 		return D3DSTENCILOP_DECR;
-
 	default:
-		CxbxKrnlCleanup("Unknown D3DSTENCILOP (0x%.08X)", Value);
+		CxbxKrnlCleanup("Unknown X_D3DSTENCILOP (0x%.08X)", (DWORD)Value);
+		return (D3DSTENCILOP)Value;
 	}
-
-	return (D3DSTENCILOP)Value;
 }
 
 DWORD EmuXB2PC_D3DTEXTUREADDRESS(DWORD Value)
@@ -1117,7 +1152,7 @@ D3DVERTEXBLENDFLAGS EmuXB2PC_D3DVERTEXBLENDFLAGS(X_D3DVERTEXBLENDFLAGS Value)
 			D3DVBF_0WEIGHTS = 256
 		*/
 	default:
-		CxbxKrnlCleanup("Unsupported D3DVERTEXBLENDFLAGS (%d)", (DWORD)Value);
+		CxbxKrnlCleanup("Unsupported X_D3DVERTEXBLENDFLAGS (%d)", (DWORD)Value);
 		return (D3DVERTEXBLENDFLAGS)Value;
 	}
 }
@@ -1170,7 +1205,8 @@ D3DTEXTUREOP EmuXB2PC_D3DTEXTUREOP(X_D3DTEXTUREOP Value)
 	case X_D3DTOP_BUMPENVMAP: return D3DTOP_BUMPENVMAP;
 	case X_D3DTOP_BUMPENVMAPLUMINANCE: return D3DTOP_BUMPENVMAPLUMINANCE;
 	default:
-		return D3DTOP_DISABLE; // Was : (D3DTEXTUREOP)0;
+		CxbxKrnlCleanup("Unsupported X_D3DTEXTUREOP (%d)", (DWORD)Value);
+		return (D3DTEXTUREOP)Value;
 	}
 }
 
@@ -1197,8 +1233,7 @@ DWORD EmuXB2PC_D3DWRAP(DWORD Value)
 D3DCULL EmuXB2PC_D3DCULL(X_D3DCULL Value)
 // TODO: XDK-Specific Tables? So far they are the same
 {
-	switch (Value)
-	{
+	switch (Value) {
 	case X_D3DCULL_NONE:
 		return D3DCULL_NONE;
 	case X_D3DCULL_CW:
@@ -1206,7 +1241,7 @@ D3DCULL EmuXB2PC_D3DCULL(X_D3DCULL Value)
 	case X_D3DCULL_CCW:
 		return D3DCULL_CCW;
 	default:
-		CxbxKrnlCleanup("Unknown Cullmode (%d)", Value);
+		CxbxKrnlCleanup("Unknown X_D3DCULL (%d)", (DWORD)Value);
 		return (D3DCULL)Value;
 	}
 }
