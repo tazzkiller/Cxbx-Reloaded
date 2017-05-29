@@ -415,7 +415,7 @@ const XBTypeInfo DxbxXBTypeInfo[] = {
 // XDK 5558 and higher has 165 render states.
 // TODO : Update this list with XDK versions in between (especially below 3911, 4361 and between 4627 and 5558)
 const RenderStateInfo DxbxRenderStateInfo[] = {
-	//  String                                Ord   Version Type                     Method Native
+	// String                                  Ord   Version Type                   Method              Native
 	{ "X_D3DRS_PSALPHAINPUTS0"              /*=   0*/, 3424, xtDWORD,               NV2A_RC_IN_ALPHA(0) },
 	{ "X_D3DRS_PSALPHAINPUTS1"              /*=   1*/, 3424, xtDWORD,               NV2A_RC_IN_ALPHA(1) },
 	{ "X_D3DRS_PSALPHAINPUTS2"              /*=   2*/, 3424, xtDWORD,               NV2A_RC_IN_ALPHA(2) },
