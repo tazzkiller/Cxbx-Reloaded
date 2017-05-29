@@ -160,7 +160,7 @@ extern thread_local std::string _logPrefix;
 	static thread_local std::string _logFuncPrefix; \
 	if (_logFuncPrefix.length() == 0) {	\
 		std::stringstream tmp; \
-		tmp << _logPrefix << __FILENAME__ << " : " << func; \
+		tmp << _logPrefix << __FILENAME__ << " : " << (func != nullptr ? func : ""); \
 		_logFuncPrefix = tmp.str(); \
 	}
 
