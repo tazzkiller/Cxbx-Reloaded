@@ -293,656 +293,40 @@ BOOL XTL::EmuXBFormatIsDepthBuffer(X_D3DFORMAT Format)
 	return false;
 }
 
-XTL::D3DFORMAT XTL::EmuXB2PC_D3DFormat(X_D3DFORMAT Format)
-{
-	if (Format <= X_D3DFMT_LIN_R8G8B8A8 && Format != -1 /*X_D3DFMT_UNKNOWN*/) // The last bit prevents crashing (Metal Slug 3)
-	{
-		const FormatInfo *info = &FormatInfos[Format];
-		if (info->warning != nullptr)
-			EmuWarning(info->warning);
-
-		return info->pc;
-	}
-
-	switch (Format) {
-	case X_D3DFMT_VERTEXDATA:
-		return D3DFMT_VERTEXDATA;
-	case ((X_D3DFORMAT)0xffffffff):
-		return D3DFMT_UNKNOWN; // TODO -oCXBX: Not sure if this counts as swizzled or not...
-	default:
-		CxbxKrnlCleanup("EmuXB2PC_D3DFormat: Unknown Format (0x%.08X)", Format);
-	}
-
-	return D3DFMT_UNKNOWN;
-}
-
-XTL::X_D3DFORMAT XTL::EmuPC2XB_D3DFormat(D3DFORMAT Format)
-{
-	X_D3DFORMAT result;
-    switch(Format)
-    {
-	case D3DFMT_YUY2:
-		result = X_D3DFMT_YUY2;
-		break;
-	case D3DFMT_UYVY:
-		result = X_D3DFMT_UYVY;
-		break;
-	case D3DFMT_R5G6B5:
-		result = X_D3DFMT_LIN_R5G6B5;
-		break; // Linear
-			   //      Result := X_D3DFMT_R5G6B5; // Swizzled
-
-	case D3DFMT_D24S8:
-		result = X_D3DFMT_D24S8;
-		break; // Swizzled
-
-	case D3DFMT_DXT5:
-		result = X_D3DFMT_DXT5;
-		break; // Compressed
-
-	case D3DFMT_DXT4:
-		result = X_D3DFMT_DXT4; // Same as X_D3DFMT_DXT5
-		break; // Compressed
-
-	case D3DFMT_DXT3:
-		result = X_D3DFMT_DXT3;
-		break; // Compressed
-
-	case D3DFMT_DXT2:
-		result = X_D3DFMT_DXT2; // Same as X_D3DFMT_DXT3
-		break; // Compressed
-
-	case D3DFMT_DXT1:
-		result = X_D3DFMT_DXT1;
-		break; // Compressed
-
-	case D3DFMT_A1R5G5B5:
-		result = X_D3DFMT_LIN_A1R5G5B5;
-		break; // Linear
-
-	case D3DFMT_X8R8G8B8:
-		result = X_D3DFMT_LIN_X8R8G8B8;
-		break; // Linear
-			   //      Result := X_D3DFMT_X8R8G8B8; // Swizzled
-
-	case D3DFMT_A8R8G8B8:
-		//      Result := X_D3DFMT_LIN_A8R8G8B8; // Linear
-		result = X_D3DFMT_A8R8G8B8;
-		break;
-	case D3DFMT_A4R4G4B4:
-		result = X_D3DFMT_LIN_A4R4G4B4;
-		break; // Linear
-			   //      Result := X_D3DFMT_A4R4G4B4; // Swizzled
-	case D3DFMT_X1R5G5B5:	// Linear
-		result = X_D3DFMT_LIN_X1R5G5B5;
-		break;
-	case D3DFMT_A8:
-		result = X_D3DFMT_A8;
-		break;
-	case D3DFMT_L8:
-		result = X_D3DFMT_LIN_L8;
-		break; // Linear
-			   //        Result := X_D3DFMT_L8; // Swizzled
-
-	case D3DFMT_D16: case D3DFMT_D16_LOCKABLE:
-		result = X_D3DFMT_D16_LOCKABLE;
-		break; // Swizzled
-
-	case D3DFMT_UNKNOWN:
-		result = ((X_D3DFORMAT)0xffffffff);
-		break;
-
-		// Dxbx additions :
-
-	case D3DFMT_L6V5U5:
-		result = X_D3DFMT_L6V5U5;
-		break; // Swizzled
-
-	case D3DFMT_V8U8:
-		result = X_D3DFMT_V8U8;
-		break; // Swizzled
-
-	case D3DFMT_V16U16:
-		result = X_D3DFMT_V16U16;
-		break; // Swizzled
-
-	case D3DFMT_VERTEXDATA:
-		result = X_D3DFMT_VERTEXDATA;
-		break;
-
-	default:
-		CxbxKrnlCleanup("EmuPC2XB_D3DFormat: Unknown Format (%d)", Format);
-    }
-
-    return result;
-}
-
-DWORD XTL::EmuXB2PC_D3DLock(DWORD Flags)
-{
-    DWORD NewFlags = 0;
-
-    // Need to convert the flags, TODO: fix the xbox extensions
-//    if(Flags & X_D3DLOCK_NOFLUSH)
-//        NewFlags ^= 0;
-
-	if(Flags & X_D3DLOCK_NOOVERWRITE)
-        NewFlags |= D3DLOCK_NOOVERWRITE;
-
-//	if(Flags & X_D3DLOCK_TILED)
-//        NewFlags ^= 0;
-
-	if(Flags & X_D3DLOCK_READONLY)
-        NewFlags |= D3DLOCK_READONLY;
-
-    return NewFlags;
-}
-
-// convert from xbox to pc multisample formats
-XTL::D3DMULTISAMPLE_TYPE XTL::EmuXB2PC_D3DMultiSampleFormat(DWORD Type)
-{
-	D3DMULTISAMPLE_TYPE result;
-	switch (Type & 0xFFFF)
-	{
-	case X_D3DMULTISAMPLE_NONE:
-		result = D3DMULTISAMPLE_NONE;
-		break;
-	case X_D3DMULTISAMPLE_2_SAMPLES_MULTISAMPLE_LINEAR: 
-	case X_D3DMULTISAMPLE_2_SAMPLES_MULTISAMPLE_QUINCUNX: 
-	case X_D3DMULTISAMPLE_2_SAMPLES_SUPERSAMPLE_HORIZONTAL_LINEAR: 
-	case X_D3DMULTISAMPLE_2_SAMPLES_SUPERSAMPLE_VERTICAL_LINEAR:
-		result = D3DMULTISAMPLE_2_SAMPLES;
-		break;
-	case X_D3DMULTISAMPLE_4_SAMPLES_MULTISAMPLE_LINEAR: 
-	case X_D3DMULTISAMPLE_4_SAMPLES_MULTISAMPLE_GAUSSIAN: 
-	case X_D3DMULTISAMPLE_4_SAMPLES_SUPERSAMPLE_LINEAR: 
-	case X_D3DMULTISAMPLE_4_SAMPLES_SUPERSAMPLE_GAUSSIAN:
-		result = D3DMULTISAMPLE_4_SAMPLES;
-		break;
-	case X_D3DMULTISAMPLE_9_SAMPLES_MULTISAMPLE_GAUSSIAN: 
-	case X_D3DMULTISAMPLE_9_SAMPLES_SUPERSAMPLE_GAUSSIAN:
-		result = D3DMULTISAMPLE_9_SAMPLES;
-		break;
-	default:
-		EmuWarning("Unknown Multisample Type (0x%X)!\x0d\x0a. If this value is greater than 0xFFFF contact blueshogun!", Type);
-		result = D3DMULTISAMPLE_NONE;
-	}
-	return result;
-}
-
-// lookup table for converting vertex count to primitive count
-UINT XTL::EmuD3DVertexToPrimitive[11][2] =
-{
-    {0, 0}, // NULL
-    {1, 0}, // X_D3DPT_POINTLIST
-    {2, 0}, // X_D3DPT_LINELIST
-    {1, 1}, // X_D3DPT_LINELOOP
-    {1, 1}, // X_D3DPT_LINESTRIP
-    {3, 0}, // X_D3DPT_TRIANGLELIST
-    {1, 2}, // X_D3DPT_TRIANGLESTRIP
-    {1, 2}, // X_D3DPT_TRIANGLEFAN
-    {4, 0}, // X_D3DPT_QUADLIST
-    {2, 2}, // X_D3DPT_QUADSTRIP
-    {1, 0}, // X_D3DPT_POLYGON
-};
-
-// conversion table for xbox->pc primitive types
-XTL::D3DPRIMITIVETYPE XTL::EmuPrimitiveTypeLookup[] =
-{
-    /* NULL                   = 0         */ (XTL::D3DPRIMITIVETYPE)0,
-    /* X_D3DPT_POINTLIST      = 1,        */ XTL::D3DPT_POINTLIST,
-    /* X_D3DPT_LINELIST       = 2,        */ XTL::D3DPT_LINELIST,
-    /* X_D3DPT_LINELOOP       = 3,  Xbox  */ XTL::D3DPT_LINESTRIP,
-    /* X_D3DPT_LINESTRIP      = 4,        */ XTL::D3DPT_LINESTRIP,
-    /* X_D3DPT_TRIANGLELIST   = 5,        */ XTL::D3DPT_TRIANGLELIST,
-    /* X_D3DPT_TRIANGLESTRIP  = 6,        */ XTL::D3DPT_TRIANGLESTRIP,
-    /* X_D3DPT_TRIANGLEFAN    = 7,        */ XTL::D3DPT_TRIANGLEFAN,
-    /* X_D3DPT_QUADLIST       = 8,  Xbox  */ XTL::D3DPT_TRIANGLELIST,
-    /* X_D3DPT_QUADSTRIP      = 9,  Xbox  */ XTL::D3DPT_TRIANGLESTRIP,
-    /* X_D3DPT_POLYGON        = 10, Xbox  */ XTL::D3DPT_TRIANGLEFAN,
-};
-
-// Convert a 'method' DWORD into it's associated 'pixel-shader' or 'simple' render state.
-XTL::X_D3DRENDERSTATETYPE XTL::DxbxXboxMethodToRenderState(const X_NV2AMETHOD aMethod)
-{
-	// TODO : The list below is incomplete - use DxbxRenderStateInfo to complete this.
-
-	// Dxbx note : Let the compiler sort this out, should be much quicker :
-	switch (aMethod & NV2A_METHOD_MASK)
-	{
-	case /*0x00000100*/NV2A_NOP: return X_D3DRS_PS_RESERVED; // XDK 3424 uses 0x00000100 (NOP), while 3911 onwards uses 0x00001d90 (SET_COLOR_CLEAR_VALUE)
-	case /*0x000002A4*/NV2A_FOG_ENABLE: return X_D3DRS_FOGENABLE;
-	case /*0x00000260*/NV2A_RC_IN_ALPHA(0): return X_D3DRS_PSALPHAINPUTS0;
-	case /*0x00000264*/NV2A_RC_IN_ALPHA(1): return X_D3DRS_PSALPHAINPUTS1;
-	case /*0x00000268*/NV2A_RC_IN_ALPHA(2): return X_D3DRS_PSALPHAINPUTS2;
-	case /*0x0000026c*/NV2A_RC_IN_ALPHA(3): return X_D3DRS_PSALPHAINPUTS3;
-	case /*0x00000270*/NV2A_RC_IN_ALPHA(4): return X_D3DRS_PSALPHAINPUTS4;
-	case /*0x00000274*/NV2A_RC_IN_ALPHA(5): return X_D3DRS_PSALPHAINPUTS5;
-	case /*0x00000278*/NV2A_RC_IN_ALPHA(6): return X_D3DRS_PSALPHAINPUTS6;
-	case /*0x0000027c*/NV2A_RC_IN_ALPHA(7): return X_D3DRS_PSALPHAINPUTS7;
-	case /*0x00000288*/NV2A_RC_FINAL0: return X_D3DRS_PSFINALCOMBINERINPUTSABCD;
-	case /*0x0000028c*/NV2A_RC_FINAL1: return X_D3DRS_PSFINALCOMBINERINPUTSEFG;
-		//    case /*0x00000294*/NV2A_LIGHT_MODEL: Result := X_D3DRS_LIGHTING; ??
-	case /*0x00000300*/NV2A_ALPHA_FUNC_ENABLE: return X_D3DRS_ALPHATESTENABLE;
-	case /*0x00000304*/NV2A_BLEND_FUNC_ENABLE: return X_D3DRS_ALPHABLENDENABLE;
-	case /*0x0000030C*/NV2A_DEPTH_TEST_ENABLE: return X_D3DRS_ZENABLE;
-	case /*0x00000310*/NV2A_DITHER_ENABLE: return X_D3DRS_DITHERENABLE;
-		//    case /*0x00000314*/NV2A_LIGHTING_ENABLE: Result := X_D3DRS_LIGHTING; ??
-	case /*0x00000318*/NV2A_POINT_PARAMETERS_ENABLE: return X_D3DRS_POINTSCALEENABLE;
-	case /*0x0000031C*/NV2A_POINT_SMOOTH_ENABLE: return X_D3DRS_POINTSPRITEENABLE;
-	case /*0x00000328*/NV2A_SKIN_MODE: return X_D3DRS_VERTEXBLEND;
-	case /*0x0000032C*/NV2A_STENCIL_ENABLE: return X_D3DRS_STENCILENABLE;
-	case /*0x00000330*/NV2A_POLYGON_OFFSET_POINT_ENABLE: return X_D3DRS_POINTOFFSETENABLE;
-	case /*0x00000334*/NV2A_POLYGON_OFFSET_LINE_ENABLE: return X_D3DRS_WIREFRAMEOFFSETENABLE;
-	case /*0x00000338*/NV2A_POLYGON_OFFSET_FILL_ENABLE: return X_D3DRS_SOLIDOFFSETENABLE;
-	case /*0x0000033c*/NV2A_ALPHA_FUNC_FUNC: return X_D3DRS_ALPHAFUNC;
-	case /*0x00000340*/NV2A_ALPHA_FUNC_REF: return X_D3DRS_ALPHAREF;
-	case /*0x00000344*/NV2A_BLEND_FUNC_SRC: return X_D3DRS_SRCBLEND;
-	case /*0x00000348*/NV2A_BLEND_FUNC_DST: return X_D3DRS_DESTBLEND;
-	case /*0x0000034c*/NV2A_BLEND_COLOR: return X_D3DRS_BLENDCOLOR;
-	case /*0x00000350*/NV2A_BLEND_EQUATION: return X_D3DRS_BLENDOP;
-	case /*0x00000354*/NV2A_DEPTH_FUNC: return X_D3DRS_ZFUNC;
-	case /*0x00000358*/NV2A_COLOR_MASK: return X_D3DRS_COLORWRITEENABLE;
-	case /*0x0000035c*/NV2A_DEPTH_WRITE_ENABLE: return X_D3DRS_ZWRITEENABLE;
-	case /*0x00000360*/NV2A_STENCIL_MASK: return X_D3DRS_STENCILWRITEMASK;
-	case /*0x00000364*/NV2A_STENCIL_FUNC_FUNC: return X_D3DRS_STENCILFUNC;
-	case /*0x00000368*/NV2A_STENCIL_FUNC_REF: return X_D3DRS_STENCILREF;
-	case /*0x0000036c*/NV2A_STENCIL_FUNC_MASK: return X_D3DRS_STENCILMASK;
-	case /*0x00000374*/NV2A_STENCIL_OP_ZFAIL: return X_D3DRS_STENCILZFAIL;
-	case /*0x00000378*/NV2A_STENCIL_OP_ZPASS: return X_D3DRS_STENCILPASS;
-	case /*0x0000037c*/NV2A_SHADE_MODEL: return X_D3DRS_SHADEMODE;
-	case /*0x00000380*/NV2A_LINE_WIDTH: return X_D3DRS_LINEWIDTH;
-	case /*0x00000384*/NV2A_POLYGON_OFFSET_FACTOR: return X_D3DRS_POLYGONOFFSETZSLOPESCALE;
-	case /*0x00000388*/NV2A_POLYGON_OFFSET_UNITS: return X_D3DRS_POLYGONOFFSETZOFFSET;
-	case /*0x0000038c*/NV2A_POLYGON_MODE_FRONT: return X_D3DRS_FILLMODE;
-	case /*0x000003A0*/NV2A_FRONT_FACE: return X_D3DRS_FRONTFACE;
-	case /*0x000003A4*/NV2A_NORMALIZE_ENABLE: return X_D3DRS_NORMALIZENORMALS;
-	case /*0x000009f8*/NV2A_SWATH_WIDTH: return X_D3DRS_SWATHWIDTH;
-	case /*0x00000a60*/NV2A_RC_CONSTANT_COLOR0(0): return X_D3DRS_PSCONSTANT0_0;
-	case /*0x00000a64*/NV2A_RC_CONSTANT_COLOR0(1): return X_D3DRS_PSCONSTANT0_1;
-	case /*0x00000a68*/NV2A_RC_CONSTANT_COLOR0(2): return X_D3DRS_PSCONSTANT0_2;
-	case /*0x00000a6c*/NV2A_RC_CONSTANT_COLOR0(3): return X_D3DRS_PSCONSTANT0_3;
-	case /*0x00000a70*/NV2A_RC_CONSTANT_COLOR0(4): return X_D3DRS_PSCONSTANT0_4;
-	case /*0x00000a74*/NV2A_RC_CONSTANT_COLOR0(5): return X_D3DRS_PSCONSTANT0_5;
-	case /*0x00000a78*/NV2A_RC_CONSTANT_COLOR0(6): return X_D3DRS_PSCONSTANT0_6;
-	case /*0x00000a7c*/NV2A_RC_CONSTANT_COLOR0(7): return X_D3DRS_PSCONSTANT0_7;
-	case /*0x00000a80*/NV2A_RC_CONSTANT_COLOR1(0): return X_D3DRS_PSCONSTANT1_0;
-	case /*0x00000a84*/NV2A_RC_CONSTANT_COLOR1(1): return X_D3DRS_PSCONSTANT1_1;
-	case /*0x00000a88*/NV2A_RC_CONSTANT_COLOR1(2): return X_D3DRS_PSCONSTANT1_2;
-	case /*0x00000a8c*/NV2A_RC_CONSTANT_COLOR1(3): return X_D3DRS_PSCONSTANT1_3;
-	case /*0x00000a90*/NV2A_RC_CONSTANT_COLOR1(4): return X_D3DRS_PSCONSTANT1_4;
-	case /*0x00000a94*/NV2A_RC_CONSTANT_COLOR1(5): return X_D3DRS_PSCONSTANT1_5;
-	case /*0x00000a98*/NV2A_RC_CONSTANT_COLOR1(6): return X_D3DRS_PSCONSTANT1_6;
-	case /*0x00000a9c*/NV2A_RC_CONSTANT_COLOR1(7): return X_D3DRS_PSCONSTANT1_7;
-	case /*0x00000aa0*/NV2A_RC_OUT_ALPHA(0): return X_D3DRS_PSALPHAOUTPUTS0;
-	case /*0x00000aa4*/NV2A_RC_OUT_ALPHA(1): return X_D3DRS_PSALPHAOUTPUTS1;
-	case /*0x00000aa8*/NV2A_RC_OUT_ALPHA(2): return X_D3DRS_PSALPHAOUTPUTS2;
-	case /*0x00000aac*/NV2A_RC_OUT_ALPHA(3): return X_D3DRS_PSALPHAOUTPUTS3;
-	case /*0x00000ab0*/NV2A_RC_OUT_ALPHA(4): return X_D3DRS_PSALPHAOUTPUTS4;
-	case /*0x00000ab4*/NV2A_RC_OUT_ALPHA(5): return X_D3DRS_PSALPHAOUTPUTS5;
-	case /*0x00000ab8*/NV2A_RC_OUT_ALPHA(6): return X_D3DRS_PSALPHAOUTPUTS6;
-	case /*0x00000abc*/NV2A_RC_OUT_ALPHA(7): return X_D3DRS_PSALPHAOUTPUTS7;
-	case /*0x00000ac0*/NV2A_RC_IN_RGB(0): return X_D3DRS_PSRGBINPUTS0;
-	case /*0x00000ac4*/NV2A_RC_IN_RGB(1): return X_D3DRS_PSRGBINPUTS1;
-	case /*0x00000ac8*/NV2A_RC_IN_RGB(2): return X_D3DRS_PSRGBINPUTS2;
-	case /*0x00000acc*/NV2A_RC_IN_RGB(3): return X_D3DRS_PSRGBINPUTS3;
-	case /*0x00000ad0*/NV2A_RC_IN_RGB(4): return X_D3DRS_PSRGBINPUTS4;
-	case /*0x00000ad4*/NV2A_RC_IN_RGB(5): return X_D3DRS_PSRGBINPUTS5;
-	case /*0x00000ad8*/NV2A_RC_IN_RGB(6): return X_D3DRS_PSRGBINPUTS6;
-	case /*0x00000adc*/NV2A_RC_IN_RGB(7): return X_D3DRS_PSRGBINPUTS7;
-	case /*0x0000147c*/NV2A_POLYGON_STIPPLE_ENABLE: return X_D3DRS_STIPPLEENABLE;
-	case /*0x000017f8*/NV2A_TX_SHADER_CULL_MODE: return X_D3DRS_PSCOMPAREMODE;
-	case /*0x00001d78*/NV2A_DEPTHCLIPCONTROL: return X_D3DRS_DEPTHCLIPCONTROL;
-	case /*0x00001d7c*/NV2A_MULTISAMPLE_CONTROL: return X_D3DRS_MULTISAMPLEANTIALIAS; // Also send by D3DRS_MULTISAMPLEMASK (both values in 1 command)
-	case /*0x00001d84*/NV2A_OCCLUDE_ZSTENCIL_EN: return X_D3DRS_OCCLUSIONCULLENABLE;
-
-		//    /*0x00001d90*/NV2A_CLEAR_VALUE: Result := X_D3DRS_SIMPLE_UNUSED1;
-		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED2;
-		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED3;
-		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED4;
-		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED5;
-		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED6;
-		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED7;
-		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED8;
-	case /*0x00001e20*/NV2A_RC_COLOR0: return X_D3DRS_PSFINALCOMBINERCONSTANT0;
-	case /*0x00001e24*/NV2A_RC_COLOR1: return X_D3DRS_PSFINALCOMBINERCONSTANT1;
-	case /*0x00001e40*/NV2A_RC_OUT_RGB(0): return X_D3DRS_PSRGBOUTPUTS0;
-	case /*0x00001e44*/NV2A_RC_OUT_RGB(1): return X_D3DRS_PSRGBOUTPUTS1;
-	case /*0x00001e48*/NV2A_RC_OUT_RGB(2): return X_D3DRS_PSRGBOUTPUTS2;
-	case /*0x00001e4c*/NV2A_RC_OUT_RGB(3): return X_D3DRS_PSRGBOUTPUTS3;
-	case /*0x00001e50*/NV2A_RC_OUT_RGB(4): return X_D3DRS_PSRGBOUTPUTS4;
-	case /*0x00001e54*/NV2A_RC_OUT_RGB(5): return X_D3DRS_PSRGBOUTPUTS5;
-	case /*0x00001e58*/NV2A_RC_OUT_RGB(6): return X_D3DRS_PSRGBOUTPUTS6;
-	case /*0x00001e5c*/NV2A_RC_OUT_RGB(7): return X_D3DRS_PSRGBOUTPUTS7;
-	case /*0x00001e60*/NV2A_RC_ENABLE: return X_D3DRS_PSCOMBINERCOUNT;
-	case /*0x00001e6c*/NV2A_TX_RCOMP: return X_D3DRS_SHADOWFUNC;
-	case /*0x00001e74*/NV2A_TX_SHADER_DOTMAPPING: return X_D3DRS_PSDOTMAPPING;
-	case /*0x00001e78*/NV2A_TX_SHADER_PREVIOUS: return X_D3DRS_PSINPUTTEXTURE;
-		// Missing : 0x0000????: Result := X_D3DRS_PSTEXTUREMODES;
-	default:
-		return X_D3DRS_UNK; // Note : Dxbx returns ~0;
-	}
-}
-
-void XTL::EmuUnswizzleRect
-(
-	PVOID pSrcBuff,
-	DWORD dwWidth,
-	DWORD dwHeight,
-	DWORD dwDepth,
-	PVOID pDstBuff,
-	DWORD dwDestPitch,
-	DWORD dwBPP // expressed in Bytes Per Pixel
-) // Source : Dxbx
-{
-	// TODO : The following could be done using a lookup table :
-	DWORD dwMaskX = 0, dwMaskY = 0, dwMaskZ = 0;
-	for (uint i=1, j=1; (i <= dwWidth) || (i <= dwHeight) || (i <= dwDepth); i <<= 1) {
-		if (i < dwWidth) {
-			dwMaskX = dwMaskX | j;
-			j <<= 1;
-		};
-
-		if (i < dwHeight) {
-			dwMaskY = dwMaskY | j;
-			j <<= 1;
-		}
-
-		if (i < dwDepth) {
-			dwMaskZ = dwMaskZ | j;
-			j <<= 1;
-		}
-	}
-
-	// get the biggest mask
-	DWORD dwMaskMax;
-	if (dwMaskX > dwMaskY)
-		dwMaskMax = dwMaskX;
-	else
-		dwMaskMax = dwMaskY;
-
-	if (dwMaskZ > dwMaskMax)
-		dwMaskMax = dwMaskZ;
-
-	DWORD dwStartX = 0, dwOffsetX = 0;
-	DWORD dwStartY = 0, dwOffsetY = 0;
-	DWORD dwStartZ = 0, dwOffsetW = 0;
-	/* TODO : Use values from poDst and rSrc to initialize above values, after which the following makes more sense:
-	for (uint i=1; i <= dwMaskMax; i <<= 1) {
-		if (i <= dwMaskX) {
-			if (dwMaskX & i)
-				dwStartX |= (dwOffsetX & i);
-			else
-				dwOffsetX <<= 1;
-		}
-
-		if (i <= dwMaskY) {
-			if (dwMaskY & i)
-				dwStartY |= dwOffsetY & i;
-			else
-				dwOffsetY <<= 1;
-		}
-
-		if (i <= dwMaskZ) {
-			if (dwMaskZ & i)
-				dwStartZ |= dwOffsetZ & i;
-			else
-				dwOffsetZ <<= 1;
-		}
-	}*/
-
-	DWORD dwZ = dwStartZ;
-	for (uint z = 0; z < dwDepth; z++) {
-		DWORD dwY = dwStartY;
-		for (uint y = 0; y < dwHeight; y++) {
-			DWORD dwX = dwStartX;
-			for (uint x = 0; x < dwWidth; x++) {
-				int SrcOffset = ((dwX | dwY | dwZ) * dwBPP);
-				memcpy(pDstBuff, (PBYTE)pSrcBuff + SrcOffset, dwBPP); // copy one pixel
-				pDstBuff = (PBYTE)pDstBuff + dwBPP; // Step to next pixel in destination
-				dwX = (dwX - dwMaskX) & dwMaskX; // step to next pixel in source
-			}
-
-			pDstBuff = (PBYTE)pDstBuff + dwDestPitch - (dwWidth * dwBPP); // step to next line in destination
-			dwY = (dwY - dwMaskY) & dwMaskY; // step to next line in source
-		}
-
-		// TODO : How to step to next level in destination? Should X and Y be recalculated per level?
-		dwZ = (dwZ - dwMaskZ) & dwMaskZ; // step to next level in source
-	}
-} // EmuUnswizzleRect NOPATCH
-
 namespace XTL
 {
 
-std::string BOOL2String(DWORD Value)
+// lookup table for converting vertex count to primitive count
+UINT EmuD3DVertexToPrimitive[11][2] =
 {
-	if (Value > 0)
-		return "true";
-	
-	return "false";
-}
+	{ 0, 0 }, // NULL
+	{ 1, 0 }, // X_D3DPT_POINTLIST
+	{ 2, 0 }, // X_D3DPT_LINELIST
+	{ 1, 1 }, // X_D3DPT_LINELOOP
+	{ 1, 1 }, // X_D3DPT_LINESTRIP
+	{ 3, 0 }, // X_D3DPT_TRIANGLELIST
+	{ 1, 2 }, // X_D3DPT_TRIANGLESTRIP
+	{ 1, 2 }, // X_D3DPT_TRIANGLEFAN
+	{ 4, 0 }, // X_D3DPT_QUADLIST
+	{ 2, 2 }, // X_D3DPT_QUADSTRIP
+	{ 1, 0 }, // X_D3DPT_POLYGON
+};
 
-std::string DxbxXBDefaultToString(DWORD Value)
+// conversion table for xbox->pc primitive types
+D3DPRIMITIVETYPE EmuPrimitiveTypeLookup[] =
 {
-	return std::to_string(Value);
-}
-
-// TODO : Back-port these
-#define X_D3DBLEND2String DxbxXBDefaultToString
-#define X_D3DBLENDOP2String DxbxXBDefaultToString
-#define X_D3DCLEAR2String DxbxXBDefaultToString
-#define X_D3DCMPFUNC2String DxbxXBDefaultToString
-#define X_D3DCOLORWRITEENABLE2String DxbxXBDefaultToString
-#define X_D3DCUBEMAP_FACES2String DxbxXBDefaultToString
-#define X_D3DCULL2String DxbxXBDefaultToString
-#define X_D3DDCC2String DxbxXBDefaultToString
-#define X_D3DFILLMODE2String DxbxXBDefaultToString
-#define X_D3DFOGMODE2String DxbxXBDefaultToString
-#define X_D3DFORMAT2String DxbxXBDefaultToString
-#define X_D3DFRONT2String DxbxXBDefaultToString
-#define X_D3DLOGICOP2String DxbxXBDefaultToString
-#define X_D3DMCS2String DxbxXBDefaultToString
-#define X_D3DMULTISAMPLE_TYPE2String DxbxXBDefaultToString
-#define X_D3DMULTISAMPLEMODE2String DxbxXBDefaultToString
-#define X_D3DPRIMITIVETYPE2String DxbxXBDefaultToString
-#define X_D3DRESOURCETYPE2String DxbxXBDefaultToString
-#define X_D3DSAMPLEALPHA2String DxbxXBDefaultToString
-#define X_D3DSHADEMODE2String DxbxXBDefaultToString
-#define X_D3DSTENCILOP2String DxbxXBDefaultToString
-#define X_D3DSWATH2String DxbxXBDefaultToString
-#define X_D3DTEXTUREADDRESS2String DxbxXBDefaultToString
-#define X_D3DTEXTUREOP2String DxbxXBDefaultToString
-#define X_D3DTEXTURESTAGESTATETYPE2String DxbxXBDefaultToString
-#define X_D3DTRANSFORMSTATETYPE2String DxbxXBDefaultToString
-#define X_D3DVERTEXBLENDFLAGS2String DxbxXBDefaultToString
-#define X_D3DVSDE2String DxbxXBDefaultToString
-#define X_D3DWRAP2String DxbxXBDefaultToString
-
-std::string DWFloat2String(DWORD Value)
-{
-	return std::to_string(*((FLOAT*)&Value)); // TODO : Speed this up by avoiding Single>Extended cast & generic render code.
-}
-
-DWORD DxbxXB2PC_NOP(DWORD Value)
-{
-	return Value;
-}
-
-// TODO : Back-port these
-#define EmuXB2PC_D3DCLEAR_FLAGS DxbxXB2PC_NOP
-#define EmuXB2PC_D3DCOLORWRITEENABLE DxbxXB2PC_NOP
-#define EmuXB2PC_D3DMULTISAMPLE_TYPE DxbxXB2PC_NOP
-#define EmuXB2PC_D3DTEXTUREADDRESS DxbxXB2PC_NOP
-#define EmuXB2PC_D3DTEXTUREFILTERTYPE DxbxXB2PC_NOP
-#define EmuXB2PC_D3DTEXTUREOP DxbxXB2PC_NOP
-#define EmuXB2PC_D3DTSS DxbxXB2PC_NOP
-#define EmuXB2PC_D3DWRAP DxbxXB2PC_NOP
-
-// convert from xbox to pc texture transform state types
-D3DTRANSFORMSTATETYPE EmuXB2PC_D3DTS(D3DTRANSFORMSTATETYPE State)
-{
-	if ((uint32)State < 2)
-		return (D3DTRANSFORMSTATETYPE)(State + 2);
-	else if ((uint32)State < 6)
-		return (D3DTRANSFORMSTATETYPE)(State + 14);
-	else if ((uint32)State < 10)
-		return D3DTS_WORLDMATRIX(State - 6);
-	else if ((uint32)State == 10) // Max
-		return (D3DTRANSFORMSTATETYPE)(D3DTS_TEXTURE7 + 1);
-
-	CxbxKrnlCleanup("Unknown Transform State Type (%d)", State);
-
-	return State;
-}
-
-// convert from xbox to pc blend ops
-D3DBLENDOP EmuXB2PC_D3DBLENDOP(X_D3DBLENDOP Value)
-{
-	switch (Value)
-	{
-	case 0x8006:
-		return D3DBLENDOP_ADD;
-	case 0x800a:
-		return D3DBLENDOP_SUBTRACT;
-	case 0x800b:
-		return D3DBLENDOP_REVSUBTRACT;
-	case 0x8007:
-		return D3DBLENDOP_MIN;
-	case 0x8008:
-		return D3DBLENDOP_MAX;
-	case 0xF006:
-	{
-		CxbxKrnlCleanup("D3DBLENDOP_ADDSIGNED is not supported!");
-		return D3DBLENDOP_ADD;
-	};
-	case 0xF005:
-	{
-		CxbxKrnlCleanup("D3DBLENDOP_REVSUBTRACTSIGNED is not supported!");
-		return D3DBLENDOP_REVSUBTRACT;
-	}
-	}
-
-	CxbxKrnlCleanup("Unknown D3DBLENDOP (0x%.08X)", Value);
-
-	return (D3DBLENDOP)Value;
-}
-
-// convert from xbox to pc blend types 
-D3DBLEND EmuXB2PC_D3DBLEND(X_D3DBLEND Value)
-{
-	if (Value < 2)
-		return (D3DBLEND)(Value + 1);
-	else if (Value < 0x309)
-		return (D3DBLEND)((Value & 0xF) + 3);
-
-	EmuWarning("Unknown Xbox D3DBLEND Extension (0x%.08X)", Value);
-	return D3DBLEND_ONE;
-}
-
-// convert from xbox to pc comparison functions
-D3DCMPFUNC EmuXB2PC_D3DCMPFUNC(X_D3DCMPFUNC Value)
-{
-	return (D3DCMPFUNC)((Value & 0xF) + 1);
-}
-
-// convert from xbox to pc fill modes
-D3DFILLMODE EmuXB2PC_D3DFILLMODE(X_D3DFILLMODE Value)
-{
-	// was return (D3DFILLMODE)((Value & 0xF) + 1);
-	switch (Value) {
-	case X_D3DFILL_POINT:
-		return D3DFILL_POINT;
-	case X_D3DFILL_WIREFRAME:
-		return  D3DFILL_WIREFRAME;
-	default: // X_D3DFILL_SOLID:
-		return  D3DFILL_SOLID;
-	}
-}
-
-// convert from xbox to pc shade modes
-D3DSHADEMODE EmuXB2PC_D3DSHADEMODE(X_D3DSHADEMODE Value)
-{
-	return (D3DSHADEMODE)((Value & 0x3) + 1);
-}
-
-// convert from xbox to pc stencilop modes
-D3DSTENCILOP EmuXB2PC_D3DSTENCILOP(X_D3DSTENCILOP Value)
-{
-	switch (Value)
-	{
-	case 0x1e00:
-		return D3DSTENCILOP_KEEP;
-	case 0:
-		return D3DSTENCILOP_ZERO;
-	case 0x1e01:
-		return D3DSTENCILOP_REPLACE;
-	case 0x1e02:
-		return D3DSTENCILOP_INCRSAT;
-	case 0x1e03:
-		return D3DSTENCILOP_DECRSAT;
-	case 0x150a:
-		return D3DSTENCILOP_INVERT;
-	case 0x8507:
-		return D3DSTENCILOP_INCR;
-	case 0x8508:
-		return D3DSTENCILOP_DECR;
-
-	default:
-		CxbxKrnlCleanup("Unknown D3DSTENCILOP (0x%.08X)", Value);
-	}
-
-	return (D3DSTENCILOP)Value;
-}
-
-// convert from Xbox direct3d to PC direct3d enumeration
-D3DVERTEXBLENDFLAGS EmuXB2PC_D3DVERTEXBLENDFLAGS(X_D3DVERTEXBLENDFLAGS Value)
-{
-	// convert from Xbox direct3d to PC direct3d enumeration
-	switch (Value) {
-	case X_D3DVBF_DISABLE: return D3DVBF_DISABLE;
-	case X_D3DVBF_1WEIGHTS: return D3DVBF_1WEIGHTS;
-	case X_D3DVBF_2WEIGHTS: return D3DVBF_2WEIGHTS;
-	case X_D3DVBF_3WEIGHTS: return D3DVBF_3WEIGHTS;
-		/* Xbox only :
-			case X_D3DVBF_2WEIGHTS2MATRICES : return;
-			case X_D3DVBF_3WEIGHTS3MATRICES : return;
-			case X_D3DVBF_4WEIGHTS4MATRICES : Result := ;
-		   Xbox doesn't support :
-			D3DVBF_TWEENING = 255,
-			D3DVBF_0WEIGHTS = 256
-		*/
-	default:
-		CxbxKrnlCleanup("Unsupported D3DVERTEXBLENDFLAGS (%d)", (DWORD)Value);
-		return (D3DVERTEXBLENDFLAGS)Value;
-	}
-}
-
-D3DCULL EmuXB2PC_D3DCULL(X_D3DCULL Value)
-// convert from Xbox D3D to PC D3D enumeration
-// TODO: XDK-Specific Tables? So far they are the same
-{
-	switch (Value)
-	{
-	case X_D3DCULL_NONE:
-		return D3DCULL_NONE;
-	case X_D3DCULL_CW:
-		return D3DCULL_CW;
-	case X_D3DCULL_CCW:
-		return D3DCULL_CCW;
-	default:
-		CxbxKrnlCleanup("Unknown Cullmode (%d)", Value);
-		return (D3DCULL)Value;
-	}
-}
-
-// convert xbox->pc primitive type
-D3DPRIMITIVETYPE EmuXB2PC_D3DPrimitiveType(X_D3DPRIMITIVETYPE XboxPrimitiveType)
-{
-	if ((DWORD)XboxPrimitiveType == 0x7FFFFFFF)
-		return D3DPT_FORCE_DWORD;
-
-	return EmuPrimitiveTypeLookup[XboxPrimitiveType];
-}
+	/* NULL                   = 0         */ (D3DPRIMITIVETYPE)0,
+	/* X_D3DPT_POINTLIST      = 1,        */ D3DPT_POINTLIST,
+	/* X_D3DPT_LINELIST       = 2,        */ D3DPT_LINELIST,
+	/* X_D3DPT_LINELOOP       = 3,  Xbox  */ D3DPT_LINESTRIP,
+	/* X_D3DPT_LINESTRIP      = 4,        */ D3DPT_LINESTRIP,
+	/* X_D3DPT_TRIANGLELIST   = 5,        */ D3DPT_TRIANGLELIST,
+	/* X_D3DPT_TRIANGLESTRIP  = 6,        */ D3DPT_TRIANGLESTRIP,
+	/* X_D3DPT_TRIANGLEFAN    = 7,        */ D3DPT_TRIANGLEFAN,
+	/* X_D3DPT_QUADLIST       = 8,  Xbox  */ D3DPT_TRIANGLELIST,
+	/* X_D3DPT_QUADSTRIP      = 9,  Xbox  */ D3DPT_TRIANGLESTRIP,
+	/* X_D3DPT_POLYGON        = 10, Xbox  */ D3DPT_TRIANGLEFAN,
+};
 
 // Table of Xbox-to-PC and Value-to-String converters for all registered types :
 const XBTypeInfo DxbxXBTypeInfo[] = {
@@ -1272,5 +656,778 @@ const TextureStageStateInfo DxbxTextureStageStateInfo[] = {
     {"D3DTSS_COLORKEYCOLOR"         /*=30*/, xtD3DCOLOR,                   true},
 	{"unsupported"                  /*=31*/, xtDWORD,                      true},
 };
+
+std::string BOOL2String(DWORD Value)
+{
+	if (Value > 0)
+		return "true";
+	
+	return "false";
+}
+
+std::string DxbxXBDefaultToString(DWORD Value)
+{
+	return std::to_string(Value);
+}
+
+/* TODO : Back-port these
+X_D3DBLEND2String
+X_D3DBLENDOP2String
+X_D3DCLEAR2String
+X_D3DCMPFUNC2String
+X_D3DCOLORWRITEENABLE2String
+X_D3DCUBEMAP_FACES2String
+X_D3DCULL2String
+X_D3DDCC2String
+X_D3DFILLMODE2String
+X_D3DFOGMODE2String
+X_D3DFORMAT2String
+X_D3DFRONT2String
+X_D3DLOGICOP2String
+X_D3DMCS2String
+X_D3DMULTISAMPLE_TYPE2String
+X_D3DMULTISAMPLEMODE2String
+X_D3DPRIMITIVETYPE2String
+X_D3DRESOURCETYPE2String
+X_D3DSAMPLEALPHA2String
+X_D3DSHADEMODE2String
+X_D3DSTENCILOP2String
+X_D3DSWATH2String
+X_D3DTEXTUREADDRESS2String
+X_D3DTEXTUREOP2String
+X_D3DTEXTURESTAGESTATETYPE2String
+X_D3DTRANSFORMSTATETYPE2String
+X_D3DVERTEXBLENDFLAGS2String
+X_D3DVSDE2String
+X_D3DWRAP2String
+*/
+
+std::string DWFloat2String(DWORD Value)
+{
+	return std::to_string(*((FLOAT*)&Value)); // TODO : Speed this up by avoiding Single>Extended cast & generic render code.
+}
+
+DWORD DxbxXB2PC_NOP(DWORD Value)
+{
+	return Value;
+}
+
+// convert from xbox to pc color formats
+D3DFORMAT EmuXB2PC_D3DFormat(X_D3DFORMAT Format)
+{
+	if (Format <= X_D3DFMT_LIN_R8G8B8A8 && Format != -1 /*X_D3DFMT_UNKNOWN*/) // The last bit prevents crashing (Metal Slug 3)
+	{
+		const FormatInfo *info = &FormatInfos[Format];
+		if (info->warning != nullptr)
+			EmuWarning(info->warning);
+
+		return info->pc;
+	}
+
+	switch (Format) {
+	case X_D3DFMT_VERTEXDATA:
+		return D3DFMT_VERTEXDATA;
+	case ((X_D3DFORMAT)0xffffffff):
+		return D3DFMT_UNKNOWN; // TODO -oCXBX: Not sure if this counts as swizzled or not...
+	default:
+		CxbxKrnlCleanup("EmuXB2PC_D3DFormat: Unknown Format (0x%.08X)", Format);
+	}
+
+	return D3DFMT_UNKNOWN;
+}
+
+// convert from pc to xbox color formats
+X_D3DFORMAT EmuPC2XB_D3DFormat(D3DFORMAT Format)
+{
+	X_D3DFORMAT result;
+    switch(Format)
+    {
+	case D3DFMT_YUY2:
+		result = X_D3DFMT_YUY2;
+		break;
+	case D3DFMT_UYVY:
+		result = X_D3DFMT_UYVY;
+		break;
+	case D3DFMT_R5G6B5:
+		result = X_D3DFMT_LIN_R5G6B5;
+		break; // Linear
+			   //      Result := X_D3DFMT_R5G6B5; // Swizzled
+
+	case D3DFMT_D24S8:
+		result = X_D3DFMT_D24S8;
+		break; // Swizzled
+
+	case D3DFMT_DXT5:
+		result = X_D3DFMT_DXT5;
+		break; // Compressed
+
+	case D3DFMT_DXT4:
+		result = X_D3DFMT_DXT4; // Same as X_D3DFMT_DXT5
+		break; // Compressed
+
+	case D3DFMT_DXT3:
+		result = X_D3DFMT_DXT3;
+		break; // Compressed
+
+	case D3DFMT_DXT2:
+		result = X_D3DFMT_DXT2; // Same as X_D3DFMT_DXT3
+		break; // Compressed
+
+	case D3DFMT_DXT1:
+		result = X_D3DFMT_DXT1;
+		break; // Compressed
+
+	case D3DFMT_A1R5G5B5:
+		result = X_D3DFMT_LIN_A1R5G5B5;
+		break; // Linear
+
+	case D3DFMT_X8R8G8B8:
+		result = X_D3DFMT_LIN_X8R8G8B8;
+		break; // Linear
+			   //      Result := X_D3DFMT_X8R8G8B8; // Swizzled
+
+	case D3DFMT_A8R8G8B8:
+		//      Result := X_D3DFMT_LIN_A8R8G8B8; // Linear
+		result = X_D3DFMT_A8R8G8B8;
+		break;
+	case D3DFMT_A4R4G4B4:
+		result = X_D3DFMT_LIN_A4R4G4B4;
+		break; // Linear
+			   //      Result := X_D3DFMT_A4R4G4B4; // Swizzled
+	case D3DFMT_X1R5G5B5:	// Linear
+		result = X_D3DFMT_LIN_X1R5G5B5;
+		break;
+	case D3DFMT_A8:
+		result = X_D3DFMT_A8;
+		break;
+	case D3DFMT_L8:
+		result = X_D3DFMT_LIN_L8;
+		break; // Linear
+			   //        Result := X_D3DFMT_L8; // Swizzled
+
+	case D3DFMT_D16: case D3DFMT_D16_LOCKABLE:
+		result = X_D3DFMT_D16_LOCKABLE;
+		break; // Swizzled
+
+	case D3DFMT_UNKNOWN:
+		result = ((X_D3DFORMAT)0xffffffff);
+		break;
+
+		// Dxbx additions :
+
+	case D3DFMT_L6V5U5:
+		result = X_D3DFMT_L6V5U5;
+		break; // Swizzled
+
+	case D3DFMT_V8U8:
+		result = X_D3DFMT_V8U8;
+		break; // Swizzled
+
+	case D3DFMT_V16U16:
+		result = X_D3DFMT_V16U16;
+		break; // Swizzled
+
+	case D3DFMT_VERTEXDATA:
+		result = X_D3DFMT_VERTEXDATA;
+		break;
+
+	default:
+		CxbxKrnlCleanup("EmuPC2XB_D3DFormat: Unknown Format (%d)", Format);
+    }
+
+    return result;
+}
+
+// convert from xbox to pc d3d lock flags
+DWORD EmuXB2PC_D3DLock(DWORD Flags)
+{
+    DWORD NewFlags = 0;
+
+    // Need to convert the flags, TODO: fix the xbox extensions
+//    if(Flags & X_D3DLOCK_NOFLUSH)
+//        NewFlags ^= 0;
+
+	if(Flags & X_D3DLOCK_NOOVERWRITE)
+        NewFlags |= D3DLOCK_NOOVERWRITE;
+
+//	if(Flags & X_D3DLOCK_TILED)
+//        NewFlags ^= 0;
+
+	if(Flags & X_D3DLOCK_READONLY)
+        NewFlags |= D3DLOCK_READONLY;
+
+    return NewFlags;
+}
+
+// convert from xbox to pc multisample formats
+D3DMULTISAMPLE_TYPE EmuXB2PC_D3DMULTISAMPLE_TYPE(X_D3DMULTISAMPLE_TYPE Type)
+{
+	switch ((DWORD)Type & 0xFFFF)
+	{
+	case X_D3DMULTISAMPLE_NONE:
+		return D3DMULTISAMPLE_NONE;
+	case X_D3DMULTISAMPLE_2_SAMPLES_MULTISAMPLE_LINEAR: 
+	case X_D3DMULTISAMPLE_2_SAMPLES_MULTISAMPLE_QUINCUNX: 
+	case X_D3DMULTISAMPLE_2_SAMPLES_SUPERSAMPLE_HORIZONTAL_LINEAR: 
+	case X_D3DMULTISAMPLE_2_SAMPLES_SUPERSAMPLE_VERTICAL_LINEAR:
+		return D3DMULTISAMPLE_2_SAMPLES;
+	case X_D3DMULTISAMPLE_4_SAMPLES_MULTISAMPLE_LINEAR: 
+	case X_D3DMULTISAMPLE_4_SAMPLES_MULTISAMPLE_GAUSSIAN: 
+	case X_D3DMULTISAMPLE_4_SAMPLES_SUPERSAMPLE_LINEAR: 
+	case X_D3DMULTISAMPLE_4_SAMPLES_SUPERSAMPLE_GAUSSIAN:
+		return D3DMULTISAMPLE_4_SAMPLES;
+	case X_D3DMULTISAMPLE_9_SAMPLES_MULTISAMPLE_GAUSSIAN: 
+	case X_D3DMULTISAMPLE_9_SAMPLES_SUPERSAMPLE_GAUSSIAN:
+		return D3DMULTISAMPLE_9_SAMPLES;
+	default:
+		EmuWarning("Unknown Multisample Type (0x%X)!\x0d\x0a. If this value is greater than 0xFFFF contact blueshogun!", Type);
+		return D3DMULTISAMPLE_NONE;
+	}
+}
+
+// convert from xbox to pc texture transform state types
+D3DTRANSFORMSTATETYPE EmuXB2PC_D3DTS(X_D3DTRANSFORMSTATETYPE State)
+{
+	switch (State) {
+	case X_D3DTS_VIEW:
+		return D3DTS_VIEW;
+	case X_D3DTS_PROJECTION:
+		return D3DTS_PROJECTION;
+	case X_D3DTS_TEXTURE0:
+		return D3DTS_TEXTURE0;
+	case X_D3DTS_TEXTURE1:
+		return D3DTS_TEXTURE1;
+	case X_D3DTS_TEXTURE2:
+		return D3DTS_TEXTURE2;
+	case X_D3DTS_TEXTURE3:
+		return D3DTS_TEXTURE3;
+	case X_D3DTS_WORLD:
+		return D3DTS_WORLD; // TODO : Use D3DTS_WORLDMATRIX(0) ?
+	case X_D3DTS_WORLD1:
+		return D3DTS_WORLD1;
+	case X_D3DTS_WORLD2:
+		return D3DTS_WORLD2;
+	case X_D3DTS_WORLD3:
+		return D3DTS_WORLD3;
+	default:
+		if (State == X_D3DTS_MAX)
+			EmuWarning("Ignored D3DTS_MAX");
+		else
+			CxbxKrnlCleanup("Unknown Xbox Transform State Type (%d)", (DWORD)State);
+
+		return (D3DTRANSFORMSTATETYPE)0; // Never reached
+	}
+}
+
+// convert from xbox to pc texture stage state
+D3DSAMPLERSTATETYPE EmuXB2PC_D3DTSS(X_D3DTEXTURESTAGESTATETYPE Value)
+{
+  if (Value <= X_D3DTSS_LAST)
+    return DxbxTextureStageStateInfo[Value].PC;
+  else
+    return D3DSAMP_UNSUPPORTED;
+}
+
+#if 0
+// convert from pc to xbox texture transform state types (unnecessary so far)
+X_D3DTRANSFORMSTATETYPE EmuPC2XB_D3DTSS(D3DTRANSFORMSTATETYPE State)
+{
+	if (Value <= X_D3DTSS_LAST)
+		return DxbxTextureStageStateInfo[Value].PC;
+
+	return D3DSAMP_UNSUPPORTED;
+	
+	if ((uint32)State < 4)
+		return (D3DTRANSFORMSTATETYPE)(State - 2);
+
+	if ((uint32)State < 20)
+		return (D3DTRANSFORMSTATETYPE)(State - 14);
+
+	if ((uint32)State > 255)
+		return (D3DTRANSFORMSTATETYPE)(State - 250);
+
+	CxbxKrnlCleanup("Unknown Host Transform State Type (%d)", State);
+
+	return State;
+}
+#endif
+
+// convert from xbox to pc blend ops
+D3DBLENDOP EmuXB2PC_D3DBLENDOP(X_D3DBLENDOP Value)
+{
+	switch (Value)
+	{
+	case X_D3DBLENDOP_ADD:
+		return D3DBLENDOP_ADD;
+	case X_D3DBLENDOP_SUBTRACT:
+		return D3DBLENDOP_SUBTRACT;
+	case X_D3DBLENDOP_REVSUBTRACT:
+		return D3DBLENDOP_REVSUBTRACT;
+	case X_D3DBLENDOP_MIN:
+		return D3DBLENDOP_MIN;
+	case X_D3DBLENDOP_MAX:
+		return D3DBLENDOP_MAX;
+	case X_D3DBLENDOP_ADDSIGNED:
+	{
+		EmuWarning("Unsupported Xbox D3DBLENDOP : D3DBLENDOP_ADDSIGNED. Used approximation.\n");
+		return D3DBLENDOP_ADD;
+	};
+	case X_D3DBLENDOP_REVSUBTRACTSIGNED:
+	{
+		EmuWarning("Unsupported Xbox D3DBLENDOP : D3DBLENDOP_REVSUBTRACTSIGNED. Used approximation.\n");
+
+		return D3DBLENDOP_REVSUBTRACT;
+	}
+	}
+
+	CxbxKrnlCleanup("Unknown D3DBLENDOP (0x%.08X)", Value);
+
+	return (D3DBLENDOP)Value;
+}
+
+// convert from xbox to pc blend types 
+D3DBLEND EmuXB2PC_D3DBLEND(X_D3DBLEND Value)
+{
+	switch (Value) {
+	case X_D3DBLEND_ZERO               : return D3DBLEND_ZERO;
+	case X_D3DBLEND_ONE                : return D3DBLEND_ONE;
+	case X_D3DBLEND_SRCCOLOR           : return D3DBLEND_SRCCOLOR;
+	case X_D3DBLEND_INVSRCCOLOR        : return D3DBLEND_INVSRCCOLOR;
+	case X_D3DBLEND_SRCALPHA           : return D3DBLEND_SRCALPHA;
+	case X_D3DBLEND_INVSRCALPHA        : return D3DBLEND_INVSRCALPHA;
+	case X_D3DBLEND_DESTALPHA          : return D3DBLEND_DESTALPHA;
+	case X_D3DBLEND_INVDESTALPHA       : return D3DBLEND_INVDESTALPHA;
+	case X_D3DBLEND_DESTCOLOR          : return D3DBLEND_DESTCOLOR;
+	case X_D3DBLEND_INVDESTCOLOR       : return D3DBLEND_INVDESTCOLOR;
+	case X_D3DBLEND_SRCALPHASAT        : return D3DBLEND_SRCALPHASAT;
+#ifdef DXBX_USE_D3D9
+	// Xbox extensions not supported by D3D8, but available in D3D9 :
+	case X_D3DBLEND_CONSTANTCOLOR      : return D3DBLEND_BLENDFACTOR;
+	case X_D3DBLEND_INVCONSTANTCOLOR   : return D3DBLEND_INVBLENDFACTOR;
+#endif
+	default:
+		// Xbox extensions that have to be approximated :
+		switch (Value) {
+#ifndef DXBX_USE_D3D9
+		// Not supported by D3D8 :
+		case X_D3DBLEND_CONSTANTCOLOR   : return D3DBLEND_SRCCOLOR;
+		case X_D3DBLEND_INVCONSTANTCOLOR: return D3DBLEND_INVSRCCOLOR;
+#endif
+		case X_D3DBLEND_CONSTANTALPHA   : return D3DBLEND_SRCALPHA;
+		case X_D3DBLEND_INVCONSTANTALPHA: return D3DBLEND_INVSRCALPHA;
+		// Note : Xbox doesn't support D3DBLEND_BOTHSRCALPHA and D3DBLEND_BOTHINVSRCALPHA
+		default:
+			CxbxKrnlCleanup("Unknown Xbox D3DBLEND Extension (0x%.08X)", (DWORD)Value);
+			return D3DBLEND_SRCCOLOR;
+		}
+
+		EmuWarning("Unsupported Xbox D3DBLEND Extension (0x%.08X). Used approximation.\n", (DWORD)Value);
+	}
+
+	return D3DBLEND_ONE;
+}
+
+// convert from xbox to pc comparison functions
+D3DCMPFUNC EmuXB2PC_D3DCMPFUNC(X_D3DCMPFUNC Value)
+{
+	return (D3DCMPFUNC)(((DWORD)Value & 0xF) + 1);
+}
+
+// convert from xbox to pc fill modes
+D3DFILLMODE EmuXB2PC_D3DFILLMODE(X_D3DFILLMODE Value)
+{
+	// was return (D3DFILLMODE)((Value & 0xF) + 1);
+	switch (Value) {
+	case X_D3DFILL_POINT:
+		return D3DFILL_POINT;
+	case X_D3DFILL_WIREFRAME:
+		return  D3DFILL_WIREFRAME;
+	default: // X_D3DFILL_SOLID:
+		return  D3DFILL_SOLID;
+	}
+}
+
+// convert from xbox to pc shade modes
+D3DSHADEMODE EmuXB2PC_D3DSHADEMODE(X_D3DSHADEMODE Value)
+{
+	return (D3DSHADEMODE)(((DWORD)Value & 0x3) + 1);
+}
+
+// convert from xbox to pc stencilop modes
+D3DSTENCILOP EmuXB2PC_D3DSTENCILOP(X_D3DSTENCILOP Value)
+{
+	switch (Value)
+	{
+	case 0x1e00:
+		return D3DSTENCILOP_KEEP;
+	case 0:
+		return D3DSTENCILOP_ZERO;
+	case 0x1e01:
+		return D3DSTENCILOP_REPLACE;
+	case 0x1e02:
+		return D3DSTENCILOP_INCRSAT;
+	case 0x1e03:
+		return D3DSTENCILOP_DECRSAT;
+	case 0x150a:
+		return D3DSTENCILOP_INVERT;
+	case 0x8507:
+		return D3DSTENCILOP_INCR;
+	case 0x8508:
+		return D3DSTENCILOP_DECR;
+
+	default:
+		CxbxKrnlCleanup("Unknown D3DSTENCILOP (0x%.08X)", Value);
+	}
+
+	return (D3DSTENCILOP)Value;
+}
+
+DWORD EmuXB2PC_D3DTEXTUREADDRESS(DWORD Value)
+{
+	if (Value == X_D3DTADDRESS_CLAMPTOEDGE)
+		// Note : PC has D3DTADDRESS_MIRRORONCE in it's place
+		EmuWarning("ClampToEdge is unsupported (temporarily)");
+
+	return Value;
+}
+
+DWORD EmuXB2PC_D3DTEXTUREFILTERTYPE(DWORD Value)
+{
+	if (Value == 4)
+		CxbxKrnlCleanup("QuinCunx is unsupported (temporarily)");
+
+	return Value;
+}
+
+// convert from Xbox direct3d to PC direct3d enumeration
+D3DVERTEXBLENDFLAGS EmuXB2PC_D3DVERTEXBLENDFLAGS(X_D3DVERTEXBLENDFLAGS Value)
+{
+	// convert from Xbox direct3d to PC direct3d enumeration
+	switch (Value) {
+	case X_D3DVBF_DISABLE: return D3DVBF_DISABLE;
+	case X_D3DVBF_1WEIGHTS: return D3DVBF_1WEIGHTS;
+	case X_D3DVBF_2WEIGHTS: return D3DVBF_2WEIGHTS;
+	case X_D3DVBF_3WEIGHTS: return D3DVBF_3WEIGHTS;
+		/* Xbox only :
+			case X_D3DVBF_2WEIGHTS2MATRICES : return;
+			case X_D3DVBF_3WEIGHTS3MATRICES : return;
+			case X_D3DVBF_4WEIGHTS4MATRICES : Result := ;
+		   Xbox doesn't support :
+			D3DVBF_TWEENING = 255,
+			D3DVBF_0WEIGHTS = 256
+		*/
+	default:
+		CxbxKrnlCleanup("Unsupported D3DVERTEXBLENDFLAGS (%d)", (DWORD)Value);
+		return (D3DVERTEXBLENDFLAGS)Value;
+	}
+}
+
+DWORD EmuXB2PC_D3DCOLORWRITEENABLE(X_D3DCOLORWRITEENABLE Value)
+{
+	DWORD Result = 0;
+	if (Value & X_D3DCOLORWRITEENABLE_RED)
+		Result |= D3DCOLORWRITEENABLE_RED;
+	if (Value & X_D3DCOLORWRITEENABLE_GREEN)
+		Result |= D3DCOLORWRITEENABLE_GREEN;
+	if (Value & X_D3DCOLORWRITEENABLE_BLUE)
+		Result |= D3DCOLORWRITEENABLE_BLUE;
+	if (Value & X_D3DCOLORWRITEENABLE_ALPHA)
+		Result |= D3DCOLORWRITEENABLE_ALPHA;
+	return Result;
+}
+
+DWORD EmuXB2PC_D3DTEXTUREOP(X_D3DTEXTUREOP Value)
+{
+	switch (Value) {
+	case X_D3DTOP_DISABLE: return D3DTOP_DISABLE;
+	case X_D3DTOP_SELECTARG1: return D3DTOP_SELECTARG1;
+	case X_D3DTOP_SELECTARG2: return D3DTOP_SELECTARG2;
+	case X_D3DTOP_MODULATE: return D3DTOP_MODULATE;
+	case X_D3DTOP_MODULATE2X: return D3DTOP_MODULATE2X;
+	case X_D3DTOP_MODULATE4X: return D3DTOP_MODULATE4X;
+	case X_D3DTOP_ADD: return D3DTOP_ADD;
+	case X_D3DTOP_ADDSIGNED: return D3DTOP_ADDSIGNED;
+	case X_D3DTOP_ADDSIGNED2X: return D3DTOP_ADDSIGNED2X;
+	case X_D3DTOP_SUBTRACT: return D3DTOP_SUBTRACT;
+	case X_D3DTOP_ADDSMOOTH: return D3DTOP_ADDSMOOTH;
+
+	// Linear alpha blend: Arg1*(Alpha) + Arg2*(1-Alpha)
+	case X_D3DTOP_BLENDDIFFUSEALPHA: return D3DTOP_BLENDDIFFUSEALPHA;// iterated alpha
+	case X_D3DTOP_BLENDTEXTUREALPHA: return D3DTOP_BLENDTEXTUREALPHA; // texture alpha
+	case X_D3DTOP_BLENDFACTORALPHA: return D3DTOP_BLENDFACTORALPHA; // alpha from D3DRS_TEXTUREFACTOR
+	// Linear alpha blend with pre-multiplied arg1 input: Arg1 + Arg2*(1-Alpha)
+	case X_D3DTOP_BLENDCURRENTALPHA: return D3DTOP_BLENDCURRENTALPHA; // by alpha of current color
+	case X_D3DTOP_BLENDTEXTUREALPHAPM: return D3DTOP_BLENDTEXTUREALPHAPM; // texture alpha
+
+	case X_D3DTOP_PREMODULATE: return D3DTOP_PREMODULATE;
+	case X_D3DTOP_MODULATEALPHA_ADDCOLOR: return D3DTOP_MODULATEALPHA_ADDCOLOR;
+	case X_D3DTOP_MODULATECOLOR_ADDALPHA: return D3DTOP_MODULATECOLOR_ADDALPHA;
+	case X_D3DTOP_MODULATEINVALPHA_ADDCOLOR: return D3DTOP_MODULATEINVALPHA_ADDCOLOR;
+	case X_D3DTOP_MODULATEINVCOLOR_ADDALPHA: return D3DTOP_MODULATEINVCOLOR_ADDALPHA;
+	case X_D3DTOP_DOTPRODUCT3: return D3DTOP_DOTPRODUCT3;
+	case X_D3DTOP_MULTIPLYADD: return D3DTOP_MULTIPLYADD;
+	case X_D3DTOP_LERP: return D3DTOP_LERP;
+	case X_D3DTOP_BUMPENVMAP: return D3DTOP_BUMPENVMAP;
+	case X_D3DTOP_BUMPENVMAPLUMINANCE: return D3DTOP_BUMPENVMAPLUMINANCE;
+	default:
+		return 0;
+	}
+}
+
+DWORD EmuXB2PC_D3DCLEAR_FLAGS(DWORD Value)
+{
+	DWORD Result = 0;
+	// Dxbx note : Xbox can clear A,R,G and B independently, but PC has to clear them all :
+	if (Value & X_D3DCLEAR_TARGET) Result |= D3DCLEAR_TARGET;
+	if (Value & X_D3DCLEAR_ZBUFFER)  Result |= D3DCLEAR_ZBUFFER;
+	if (Value & X_D3DCLEAR_STENCIL) Result |= D3DCLEAR_STENCIL;
+	return Result;
+}
+
+DWORD EmuXB2PC_D3DWRAP(DWORD Value)
+{
+	DWORD Result = 0;
+	if (Value & X_D3DWRAP_U) Result |= D3DWRAP_U;
+	if (Value & X_D3DWRAP_V) Result |= D3DWRAP_V;
+	if (Value & X_D3DWRAP_W) Result |= D3DWRAP_W;
+	return Result;
+}
+
+// convert from Xbox D3D to PC D3D enumeration
+D3DCULL EmuXB2PC_D3DCULL(X_D3DCULL Value)
+// TODO: XDK-Specific Tables? So far they are the same
+{
+	switch (Value)
+	{
+	case X_D3DCULL_NONE:
+		return D3DCULL_NONE;
+	case X_D3DCULL_CW:
+		return D3DCULL_CW;
+	case X_D3DCULL_CCW:
+		return D3DCULL_CCW;
+	default:
+		CxbxKrnlCleanup("Unknown Cullmode (%d)", Value);
+		return (D3DCULL)Value;
+	}
+}
+
+// convert xbox->pc primitive type
+D3DPRIMITIVETYPE EmuXB2PC_D3DPrimitiveType(X_D3DPRIMITIVETYPE XboxPrimitiveType)
+{
+	if ((DWORD)XboxPrimitiveType == 0x7FFFFFFF)
+		return D3DPT_FORCE_DWORD;
+
+	return EmuPrimitiveTypeLookup[XboxPrimitiveType];
+}
+
+void XTL::EmuUnswizzleRect
+(
+	PVOID pSrcBuff,
+	DWORD dwWidth,
+	DWORD dwHeight,
+	DWORD dwDepth,
+	PVOID pDstBuff,
+	DWORD dwDestPitch,
+	DWORD dwBPP // expressed in Bytes Per Pixel
+) // Source : Dxbx
+{
+	// TODO : The following could be done using a lookup table :
+	DWORD dwMaskX = 0, dwMaskY = 0, dwMaskZ = 0;
+	for (uint i = 1, j = 1; (i <= dwWidth) || (i <= dwHeight) || (i <= dwDepth); i <<= 1) {
+		if (i < dwWidth) {
+			dwMaskX = dwMaskX | j;
+			j <<= 1;
+		};
+
+		if (i < dwHeight) {
+			dwMaskY = dwMaskY | j;
+			j <<= 1;
+		}
+
+		if (i < dwDepth) {
+			dwMaskZ = dwMaskZ | j;
+			j <<= 1;
+		}
+	}
+
+	// get the biggest mask
+	DWORD dwMaskMax;
+	if (dwMaskX > dwMaskY)
+		dwMaskMax = dwMaskX;
+	else
+		dwMaskMax = dwMaskY;
+
+	if (dwMaskZ > dwMaskMax)
+		dwMaskMax = dwMaskZ;
+
+	DWORD dwStartX = 0, dwOffsetX = 0;
+	DWORD dwStartY = 0, dwOffsetY = 0;
+	DWORD dwStartZ = 0, dwOffsetW = 0;
+	/* TODO : Use values from poDst and rSrc to initialize above values, after which the following makes more sense:
+	for (uint i=1; i <= dwMaskMax; i <<= 1) {
+	if (i <= dwMaskX) {
+	if (dwMaskX & i)
+	dwStartX |= (dwOffsetX & i);
+	else
+	dwOffsetX <<= 1;
+	}
+
+	if (i <= dwMaskY) {
+	if (dwMaskY & i)
+	dwStartY |= dwOffsetY & i;
+	else
+	dwOffsetY <<= 1;
+	}
+
+	if (i <= dwMaskZ) {
+	if (dwMaskZ & i)
+	dwStartZ |= dwOffsetZ & i;
+	else
+	dwOffsetZ <<= 1;
+	}
+	}*/
+
+	DWORD dwZ = dwStartZ;
+	for (uint z = 0; z < dwDepth; z++) {
+		DWORD dwY = dwStartY;
+		for (uint y = 0; y < dwHeight; y++) {
+			DWORD dwX = dwStartX;
+			for (uint x = 0; x < dwWidth; x++) {
+				int SrcOffset = ((dwX | dwY | dwZ) * dwBPP);
+				memcpy(pDstBuff, (PBYTE)pSrcBuff + SrcOffset, dwBPP); // copy one pixel
+				pDstBuff = (PBYTE)pDstBuff + dwBPP; // Step to next pixel in destination
+				dwX = (dwX - dwMaskX) & dwMaskX; // step to next pixel in source
+			}
+
+			pDstBuff = (PBYTE)pDstBuff + dwDestPitch - (dwWidth * dwBPP); // step to next line in destination
+			dwY = (dwY - dwMaskY) & dwMaskY; // step to next line in source
+		}
+
+		// TODO : How to step to next level in destination? Should X and Y be recalculated per level?
+		dwZ = (dwZ - dwMaskZ) & dwMaskZ; // step to next level in source
+	}
+} // EmuUnswizzleRect NOPATCH
+
+// Convert a 'method' DWORD into it's associated 'pixel-shader' or 'simple' render state.
+XTL::X_D3DRENDERSTATETYPE XTL::DxbxXboxMethodToRenderState(const X_NV2AMETHOD aMethod)
+{
+	// TODO : The list below is incomplete - use DxbxRenderStateInfo to complete this.
+
+	// Dxbx note : Let the compiler sort this out, should be much quicker :
+	switch (aMethod & NV2A_METHOD_MASK)
+	{
+	case /*0x00000100*/NV2A_NOP: return X_D3DRS_PS_RESERVED; // XDK 3424 uses 0x00000100 (NOP), while 3911 onwards uses 0x00001d90 (SET_COLOR_CLEAR_VALUE)
+	case /*0x000002A4*/NV2A_FOG_ENABLE: return X_D3DRS_FOGENABLE;
+	case /*0x00000260*/NV2A_RC_IN_ALPHA(0): return X_D3DRS_PSALPHAINPUTS0;
+	case /*0x00000264*/NV2A_RC_IN_ALPHA(1): return X_D3DRS_PSALPHAINPUTS1;
+	case /*0x00000268*/NV2A_RC_IN_ALPHA(2): return X_D3DRS_PSALPHAINPUTS2;
+	case /*0x0000026c*/NV2A_RC_IN_ALPHA(3): return X_D3DRS_PSALPHAINPUTS3;
+	case /*0x00000270*/NV2A_RC_IN_ALPHA(4): return X_D3DRS_PSALPHAINPUTS4;
+	case /*0x00000274*/NV2A_RC_IN_ALPHA(5): return X_D3DRS_PSALPHAINPUTS5;
+	case /*0x00000278*/NV2A_RC_IN_ALPHA(6): return X_D3DRS_PSALPHAINPUTS6;
+	case /*0x0000027c*/NV2A_RC_IN_ALPHA(7): return X_D3DRS_PSALPHAINPUTS7;
+	case /*0x00000288*/NV2A_RC_FINAL0: return X_D3DRS_PSFINALCOMBINERINPUTSABCD;
+	case /*0x0000028c*/NV2A_RC_FINAL1: return X_D3DRS_PSFINALCOMBINERINPUTSEFG;
+		//    case /*0x00000294*/NV2A_LIGHT_MODEL: Result := X_D3DRS_LIGHTING; ??
+	case /*0x00000300*/NV2A_ALPHA_FUNC_ENABLE: return X_D3DRS_ALPHATESTENABLE;
+	case /*0x00000304*/NV2A_BLEND_FUNC_ENABLE: return X_D3DRS_ALPHABLENDENABLE;
+	case /*0x0000030C*/NV2A_DEPTH_TEST_ENABLE: return X_D3DRS_ZENABLE;
+	case /*0x00000310*/NV2A_DITHER_ENABLE: return X_D3DRS_DITHERENABLE;
+		//    case /*0x00000314*/NV2A_LIGHTING_ENABLE: Result := X_D3DRS_LIGHTING; ??
+	case /*0x00000318*/NV2A_POINT_PARAMETERS_ENABLE: return X_D3DRS_POINTSCALEENABLE;
+	case /*0x0000031C*/NV2A_POINT_SMOOTH_ENABLE: return X_D3DRS_POINTSPRITEENABLE;
+	case /*0x00000328*/NV2A_SKIN_MODE: return X_D3DRS_VERTEXBLEND;
+	case /*0x0000032C*/NV2A_STENCIL_ENABLE: return X_D3DRS_STENCILENABLE;
+	case /*0x00000330*/NV2A_POLYGON_OFFSET_POINT_ENABLE: return X_D3DRS_POINTOFFSETENABLE;
+	case /*0x00000334*/NV2A_POLYGON_OFFSET_LINE_ENABLE: return X_D3DRS_WIREFRAMEOFFSETENABLE;
+	case /*0x00000338*/NV2A_POLYGON_OFFSET_FILL_ENABLE: return X_D3DRS_SOLIDOFFSETENABLE;
+	case /*0x0000033c*/NV2A_ALPHA_FUNC_FUNC: return X_D3DRS_ALPHAFUNC;
+	case /*0x00000340*/NV2A_ALPHA_FUNC_REF: return X_D3DRS_ALPHAREF;
+	case /*0x00000344*/NV2A_BLEND_FUNC_SRC: return X_D3DRS_SRCBLEND;
+	case /*0x00000348*/NV2A_BLEND_FUNC_DST: return X_D3DRS_DESTBLEND;
+	case /*0x0000034c*/NV2A_BLEND_COLOR: return X_D3DRS_BLENDCOLOR;
+	case /*0x00000350*/NV2A_BLEND_EQUATION: return X_D3DRS_BLENDOP;
+	case /*0x00000354*/NV2A_DEPTH_FUNC: return X_D3DRS_ZFUNC;
+	case /*0x00000358*/NV2A_COLOR_MASK: return X_D3DRS_COLORWRITEENABLE;
+	case /*0x0000035c*/NV2A_DEPTH_WRITE_ENABLE: return X_D3DRS_ZWRITEENABLE;
+	case /*0x00000360*/NV2A_STENCIL_MASK: return X_D3DRS_STENCILWRITEMASK;
+	case /*0x00000364*/NV2A_STENCIL_FUNC_FUNC: return X_D3DRS_STENCILFUNC;
+	case /*0x00000368*/NV2A_STENCIL_FUNC_REF: return X_D3DRS_STENCILREF;
+	case /*0x0000036c*/NV2A_STENCIL_FUNC_MASK: return X_D3DRS_STENCILMASK;
+	case /*0x00000374*/NV2A_STENCIL_OP_ZFAIL: return X_D3DRS_STENCILZFAIL;
+	case /*0x00000378*/NV2A_STENCIL_OP_ZPASS: return X_D3DRS_STENCILPASS;
+	case /*0x0000037c*/NV2A_SHADE_MODEL: return X_D3DRS_SHADEMODE;
+	case /*0x00000380*/NV2A_LINE_WIDTH: return X_D3DRS_LINEWIDTH;
+	case /*0x00000384*/NV2A_POLYGON_OFFSET_FACTOR: return X_D3DRS_POLYGONOFFSETZSLOPESCALE;
+	case /*0x00000388*/NV2A_POLYGON_OFFSET_UNITS: return X_D3DRS_POLYGONOFFSETZOFFSET;
+	case /*0x0000038c*/NV2A_POLYGON_MODE_FRONT: return X_D3DRS_FILLMODE;
+	case /*0x000003A0*/NV2A_FRONT_FACE: return X_D3DRS_FRONTFACE;
+	case /*0x000003A4*/NV2A_NORMALIZE_ENABLE: return X_D3DRS_NORMALIZENORMALS;
+	case /*0x000009f8*/NV2A_SWATH_WIDTH: return X_D3DRS_SWATHWIDTH;
+	case /*0x00000a60*/NV2A_RC_CONSTANT_COLOR0(0): return X_D3DRS_PSCONSTANT0_0;
+	case /*0x00000a64*/NV2A_RC_CONSTANT_COLOR0(1): return X_D3DRS_PSCONSTANT0_1;
+	case /*0x00000a68*/NV2A_RC_CONSTANT_COLOR0(2): return X_D3DRS_PSCONSTANT0_2;
+	case /*0x00000a6c*/NV2A_RC_CONSTANT_COLOR0(3): return X_D3DRS_PSCONSTANT0_3;
+	case /*0x00000a70*/NV2A_RC_CONSTANT_COLOR0(4): return X_D3DRS_PSCONSTANT0_4;
+	case /*0x00000a74*/NV2A_RC_CONSTANT_COLOR0(5): return X_D3DRS_PSCONSTANT0_5;
+	case /*0x00000a78*/NV2A_RC_CONSTANT_COLOR0(6): return X_D3DRS_PSCONSTANT0_6;
+	case /*0x00000a7c*/NV2A_RC_CONSTANT_COLOR0(7): return X_D3DRS_PSCONSTANT0_7;
+	case /*0x00000a80*/NV2A_RC_CONSTANT_COLOR1(0): return X_D3DRS_PSCONSTANT1_0;
+	case /*0x00000a84*/NV2A_RC_CONSTANT_COLOR1(1): return X_D3DRS_PSCONSTANT1_1;
+	case /*0x00000a88*/NV2A_RC_CONSTANT_COLOR1(2): return X_D3DRS_PSCONSTANT1_2;
+	case /*0x00000a8c*/NV2A_RC_CONSTANT_COLOR1(3): return X_D3DRS_PSCONSTANT1_3;
+	case /*0x00000a90*/NV2A_RC_CONSTANT_COLOR1(4): return X_D3DRS_PSCONSTANT1_4;
+	case /*0x00000a94*/NV2A_RC_CONSTANT_COLOR1(5): return X_D3DRS_PSCONSTANT1_5;
+	case /*0x00000a98*/NV2A_RC_CONSTANT_COLOR1(6): return X_D3DRS_PSCONSTANT1_6;
+	case /*0x00000a9c*/NV2A_RC_CONSTANT_COLOR1(7): return X_D3DRS_PSCONSTANT1_7;
+	case /*0x00000aa0*/NV2A_RC_OUT_ALPHA(0): return X_D3DRS_PSALPHAOUTPUTS0;
+	case /*0x00000aa4*/NV2A_RC_OUT_ALPHA(1): return X_D3DRS_PSALPHAOUTPUTS1;
+	case /*0x00000aa8*/NV2A_RC_OUT_ALPHA(2): return X_D3DRS_PSALPHAOUTPUTS2;
+	case /*0x00000aac*/NV2A_RC_OUT_ALPHA(3): return X_D3DRS_PSALPHAOUTPUTS3;
+	case /*0x00000ab0*/NV2A_RC_OUT_ALPHA(4): return X_D3DRS_PSALPHAOUTPUTS4;
+	case /*0x00000ab4*/NV2A_RC_OUT_ALPHA(5): return X_D3DRS_PSALPHAOUTPUTS5;
+	case /*0x00000ab8*/NV2A_RC_OUT_ALPHA(6): return X_D3DRS_PSALPHAOUTPUTS6;
+	case /*0x00000abc*/NV2A_RC_OUT_ALPHA(7): return X_D3DRS_PSALPHAOUTPUTS7;
+	case /*0x00000ac0*/NV2A_RC_IN_RGB(0): return X_D3DRS_PSRGBINPUTS0;
+	case /*0x00000ac4*/NV2A_RC_IN_RGB(1): return X_D3DRS_PSRGBINPUTS1;
+	case /*0x00000ac8*/NV2A_RC_IN_RGB(2): return X_D3DRS_PSRGBINPUTS2;
+	case /*0x00000acc*/NV2A_RC_IN_RGB(3): return X_D3DRS_PSRGBINPUTS3;
+	case /*0x00000ad0*/NV2A_RC_IN_RGB(4): return X_D3DRS_PSRGBINPUTS4;
+	case /*0x00000ad4*/NV2A_RC_IN_RGB(5): return X_D3DRS_PSRGBINPUTS5;
+	case /*0x00000ad8*/NV2A_RC_IN_RGB(6): return X_D3DRS_PSRGBINPUTS6;
+	case /*0x00000adc*/NV2A_RC_IN_RGB(7): return X_D3DRS_PSRGBINPUTS7;
+	case /*0x0000147c*/NV2A_POLYGON_STIPPLE_ENABLE: return X_D3DRS_STIPPLEENABLE;
+	case /*0x000017f8*/NV2A_TX_SHADER_CULL_MODE: return X_D3DRS_PSCOMPAREMODE;
+	case /*0x00001d78*/NV2A_DEPTHCLIPCONTROL: return X_D3DRS_DEPTHCLIPCONTROL;
+	case /*0x00001d7c*/NV2A_MULTISAMPLE_CONTROL: return X_D3DRS_MULTISAMPLEANTIALIAS; // Also send by D3DRS_MULTISAMPLEMASK (both values in 1 command)
+	case /*0x00001d84*/NV2A_OCCLUDE_ZSTENCIL_EN: return X_D3DRS_OCCLUSIONCULLENABLE;
+
+		//    /*0x00001d90*/NV2A_CLEAR_VALUE: Result := X_D3DRS_SIMPLE_UNUSED1;
+		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED2;
+		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED3;
+		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED4;
+		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED5;
+		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED6;
+		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED7;
+		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED8;
+	case /*0x00001e20*/NV2A_RC_COLOR0: return X_D3DRS_PSFINALCOMBINERCONSTANT0;
+	case /*0x00001e24*/NV2A_RC_COLOR1: return X_D3DRS_PSFINALCOMBINERCONSTANT1;
+	case /*0x00001e40*/NV2A_RC_OUT_RGB(0): return X_D3DRS_PSRGBOUTPUTS0;
+	case /*0x00001e44*/NV2A_RC_OUT_RGB(1): return X_D3DRS_PSRGBOUTPUTS1;
+	case /*0x00001e48*/NV2A_RC_OUT_RGB(2): return X_D3DRS_PSRGBOUTPUTS2;
+	case /*0x00001e4c*/NV2A_RC_OUT_RGB(3): return X_D3DRS_PSRGBOUTPUTS3;
+	case /*0x00001e50*/NV2A_RC_OUT_RGB(4): return X_D3DRS_PSRGBOUTPUTS4;
+	case /*0x00001e54*/NV2A_RC_OUT_RGB(5): return X_D3DRS_PSRGBOUTPUTS5;
+	case /*0x00001e58*/NV2A_RC_OUT_RGB(6): return X_D3DRS_PSRGBOUTPUTS6;
+	case /*0x00001e5c*/NV2A_RC_OUT_RGB(7): return X_D3DRS_PSRGBOUTPUTS7;
+	case /*0x00001e60*/NV2A_RC_ENABLE: return X_D3DRS_PSCOMBINERCOUNT;
+	case /*0x00001e6c*/NV2A_TX_RCOMP: return X_D3DRS_SHADOWFUNC;
+	case /*0x00001e74*/NV2A_TX_SHADER_DOTMAPPING: return X_D3DRS_PSDOTMAPPING;
+	case /*0x00001e78*/NV2A_TX_SHADER_PREVIOUS: return X_D3DRS_PSINPUTTEXTURE;
+		// Missing : 0x0000????: Result := X_D3DRS_PSTEXTUREMODES;
+	default:
+		return X_D3DRS_UNK; // Note : Dxbx returns ~0;
+	}
+}
 
 }; // end of namespace XTL 

@@ -5,7 +5,7 @@
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
 // *  ,;;;'````'    `;;;,  .,;;  ;;;'';;'   `;;;,  .,;;
 // *  [[[             '[[,,[['   [[[__[[\.    '[[,,[['
-// *  0x0x0x              Y0x0x0xP     0x0x""""Y0x0x     Y0x0x0xP
+// *  $$$              Y$$$P     $$""""Y$$     Y$$$P
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
@@ -113,7 +113,7 @@ void DxbxBuildRenderStateMappingTable()
 	{
 		// Calculate the location of D3DDeferredRenderState via an XDK-dependent offset to _D3D__RenderState :
 		EmuD3DDeferredRenderState = _D3D__RenderState;
-		// Dxbx note : XTL_EmuD3DDeferredRenderState:PDWORDs cast to UIntPtr to avoid incrementing with that many array-sizes!
+		// Dxbx note : XTL::EmuD3DDeferredRenderState:PDWORDs cast to UIntPtr to avoid incrementing with that many array-sizes!
 		EmuD3DDeferredRenderState += sizeof(DWORD) * DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
 		DbgPrintf("HLE: 0x%.08X -> EmuD3DDeferredRenderState", EmuD3DDeferredRenderState);
 	}
@@ -151,7 +151,7 @@ const DWORD OLD_X_D3DTSS_ALPHAKILL = 21;
 // For 3925, the actual D3DTSS flags have different values.
 // This function maps new indexes to old ones, so that we
 // can read a specific member from the emulated XBE's
-// XTL_EmuD3DDeferredTextureState buffer.
+// XTL::EmuD3DDeferredTextureState buffer.
 X_D3DTEXTURESTAGESTATETYPE DxbxFromNewVersion_D3DTSS(const X_D3DTEXTURESTAGESTATETYPE NewValue)
 {
 	X_D3DTEXTURESTAGESTATETYPE Result = NewValue;

@@ -1784,7 +1784,7 @@ static DWORD WINAPI EmuUpdateTickCount(LPVOID)
 
         // trigger vblank callback
         {
-            g_VBData.VBlank++;
+            g_VBData.VBlankCounter++;
 
 			// TODO: Fixme.  This may not be right...
 			g_SwapData.SwapVBlank = 1;
@@ -1796,7 +1796,7 @@ static DWORD WINAPI EmuUpdateTickCount(LPVOID)
                     
             }
 
-            g_VBData.Swap = 0;
+            g_VBData.SwapCounter = 0;
 
 			// TODO: This can't be accurate...
 			g_SwapData.TimeUntilSwapVBlank = 0;
@@ -2642,8 +2642,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayFieldStatus)(X_D3DFIELD_STATUS *pF
 	LOG_FUNC_ONE_ARG(pFieldStatus);
 
 #if 1
-    pFieldStatus->Field = (g_VBData.VBlank%2 == 0) ? X_D3DFIELD_ODD : X_D3DFIELD_EVEN;
-    pFieldStatus->VBlankCount = g_VBData.VBlank;
+    pFieldStatus->Field = (g_VBData.VBlankCounter%2 == 0) ? X_D3DFIELD_ODD : X_D3DFIELD_EVEN;
+    pFieldStatus->VBlankCount = g_VBData.VBlankCounter;
 #else
 	pFieldStatus->Field = X_D3DFIELD_PROGRESSIVE;
 	pFieldStatus->VBlankCount = 0;
@@ -2761,7 +2761,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVisibilityTestResult)
 #if 0 // patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDeviceCaps)
 (
-    D3DCAPS8                   *pCaps
+    X_D3DCAPS                   *pCaps
 )
 {
 	FUNC_EXPORTS
@@ -4961,23 +4961,21 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 		LOG_FUNC_END;
 
     // make adjustments to parameters to make sense with windows d3d
-    DWORD PCFlags = 0;
+    DWORD PCFlags = EmuXB2PC_D3DCLEAR_FLAGS(Flags);
     {
 
 		if (Flags & X_D3DCLEAR_TARGET) {
 			// TODO: D3DCLEAR_TARGET_A, *R, *G, *B don't exist on windows
 			if ((Flags & X_D3DCLEAR_TARGET) != X_D3DCLEAR_TARGET)
 				EmuWarning("Unsupported : Partial D3DCLEAR_TARGET flag(s) for D3DDevice_Clear : 0x%.08X", Flags & X_D3DCLEAR_TARGET);
-		
-			PCFlags |= D3DCLEAR_TARGET;
 		}
 
         // Do not needlessly clear Z Buffer
 		if (Flags & X_D3DCLEAR_ZBUFFER) {
-			if (g_bHasDepthBits)
-				PCFlags |= D3DCLEAR_ZBUFFER;
-			else
+			if (!g_bHasDepthBits) {
+				PCFlags &= ~D3DCLEAR_ZBUFFER;
 				EmuWarning("Ignored D3DCLEAR_ZBUFFER flag (there's no Depth component in the DepthStencilSurface)");
+			}
 		}
 
 		// Only clear depth buffer and stencil if present
@@ -4985,10 +4983,10 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 		// Avoids following DirectX Debug Runtime error report
 		//    [424] Direct3D8: (ERROR) :Invalid flag D3DCLEAR_ZBUFFER: no zbuffer is associated with device. Clear failed. 
 		if (Flags & X_D3DCLEAR_STENCIL) {
-			if (g_bHasStencilBits)
-				PCFlags |= D3DCLEAR_STENCIL;
-			else
+			if (!g_bHasStencilBits) {
+				PCFlags &= ~D3DCLEAR_STENCIL;
 				EmuWarning("Ignored D3DCLEAR_STENCIL flag (there's no Stencil component in the DepthStencilSurface)");
+			}
 		}
 
         if(Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL))
@@ -5082,9 +5080,9 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
 
 		// TODO : Check if this should be done at Swap-not-Present-time too :
 		// not really accurate because you definately dont always present on every vblank
-		g_VBData.Swap = g_VBData.VBlank;
+		g_VBData.SwapCounter = g_VBData.VBlankCounter;
 
-		if (g_VBData.VBlank == g_VBLastSwap + 1)
+		if (g_VBData.VBlankCounter == g_VBLastSwap + 1)
 			g_VBData.Flags = 1; // D3DVBLANK_SWAPDONE
 		else
 		{
@@ -6097,7 +6095,7 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
 	}
 
 	pDesc->Size = PixelJar.MipMapOffsets[dwLevel + 1] - PixelJar.MipMapOffsets[dwLevel];
-	pDesc->MultiSampleType = (XTL::D3DMULTISAMPLE_TYPE)X_D3DMULTISAMPLE_NONE; // TODO : If this is the active backbuffer, use the devices' multi sampling
+	pDesc->MultiSampleType = X_D3DMULTISAMPLE_NONE; // TODO : If this is the active backbuffer, use the devices' multi sampling
 	pDesc->Width = PixelJar.dwWidth >> dwLevel; // ??
 	pDesc->Height = PixelJar.dwHeight >> dwLevel; // ??
 }
@@ -7370,7 +7368,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Deferred)
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTransform)
 (
-    D3DTRANSFORMSTATETYPE State,
+	X_D3DTRANSFORMSTATETYPE State,
     CONST D3DMATRIX      *pMatrix
 )
 {
@@ -7402,9 +7400,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTransform)
     }
     */
 
-    State = EmuXB2PC_D3DTS(State);
+	D3DTRANSFORMSTATETYPE PCState = EmuXB2PC_D3DTS(State);
 
-    HRESULT hRet = g_pD3DDevice8->SetTransform(State, pMatrix);
+    HRESULT hRet = g_pD3DDevice8->SetTransform(PCState, pMatrix);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTransform");    
 
     return hRet;
@@ -7412,7 +7410,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTransform)
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetTransform)
 (
-    D3DTRANSFORMSTATETYPE State,
+	X_D3DTRANSFORMSTATETYPE State,
     D3DMATRIX            *pMatrix
 )
 {
@@ -7423,9 +7421,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetTransform)
 		LOG_FUNC_ARG(pMatrix)
 		LOG_FUNC_END;
 
-    State = EmuXB2PC_D3DTS(State);
+	D3DTRANSFORMSTATETYPE PCState = EmuXB2PC_D3DTS(State);
 
-    HRESULT hRet = g_pD3DDevice8->GetTransform(State, pMatrix);
+    HRESULT hRet = g_pD3DDevice8->GetTransform(PCState, pMatrix);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetTransform");    
 
     return hRet;
@@ -7888,7 +7886,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 			if (VPDesc.XboxPrimitiveType == X_D3DPT_LINELOOP)
 			{
 				EmuWarning("Unsupported PrimitiveType! (%d)", (DWORD)PrimitiveType);
-				//CxbxKrnlCleanup("XTL_EmuD3DDevice_DrawIndexedVertices : X_D3DPT_LINELOOP not unsupported yet!");
+				//CxbxKrnlCleanup("XTL::EmuD3DDevice_DrawIndexedVertices : X_D3DPT_LINELOOP not unsupported yet!");
 				// TODO : Close line-loops using a final single line, drawn from the end to the start vertex
 			}
 		}
@@ -8699,7 +8697,7 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CheckDeviceMultiSampleType)
     D3DDEVTYPE           DeviceType,
     X_D3DFORMAT          SurfaceFormat,
     BOOL                 Windowed,
-    D3DMULTISAMPLE_TYPE  MultiSampleType
+    X_D3DMULTISAMPLE_TYPE  MultiSampleType
 )
 {
 	FUNC_EXPORTS
@@ -8745,7 +8743,7 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CheckDeviceMultiSampleType)
         Windowed = FALSE;
 
     // TODO: Convert from Xbox to PC!!
-    D3DMULTISAMPLE_TYPE PCMultiSampleType = EmuXB2PC_D3DMultiSampleFormat((DWORD) MultiSampleType);
+    D3DMULTISAMPLE_TYPE PCMultiSampleType = EmuXB2PC_D3DMULTISAMPLE_TYPE(MultiSampleType);
 
     // Now call the real CheckDeviceMultiSampleType with the corrected parameters.
     HRESULT hRet = g_pD3D8->CheckDeviceMultiSampleType
@@ -8768,7 +8766,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_GetDeviceCaps)
 (
     UINT        Adapter,
     D3DDEVTYPE  DeviceType,
-    D3DCAPS8    *pCaps
+    X_D3DCAPS   *pCaps
 )
 {
 	FUNC_EXPORTS
@@ -9425,7 +9423,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_GetAdapterIdentifier)
 (
 	UINT					Adapter,
 	DWORD					Flags,
-	D3DADAPTER_IDENTIFIER8* pIdentifier
+	X_D3DADAPTER_IDENTIFIER *pIdentifier
 )
 {
 	FUNC_EXPORTS

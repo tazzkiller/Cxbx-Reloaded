@@ -72,56 +72,86 @@ extern BOOL EmuXBFormatIsRenderTarget(X_D3DFORMAT Format);
 // is this format a valid depth buffer?
 extern BOOL EmuXBFormatIsDepthBuffer(X_D3DFORMAT Format);
 
-// convert from xbox to pc color formats
-extern D3DFORMAT EmuXB2PC_D3DFormat(X_D3DFORMAT Format);
+extern std::string BOOL2String(DWORD Value);
+
+extern std::string DxbxXBDefaultToString(DWORD Value);
+
+// TODO : Back-port these
+#define X_D3DBLEND2String DxbxXBDefaultToString
+#define X_D3DBLENDOP2String DxbxXBDefaultToString
+#define X_D3DCLEAR2String DxbxXBDefaultToString
+#define X_D3DCMPFUNC2String DxbxXBDefaultToString
+#define X_D3DCOLORWRITEENABLE2String DxbxXBDefaultToString
+#define X_D3DCUBEMAP_FACES2String DxbxXBDefaultToString
+#define X_D3DCULL2String DxbxXBDefaultToString
+#define X_D3DDCC2String DxbxXBDefaultToString
+#define X_D3DFILLMODE2String DxbxXBDefaultToString
+#define X_D3DFOGMODE2String DxbxXBDefaultToString
+#define X_D3DFORMAT2String DxbxXBDefaultToString
+#define X_D3DFRONT2String DxbxXBDefaultToString
+#define X_D3DLOGICOP2String DxbxXBDefaultToString
+#define X_D3DMCS2String DxbxXBDefaultToString
+#define X_D3DMULTISAMPLE_TYPE2String DxbxXBDefaultToString
+#define X_D3DMULTISAMPLEMODE2String DxbxXBDefaultToString
+#define X_D3DPRIMITIVETYPE2String DxbxXBDefaultToString
+#define X_D3DRESOURCETYPE2String DxbxXBDefaultToString
+#define X_D3DSAMPLEALPHA2String DxbxXBDefaultToString
+#define X_D3DSHADEMODE2String DxbxXBDefaultToString
+#define X_D3DSTENCILOP2String DxbxXBDefaultToString
+#define X_D3DSWATH2String DxbxXBDefaultToString
+#define X_D3DTEXTUREADDRESS2String DxbxXBDefaultToString
+#define X_D3DTEXTUREOP2String DxbxXBDefaultToString
+#define X_D3DTEXTURESTAGESTATETYPE2String DxbxXBDefaultToString
+#define X_D3DTRANSFORMSTATETYPE2String DxbxXBDefaultToString
+#define X_D3DVERTEXBLENDFLAGS2String DxbxXBDefaultToString
+#define X_D3DVSDE2String DxbxXBDefaultToString
+#define X_D3DWRAP2String DxbxXBDefaultToString
+
+extern std::string DWFloat2String(DWORD Value);
+
+extern DWORD DxbxXB2PC_NOP(DWORD Value);
+
 
 // convert from pc to xbox color formats
 extern X_D3DFORMAT EmuPC2XB_D3DFormat(D3DFORMAT Format);
 
-// convert from xbox to pc d3d lock flags
-extern DWORD EmuXB2PC_D3DLock(DWORD Flags);
-
-// convert from xbox to pc multisample formats
-extern D3DMULTISAMPLE_TYPE EmuXB2PC_D3DMultiSampleFormat(DWORD Type);
-
-/**
-// convert from pc to xbox texture transform state types (unnecessary so far)
-if((uint32)State < 4)
-    State = (D3DTRANSFORMSTATETYPE)(State - 2);
-else if((uint32)State < 20)
-    State = (D3DTRANSFORMSTATETYPE)(State - 14);
-else if((uint32)State > 255)
-    State = (D3DTRANSFORMSTATETYPE)(State - 250);
-else
-    CxbxKrnlCleanup("Unknown Transform State Type (%d)", State);
-//*/
-
-// convert from xbox to pc texture transform state types
-extern D3DTRANSFORMSTATETYPE EmuXB2PC_D3DTS(D3DTRANSFORMSTATETYPE State);
-
-// convert from xbox to pc blend ops
-extern D3DBLENDOP EmuXB2PC_D3DBLENDOP(X_D3DBLENDOP Value);
-
 // convert from xbox to pc blend types 
 extern D3DBLEND EmuXB2PC_D3DBLEND(X_D3DBLEND Value);
-
+// convert from xbox to pc blend ops
+extern D3DBLENDOP EmuXB2PC_D3DBLENDOP(X_D3DBLENDOP Value);
+extern DWORD EmuXB2PC_D3DCLEAR_FLAGS(DWORD Value);
 // convert from xbox to pc comparison functions
 extern D3DCMPFUNC EmuXB2PC_D3DCMPFUNC(X_D3DCMPFUNC Value);
-
+extern DWORD EmuXB2PC_D3DCOLORWRITEENABLE(X_D3DCOLORWRITEENABLE Value);
+// convert from Xbox D3D to PC D3D enumeration
+extern D3DCULL EmuXB2PC_D3DCULL(X_D3DCULL Value);
 // convert from xbox to pc fill modes
 extern D3DFILLMODE EmuXB2PC_D3DFILLMODE(X_D3DFILLMODE Value);
-
+// convert from xbox to pc color formats
+extern D3DFORMAT EmuXB2PC_D3DFormat(X_D3DFORMAT Format);
+// convert from xbox to pc d3d lock flags
+extern DWORD EmuXB2PC_D3DLock(DWORD Flags);
+// convert from xbox to pc multisample formats
+extern D3DMULTISAMPLE_TYPE EmuXB2PC_D3DMULTISAMPLE_TYPE(X_D3DMULTISAMPLE_TYPE Type);
+// convert xbox->pc primitive type
+extern D3DPRIMITIVETYPE EmuXB2PC_D3DPrimitiveType(X_D3DPRIMITIVETYPE XboxPrimitiveType);
 // convert from xbox to pc shade modes
 extern D3DSHADEMODE EmuXB2PC_D3DSHADEMODE(X_D3DSHADEMODE Value);
-
 // convert from xbox to pc stencilop modes
 extern D3DSTENCILOP EmuXB2PC_D3DSTENCILOP(X_D3DSTENCILOP Value);
+extern DWORD EmuXB2PC_D3DTEXTUREADDRESS(DWORD Value);
+extern DWORD EmuXB2PC_D3DTEXTUREFILTERTYPE(DWORD Value);
+extern DWORD EmuXB2PC_D3DTEXTUREOP(X_D3DTEXTUREOP Value);
+// convert from xbox to pc texture transform state types
+extern D3DTRANSFORMSTATETYPE EmuXB2PC_D3DTS(X_D3DTRANSFORMSTATETYPE State);
+// convert from xbox to pc texture stage state
+extern D3DSAMPLERSTATETYPE EmuXB2PC_D3DTSS(X_D3DTEXTURESTAGESTATETYPE Value);
+// convert from Xbox direct3d to PC direct3d enumeration
+extern D3DVERTEXBLENDFLAGS EmuXB2PC_D3DVERTEXBLENDFLAGS(X_D3DVERTEXBLENDFLAGS Value);
+extern DWORD EmuXB2PC_D3DWRAP(DWORD Value);
 
 // table used for vertex->primitive count conversion
 extern UINT EmuD3DVertexToPrimitive[11][2];
-
-// convert xbox->pc primitive type
-extern D3DPRIMITIVETYPE EmuXB2PC_D3DPrimitiveType(X_D3DPRIMITIVETYPE XboxPrimitiveType);
 
 // convert from vertex count to primitive count (Xbox)
 inline int EmuD3DVertex2PrimitiveCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int VertexCount)

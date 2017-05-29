@@ -2011,11 +2011,6 @@ static void VshConvertToken_STREAMDATA_REG(DWORD          *pToken,
     }
 }
 
-#define D3DVSD_MASK_TESSUV 0x10000000
-#define D3DVSD_MASK_SKIP 0x10000000 // Skips (normally) dwords
-#define D3DVSD_MASK_SKIPBYTES 0x08000000 // Skips bytes (no, really?!)
-
-
 static void VshConvertToken_STREAMDATA(DWORD          *pToken,
                                        boolean         IsFixedFunction,
                                        VSH_PATCH_DATA *pPatchData)
@@ -2264,7 +2259,7 @@ extern void XTL::FreeVertexDynamicPatch(VERTEX_SHADER *pVertexShader)
 extern boolean XTL::IsValidCurrentShader(void)
 {
 	// Dxbx addition : There's no need to call
-	// XTL_EmuIDirect3DDevice_GetVertexShader, just check g_CurrentVertexShader :
+	// XTL::EmuIDirect3DDevice_GetVertexShader, just check g_CurrentVertexShader :
 	return VshHandleIsValidShader(g_CurrentVertexShader);
 }
 

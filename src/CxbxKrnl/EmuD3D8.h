@@ -121,7 +121,7 @@ HRESULT WINAPI EMUPATCH(D3D_CheckDeviceFormat)
 // ******************************************************************
 VOID WINAPI EMUPATCH(D3DDevice_GetDeviceCaps)
 (
-    D3DCAPS8                   *pCaps
+    X_D3DCAPS8                   pCaps
 );
 #endif
 
@@ -1221,7 +1221,7 @@ VOID WINAPI EMUPATCH(D3DDevice_SetRenderState_YuvEnable)
 // ******************************************************************
 HRESULT WINAPI EMUPATCH(D3DDevice_SetTransform)
 (
-    D3DTRANSFORMSTATETYPE State,
+	X_D3DTRANSFORMSTATETYPE State,
     CONST D3DMATRIX      *pMatrix
 );
 
@@ -1230,7 +1230,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_SetTransform)
 // ******************************************************************
 HRESULT WINAPI EMUPATCH(D3DDevice_GetTransform)
 (
-    D3DTRANSFORMSTATETYPE State,
+	X_D3DTRANSFORMSTATETYPE State,
     D3DMATRIX            *pMatrix
 );
 
@@ -1625,7 +1625,7 @@ HRESULT WINAPI EMUPATCH(D3D_GetDeviceCaps)
 (
     UINT        Adapter,
     D3DDEVTYPE  DeviceType,
-    D3DCAPS8    *pCaps
+    X_D3DCAPS   *pCaps
 );
 #endif
 
@@ -1891,7 +1891,7 @@ HRESULT WINAPI EMUPATCH(D3D_GetAdapterIdentifier)
 (
 	UINT					Adapter,
 	DWORD					Flags,
-	D3DADAPTER_IDENTIFIER8* pIdentifier
+	X_D3DADAPTER_IDENTIFIER *pIdentifier
 );
 #endif
 
