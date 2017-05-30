@@ -394,6 +394,8 @@ const XBTypeInfo DxbxXBTypeInfo[] = {
     {"LONG",                     &DxbxXB2PC_NOP},                                               // Xbox = PC
 };
 
+#define D3DRS_NONE ((D3DRENDERSTATETYPE)0) // Marks unsupported renderstate on host 
+
 // The below list of XDK-dependent RenderStates is entirely verified for 3911, 4627, 5558, 5788, 5849 and 5933
 // XDK 4627 has a total of 143 render states,
 // XDK 5558 and higher has 165 render states.

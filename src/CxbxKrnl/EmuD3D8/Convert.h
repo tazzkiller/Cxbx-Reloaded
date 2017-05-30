@@ -72,6 +72,9 @@ extern BOOL EmuXBFormatIsRenderTarget(X_D3DFORMAT Format);
 // is this format a valid depth buffer?
 extern BOOL EmuXBFormatIsDepthBuffer(X_D3DFORMAT Format);
 
+
+//// Type-to-string conversion functions
+
 extern std::string BOOL2String(DWORD Value);
 
 extern std::string DxbxXBDefaultToString(DWORD Value);
@@ -83,18 +86,18 @@ extern std::string DxbxXBDefaultToString(DWORD Value);
 #define X_D3DCMPFUNC2String DxbxXBDefaultToString
 #define X_D3DCOLORWRITEENABLE2String DxbxXBDefaultToString
 #define X_D3DCUBEMAP_FACES2String DxbxXBDefaultToString
-#define X_D3DCULL2String DxbxXBDefaultToString
+#define X_D3DCULL2String DxbxXBDefaultToString // TYPE2STR(X_D3DCULL)
 #define X_D3DDCC2String DxbxXBDefaultToString
 #define X_D3DFILLMODE2String DxbxXBDefaultToString
 #define X_D3DFOGMODE2String DxbxXBDefaultToString
-#define X_D3DFORMAT2String DxbxXBDefaultToString
+#define X_D3DFORMAT2String DxbxXBDefaultToString // TYPE2STR(X_D3DFORMAT)
 #define X_D3DFRONT2String DxbxXBDefaultToString
 #define X_D3DLOGICOP2String DxbxXBDefaultToString
 #define X_D3DMCS2String DxbxXBDefaultToString
 #define X_D3DMULTISAMPLE_TYPE2String DxbxXBDefaultToString
 #define X_D3DMULTISAMPLEMODE2String DxbxXBDefaultToString
-#define X_D3DPRIMITIVETYPE2String DxbxXBDefaultToString
-#define X_D3DRESOURCETYPE2String DxbxXBDefaultToString
+#define X_D3DPRIMITIVETYPE2String DxbxXBDefaultToString // TYPE2STR(X_D3DPRIMITIVETYPE)
+#define X_D3DRESOURCETYPE2String DxbxXBDefaultToString // TYPE2STR(X_D3DRESOURCETYPE)
 #define X_D3DSAMPLEALPHA2String DxbxXBDefaultToString
 #define X_D3DSHADEMODE2String DxbxXBDefaultToString
 #define X_D3DSTENCILOP2String DxbxXBDefaultToString
@@ -109,8 +112,10 @@ extern std::string DxbxXBDefaultToString(DWORD Value);
 
 extern std::string DWFloat2String(DWORD Value);
 
-extern DWORD DxbxXB2PC_NOP(DWORD Value);
 
+//// Xbox-to-host conversion functions
+
+extern DWORD DxbxXB2PC_NOP(DWORD Value);
 
 // convert from pc to xbox color formats
 extern X_D3DFORMAT EmuPC2XB_D3DFormat(D3DFORMAT Format);
@@ -1716,8 +1721,6 @@ typedef struct _RenderStateInfo {
 	char *N;   // XDK notes. Defaults to ''.
 }
 RenderStateInfo;
-
-#define D3DRS_NONE ((D3DRENDERSTATETYPE)0)
 
 extern const RenderStateInfo &GetDxbxRenderStateInfo(int State);
 
