@@ -60,7 +60,7 @@ X_D3DRENDERSTATETYPE *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED + 1] = { NULL 
 // Deferred state lookup tables
 DWORD *EmuD3DDeferredRenderState = NULL;
 // Texture state lookup table (same size in all XDK versions, so defined as a fixed size array) :
-DWORD *EmuD3DDeferredTextureState = NULL; // [X_D3DTSS_STAGECOUNT][X_D3DTSS_STAGESIZE] = [(Stage * X_D3DTSS_STAGESIZE) + Offset]
+DWORD *Xbox_D3D_TextureState = NULL; // [X_D3DTSS_STAGECOUNT][X_D3DTSS_STAGESIZE] = [(Stage * X_D3DTSS_STAGESIZE) + Offset]
 
 // TODO : Set these after symbols are scanned/loaded :
 DWORD *_D3D__Device = NULL; // The Xbox1 D3D__Device
@@ -70,6 +70,10 @@ DWORD (*DxbxTextureStageStateXB2PCCallback[X_D3DTSS_LAST + 1])(DWORD Value);
 DWORD (*DxbxRenderStateXB2PCCallback[X_D3DRS_LAST + 1])(DWORD Value);
 X_D3DRENDERSTATETYPE DxbxMapActiveVersionToMostRecent[X_D3DRS_LAST + 1];
 DWORD DxbxMapMostRecentToActiveVersion[X_D3DRS_LAST + 1];
+
+// TODO : Extend RegisterAddressLabel so that it adds elements to g_SymbolAddresses too (for better debugging)
+#define RegisterAddressLabel(Address, fmt, ...) \
+	DbgPrintf("HLE : 0x%p -> "##fmt##"\n", (void *)Address, __VA_ARGS__)
 
 void DxbxBuildRenderStateMappingTable()
 {
@@ -116,7 +120,7 @@ void DxbxBuildRenderStateMappingTable()
 		// Calculate the location of D3DDeferredRenderState via an XDK-dependent offset to _D3D__RenderState :
 		DWORD XDKVersion_D3DRS_DEFERRED_FIRST = DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
 		EmuD3DDeferredRenderState = _D3D__RenderState + XDKVersion_D3DRS_DEFERRED_FIRST;
-		DbgPrintf("HLE: 0x%.08X -> EmuD3DDeferredRenderState\n", EmuD3DDeferredRenderState);
+		RegisterAddressLabel(EmuD3DDeferredRenderState, "EmuD3DDeferredRenderState");
 	}
 	else
 	{
@@ -126,12 +130,15 @@ void DxbxBuildRenderStateMappingTable()
 
 		// assert(EmuD3DDeferredRenderState != NULL);
 
-		int delta = (intptr_t)(EmuD3DDeferredRenderState - DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST]);
+		int delta = (int)(EmuD3DDeferredRenderState - DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST]);
 		for (X_D3DRENDERSTATETYPE State = X_D3DRS_FIRST; State <= X_D3DRS_LAST; State++) {
 			if (EmuMappedD3DRenderState[State] != DummyRenderState) {
 				DWORD XDKVersion_D3DRS = DxbxMapMostRecentToActiveVersion[State];
 				EmuMappedD3DRenderState[State] += delta / sizeof(DWORD); // Increment per DWORD (not per 4!)
-				DbgPrintf("HLE: 0x%.08X -> g_Device.%.20s = %d;\n", EmuMappedD3DRenderState[State], GetDxbxRenderStateInfo(State).S, XDKVersion_D3DRS);
+				RegisterAddressLabel(EmuMappedD3DRenderState[State], "D3D__RenderState[%d/*=%s*/]", 
+					XDKVersion_D3DRS,
+					GetDxbxRenderStateInfo(State).S + 2); // Skip "X_" prefix
+				// TODO : Should we label "g_Device." members too?
 			}
 		}
 
@@ -155,7 +162,7 @@ const DWORD OLD_X_D3DTSS_ALPHAKILL = 21;
 // For 3925, the actual D3DTSS flags have different values.
 // This function maps new indexes to old ones, so that we
 // can read a specific member from the emulated XBE's
-// XTL::EmuD3DDeferredTextureState buffer.
+// XTL::Xbox_D3D_TextureState buffer.
 X_D3DTEXTURESTAGESTATETYPE DxbxFromNewVersion_D3DTSS(const X_D3DTEXTURESTAGESTATETYPE NewValue)
 {
 	X_D3DTEXTURESTAGESTATETYPE Result = NewValue;
@@ -196,6 +203,19 @@ X_D3DTEXTURESTAGESTATETYPE DxbxFromOldVersion_D3DTSS(const X_D3DTEXTURESTAGESTAT
 	return Result;
 }
 
+void CxbxInitializeTextureStageStates()
+{
+	for (int Stage = X_D3DTSS_FIRST; Stage <= X_D3DTSS_STAGECOUNT; Stage++) {
+		for (X_D3DTEXTURESTAGESTATETYPE State = X_D3DTSS_FIRST; State <= X_D3DTSS_LAST; State++) {
+			DWORD NewVersion_TSS = DxbxFromOldVersion_D3DTSS(State); // Map old to new
+			void *Addr = &(Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + State]);
+			RegisterAddressLabel(Addr, "D3D__TextureState[/*Stage*/%d][%d/*=%s*/]",
+				Stage, State,
+				DxbxTextureStageStateInfo[NewVersion_TSS].S + 2); // Skip "X_" prefix
+		}
+	}
+}
+
 DWORD TransferredValues[X_D3DRS_LAST + 1] = { X_D3DRS_UNK };
 
 DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue)
@@ -212,7 +232,7 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	// Check if the render state is mapped :
 	if (EmuMappedD3DRenderState[XboxRenderState] == DummyRenderState)
 	{
-		CxbxKrnlCleanup("Unsupported RenderState : %s (0x%.08X)", DxbxRenderStateInfo.S, (int)XboxRenderState);
+		CxbxKrnlCleanup("Unsupported RenderState : %s (0x%p)", DxbxRenderStateInfo.S, (DWORD)XboxRenderState);
 		return XboxValue;
 	}
 
@@ -363,7 +383,7 @@ HRESULT DxbxTransferTextureStageState(int Stage, X_D3DTEXTURESTAGESTATETYPE Stat
 		// TODO -oDxbx : Emulate these Xbox extensions somehow
 		return Result;
 
-	XboxValue = EmuD3DDeferredTextureState[(Stage * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(State)];
+	XboxValue = Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(State)];
 	if (XboxValue == X_D3DTSS_UNK)
 		return Result;
 
@@ -411,7 +431,7 @@ void DxbxUpdateDeferredStates()
 	TransferAll = false; // TODO : When do we need to reset this to True?
 
 	// Certain D3DTS values need to be checked on each Draw[Indexed]^Vertices
-	if (EmuD3DDeferredTextureState == nullptr)
+	if (Xbox_D3D_TextureState == nullptr)
 		return;
 
 	if (*EmuMappedD3DRenderState[X_D3DRS_POINTSPRITEENABLE] == (DWORD)TRUE) // Dxbx note : DWord cast to prevent warning
@@ -480,6 +500,8 @@ void DxbxUpdateDeferredStates()
 
 void InitD3DDeferredStates()
 {
+	CxbxInitializeTextureStageStates();
+
 	DxbxBuildRenderStateMappingTable();
 
 	for (int v = 0; v < 44; v++) {
@@ -488,7 +510,7 @@ void InitD3DDeferredStates()
 
 	for (int s = 0; s < X_D3DTSS_STAGECOUNT; s++) {
 		for (int v = 0; v < X_D3DTSS_STAGESIZE; v++)
-			EmuD3DDeferredTextureState[(s * X_D3DTSS_STAGESIZE) + v] = X_D3DTSS_UNK;
+			Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + v] = X_D3DTSS_UNK;
 	}
 }
 
