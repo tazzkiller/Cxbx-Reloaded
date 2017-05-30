@@ -134,7 +134,7 @@ extern DWORD EmuXB2PC_D3DLock(DWORD Flags);
 // convert from xbox to pc multisample formats
 extern D3DMULTISAMPLE_TYPE EmuXB2PC_D3DMULTISAMPLE_TYPE(X_D3DMULTISAMPLE_TYPE Value);
 // convert xbox->pc primitive type
-extern D3DPRIMITIVETYPE EmuXB2PC_D3DPrimitiveType(X_D3DPRIMITIVETYPE XboxPrimitiveType);
+extern D3DPRIMITIVETYPE EmuXB2PC_D3DPrimitiveType(X_D3DPRIMITIVETYPE Value);
 // convert from xbox to pc shade modes
 extern D3DSHADEMODE EmuXB2PC_D3DSHADEMODE(X_D3DSHADEMODE Value);
 // convert from xbox to pc stencilop modes
@@ -164,9 +164,6 @@ inline int EmuD3DPrimitive2VertexCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int
 {
     return (PrimitiveCount * EmuD3DVertexToPrimitive[XboxPrimitiveType][0]) + EmuD3DVertexToPrimitive[XboxPrimitiveType][1];
 }
-
-// conversion table for xbox->pc primitive types
-extern D3DPRIMITIVETYPE EmuPrimitiveTypeLookup[];
 
 extern void EmuUnswizzleRect
 (
@@ -1654,7 +1651,7 @@ extern void EmuUnswizzleRect
 #define  NV2A_VIEWPORT_TRANSLATE_Z							0x00001f08
 #define  NV2A_VIEWPORT_TRANSLATE_W							0x00001f0c
 
-#define NV2A_METHOD_MASK 0x00001FFC
+#define NV2A_METHOD_MASK 0x00001FFC // Cxbx addition
 
 typedef enum _TXBType {
 	xt_Unknown = 0, // Defined as zero, to coincide with default value of DxbxRenderStateInfo.T and DxbxTextureStageStateInfo.T

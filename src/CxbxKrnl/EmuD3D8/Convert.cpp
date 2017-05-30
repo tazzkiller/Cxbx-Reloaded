@@ -315,22 +315,6 @@ UINT EmuD3DVertexToPrimitive[X_D3DPT_POLYGON + 1][2] =
 	{ 1, 0 }, // X_D3DPT_POLYGON
 };
 
-// conversion table for xbox->pc primitive types
-D3DPRIMITIVETYPE EmuPrimitiveTypeLookup[] =
-{
-	/* NULL                   = 0         */ (D3DPRIMITIVETYPE)0,
-	/* X_D3DPT_POINTLIST      = 1,        */ D3DPT_POINTLIST,
-	/* X_D3DPT_LINELIST       = 2,        */ D3DPT_LINELIST,
-	/* X_D3DPT_LINELOOP       = 3,  Xbox  */ D3DPT_LINESTRIP,
-	/* X_D3DPT_LINESTRIP      = 4,        */ D3DPT_LINESTRIP,
-	/* X_D3DPT_TRIANGLELIST   = 5,        */ D3DPT_TRIANGLELIST,
-	/* X_D3DPT_TRIANGLESTRIP  = 6,        */ D3DPT_TRIANGLESTRIP,
-	/* X_D3DPT_TRIANGLEFAN    = 7,        */ D3DPT_TRIANGLEFAN,
-	/* X_D3DPT_QUADLIST       = 8,  Xbox  */ D3DPT_TRIANGLELIST,
-	/* X_D3DPT_QUADSTRIP      = 9,  Xbox  */ D3DPT_TRIANGLESTRIP,
-	/* X_D3DPT_POLYGON        = 10, Xbox  */ D3DPT_TRIANGLEFAN,
-};
-
 // Table of Xbox-to-PC and Value-to-String converters for all registered types :
 const XBTypeInfo DxbxXBTypeInfo[] = {
 	/*xt_Unknown=*/
@@ -1323,12 +1307,25 @@ D3DCULL EmuXB2PC_D3DCULL(X_D3DCULL Value)
 }
 
 // convert xbox->pc primitive type
-D3DPRIMITIVETYPE EmuXB2PC_D3DPrimitiveType(X_D3DPRIMITIVETYPE XboxPrimitiveType)
+D3DPRIMITIVETYPE EmuXB2PC_D3DPrimitiveType(X_D3DPRIMITIVETYPE Value)
 {
-	if ((DWORD)XboxPrimitiveType == 0x7FFFFFFF)
-		return D3DPT_FORCE_DWORD;
-
-	return EmuPrimitiveTypeLookup[XboxPrimitiveType];
+	switch (Value) {
+	case X_D3DPT_NONE: return (D3DPRIMITIVETYPE)0; // Dxbx addition
+	case X_D3DPT_POINTLIST: return D3DPT_POINTLIST;
+	case X_D3DPT_LINELIST: return D3DPT_LINELIST;
+	case X_D3DPT_LINELOOP: return D3DPT_LINESTRIP; // Xbox
+	case X_D3DPT_LINESTRIP: return D3DPT_LINESTRIP;
+	case X_D3DPT_TRIANGLELIST: return D3DPT_TRIANGLELIST;
+	case X_D3DPT_TRIANGLESTRIP: return D3DPT_TRIANGLESTRIP;
+	case X_D3DPT_TRIANGLEFAN: return D3DPT_TRIANGLEFAN;
+	case X_D3DPT_QUADLIST: return D3DPT_TRIANGLELIST; // Xbox
+	case X_D3DPT_QUADSTRIP: return D3DPT_TRIANGLESTRIP; // Xbox
+	case X_D3DPT_POLYGON: return D3DPT_TRIANGLEFAN; // Xbox
+	case X_D3DPT_INVALID: return D3DPT_FORCE_DWORD; // Cxbx addition
+	default:
+		CxbxKrnlCleanup("Unknown X_D3DPRIMITIVETYPE (0x%.08X)", (DWORD)Value);
+		return (D3DPRIMITIVETYPE)Value; // Never reached
+	}
 }
 
 void XTL::EmuUnswizzleRect
