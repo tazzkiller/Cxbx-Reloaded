@@ -1060,6 +1060,36 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 	return (uint08*)pData;
 }
 
+#if 0 // TODO : Finish back-porting this
+void DxbxDetermineSurFaceAndLevelByData(const DecodedPixelContainer DxbxPixelJar, OUT int &Level, OUT D3DCUBEMAP_FACES &FaceType)
+{
+	UINT_PTR ParentData = (UINT_PTR)CxbxGetDataFromXboxResource(PX_D3DSurface(DxbxPixelJar.pPixelContainer).Parent);
+	UINT_PTR SurfaceData = (UINT_PTR)CxbxGetDataFromXboxResource(DxbxPixelJar.pPixelContainer);
+
+	// Step to the correct face :
+	FaceType = D3DCUBEMAP_FACE_POSITIVE_X;
+	while (FaceType < D3DCUBEMAP_FACE_NEGATIVE_Z)
+	{
+		if (ParentData >= SurfaceData)
+			break;
+
+		ParentData += DxbxPixelJar.dwFacePitch;
+		FaceType++;
+	}
+
+	// Step to the correct mipmap level :
+	Level = 0;
+	while (Level < X_MAX_MIPMAPS)
+	{
+		if (ParentData + DxbxPixelJar.MipMapOffsets[Level] >= SurfaceData)
+			break;
+
+		Level++;
+	}
+}
+#endif
+
+
 #if 0 // unused
 inline XTL::X_D3DPALETTESIZE GetXboxPaletteSize(const XTL::X_D3DPalette *pPalette)
 {
