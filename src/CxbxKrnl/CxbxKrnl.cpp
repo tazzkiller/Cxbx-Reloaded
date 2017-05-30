@@ -554,6 +554,28 @@ void LoadXboxKeys(std::string path)
 	EmuWarning("Failed to load Keys.bin. Cxbx-Reloaded will be unable to read Save Data from a real Xbox");
 }
 
+// game region flags for Xbe certificate
+#define XBEIMAGE_GAME_REGION_US_CANADA  XBEIMAGE_GAME_REGION_NA
+#define XBEIMAGE_GAME_REGION_ALL (XBEIMAGE_GAME_REGION_US_CANADA | XBEIMAGE_GAME_REGION_JAPAN | XBEIMAGE_GAME_REGION_RESTOFWORLD)
+#define XBEIMAGE_GAME_REGION_KNOWN (XBEIMAGE_GAME_REGION_ALL | XBEIMAGE_GAME_REGION_MANUFACTURING)
+
+const char *GameRegionToString(DWORD aGameRegion)
+{
+	const char *Regions[] = {
+		"UNKNOWN", "NTSC", "JAP", "NTSC+JAP",
+		"PAL", "PAL+NTSC", "PAL+JAP", "ALL",
+
+		"DEBUG", "NTSC (DEBUG)", "JAP (DEBUG)", "NTSC+JAP (DEBUG)",
+		"PAL (DEBUG)", "PAL+NTSC (DEBUG)", "PAL+JAP (DEBUG)", "ALL (DEBUG)"
+	};
+
+	if ((aGameRegion & ~XBEIMAGE_GAME_REGION_KNOWN) > 0)
+		return "REGION ERROR";
+
+	DWORD index = (aGameRegion & 7) | (aGameRegion & XBEIMAGE_GAME_REGION_MANUFACTURING ? 8 : 0);
+	return Regions[index];
+}
+
 void CxbxKrnlInit
 (
 	HWND                    hwndParent,
@@ -727,7 +749,10 @@ void CxbxKrnlInit
 		// Arrange that the Xbe path can reside outside the partitions, and put it to g_hCurDir :
 		EmuNtSymbolicLinkObject* xbePathSymbolicLinkObject = FindNtSymbolicLinkObjectByDriveLetter(CxbxDefaultXbeDriveLetter);
 		g_hCurDir = xbePathSymbolicLinkObject->RootDirectoryHandle;
-		// Determine Xbox path to XBE and place it in XeImageFileName
+	}
+
+	// Determine Xbox path to XBE and place it in XeImageFileName
+	{
 		std::string fileName(xbePath);
 		// Strip out the path, leaving only the XBE file name
 		// NOTE: we assume that the XBE is always on the root of the D: drive
@@ -744,6 +769,26 @@ void CxbxKrnlInit
 		sprintf(xboxkrnl::XeImageFileName.Buffer, "%c:\\%s", CxbxDefaultXbeDriveLetter, fileName.c_str());
 		xboxkrnl::XeImageFileName.Length = (USHORT)strlen(xboxkrnl::XeImageFileName.Buffer);
 		DbgPrintf("EmuMain : XeImageFileName = %s\n", xboxkrnl::XeImageFileName.Buffer);
+	}
+
+	// Dump Xbe information
+	{
+		// Dump Xbe certificate
+		Xbe::Certificate *pCertificate = (Xbe::Certificate*)(pXbeHeader->dwCertificateAddr);
+		if (pCertificate != NULL) {
+			DbgPrintf("EmuMain : XBE TitleID : %p\n", pCertificate->dwTitleId);
+			DbgPrintf("EmuMain : XBE TitleName : %ls\n", pCertificate->wszTitleName);
+			DbgPrintf("EmuMain : XBE Region : %s\n", GameRegionToString(pCertificate->dwGameRegion));
+		}
+
+		// Dump Xbe library build numbers
+		Xbe::LibraryVersion* libVersionInfo = pLibraryVersion;// (LibraryVersion *)(CxbxKrnl_XbeHeader->dwLibraryVersionsAddr);
+		if (libVersionInfo != NULL) {
+			for (uint32 v = 0; v < CxbxKrnl_XbeHeader->dwLibraryVersions; v++)			{
+				DbgPrintf("EmuMain : XBE Library %d : %.8s (version %d)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
+				libVersionInfo++;
+			}
+		}
 	}
 
 	// duplicate handle in order to retain Suspend/Resume thread rights from a remote thread
