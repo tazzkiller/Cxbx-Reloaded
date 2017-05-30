@@ -37,7 +37,7 @@
 #include "CxbxKrnl.h"
 
 // Convert a 'method' DWORD into it's associated 'pixel-shader' or 'simple' render state.
-extern X_D3DRENDERSTATETYPE DxbxXboxMethodToRenderState(const X_NV2AMETHOD aMethod);
+extern X_D3DRENDERSTATETYPE DxbxXboxMethodToRenderState(const NV2AMETHOD aMethod);
 
 typedef struct _ComponentEncodingInfo
 {

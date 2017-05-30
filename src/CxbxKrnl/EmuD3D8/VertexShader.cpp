@@ -2016,10 +2016,10 @@ static void VshConvertToken_STREAMDATA(DWORD          *pToken,
                                        VSH_PATCH_DATA *pPatchData)
 {
     using namespace XTL;
-	if (*pToken & D3DVSD_MASK_SKIP)
+	if (*pToken & X_D3DVSD_MASK_SKIP)
 	{
 		// For D3D9, use D3DDECLTYPE_UNUSED ?
-		if (*pToken & D3DVSD_MASK_SKIPBYTES) {
+		if (*pToken & X_D3DVSD_MASK_SKIPBYTES) {
 			VshConvertToken_STREAMDATA_SKIPBYTES(pToken);
 		} else {
 			VshConvertToken_STREAMDATA_SKIP(pToken);

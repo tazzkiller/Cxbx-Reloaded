@@ -106,9 +106,9 @@ static uint32                       g_XbeHeaderSize = 0;    // XbeHeaderSize
 static HBRUSH                       g_hBgBrush      = NULL; // Background Brush
 static volatile bool                g_bRenderWindowActive = false;
 static XBVideo                      g_XBVideo;
-static XTL::D3DVBLANKCALLBACK       g_pVBCallback   = NULL; // Vertical-Blank callback routine
-static XTL::D3DSWAPCALLBACK			g_pSwapCallback = NULL;	// Swap/Present callback routine
-static XTL::D3DCALLBACK				g_pCallback		= NULL;	// D3DDevice::InsertCallback routine
+static XTL::X_D3DVBLANKCALLBACK     g_pVBCallback   = NULL; // Vertical-Blank callback routine
+static XTL::X_D3DSWAPCALLBACK		g_pSwapCallback = NULL;	// Swap/Present callback routine
+static XTL::X_D3DCALLBACK			g_pCallback		= NULL;	// D3DDevice::InsertCallback routine
 static XTL::X_D3DCALLBACKTYPE		g_CallbackType;			// Callback type
 static DWORD						g_CallbackParam;		// Callback param
 static BOOL                         g_bHasDepthStencilSurface = FALSE; // Does device have a Depth/Stencil surface?
@@ -138,16 +138,16 @@ static XTL::X_D3DVertexBuffer      *g_D3DStreams[MAX_NBR_STREAMS] = {};  // The 
 static UINT                         g_D3DStreamStrides[MAX_NBR_STREAMS] = {};
 
 // current vertical blank information
-static XTL::D3DVBLANKDATA           g_VBData = {0};
+static XTL::X_D3DVBLANKDATA         g_VBData = {0};
 static DWORD                        g_VBLastSwap = 0;
 
 // current swap information
-static XTL::D3DSWAPDATA				g_SwapData = {0};
+static XTL::X_D3DSWAPDATA			g_SwapData = {0};
 #if 0
 static DWORD						g_SwapLast = 0;
 #endif
 
-static XTL::D3DMATERIAL8            g_pBackMaterial = { 0 };
+static XTL::X_D3DMATERIAL           g_pBackMaterial = { 0 };
 
 // cached Direct3D state variable(s)
 static XTL::X_D3DSurface           *g_pInitialXboxBackBuffer = NULL;
@@ -176,7 +176,7 @@ static DWORD                        g_VertexShaderSlots[136];
 // cached palette pointer
 static DWORD *g_pTexturePaletteStages[X_D3DTSS_STAGECOUNT] = { nullptr, nullptr, nullptr, nullptr };
 
-static XTL::X_VERTEXSHADERCONSTANTMODE g_VertexShaderConstantMode = XTL::X_D3DSCM_192CONSTANTS;
+static XTL::X_D3DSHADERCONSTANTMODE g_VertexShaderConstantMode = XTL::X_D3DSCM_192CONSTANTS;
 
 // cached Direct3D tiles
 XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
@@ -1403,7 +1403,7 @@ VOID XTL::EmuD3DInit()
         PresParam.BackBufferCount  = 1;
         PresParam.EnableAutoDepthStencil = TRUE;
 		PresParam.AutoDepthStencilFormat = X_D3DFMT_D24S8;
-        PresParam.SwapEffect = XTL::D3DSWAPEFFECT_DISCARD;
+        PresParam.SwapEffect = X_D3DSWAPEFFECT_DISCARD;
             
         XTL::EMUPATCH(Direct3D_CreateDevice)(0, XTL::D3DDEVTYPE_HAL, 0, D3DCREATE_HARDWARE_VERTEXPROCESSING, &PresParam, &g_pD3DDevice8);
     }
@@ -2000,7 +2000,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					if (g_XBVideo.GetVSync())
 						g_EmuCDPD.NativePresentationParameters.SwapEffect = XTL::D3DSWAPEFFECT_COPY_VSYNC;
 					else
-						g_EmuCDPD.NativePresentationParameters.SwapEffect = g_EmuCDPD.pPresentationParameters->SwapEffect;
+						g_EmuCDPD.NativePresentationParameters.SwapEffect = (XTL::D3DSWAPEFFECT)g_EmuCDPD.pPresentationParameters->SwapEffect;
 
 					// MultiSampleType may only be set if SwapEffect = D3DSWAPEFFECT_DISCARD :
 					if (g_EmuCDPD.NativePresentationParameters.SwapEffect == XTL::D3DSWAPEFFECT_DISCARD)
@@ -3357,7 +3357,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetViewportOffsetAndScale)
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetShaderConstantMode)
 (
-    XTL::X_VERTEXSHADERCONSTANTMODE Mode
+    XTL::X_D3DSHADERCONSTANTMODE Mode
 )
 {
 	FUNC_EXPORTS
@@ -6859,7 +6859,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_BlockUntilVerticalBlank)()
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVerticalBlankCallback)
 (
-    D3DVBLANKCALLBACK pCallback
+    X_D3DVBLANKCALLBACK pCallback
 )
 {
 	FUNC_EXPORTS
@@ -8030,7 +8030,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetLight)
 (
     DWORD            Index,
-    D3DLIGHT8       *pLight
+	X_D3DLIGHT      *pLight
 )
 {
 	FUNC_EXPORTS
@@ -8049,7 +8049,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetLight)
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetLight)
 (
     DWORD            Index,
-    CONST D3DLIGHT8 *pLight
+    CONST X_D3DLIGHT *pLight
 )
 {
 	FUNC_EXPORTS
@@ -8067,7 +8067,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetLight)
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetMaterial)
 (
-	D3DMATERIAL8* pMaterial
+	X_D3DMATERIAL* pMaterial
 )
 {
 	FUNC_EXPORTS
@@ -8083,7 +8083,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetMaterial)
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetMaterial)
 (
-    CONST D3DMATERIAL8 *pMaterial
+    CONST X_D3DMATERIAL *pMaterial
 )
 {
 	FUNC_EXPORTS
@@ -9044,8 +9044,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_InsertCallback)
 		LOG_FUNC_ARG(Context)
 		LOG_FUNC_END;
 
-	// TODO: Implement
-	g_pCallback = (D3DCALLBACK) pCallback;
+	// TODO: Implement list (now it's only one)
+	g_pCallback = pCallback;
 	g_CallbackType = Type;
 	g_CallbackParam = Context;
 
@@ -9056,7 +9056,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawRectPatch)
 (
 	UINT					Handle,
 	CONST FLOAT				*pNumSegs,
-	CONST D3DRECTPATCH_INFO *pRectPatchInfo
+	CONST X_D3DRECTPATCH_INFO *pRectPatchInfo
 )
 {
 	FUNC_EXPORTS
@@ -9078,7 +9078,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawRectPatch)
 #pragma warning(disable:4244)
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetProjectionViewportMatrix)
 (
-	D3DXMATRIX *pProjectionViewport
+	X_D3DXMATRIX *pProjectionViewport
 )
 {
 	FUNC_EXPORTS
@@ -9219,7 +9219,7 @@ void WINAPI XTL::EMUPATCH(D3DDevice_SetStipple)( DWORD* pPattern )
 
 void WINAPI XTL::EMUPATCH(D3DDevice_SetSwapCallback)
 (
-	D3DSWAPCALLBACK		pCallback
+	X_D3DSWAPCALLBACK		pCallback
 )
 {
 	FUNC_EXPORTS
@@ -9423,7 +9423,10 @@ void WINAPI XTL::EMUPATCH(XMETAL_StartPush)(void* Unknown)
 	LOG_UNIMPLEMENTED();
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetModelView)(D3DXMATRIX* pModelView)
+HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetModelView)
+(
+	X_D3DXMATRIX* pModelView
+)
 {
 	FUNC_EXPORTS
 
@@ -9440,7 +9443,10 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetModelView)(D3DXMATRIX* pModelView)
 	return D3D_OK;
 }
 
-VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackMaterial)(D3DMATERIAL8* pMaterial)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackMaterial)
+(
+	X_D3DMATERIAL* pMaterial
+)
 {
 	FUNC_EXPORTS
 
@@ -9449,7 +9455,10 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackMaterial)(D3DMATERIAL8* pMaterial)
 	*pMaterial = g_pBackMaterial;
 }
 
-VOID WINAPI XTL::EMUPATCH(D3DDevice_SetBackMaterial)(D3DMATERIAL8* pMaterial)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetBackMaterial)
+(
+	X_D3DMATERIAL* pMaterial
+)
 {
 	FUNC_EXPORTS
 

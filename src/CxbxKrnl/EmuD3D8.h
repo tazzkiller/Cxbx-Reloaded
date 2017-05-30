@@ -314,7 +314,7 @@ VOID WINAPI EMUPATCH(D3DDevice_GetViewportOffsetAndScale)
 // ******************************************************************
 HRESULT WINAPI EMUPATCH(D3DDevice_SetShaderConstantMode)
 (
-    XTL::X_VERTEXSHADERCONSTANTMODE Mode
+    XTL::X_D3DSHADERCONSTANTMODE Mode
 );
 
 // ******************************************************************
@@ -935,7 +935,7 @@ VOID WINAPI EMUPATCH(D3DDevice_BlockUntilVerticalBlank)();
 // ******************************************************************
 VOID WINAPI EMUPATCH(D3DDevice_SetVerticalBlankCallback)
 (
-    D3DVBLANKCALLBACK pCallback
+    X_D3DVBLANKCALLBACK pCallback
 );
 
 // ******************************************************************
@@ -1331,7 +1331,7 @@ VOID WINAPI EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 HRESULT WINAPI EMUPATCH(D3DDevice_GetLight)
 (
     DWORD            Index,
-    D3DLIGHT8       *pLight
+	X_D3DLIGHT      *pLight
 );
 
 // ******************************************************************
@@ -1340,20 +1340,23 @@ HRESULT WINAPI EMUPATCH(D3DDevice_GetLight)
 HRESULT WINAPI EMUPATCH(D3DDevice_SetLight)
 (
     DWORD            Index,
-    CONST D3DLIGHT8 *pLight
+    CONST X_D3DLIGHT *pLight
 );
 
 // ******************************************************************
 // * patch: D3DDevice_GetMaterial
 // ******************************************************************
-VOID WINAPI EMUPATCH(D3DDevice_GetMaterial)(D3DMATERIAL8* pMaterial);
+VOID WINAPI EMUPATCH(D3DDevice_GetMaterial)
+(
+	X_D3DMATERIAL* pMaterial
+);
 
 // ******************************************************************
 // * patch: D3DDevice_SetMaterial
 // ******************************************************************
 VOID WINAPI EMUPATCH(D3DDevice_SetMaterial)
 (
-    CONST D3DMATERIAL8 *pMaterial
+    CONST X_D3DMATERIAL *pMaterial
 );
 
 // ******************************************************************
@@ -1733,7 +1736,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_DrawRectPatch)
 (
 	UINT					Handle,
 	CONST FLOAT				*pNumSegs,
-	CONST D3DRECTPATCH_INFO *pRectPatchInfo
+	CONST X_D3DRECTPATCH_INFO *pRectPatchInfo
 );
 
 // ******************************************************************
@@ -1741,7 +1744,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_DrawRectPatch)
 // ******************************************************************
 HRESULT WINAPI EMUPATCH(D3DDevice_GetProjectionViewportMatrix)
 (
-	D3DXMATRIX *pProjectionViewport
+	X_D3DXMATRIX *pProjectionViewport
 );
 
 // ******************************************************************
@@ -1782,7 +1785,7 @@ void WINAPI EMUPATCH(D3DDevice_SetStipple)( DWORD* pPattern );
 // ******************************************************************
 void WINAPI EMUPATCH(D3DDevice_SetSwapCallback)
 (
-	D3DSWAPCALLBACK		pCallback
+	X_D3DSWAPCALLBACK		pCallback
 );
 
 // ******************************************************************
@@ -1871,17 +1874,26 @@ void WINAPI EMUPATCH(XMETAL_StartPush)(void* Unknown);
 // ******************************************************************
 // * patch: D3DDevice_GetModelView
 // ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_GetModelView)(D3DXMATRIX* pModelView);
+HRESULT WINAPI EMUPATCH(D3DDevice_GetModelView)
+(
+	X_D3DXMATRIX* pModelView
+);
 
 // ******************************************************************
 // * patch: D3DDevice_GetBackMaterial
 // ******************************************************************
-VOID WINAPI EMUPATCH(D3DDevice_GetBackMaterial)(D3DMATERIAL8* pMaterial);
+VOID WINAPI EMUPATCH(D3DDevice_GetBackMaterial)
+(
+	X_D3DMATERIAL* pMaterial
+);
 
 // ******************************************************************
 // * patch: D3DDevice_SetBackMaterial
 // ******************************************************************
-VOID WINAPI EMUPATCH(D3DDevice_SetBackMaterial)(D3DMATERIAL8* pMaterial);
+VOID WINAPI EMUPATCH(D3DDevice_SetBackMaterial)
+(
+	X_D3DMATERIAL* pMaterial
+);
 
 #if 0 // patch disabled
 // ******************************************************************

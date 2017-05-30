@@ -1419,7 +1419,7 @@ void XTL::EmuUnswizzleRect
 } // EmuUnswizzleRect NOPATCH
 
 // Convert a 'method' DWORD into it's associated 'pixel-shader' or 'simple' render state.
-XTL::X_D3DRENDERSTATETYPE XTL::DxbxXboxMethodToRenderState(const X_NV2AMETHOD aMethod)
+XTL::X_D3DRENDERSTATETYPE XTL::DxbxXboxMethodToRenderState(const NV2AMETHOD aMethod)
 {
 	// TODO : The list below is incomplete - use DxbxRenderStateInfo to complete this.
 
