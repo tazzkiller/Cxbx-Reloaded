@@ -447,14 +447,14 @@ const RenderStateInfo DxbxRenderStateInfo[] = {
 	{ "X_D3DRS_PSCOMPAREMODE"               /*=  42*/, 3424, xtDWORD,               NV2A_TX_SHADER_CULL_MODE },
 	{ "X_D3DRS_PSFINALCOMBINERCONSTANT0"    /*=  43*/, 3424, xtDWORD,               NV2A_RC_COLOR0 },
 	{ "X_D3DRS_PSFINALCOMBINERCONSTANT1"    /*=  44*/, 3424, xtDWORD,               NV2A_RC_COLOR1 },
-	{ "X_D3DRS_PSRGBOUTPUTS0"               /*=  45*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(0) },
-	{ "X_D3DRS_PSRGBOUTPUTS1"               /*=  46*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(1) },
-	{ "X_D3DRS_PSRGBOUTPUTS2"               /*=  47*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(2) },
-	{ "X_D3DRS_PSRGBOUTPUTS3"               /*=  48*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(3) },
-	{ "X_D3DRS_PSRGBOUTPUTS4"               /*=  49*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(4) },
-	{ "X_D3DRS_PSRGBOUTPUTS5"               /*=  50*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(5) },
-	{ "X_D3DRS_PSRGBOUTPUTS6"               /*=  51*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(6) },
-	{ "X_D3DRS_PSRGBOUTPUTS7"               /*=  52*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(7) },
+	{ "X_D3DRS_PSRGBOUTPUTS0"               /*=  45*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(0) }, // TODO : Use xtD3DCOLOR ?
+	{ "X_D3DRS_PSRGBOUTPUTS1"               /*=  46*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(1) }, // TODO : Use xtD3DCOLOR ?
+	{ "X_D3DRS_PSRGBOUTPUTS2"               /*=  47*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(2) }, // TODO : Use xtD3DCOLOR ?
+	{ "X_D3DRS_PSRGBOUTPUTS3"               /*=  48*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(3) }, // TODO : Use xtD3DCOLOR ?
+	{ "X_D3DRS_PSRGBOUTPUTS4"               /*=  49*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(4) }, // TODO : Use xtD3DCOLOR ?
+	{ "X_D3DRS_PSRGBOUTPUTS5"               /*=  50*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(5) }, // TODO : Use xtD3DCOLOR ?
+	{ "X_D3DRS_PSRGBOUTPUTS6"               /*=  51*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(6) }, // TODO : Use xtD3DCOLOR ?
+	{ "X_D3DRS_PSRGBOUTPUTS7"               /*=  52*/, 3424, xtDWORD,               NV2A_RC_OUT_RGB(7) }, // TODO : Use xtD3DCOLOR ?
 	{ "X_D3DRS_PSCOMBINERCOUNT"             /*=  53*/, 3424, xtDWORD,               NV2A_RC_ENABLE },
 	{ "X_D3DRS_PS_RESERVED"                 /*=  54*/, 3424, xtDWORD,               NV2A_NOP }, // Dxbx note : This takes the slot of X_D3DPIXELSHADERDEF.PSTextureModes, set by D3DDevice_SetRenderState_LogicOp?
 	{ "X_D3DRS_PSDOTMAPPING"                /*=  55*/, 3424, xtDWORD,               NV2A_TX_SHADER_DOTMAPPING },
@@ -1426,7 +1426,12 @@ XTL::X_D3DRENDERSTATETYPE XTL::DxbxXboxMethodToRenderState(const NV2AMETHOD aMet
 	// Dxbx note : Let the compiler sort this out, should be much quicker :
 	switch (aMethod & NV2A_METHOD_MASK)
 	{
-	case /*0x00000100*/NV2A_NOP: return X_D3DRS_PS_RESERVED; // XDK 3424 uses 0x00000100 (NOP), while 3911 onwards uses 0x00001d90 (SET_COLOR_CLEAR_VALUE)
+	// case /*0x00000100*/NV2A_NOP: return X_D3DRS_PS_RESERVED; // XDK 3424 uses 0x00000100 (NOP), while 3911 onwards uses 0x00001d90 (SET_COLOR_CLEAR_VALUE)
+	// Actually, NV2A_NOP is (ab)used as a callback mechanism by InsertCallback, with one argument :
+	// (DWORD)6 for read callbacks, (DWORD)7 for write callbacks.
+	// The NV2A_NOP method triggers a signal on these non-null arguments, and handles the type specified in the argument:
+	// Read and write callbacks are handled by retreiving the callback itself from 0x00001d8c (NV2A_CLEAR_DEPTH_VALUE)
+	// and it's context data address from 0x00001d90 (NV2A_CLEAR_VALUE), after which the callback is executed
 	case /*0x000002A4*/NV2A_FOG_ENABLE: return X_D3DRS_FOGENABLE;
 	case /*0x00000260*/NV2A_RC_IN_ALPHA(0): return X_D3DRS_PSALPHAINPUTS0;
 	case /*0x00000264*/NV2A_RC_IN_ALPHA(1): return X_D3DRS_PSALPHAINPUTS1;
@@ -1438,12 +1443,12 @@ XTL::X_D3DRENDERSTATETYPE XTL::DxbxXboxMethodToRenderState(const NV2AMETHOD aMet
 	case /*0x0000027c*/NV2A_RC_IN_ALPHA(7): return X_D3DRS_PSALPHAINPUTS7;
 	case /*0x00000288*/NV2A_RC_FINAL0: return X_D3DRS_PSFINALCOMBINERINPUTSABCD;
 	case /*0x0000028c*/NV2A_RC_FINAL1: return X_D3DRS_PSFINALCOMBINERINPUTSEFG;
-		//    case /*0x00000294*/NV2A_LIGHT_MODEL: Result := X_D3DRS_LIGHTING; ??
+	case /*0x00000294*/NV2A_LIGHT_MODEL: return X_D3DRS_LIGHTING; // TODO : Used in combination with NV2A_LIGHTING_ENABLE?
 	case /*0x00000300*/NV2A_ALPHA_FUNC_ENABLE: return X_D3DRS_ALPHATESTENABLE;
 	case /*0x00000304*/NV2A_BLEND_FUNC_ENABLE: return X_D3DRS_ALPHABLENDENABLE;
 	case /*0x0000030C*/NV2A_DEPTH_TEST_ENABLE: return X_D3DRS_ZENABLE;
 	case /*0x00000310*/NV2A_DITHER_ENABLE: return X_D3DRS_DITHERENABLE;
-		//    case /*0x00000314*/NV2A_LIGHTING_ENABLE: Result := X_D3DRS_LIGHTING; ??
+	case /*0x00000314*/NV2A_LIGHTING_ENABLE: return X_D3DRS_LIGHTING; // TODO : Used in combination with NV2A_LIGHT_MODEL?
 	case /*0x00000318*/NV2A_POINT_PARAMETERS_ENABLE: return X_D3DRS_POINTSCALEENABLE;
 	case /*0x0000031C*/NV2A_POINT_SMOOTH_ENABLE: return X_D3DRS_POINTSPRITEENABLE;
 	case /*0x00000328*/NV2A_SKIN_MODE: return X_D3DRS_VERTEXBLEND;
@@ -1509,17 +1514,9 @@ XTL::X_D3DRENDERSTATETYPE XTL::DxbxXboxMethodToRenderState(const NV2AMETHOD aMet
 	case /*0x0000147c*/NV2A_POLYGON_STIPPLE_ENABLE: return X_D3DRS_STIPPLEENABLE;
 	case /*0x000017f8*/NV2A_TX_SHADER_CULL_MODE: return X_D3DRS_PSCOMPAREMODE;
 	case /*0x00001d78*/NV2A_DEPTHCLIPCONTROL: return X_D3DRS_DEPTHCLIPCONTROL;
-	case /*0x00001d7c*/NV2A_MULTISAMPLE_CONTROL: return X_D3DRS_MULTISAMPLEANTIALIAS; // Also send by D3DRS_MULTISAMPLEMASK (both values in 1 command)
+	case /*0x00001d7c*/NV2A_MULTISAMPLE_CONTROL: return X_D3DRS_MULTISAMPLEANTIALIAS; // Also send by X_D3DRS_MULTISAMPLEMASK (both values in 1 command)
 	case /*0x00001d84*/NV2A_OCCLUDE_ZSTENCIL_EN: return X_D3DRS_OCCLUSIONCULLENABLE;
-
-		//    /*0x00001d90*/NV2A_CLEAR_VALUE: Result := X_D3DRS_SIMPLE_UNUSED1;
-		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED2;
-		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED3;
-		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED4;
-		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED5;
-		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED6;
-		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED7;
-		//    0x00001d90: Result := X_D3DRS_SIMPLE_UNUSED8;
+	// case /*0x00001d90*/NV2A_CLEAR_VALUE: Result := X_D3DRS_SIMPLE_UNUSED1; // TODO : Should this be X_D3DRS_PSTEXTUREMODES?!
 	case /*0x00001e20*/NV2A_RC_COLOR0: return X_D3DRS_PSFINALCOMBINERCONSTANT0;
 	case /*0x00001e24*/NV2A_RC_COLOR1: return X_D3DRS_PSFINALCOMBINERCONSTANT1;
 	case /*0x00001e40*/NV2A_RC_OUT_RGB(0): return X_D3DRS_PSRGBOUTPUTS0;
@@ -1534,7 +1531,7 @@ XTL::X_D3DRENDERSTATETYPE XTL::DxbxXboxMethodToRenderState(const NV2AMETHOD aMet
 	case /*0x00001e6c*/NV2A_TX_RCOMP: return X_D3DRS_SHADOWFUNC;
 	case /*0x00001e74*/NV2A_TX_SHADER_DOTMAPPING: return X_D3DRS_PSDOTMAPPING;
 	case /*0x00001e78*/NV2A_TX_SHADER_PREVIOUS: return X_D3DRS_PSINPUTTEXTURE;
-		// Missing : 0x0000????: Result := X_D3DRS_PSTEXTUREMODES;
+	// Missing : 0x0000????: Result := X_D3DRS_PSTEXTUREMODES;
 	default:
 		return X_D3DRS_UNK; // Note : Dxbx returns ~0;
 	}
