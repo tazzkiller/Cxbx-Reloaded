@@ -203,8 +203,12 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 				CxbxKrnlCleanup("EmuD3DDeferredRenderState was not found!");
 			}
 			
-			if (g_SymbolAddresses.find("D3DDeferredTextureState") == g_SymbolAddresses.end()) {
-				CxbxKrnlCleanup("EmuD3DDeferredTextureState was not found!");
+			if (g_SymbolAddresses.find("D3D__TextureState") == g_SymbolAddresses.end()) {
+				if (g_SymbolAddresses.find("D3DDeferredTextureState") != g_SymbolAddresses.end())
+					// Keep compatibility with HLE caches that contain "D3DDeferredTextureState" instead of "D3D__TextureState"
+					g_SymbolAddresses["D3D__TextureState"] = g_SymbolAddresses["D3DDeferredTextureState"];
+				else
+					CxbxKrnlCleanup("D3D__TextureState was not found!");
 			}
 
 			if (g_SymbolAddresses.find("D3DDEVICE") == g_SymbolAddresses.end()) {
@@ -212,7 +216,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 			}
 
 			XTL::EmuD3DDeferredRenderState = (DWORD*)g_SymbolAddresses["D3DDeferredRenderState"];
-			XTL::EmuD3DDeferredTextureState = (DWORD*)g_SymbolAddresses["D3DDeferredTextureState"];
+			XTL::Xbox_D3D_TextureState = (DWORD*)g_SymbolAddresses["D3D__TextureState"];
 			XRefDataBase[XREF_D3DDEVICE] = g_SymbolAddresses["D3DDEVICE"];
 
 			XTL::InitD3DDeferredStates();
@@ -486,7 +490,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
                             CxbxKrnlCleanup("EmuD3DDeferredRenderState was not found!");
                         }
 
-                        // locate D3DDeferredTextureState
+                        // locate Xbox "D3D__TextureState" and put it in Xbox_D3D_TextureState
                         {
                             pFunc = (xbaddr)nullptr;
 
@@ -504,7 +508,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 							if (pFunc != (xbaddr)nullptr)
 							{
 								xbaddr DerivedAddr_D3DTSS_TEXCOORDINDEX = NULL;
-								int Decrement = 0x70; // TODO : Rename into something understandable
+								int Decrement = 28/*=X_D3DTSS_TEXCOORDINDEX*/ * sizeof(DWORD); // = 28 * 4 = 112 = 0x70
 
 								// TODO : Remove this when XREF_D3DTSS_TEXCOORDINDEX derivation is deemed stable
 								{
@@ -515,7 +519,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 									else
 										DerivedAddr_D3DTSS_TEXCOORDINDEX = *(xbaddr*)(pFunc + 0x19);
 								
-
 									// Temporary verification - is XREF_D3DTSS_TEXCOORDINDEX derived correctly?
 									if (XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] != DerivedAddr_D3DTSS_TEXCOORDINDEX)
 									{
@@ -526,15 +529,15 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 									}
 								}
 
-								XTL::EmuD3DDeferredTextureState = (DWORD*)(DerivedAddr_D3DTSS_TEXCOORDINDEX - Decrement);
+								XTL::Xbox_D3D_TextureState = (DWORD*)(DerivedAddr_D3DTSS_TEXCOORDINDEX - Decrement);
 
-								g_SymbolAddresses["D3DDeferredTextureState"] = (DWORD)XTL::EmuD3DDeferredTextureState;
-								printf("HLE: 0x%.08X -> EmuD3DDeferredTextureState\n", XTL::EmuD3DDeferredTextureState);
+								g_SymbolAddresses["D3D__TextureState"] = (DWORD)XTL::Xbox_D3D_TextureState;
+								printf("HLE: 0x%.08X -> D3D__TextureState\n", XTL::Xbox_D3D_TextureState);
                             }
                             else
                             {
-                                XTL::EmuD3DDeferredTextureState = nullptr;
-                                CxbxKrnlCleanup("EmuD3DDeferredTextureState was not found!");
+                                XTL::Xbox_D3D_TextureState = nullptr;
+                                CxbxKrnlCleanup("Xbox D3D__TextureState was not found!");
                             }
                         }
 					

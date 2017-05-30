@@ -784,7 +784,7 @@ void CxbxKrnlInit
 		// Dump Xbe library build numbers
 		Xbe::LibraryVersion* libVersionInfo = pLibraryVersion;// (LibraryVersion *)(CxbxKrnl_XbeHeader->dwLibraryVersionsAddr);
 		if (libVersionInfo != NULL) {
-			for (uint32 v = 0; v < CxbxKrnl_XbeHeader->dwLibraryVersions; v++)			{
+			for (uint32 v = 0; v < CxbxKrnl_XbeHeader->dwLibraryVersions; v++) {
 				DbgPrintf("EmuMain : XBE Library %d : %.8s (version %d)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
 				libVersionInfo++;
 			}

@@ -46,8 +46,8 @@ extern X_D3DRENDERSTATETYPE *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED + 1]; /
 // EmuD3DDeferredRenderState
 extern DWORD *EmuD3DDeferredRenderState;
 
-// EmuD3DDeferredTextureState
-extern DWORD *EmuD3DDeferredTextureState; // [X_D3DTSS_STAGECOUNT][X_D3DTSS_STAGESIZE] = [(Stage * X_D3DTSS_STAGESIZE) + Offset]
+// Xbox_D3D_TextureState
+extern DWORD *Xbox_D3D_TextureState; // [X_D3DTSS_STAGECOUNT][X_D3DTSS_STAGESIZE] = [(Stage * X_D3DTSS_STAGESIZE) + Offset]
 
 extern void CxbxPitchedCopy(BYTE *pDest, BYTE *pSrc, DWORD dwDestPitch, DWORD dwSrcPitch, DWORD dwWidthInBytes, DWORD dwHeight);
 
