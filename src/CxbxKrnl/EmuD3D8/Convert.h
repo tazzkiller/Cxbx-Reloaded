@@ -1716,7 +1716,7 @@ typedef struct _RenderStateInfo {
 	char *S;   // String representation.
 	WORD V;    // The XDK version since which a render state was introduced (using the 5911 declarations as a base).
 	TXBType T; // The Xbox data type. Defaults to xt_Unknown.
-	DWORD M;   // The related push buffer method. Not always a 1-to-1 mapping. Needs push-buffer interpretation & conversion code.
+	NV2AMETHOD M;   // The related push buffer method. Not always a 1-to-1 mapping. Needs push-buffer interpretation & conversion code.
 	D3DRENDERSTATETYPE PC; // Map XBox to PC render state. Defaults to D3DRS_UNSUPPORTED.
 	char *N;   // XDK notes. Defaults to ''.
 }

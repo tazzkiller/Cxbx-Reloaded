@@ -1143,7 +1143,7 @@ const DWORD X_D3DRS_MULTISAMPLEMODE             = 154; // [4361+] Xbox ext. /   
 const DWORD X_D3DRS_MULTISAMPLERENDERTARGETMODE = 155; // [4361+] Xbox ext.
 const DWORD X_D3DRS_SHADOWFUNC                  = 156; // D3DCMPFUNC (Xbox extension)
 const DWORD X_D3DRS_LINEWIDTH                   = 157; // Xbox ext.
-const DWORD X_D3DRS_SAMPLEALPHA                 = 158; // Xbox ext.
+const DWORD X_D3DRS_SAMPLEALPHA                 = 158; // [4627+] Xbox ext. // TODO : Verify 4627 (might be introduced earlier)
 const DWORD X_D3DRS_DXT1NOISEENABLE             = 159; // Xbox ext.
 const DWORD X_D3DRS_YUVENABLE                   = 160; // [3911+] Xbox ext.
 const DWORD X_D3DRS_OCCLUSIONCULLENABLE         = 161; // [3911+] Xbox ext.
@@ -1258,10 +1258,10 @@ typedef DWORD X_D3DCLEAR;
 // Xbox D3D Clear (X_D3DCLEAR flags and masks)
 #define X_D3DCLEAR_ZBUFFER  0x00000001
 #define X_D3DCLEAR_STENCIL  0x00000002
-#define X_D3DCLEAR_TARGET_R 0x00000010
-#define X_D3DCLEAR_TARGET_G 0x00000020
-#define X_D3DCLEAR_TARGET_B 0x00000040
-#define X_D3DCLEAR_TARGET_A 0x00000080
+#define X_D3DCLEAR_TARGET_R 0x00000010 // Xbox ext.
+#define X_D3DCLEAR_TARGET_G 0x00000020 // Xbox ext.
+#define X_D3DCLEAR_TARGET_B 0x00000040 // Xbox ext.
+#define X_D3DCLEAR_TARGET_A 0x00000080 // Xbox ext.
 #define X_D3DCLEAR_TARGET   (X_D3DCLEAR_TARGET_R | X_D3DCLEAR_TARGET_G | X_D3DCLEAR_TARGET_B | X_D3DCLEAR_TARGET_A)
 
 // Xbox D3D Color Write Enable (for X_D3DRS_COLORWRITEENABLE)
@@ -1375,7 +1375,6 @@ const int MAX_NBR_STREAMS = 16; // Dxbx addition?
 // unused #define X_D3DVSD_MASK_TESSUV 0x10000000
 #define X_D3DVSD_MASK_SKIP 0x10000000 // Skips (normally) dwords
 #define X_D3DVSD_MASK_SKIPBYTES 0x08000000 // Skips bytes (no, really?!)
-#define X_D3DVSD_DATATYPESHIFT 16
 
 #define X_D3DVSD_TOKENTYPESHIFT   29
 #define X_D3DVSD_TOKENTYPEMASK    (7 << X_D3DVSD_TOKENTYPESHIFT)

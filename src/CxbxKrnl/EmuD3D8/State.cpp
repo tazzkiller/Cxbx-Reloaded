@@ -69,7 +69,7 @@ DWORD *_D3D__RenderState = NULL;
 DWORD (*DxbxTextureStageStateXB2PCCallback[X_D3DTSS_LAST + 1])(DWORD Value);
 DWORD (*DxbxRenderStateXB2PCCallback[X_D3DRS_LAST + 1])(DWORD Value);
 X_D3DRENDERSTATETYPE DxbxMapActiveVersionToMostRecent[X_D3DRS_LAST + 1];
-X_D3DRENDERSTATETYPE DxbxMapMostRecentToActiveVersion[X_D3DRS_LAST + 1];
+DWORD DxbxMapMostRecentToActiveVersion[X_D3DRS_LAST + 1];
 
 void DxbxBuildRenderStateMappingTable()
 {
@@ -87,18 +87,18 @@ void DxbxBuildRenderStateMappingTable()
 		DxbxTextureStageStateXB2PCCallback[i] = (TXB2PCFunc)(DxbxXBTypeInfo[DxbxTextureStageStateInfo[i].T].F);
 
 	// Loop over all latest (5911) states :
-	X_D3DRENDERSTATETYPE State_VersionDependent = X_D3DRS_FIRST;
+	DWORD XDKVersion_D3DRS = X_D3DRS_FIRST;
 	for (X_D3DRENDERSTATETYPE State = X_D3DRS_FIRST; State <= X_D3DRS_LAST; State++)
 	{
 		// Check if this state is available in the active SDK version :
 		if (g_BuildVersion >= GetDxbxRenderStateInfo(State).V)
 		{
 			// If it is available, register this offset in the various mapping tables we use :
-			DxbxMapActiveVersionToMostRecent[State_VersionDependent] = State;
-			DxbxMapMostRecentToActiveVersion[State] = State_VersionDependent;
-			EmuMappedD3DRenderState[State] = &(_D3D__RenderState[State_VersionDependent]);
+			DxbxMapActiveVersionToMostRecent[XDKVersion_D3DRS] = State;
+			DxbxMapMostRecentToActiveVersion[State] = XDKVersion_D3DRS;
+			EmuMappedD3DRenderState[State] = &(_D3D__RenderState[XDKVersion_D3DRS]);
 			// Step to the next offset :
-			State_VersionDependent++;
+			XDKVersion_D3DRS++;
 		}
 		else
 		{
@@ -114,8 +114,8 @@ void DxbxBuildRenderStateMappingTable()
 	if (_D3D__RenderState != nullptr)
 	{
 		// Calculate the location of D3DDeferredRenderState via an XDK-dependent offset to _D3D__RenderState :
-		EmuD3DDeferredRenderState = _D3D__RenderState;
-		EmuD3DDeferredRenderState += DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
+		DWORD XDKVersion_D3DRS_DEFERRED_FIRST = DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
+		EmuD3DDeferredRenderState = _D3D__RenderState + XDKVersion_D3DRS_DEFERRED_FIRST;
 		DbgPrintf("HLE: 0x%.08X -> EmuD3DDeferredRenderState\n", EmuD3DDeferredRenderState);
 	}
 	else
@@ -126,11 +126,12 @@ void DxbxBuildRenderStateMappingTable()
 
 		// assert(EmuD3DDeferredRenderState != NULL);
 
-		int delta = (intptr_t)EmuD3DDeferredRenderState - (sizeof(DWORD) * DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST]);
+		int delta = (intptr_t)(EmuD3DDeferredRenderState - DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST]);
 		for (X_D3DRENDERSTATETYPE State = X_D3DRS_FIRST; State <= X_D3DRS_LAST; State++) {
 			if (EmuMappedD3DRenderState[State] != DummyRenderState) {
+				DWORD XDKVersion_D3DRS = DxbxMapMostRecentToActiveVersion[State];
 				EmuMappedD3DRenderState[State] += delta / sizeof(DWORD); // Increment per DWORD (not per 4!)
-				DbgPrintf("HLE: 0x%.08X -> %s\n", EmuMappedD3DRenderState[State], GetDxbxRenderStateInfo(State).S);
+				DbgPrintf("HLE: 0x%.08X -> g_Device.%.20s = %d;\n", EmuMappedD3DRenderState[State], GetDxbxRenderStateInfo(State).S, XDKVersion_D3DRS);
 			}
 		}
 
