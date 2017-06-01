@@ -284,14 +284,15 @@ extern thread_local std::string _logPrefix;
 #define LOGRENDER_HEADER_BY_PTR(Type) std::ostream& operator<<(std::ostream& os, const Type *value)
 
 #define TYPE2STR(Type) Type##ToString
+#define TYPE2STR_HEADER(Type) const char * TYPE2STR(Type)(const Type &value)
 
 // Macro for implementation of rendering any Type-ToString :
 #define LOGRENDER_TYPE(Type) LOGRENDER_HEADER_BY_REF(Type) \
 { return os << "("#Type")" << hex4((int)value) << " = " << TYPE2STR(Type)(value); }
 
 // Macro's for Enum-ToString conversions :
-#define ENUM2STR_HEADER(EnumType) LOGRENDER_HEADER_BY_REF(EnumType);
-#define ENUM2STR_START(EnumType) const char * TYPE2STR(EnumType)(const EnumType &value) { switch (value) {
+#define ENUM2STR_HEADER(EnumType) extern TYPE2STR_HEADER(EnumType); LOGRENDER_HEADER_BY_REF(EnumType);
+#define ENUM2STR_START(EnumType) TYPE2STR_HEADER(EnumType) { switch (value) {
 #define ENUM2STR_CASE(a) case a: return #a;
 // ENUM2STR_CASE_DEF is needed for #define'd symbols
 #define ENUM2STR_CASE_DEF(a) case a: return #a;
