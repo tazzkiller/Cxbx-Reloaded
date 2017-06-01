@@ -622,6 +622,24 @@ struct DecodedPixelContainer {
 	DWORD dwMinXYValue; // 4 for compressed formats, 1 for everything else. Only applies to width & height. Depth can go to 1.
 };
 
+void DumpDecodedPixelContainer(DecodedPixelContainer &decoded)
+{
+	DbgPrintf("X_Format = 0x%.02X (%s)\n", decoded.X_Format, TYPE2STR(X_D3DFORMAT)(decoded.X_Format));
+	DbgPrintf("dwBPP = %d\n", decoded.dwBPP);
+	DbgPrintf("bIsSwizzled = %d\n", decoded.bIsSwizzled);
+	DbgPrintf("bIsCompressed = %d\n", decoded.bIsCompressed);
+	DbgPrintf("bIsCubeMap = %d\n", decoded.bIsCubeMap);
+	DbgPrintf("bIsBorderSource = %d\n", decoded.bIsBorderSource);
+	DbgPrintf("bIs3D = %d\n", decoded.bIs3D);
+	DbgPrintf("dwWidth = %d\n", decoded.dwWidth);
+	DbgPrintf("dwHeight = %d\n", decoded.dwHeight);
+	DbgPrintf("dwDepth = %d\n", decoded.dwDepth);
+	DbgPrintf("dwRowPitch = %d\n", decoded.dwRowPitch);
+	DbgPrintf("dwMipMapLevels = %d\n", decoded.dwMipMapLevels);
+	DbgPrintf("dwFacePitch = %d\n", decoded.dwFacePitch);
+	DbgPrintf("dwMinXYValue = %d\n", decoded.dwMinXYValue);
+}
+
 void DecodeD3DFormatAndSize(DWORD dwD3DFormat, DWORD dwD3DSize, OUT DecodedPixelContainer &decoded)
 {
 	Decoded_D3DFormat decodedFormat;
@@ -1271,6 +1289,17 @@ VOID CxbxGetPixelContainerMeasures
 	}
 
 	*pSize = *pHeight * *pPitch;
+
+#if 0 // Enable to dump results
+	{
+		DbgPrintf("pPixelContainer = %p\n", pPixelContainer);
+		DbgPrintf("dwLevel = %d\n", dwLevel);
+		DbgPrintf("*pWidth = %d\n", *pWidth);
+		DbgPrintf("*pHeight = %d\n", *pHeight);
+		DbgPrintf("*pPitch = %d\n", *pPitch);
+		DbgPrintf("*pSize = %d\n", *pSize);
+	}
+#endif
 }
 
 void CxbxUpdateTextureStages()
