@@ -1152,7 +1152,6 @@ const DWORD X_D3DRS_ROPZCMPALWAYSREAD           = 163; // [3911+] Xbox ext.
 const DWORD X_D3DRS_ROPZREAD                    = 164; // [3911+] Xbox ext.
 const DWORD X_D3DRS_DONOTCULLUNCOMPRESSED       = 165; // [3911+] Xbox ext.
 // End of "complex" render states.
-const DWORD X_D3DRS_UNK = 0x7fffffff; // deferred render state "unknown" flag
 
 // Xbox D3D Wrap Values
 const DWORD X_D3DWRAP_U = 0x00000010;
@@ -1275,7 +1274,7 @@ const DWORD X_D3DCOLORWRITEENABLE_ALPHA = (1 << 24);
 const DWORD X_D3DCOLORWRITEENABLE_ALL = 0x01010101; // Xbox ext.
 
 // Xbox D3D Texture Stage State "unknown" flag
-const DWORD X_D3DTSS_UNK = 0x7fffffff;
+const DWORD X_D3DTSS_UNKNOWN = 0x7fffffff;
 
 // Xbox D3D Render State "unknown" flag
 const DWORD X_D3DRS_UNKNOWN = 0x7fffffff;

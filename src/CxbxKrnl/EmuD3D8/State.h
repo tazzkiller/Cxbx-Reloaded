@@ -59,4 +59,6 @@ extern X_D3DTEXTURESTAGESTATETYPE DxbxFromNewVersion_D3DTSS(const X_D3DTEXTUREST
 
 extern DWORD Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue);
 
+extern DWORD Cxbx_SetTextureStageState(DWORD Sampler, X_D3DTEXTURESTAGESTATETYPE Type, DWORD XboxValue);
+
 #endif

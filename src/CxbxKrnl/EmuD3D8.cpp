@@ -1478,9 +1478,56 @@ void DxbxSetRenderStateInternal
 		const XTL::RenderStateInfo &DxbxRenderStateInfo = XTL::GetDxbxRenderStateInfo(XboxRenderState);
 
 		if (PCValue != XboxValue)
-			DbgPrintf("  %s := 0x%.08X (converted from Xbox)\n", DxbxRenderStateInfo.S, PCValue);
+			DbgPrintf("  %s := 0x%.08X (converted from Xbox)\n", 
+				DxbxRenderStateInfo.S + 2,  // Skip "X_" prefix
+				PCValue);
 		else
-			DbgPrintf("  %s := 0x%.08X\n", DxbxRenderStateInfo.S, PCValue);
+			DbgPrintf("  %s := 0x%.08X\n", 
+				DxbxRenderStateInfo.S + 2,  // Skip "X_" prefix
+				PCValue);
+	}
+}
+
+void CxbxSetTextureStageStateInternal
+(
+	char *Caller,
+	DWORD Stage,
+	XTL::X_D3DTEXTURESTAGESTATETYPE XboxTextureStageState,
+	DWORD XboxValue
+)
+{
+	LOG_FUNC_INIT(Caller)
+
+	if (Caller)
+	{
+		LOG_FUNC_BEGIN_NO_INIT
+			LOG_FUNC_ARG(Stage)
+			LOG_FUNC_ARG(XboxTextureStageState)
+			LOG_FUNC_ARG(XboxValue)
+			LOG_FUNC_END;
+	}
+
+	LOG_FINIT
+
+	// Set this value into the TextureState structure too (so other code will read the new current value)
+	XTL::Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + XTL::DxbxFromNewVersion_D3DTSS(XboxTextureStageState)] = XboxValue;
+	// TODO : Update the D3D DirtyFlags too?
+
+	// Transfer over the texture stage state to PC :
+	DWORD PCValue = XTL::Cxbx_SetTextureStageState(Stage, XboxTextureStageState, XboxValue);
+
+	// Dump the value that's being forwarded to PC :
+	{
+		const XTL::TextureStageStateInfo &Info = XTL::DxbxTextureStageStateInfo[XboxTextureStageState];
+
+		if (PCValue != XboxValue)
+			DbgPrintf("  %s := 0x%.08X (converted from Xbox)\n", 
+				Info.S + 2,  // Skip "X_" prefix
+				PCValue);
+		else
+			DbgPrintf("  %s := 0x%.08X\n", 
+				Info.S + 2,  // Skip "X_" prefix
+				PCValue);
 	}
 }
 
@@ -7007,29 +7054,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_TexCoordIndex)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(Stage)
-		LOG_FUNC_ARG(Value)
-		LOG_FUNC_END;
-
 	// TODO: Xbox Direct3D supports sphere mapping OpenGL style.
 
-	// Native doesn't support D3DTSS_TCI_OBJECT, D3DTSS_TCI_SPHERE, D3DTSS_TCI_TEXGEN_MAX or higher:
-	if ((Value & 0xFFFF0000) > D3DTSS_TCI_CAMERASPACEREFLECTIONVECTOR) // Dxbx note : Cxbx uses 0x00030000, which is not enough for the Strip XDK sample!
-		EmuWarning("EmuD3DDevice_SetTextureState_TexCoordIndex: Unknown TexCoordIndex Value (0x%.08X)", Value);
-
-	// BUG FIX: The lower 16 bits were causing false Unknown TexCoordIndex errors.
-	// Check for 0x00040000 instead.
-
-    if(Value >= 0x00040000)
-        CxbxKrnlCleanup("EmuD3DDevice_SetTextureState_TexCoordIndex: Unknown TexCoordIndex Value (0x%.08X)", Value);
-
-	// Dxbx addition : Set this value into the TextureState structure too (so other code will read the new current value)
-	Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_TEXCOORDINDEX)] = Value;
-	// TODO -oDxbx : Update the D3D DirtyFlags too?
-
-    HRESULT hRet = g_pD3DDevice8->SetTextureStageState(Stage, D3DTSS_TEXCOORDINDEX, Value);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTextureStageState");
+	CxbxSetTextureStageStateInternal(__func__, Stage, X_D3DTSS_TEXCOORDINDEX, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_BorderColor)
@@ -7040,13 +7067,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_BorderColor)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(Stage)
-		LOG_FUNC_ARG(Value)
-		LOG_FUNC_END;
-
-    HRESULT hRet = g_pD3DDevice8->SetTextureStageState(Stage, D3DTSS_BORDERCOLOR, Value);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTextureStageState");
+	CxbxSetTextureStageStateInternal(__func__, Stage, X_D3DTSS_BORDERCOLOR, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_ColorKeyColor)
@@ -7057,12 +7078,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_ColorKeyColor)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(Stage)
-		LOG_FUNC_ARG(Value)
-		LOG_FUNC_END;
-
-	LOG_NOT_SUPPORTED();
+	CxbxSetTextureStageStateInternal(__func__, Stage, X_D3DTSS_COLORKEYCOLOR, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_BumpEnv)
@@ -7074,34 +7090,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_BumpEnv)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(Stage)
-		LOG_FUNC_ARG(Type)
-		LOG_FUNC_ARG(Value)
-		LOG_FUNC_END;
-
-	HRESULT hRet = D3D_OK;
-
-    switch(Type)
-    {
-        case 22:    // X_D3DTSS_BUMPENVMAT00
-            hRet = g_pD3DDevice8->SetTextureStageState(Stage, D3DTSS_BUMPENVMAT00, Value);
-            break;
-        case 23:    // X_D3DTSS_BUMPENVMAT01
-			hRet = g_pD3DDevice8->SetTextureStageState(Stage, D3DTSS_BUMPENVMAT01, Value);
-			break;
-        case 24:    // X_D3DTSS_BUMPENVMAT11
-			hRet = g_pD3DDevice8->SetTextureStageState(Stage, D3DTSS_BUMPENVMAT11, Value);
-            break;
-        case 25:    // X_D3DTSS_BUMPENVMAT10
-			hRet = g_pD3DDevice8->SetTextureStageState(Stage, D3DTSS_BUMPENVMAT10, Value);
-            break;
-        case 26:    // X_D3DTSS_BUMPENVLSCALE
-			hRet = g_pD3DDevice8->SetTextureStageState(Stage, D3DTSS_BUMPENVLSCALE, Value);
-            break;
-    }
-
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTextureStageState");
+	CxbxSetTextureStageStateInternal(__func__, Stage, Type, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_TwoSidedLighting)
@@ -7242,7 +7231,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Simple)
 
 	X_D3DRENDERSTATETYPE XboxRenderState = DxbxXboxMethodToRenderState(Method);
 
-    if (XboxRenderState == X_D3DRS_UNK)
+    if (XboxRenderState == X_D3DRS_UNKNOWN)
         EmuWarning("D3DDevice_SetRenderState_Simple(0x%.08X, 0x%.08X) : Unknown NV2A method!", Method, Value);
     else
 		// Use a helper for the simple render states, as SetRenderStateNotInline

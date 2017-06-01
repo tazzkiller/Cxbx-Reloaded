@@ -380,6 +380,8 @@ const XBTypeInfo DxbxXBTypeInfo[] = {
     {"D3DTEXTURESTAGESTATETYPE", &EmuXB2PC_D3DTSS,              &X_D3DTEXTURESTAGESTATETYPE2String},
 	/*xtD3DTRANSFORMSTATETYPE = */
     {"D3DTRANSFORMSTATETYPE",    &EmuXB2PC_D3DTS,               &X_D3DTRANSFORMSTATETYPE2String},
+	/*xtD3DTSS_TCI = */
+	{"D3DTSS_TCI",               &EmuXB2PC_D3DTSS_TCI,          &X_D3DTEXTURECOORDINDEX2String },
 	/*xtD3DVERTEXBLENDFLAGS = */
     {"D3DVERTEXBLENDFLAGS",      &EmuXB2PC_D3DVERTEXBLENDFLAGS, &X_D3DVERTEXBLENDFLAGS2String},
 	/*xtD3DVSDE = */
@@ -660,44 +662,43 @@ Direct3D9 states unused :
 #define xtD3DTEXTUREALPHAKILL xt_Unknown
 #define xtD3DTA xt_Unknown // Used 8 times
 #define xtD3DTEXTURETRANSFORMFLAGS xt_Unknown
-#define xtD3DTSS_TCI xt_Unknown
 
 const TextureStageStateInfo DxbxTextureStageStateInfo[] = {
 //:array[X_D3DTSS_FIRST..X_D3DTSS_UNSUPPORTED] of TextureStageStateInfo = (
-    //  String                         Ord   Type                            XboxExt? Native
-    {"D3DTSS_ADDRESSU"              /*= 0*/, xtD3DTEXTUREADDRESS,          false, D3DSAMP_ADDRESSU},
-    {"D3DTSS_ADDRESSV"              /*= 1*/, xtD3DTEXTUREADDRESS,          false, D3DSAMP_ADDRESSV},
-    {"D3DTSS_ADDRESSW"              /*= 2*/, xtD3DTEXTUREADDRESS,          false, D3DSAMP_ADDRESSW},
-    {"D3DTSS_MAGFILTER"             /*= 3*/, xtD3DTEXTUREFILTERTYPE,       false, D3DSAMP_MAGFILTER},
-    {"D3DTSS_MINFILTER"             /*= 4*/, xtD3DTEXTUREFILTERTYPE,       false, D3DSAMP_MINFILTER},
-    {"D3DTSS_MIPFILTER"             /*= 5*/, xtD3DTEXTUREFILTERTYPE,       false, D3DSAMP_MIPFILTER},
-    {"D3DTSS_MIPMAPLODBIAS"         /*= 6*/, xtFloat,                      false, D3DSAMP_MIPMAPLODBIAS},
-    {"D3DTSS_MAXMIPLEVEL"           /*= 7*/, xtDWORD,                      false, D3DSAMP_MAXMIPLEVEL},
-    {"D3DTSS_MAXANISOTROPY"         /*= 8*/, xtDWORD,                      false, D3DSAMP_MAXANISOTROPY},
-    {"D3DTSS_COLORKEYOP"            /*= 9*/, xtD3DTEXTURECOLORKEYOP,       true},
-    {"D3DTSS_COLORSIGN"             /*=10*/, xtD3DTSIGN,                   true},
-    {"D3DTSS_ALPHAKILL"             /*=11*/, xtD3DTEXTUREALPHAKILL,        true},
-    {"D3DTSS_COLOROP"               /*=12*/, xtD3DTEXTUREOP,               false, (D3DSAMPLERSTATETYPE)D3DTSS_COLOROP},
-    {"D3DTSS_COLORARG0"             /*=13*/, xtD3DTA,                      false, (D3DSAMPLERSTATETYPE)D3DTSS_COLORARG0},
-    {"D3DTSS_COLORARG1"             /*=14*/, xtD3DTA,                      false, (D3DSAMPLERSTATETYPE)D3DTSS_COLORARG1},
-    {"D3DTSS_COLORARG2"             /*=15*/, xtD3DTA,                      false, (D3DSAMPLERSTATETYPE)D3DTSS_COLORARG2},
-    {"D3DTSS_ALPHAOP"               /*=16*/, xtD3DTEXTUREOP,               false, (D3DSAMPLERSTATETYPE)D3DTSS_ALPHAOP},
-    {"D3DTSS_ALPHAARG0"             /*=17*/, xtD3DTA,                      false, (D3DSAMPLERSTATETYPE)D3DTSS_ALPHAARG0},
-    {"D3DTSS_ALPHAARG1"             /*=18*/, xtD3DTA,                      false, (D3DSAMPLERSTATETYPE)D3DTSS_ALPHAARG1},
-    {"D3DTSS_ALPHAARG2"             /*=19*/, xtD3DTA,                      false, (D3DSAMPLERSTATETYPE)D3DTSS_ALPHAARG2},
-    {"D3DTSS_RESULTARG"             /*=20*/, xtD3DTA,                      false, (D3DSAMPLERSTATETYPE)D3DTSS_RESULTARG},
-    {"D3DTSS_TEXTURETRANSFORMFLAGS" /*=21*/, xtD3DTEXTURETRANSFORMFLAGS,   false, (D3DSAMPLERSTATETYPE)D3DTSS_TEXTURETRANSFORMFLAGS},
+    //  String                         Ord   Type                            Native (defaults to D3DSAMP_UNSUPPORTED)
+    {"X_D3DTSS_ADDRESSU"              /*= 0*/, xtD3DTEXTUREADDRESS,          D3DSAMP_ADDRESSU},
+    {"X_D3DTSS_ADDRESSV"              /*= 1*/, xtD3DTEXTUREADDRESS,          D3DSAMP_ADDRESSV},
+    {"X_D3DTSS_ADDRESSW"              /*= 2*/, xtD3DTEXTUREADDRESS,          D3DSAMP_ADDRESSW},
+    {"X_D3DTSS_MAGFILTER"             /*= 3*/, xtD3DTEXTUREFILTERTYPE,       D3DSAMP_MAGFILTER},
+    {"X_D3DTSS_MINFILTER"             /*= 4*/, xtD3DTEXTUREFILTERTYPE,       D3DSAMP_MINFILTER},
+    {"X_D3DTSS_MIPFILTER"             /*= 5*/, xtD3DTEXTUREFILTERTYPE,       D3DSAMP_MIPFILTER},
+    {"X_D3DTSS_MIPMAPLODBIAS"         /*= 6*/, xtFloat,                      D3DSAMP_MIPMAPLODBIAS},
+    {"X_D3DTSS_MAXMIPLEVEL"           /*= 7*/, xtDWORD,                      D3DSAMP_MAXMIPLEVEL},
+    {"X_D3DTSS_MAXANISOTROPY"         /*= 8*/, xtDWORD,                      D3DSAMP_MAXANISOTROPY},
+    {"X_D3DTSS_COLORKEYOP"            /*= 9*/, xtD3DTEXTURECOLORKEYOP,       },
+    {"X_D3DTSS_COLORSIGN"             /*=10*/, xtD3DTSIGN,                   },
+    {"X_D3DTSS_ALPHAKILL"             /*=11*/, xtD3DTEXTUREALPHAKILL,        },
+    {"X_D3DTSS_COLOROP"               /*=12*/, xtD3DTEXTUREOP,               (D3DSAMPLERSTATETYPE)D3DTSS_COLOROP},
+    {"X_D3DTSS_COLORARG0"             /*=13*/, xtD3DTA,                      (D3DSAMPLERSTATETYPE)D3DTSS_COLORARG0},
+    {"X_D3DTSS_COLORARG1"             /*=14*/, xtD3DTA,                      (D3DSAMPLERSTATETYPE)D3DTSS_COLORARG1},
+    {"X_D3DTSS_COLORARG2"             /*=15*/, xtD3DTA,                      (D3DSAMPLERSTATETYPE)D3DTSS_COLORARG2},
+    {"X_D3DTSS_ALPHAOP"               /*=16*/, xtD3DTEXTUREOP,               (D3DSAMPLERSTATETYPE)D3DTSS_ALPHAOP},
+    {"X_D3DTSS_ALPHAARG0"             /*=17*/, xtD3DTA,                      (D3DSAMPLERSTATETYPE)D3DTSS_ALPHAARG0},
+    {"X_D3DTSS_ALPHAARG1"             /*=18*/, xtD3DTA,                      (D3DSAMPLERSTATETYPE)D3DTSS_ALPHAARG1},
+    {"X_D3DTSS_ALPHAARG2"             /*=19*/, xtD3DTA,                      (D3DSAMPLERSTATETYPE)D3DTSS_ALPHAARG2},
+    {"X_D3DTSS_RESULTARG"             /*=20*/, xtD3DTA,                      (D3DSAMPLERSTATETYPE)D3DTSS_RESULTARG},
+    {"X_D3DTSS_TEXTURETRANSFORMFLAGS" /*=21*/, xtD3DTEXTURETRANSFORMFLAGS,   (D3DSAMPLERSTATETYPE)D3DTSS_TEXTURETRANSFORMFLAGS},
     // End of "deferred" texture states, continuing with the rest :
-    {"D3DTSS_BUMPENVMAT00"          /*=22*/, xtFloat,                      false, (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT00},
-    {"D3DTSS_BUMPENVMAT01"          /*=23*/, xtFloat,                      false, (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT01},
-    {"D3DTSS_BUMPENVMAT11"          /*=24*/, xtFloat,                      false, (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT10},
-    {"D3DTSS_BUMPENVMAT10"          /*=25*/, xtFloat,                      false, (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT11},
-    {"D3DTSS_BUMPENVLSCALE"         /*=26*/, xtFloat,                      false, (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVLSCALE},
-    {"D3DTSS_BUMPENVLOFFSET"        /*=27*/, xtFloat,                      false, (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVLOFFSET},
-    {"D3DTSS_TEXCOORDINDEX"         /*=28*/, xtD3DTSS_TCI,                 false, (D3DSAMPLERSTATETYPE)D3DTSS_TEXCOORDINDEX},
-    {"D3DTSS_BORDERCOLOR"           /*=29*/, xtD3DCOLOR,                   false, D3DSAMP_BORDERCOLOR},
-    {"D3DTSS_COLORKEYCOLOR"         /*=30*/, xtD3DCOLOR,                   true},
-	{"unsupported"                  /*=31*/, xtDWORD,                      true},
+    {"X_D3DTSS_BUMPENVMAT00"          /*=22*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT00},
+    {"X_D3DTSS_BUMPENVMAT01"          /*=23*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT01},
+    {"X_D3DTSS_BUMPENVMAT11"          /*=24*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT10},
+    {"X_D3DTSS_BUMPENVMAT10"          /*=25*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT11},
+    {"X_D3DTSS_BUMPENVLSCALE"         /*=26*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVLSCALE},
+    {"X_D3DTSS_BUMPENVLOFFSET"        /*=27*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVLOFFSET},
+    {"X_D3DTSS_TEXCOORDINDEX"         /*=28*/, xtD3DTSS_TCI,                 (D3DSAMPLERSTATETYPE)D3DTSS_TEXCOORDINDEX},
+    {"X_D3DTSS_BORDERCOLOR"           /*=29*/, xtD3DCOLOR,                   D3DSAMP_BORDERCOLOR},
+    {"X_D3DTSS_COLORKEYCOLOR"         /*=30*/, xtD3DCOLOR,                   },
+	{"unsupported"                    /*=31*/, xtDWORD,                      },
 };
 
 std::string BOOL2String(DWORD Value)
@@ -1330,6 +1331,22 @@ D3DPRIMITIVETYPE EmuXB2PC_D3DPrimitiveType(X_D3DPRIMITIVETYPE Value)
 	}
 }
 
+// SetTextureState_TexCoordIndex
+DWORD EmuXB2PC_D3DTSS_TCI(DWORD Value)
+{
+	// Native doesn't support D3DTSS_TCI_OBJECT, D3DTSS_TCI_SPHERE, D3DTSS_TCI_TEXGEN_MAX or higher:
+	if ((Value & 0xFFFF0000) > D3DTSS_TCI_CAMERASPACEREFLECTIONVECTOR) // Dxbx note : Cxbx uses 0x00030000, which is not enough for the Strip XDK sample!
+		EmuWarning("EmuD3DDevice_SetTextureState_TexCoordIndex: Unknown TexCoordIndex Value (0x%.08X)", Value);
+
+	// BUG FIX: The lower 16 bits were causing false Unknown TexCoordIndex errors.
+	// Check for 0x00040000 instead.
+
+	if (Value >= 0x00040000)
+		CxbxKrnlCleanup("EmuD3DDevice_SetTextureState_TexCoordIndex: Unknown TexCoordIndex Value (0x%.08X)", Value);
+
+	return Value & 0xFFFF0000;
+}
+
 void XTL::EmuUnswizzleRect
 (
 	PVOID pSrcBuff,
@@ -1533,7 +1550,7 @@ XTL::X_D3DRENDERSTATETYPE XTL::DxbxXboxMethodToRenderState(const NV2AMETHOD aMet
 	case /*0x00001e78*/NV2A_TX_SHADER_PREVIOUS: return X_D3DRS_PSINPUTTEXTURE;
 	// Missing : 0x0000????: Result := X_D3DRS_PSTEXTUREMODES;
 	default:
-		return X_D3DRS_UNK; // Note : Dxbx returns ~0;
+		return X_D3DRS_UNKNOWN; // Note : Dxbx returns ~0;
 	}
 }
 

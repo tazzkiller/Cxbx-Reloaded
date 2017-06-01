@@ -103,6 +103,7 @@ extern std::string DxbxXBDefaultToString(DWORD Value);
 #define X_D3DSTENCILOP2String DxbxXBDefaultToString
 #define X_D3DSWATH2String DxbxXBDefaultToString
 #define X_D3DTEXTUREADDRESS2String DxbxXBDefaultToString
+#define X_D3DTEXTURECOORDINDEX2String DxbxXBDefaultToString
 #define X_D3DTEXTUREOP2String DxbxXBDefaultToString
 #define X_D3DTEXTURESTAGESTATETYPE2String DxbxXBDefaultToString
 #define X_D3DTRANSFORMSTATETYPE2String DxbxXBDefaultToString
@@ -147,6 +148,7 @@ extern D3DSTENCILOP EmuXB2PC_D3DSTENCILOP(X_D3DSTENCILOP Value);
 extern DWORD EmuXB2PC_D3DTEXTUREADDRESS(DWORD Value);
 extern DWORD EmuXB2PC_D3DTEXTUREFILTERTYPE(DWORD Value);
 extern D3DTEXTUREOP EmuXB2PC_D3DTEXTUREOP(X_D3DTEXTUREOP Value);
+extern DWORD EmuXB2PC_D3DTSS_TCI(DWORD Value);
 // convert from xbox to pc texture transform state types
 extern D3DTRANSFORMSTATETYPE EmuXB2PC_D3DTS(X_D3DTRANSFORMSTATETYPE Value);
 // convert from xbox to pc texture stage state
@@ -1691,6 +1693,7 @@ typedef enum _TXBType {
 	xtD3DTEXTUREOP, // Used for TextureStageState X_D3DTSS_COLOROP and X_D3DTSS_ALPHAOP
 	xtD3DTEXTURESTAGESTATETYPE,
 	xtD3DTRANSFORMSTATETYPE,
+	xtD3DTSS_TCI,
 	xtD3DVERTEXBLENDFLAGS,
 	xtD3DVSDE,
 	xtD3DWRAP,
@@ -1727,7 +1730,7 @@ extern const RenderStateInfo &GetDxbxRenderStateInfo(int State);
 typedef struct _TextureStageStateInfo {
     char *S;  // String representation.
 	TXBType T; // The Xbox data type. Defaults to xt_Unknown.
-    bool X; // True when a texture stage state is an xbox-extension (compared to native Direct3D8). Defaults to False.
+    //bool X; // True when a texture stage state is an xbox-extension (compared to native Direct3D8). Defaults to False.
 	D3DSAMPLERSTATETYPE PC; // Map XBox to PC texture stage state. Defaults to D3DSAMP_UNSUPPORTED.
 }
 TextureStageStateInfo;

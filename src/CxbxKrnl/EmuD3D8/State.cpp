@@ -203,20 +203,7 @@ X_D3DTEXTURESTAGESTATETYPE DxbxFromOldVersion_D3DTSS(const X_D3DTEXTURESTAGESTAT
 	return Result;
 }
 
-void CxbxInitializeTextureStageStates()
-{
-	for (int Stage = X_D3DTSS_FIRST; Stage <= X_D3DTSS_STAGECOUNT; Stage++) {
-		for (X_D3DTEXTURESTAGESTATETYPE State = X_D3DTSS_FIRST; State <= X_D3DTSS_LAST; State++) {
-			DWORD NewVersion_TSS = DxbxFromOldVersion_D3DTSS(State); // Map old to new
-			void *Addr = &(Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + State]);
-			RegisterAddressLabel(Addr, "D3D__TextureState[/*Stage*/%d][%d/*=%s*/]",
-				Stage, State,
-				DxbxTextureStageStateInfo[NewVersion_TSS].S + 2); // Skip "X_" prefix
-		}
-	}
-}
-
-DWORD TransferredValues[X_D3DRS_LAST + 1] = { X_D3DRS_UNK };
+DWORD TransferredRenderStateValues[X_D3DRS_LAST + 1] = { X_D3DRS_UNKNOWN };
 
 DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue)
 {
@@ -225,7 +212,7 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 
 //	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-	TransferredValues[XboxRenderState] = XboxValue;
+	TransferredRenderStateValues[XboxRenderState] = XboxValue;
 
 	const RenderStateInfo &DxbxRenderStateInfo = GetDxbxRenderStateInfo(XboxRenderState);
 
@@ -339,61 +326,65 @@ bool  TransferAll = true;
 
 void DxbxTransferRenderState(const X_D3DRENDERSTATETYPE XboxRenderState)
 {
-	DWORD XboxValue;
-
 	// Check if (this render state is supported (so we don't trigger a warning) :
-	if (EmuMappedD3DRenderState[XboxRenderState] != DummyRenderState)
-		if (GetDxbxRenderStateInfo(XboxRenderState).PC != D3DRS_UNSUPPORTED)
-		{
-			// Read the current Xbox value, and set it locally :
-			XboxValue = *EmuMappedD3DRenderState[XboxRenderState];
-			// Prevent setting unchanged values :
-			if (TransferAll || (TransferredValues[XboxRenderState] != XboxValue))
-			{
-				Dxbx_SetRenderState(XboxRenderState, XboxValue);
-			}
-		}
+	if (EmuMappedD3DRenderState[XboxRenderState] == DummyRenderState)
+		return;
+
+	if (GetDxbxRenderStateInfo(XboxRenderState).PC == D3DRS_UNSUPPORTED)
+		return;
+
+	// Read the current Xbox value, and set it locally :
+	DWORD XboxValue = *EmuMappedD3DRenderState[XboxRenderState];
+	// Prevent setting unchanged values :
+	if (TransferAll || (TransferredRenderStateValues[XboxRenderState] != XboxValue))
+		Dxbx_SetRenderState(XboxRenderState, XboxValue);
 }
 
-// TODO : Move this
-HRESULT IDirect3DDevice_SetTextureStageState(LPDIRECT3DDEVICE8 g_pD3DDevice8, DWORD Sampler, X_D3DTEXTURESTAGESTATETYPE Type, DWORD PCValue)
-{
-	D3DTEXTURESTAGESTATETYPE PCState = EmuXB2PC_D3DTSS(Type);
+DWORD TransferredTextureStageStateValues[X_D3DTSS_STAGECOUNT * X_D3DTSS_STAGESIZE] = { X_D3DTSS_UNKNOWN };
 
+// TODO : Move this
+DWORD Cxbx_SetTextureStageState(DWORD Stage, X_D3DTEXTURESTAGESTATETYPE State, DWORD XboxValue)
+{
+	TransferredTextureStageStateValues[(Stage * X_D3DTSS_STAGESIZE) + State] = XboxValue;
+
+	D3DTEXTURESTAGESTATETYPE PCState = EmuXB2PC_D3DTSS(State);
+
+	// Skip unsupported Xbox extensions :
 	if (PCState == D3DSAMP_UNSUPPORTED)
-		return D3D_OK;
+		// TODO -oDxbx : Emulate these Xbox extensions somehow
+		return XboxValue;
+
+	// Convert Xbox value to PC value for current texture stage state :
+	DWORD PCValue = DxbxTextureStageStateXB2PCCallback[State](XboxValue);
 
 #ifdef DXBX_USE_D3D9
 	// For Direct3D9, everything below D3DSAMP_MAXANISOTROPY needs to call SetSamplerState :
-	if (Type <= X_D3DTSS_MAXANISOTROPY)
-		return aDirect3DDevice8->SetSamplerState(Sampler, PCState, PCValue);
-
+	if (State <= X_D3DTSS_MAXANISOTROPY) {
+		aDirect3DDevice8->SetSamplerState(Stage, PCState, PCValue);
+		return PCValue;
+	}
 #endif
-	return g_pD3DDevice8->SetTextureStageState(Sampler, PCState, PCValue);
+
+	g_pD3DDevice8->SetTextureStageState(Stage, PCState, PCValue);
+	return PCValue;
 }
 
-HRESULT DxbxTransferTextureStageState(int Stage, X_D3DTEXTURESTAGESTATETYPE State)
+void DxbxTransferTextureStageState(int Stage, X_D3DTEXTURESTAGESTATETYPE State)
 {
-	DWORD XboxValue;
-	DWORD PCValue;
-	HRESULT Result = D3D_OK;
-
-	// Skip Xbox extensions :
-	if (DxbxTextureStageStateInfo[State].X)
+	// Skip unsupported Xbox extensions :
+	if (DxbxTextureStageStateInfo[State].PC == D3DSAMP_UNSUPPORTED)
 		// TODO -oDxbx : Emulate these Xbox extensions somehow
-		return Result;
+		return;
 
-	XboxValue = Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(State)];
-	if (XboxValue == X_D3DTSS_UNK)
-		return Result;
+	DWORD XboxValue = Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(State)];
+	if (XboxValue == X_D3DTSS_UNKNOWN)
+		return;
 
-	// Convert Xbox value to PC value for current texture stage state :
-	PCValue = DxbxTextureStageStateXB2PCCallback[State](XboxValue);
-	// TODO : Prevent setting unchanged values
 	// Transfer over the deferred texture stage state to PC :
-	Result = IDirect3DDevice_SetTextureStageState(g_pD3DDevice8, Stage, State, PCValue);
 
-	return Result;
+	// Prevent setting unchanged values :
+	if (TransferAll || (TransferredTextureStageStateValues[(Stage * X_D3DTSS_STAGESIZE) + State] != XboxValue))
+		Cxbx_SetTextureStageState(Stage, State, XboxValue);
 } // DxbxTransferTextureStageState
 
 void CxbxPitchedCopy(BYTE *pDest, BYTE *pSrc, DWORD dwDestPitch, DWORD dwSrcPitch, DWORD dwWidthInBytes, DWORD dwHeight)
@@ -498,6 +489,19 @@ void DxbxUpdateDeferredStates()
 } // DxbxUpdateDeferredStates
 
 
+void CxbxInitializeTextureStageStates()
+{
+	for (int Stage = X_D3DTSS_FIRST; Stage <= X_D3DTSS_STAGECOUNT; Stage++) {
+		for (X_D3DTEXTURESTAGESTATETYPE State = X_D3DTSS_FIRST; State <= X_D3DTSS_LAST; State++) {
+			DWORD NewVersion_TSS = DxbxFromOldVersion_D3DTSS(State); // Map old to new
+			void *Addr = &(Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + State]);
+			RegisterAddressLabel(Addr, "D3D__TextureState[/*Stage*/%d][%d/*=%s*/]",
+				Stage, State,
+				DxbxTextureStageStateInfo[NewVersion_TSS].S + 2); // Skip "X_" prefix
+		}
+	}
+}
+
 void InitD3DDeferredStates()
 {
 	CxbxInitializeTextureStageStates();
@@ -511,12 +515,12 @@ void InitD3DDeferredStates()
 
 	for (int s = 0; s < X_D3DTSS_STAGECOUNT; s++) {
 		// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DTEXTUREADDRESS
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSU)] = X_D3DTSS_UNK;
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSV)] = X_D3DTSS_UNK;
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSW)] = X_D3DTSS_UNK;
+		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSU)] = X_D3DTSS_UNKNOWN;
+		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSV)] = X_D3DTSS_UNKNOWN;
+		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSW)] = X_D3DTSS_UNKNOWN;
 		// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DTEXTUREOP
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_COLOROP)] = X_D3DTSS_UNK;
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ALPHAOP)] = X_D3DTSS_UNK;
+		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_COLOROP)] = X_D3DTSS_UNKNOWN;
+		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ALPHAOP)] = X_D3DTSS_UNKNOWN;
 	}
 #else // Old, fix-em-all approach :
 	for (int v = 0; v < 44; v++) {
@@ -525,7 +529,7 @@ void InitD3DDeferredStates()
 
 	for (int s = 0; s < X_D3DTSS_STAGECOUNT; s++) {
 		for (int v = 0; v < X_D3DTSS_STAGESIZE; v++)
-			Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + v] = X_D3DTSS_UNK;
+			Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + v] = X_D3DTSS_UNKNOWN;
 	}
 #endif
 }
