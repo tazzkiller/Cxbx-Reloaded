@@ -1835,7 +1835,13 @@ static LRESULT WINAPI EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
                     ToggleFauxFullscreen(hWnd);
                 }
             }
-            else if(wParam == VK_F8)
+			else if (wParam == VK_F6)
+			{
+				// For some unknown reason, F6 isn't handled in WndMain::WndProc,
+				// so detect it here too, and stop emulation from here too :
+				SendMessage(hWnd, WM_CLOSE, 0, 0); // See StopEmulation();
+			}
+			else if(wParam == VK_F8)
             {
                 g_bPrintfOn = !g_bPrintfOn;
             }
@@ -1849,7 +1855,7 @@ static LRESULT WINAPI EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
             }
             else if(wParam == VK_F11)
             {
-                if(g_iWireframe++ == 2)
+                if(g_iWireframe++ >= 2)
                     g_iWireframe = 0;
             }
             else if(wParam == VK_F12)

@@ -129,7 +129,7 @@ class WndMain : public Wnd
         // * changes remembered for internal purposes
         // ******************************************************************
         bool        m_bXbeChanged;
-        bool        m_bCanStart;
+        bool        m_bIsStarted;
 
         // ******************************************************************
         // * cached filenames
