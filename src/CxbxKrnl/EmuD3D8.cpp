@@ -7014,11 +7014,19 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_TexCoordIndex)
 
 	// TODO: Xbox Direct3D supports sphere mapping OpenGL style.
 
+	// Native doesn't support D3DTSS_TCI_OBJECT, D3DTSS_TCI_SPHERE, D3DTSS_TCI_TEXGEN_MAX or higher:
+	if ((Value & 0xFFFF0000) > D3DTSS_TCI_CAMERASPACEREFLECTIONVECTOR) // Dxbx note : Cxbx uses 0x00030000, which is not enough for the Strip XDK sample!
+		EmuWarning("EmuD3DDevice_SetTextureState_TexCoordIndex: Unknown TexCoordIndex Value (0x%.08X)", Value);
+
 	// BUG FIX: The lower 16 bits were causing false Unknown TexCoordIndex errors.
 	// Check for 0x00040000 instead.
 
     if(Value >= 0x00040000)
         CxbxKrnlCleanup("EmuD3DDevice_SetTextureState_TexCoordIndex: Unknown TexCoordIndex Value (0x%.08X)", Value);
+
+	// Dxbx addition : Set this value into the TextureState structure too (so other code will read the new current value)
+	Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_TEXCOORDINDEX)] = Value;
+	// TODO -oDxbx : Update the D3D DirtyFlags too?
 
     HRESULT hRet = g_pD3DDevice8->SetTextureStageState(Stage, D3DTSS_TEXCOORDINDEX, Value);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTextureStageState");
