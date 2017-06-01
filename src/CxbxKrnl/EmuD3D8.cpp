@@ -1890,7 +1890,7 @@ void CxbxGetActiveHostBackBuffer()
 {
 	if (g_pActiveHostBackBuffer == nullptr)
 	{
-		LOG_INIT // 
+		LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 		// Refresh the host backbuffer 
 		HRESULT hRet = g_pD3DDevice8->GetBackBuffer(0, XTL::D3DBACKBUFFER_TYPE_MONO, &g_pActiveHostBackBuffer);
@@ -1906,7 +1906,7 @@ void CxbxGetActiveHostBackBuffer()
 // A wrapper for Present() with an extra safeguard to restore 'device lost' errors
 void CxbxPresent()
 {
-	LOG_INIT // 
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	HRESULT hRet;
 
@@ -7746,7 +7746,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 
 void XTL::DxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 {
-	LOG_INIT //
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	UINT VertexCount = VPDesc.dwVertexCount; // Dxbx addition : Use the new VertexCount
 

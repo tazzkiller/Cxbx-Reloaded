@@ -223,7 +223,7 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	D3DRENDERSTATETYPE PCRenderState;
 	DWORD PCValue;
 
-	LOG_INIT //
+//	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	TransferredValues[XboxRenderState] = XboxValue;
 
