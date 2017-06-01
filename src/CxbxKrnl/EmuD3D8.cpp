@@ -7698,14 +7698,10 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
     if(pStreamData != NULL)
 		pHostVertexBuffer = CxbxUpdateVertexBuffer(pStreamData);
 
-	if (pHostVertexBuffer != nullptr)
-	{
-		pHostVertexBuffer->Unlock();
 #ifdef _DEBUG_TRACK_VB
-		if (pStreamData != NULL)
-			g_bVBSkipStream = g_VBTrackDisable.exists(pHostVertexBuffer);
+	if (pHostVertexBuffer != nullptr)
+		g_bVBSkipStream = g_VBTrackDisable.exists(pHostVertexBuffer);
 #endif
-	}
 
     HRESULT hRet = g_pD3DDevice8->SetStreamSource(StreamNumber, pHostVertexBuffer, Stride);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetStreamSource");
