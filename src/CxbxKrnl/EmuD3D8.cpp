@@ -1966,6 +1966,13 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 #endif
 
 					g_pD3DDevice8 = nullptr;
+					// Prevent exceptions on stale pointers in release-builds :
+					g_pActiveHostBackBuffer = nullptr;
+					g_pActiveHostDepthStencil = nullptr;
+					g_pActiveHostRenderTarget = nullptr;
+					g_pInitialHostBackBuffer = nullptr;
+					g_pInitialXboxDepthStencil = nullptr;
+					g_pInitialXboxRenderTarget = nullptr;
 				}
 
 				if (g_EmuCDPD.pPresentationParameters->BufferSurfaces[0] != NULL)
