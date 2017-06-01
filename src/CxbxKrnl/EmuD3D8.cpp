@@ -1800,7 +1800,7 @@ static LRESULT WINAPI EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 
     switch(msg)
     {
-        case WM_DESTROY:
+        case WM_DESTROY: // Either SendMessage(WM_CLOSE, or close cross was pressed
         {
             DeleteObject(g_hBgBrush);
             PostQuitMessage(0);
@@ -1808,7 +1808,7 @@ static LRESULT WINAPI EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
         }
         break;
 
-        case WM_SYSKEYDOWN:
+        case WM_SYSKEYDOWN: // = ALT + ??
         {
             if(wParam == VK_RETURN)
             {
@@ -1837,8 +1837,8 @@ static LRESULT WINAPI EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
             }
 			else if (wParam == VK_F6)
 			{
-				// For some unknown reason, F6 isn't handled in WndMain::WndProc,
-				// so detect it here too, and stop emulation from here too :
+				// For some unknown reason, F6 isn't handled in WndMain::WndProc
+				// sometimes, so detect it and stop emulation from here too :
 				SendMessage(hWnd, WM_CLOSE, 0, 0); // See StopEmulation();
 			}
 			else if(wParam == VK_F8)
