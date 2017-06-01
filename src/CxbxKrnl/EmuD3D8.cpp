@@ -184,6 +184,94 @@ XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 // cached active texture
 XTL::X_D3DBaseTexture *XTL::EmuD3DTextureStages[X_D3DTSS_STAGECOUNT] = {0,0,0,0};
 
+void CxbxClearGlobals()
+{
+	// g_hEmuWindow = NULL;
+	g_pD3DDevice8 = NULL;
+	g_pDDSPrimary7 = NULL;
+	g_pDDSOverlay7 = nullptr;
+	g_pDDClipper = nullptr;
+	g_CurrentVertexShader = 0;
+	g_dwCurrentPixelShader = 0;
+	g_CurrentPixelShader = NULL;
+	g_bFakePixelShaderLoaded = FALSE;
+	g_bIsFauxFullscreen = FALSE;
+	g_bHackUpdateSoftwareOverlay = FALSE;
+
+	g_hMonitor = NULL;
+	g_bYUY2OverlaysSupported = FALSE;
+	g_pDD7 = NULL;
+	g_DriverCaps = { 0 };
+
+	// KEEP g_XbeHeader = NULL;
+	// KEEP g_XbeHeaderSize = 0;
+	// KEEP g_hBgBrush = NULL;
+	// KEEP g_bRenderWindowActive = false;
+	// KEEP g_XBVideo = {};
+	g_pVBCallback = NULL;
+	g_pSwapCallback = NULL;
+	g_pCallback = NULL;
+	// g_CallbackType;
+	// g_CallbackParam;
+	g_bHasDepthStencilSurface = FALSE;
+	g_bHasDepthBits = FALSE;
+	g_bHasStencilBits = FALSE;
+	// g_dwPrimPerFrame = 0;
+
+	// KEEP g_ddguid;
+	// KEEP g_pD3D8 = NULL;
+	// KEEP g_D3DCaps = {};
+
+	g_iWireframe = 0;
+	X_D3DSCM_CORRECTION_VersionDependent = 0;
+
+#if 0
+	g_pIndexBuffer = NULL;
+	g_dwBaseVertexIndex = 0;
+#endif
+
+	g_pDummyBuffer = NULL;
+	//g_D3DStreams = {};
+	//g_D3DStreamStrides = {};
+
+	g_VBData = { 0 };
+	g_VBLastSwap = 0;
+
+	g_SwapData = { 0 };
+#if 0
+	g_SwapLast = 0;
+#endif
+
+	g_pBackMaterial = { 0 };
+	g_pInitialXboxBackBuffer = NULL;
+	g_pInitialHostBackBuffer = nullptr;
+	g_pActiveXboxBackBuffer = NULL;
+	g_pActiveHostBackBuffer = nullptr;
+
+	g_pInitialXboxRenderTarget = NULL;
+	g_pInitialHostRenderTarget = nullptr;
+	g_pActiveXboxRenderTarget = NULL;
+	g_pActiveHostRenderTarget = nullptr;
+
+	g_pInitialXboxDepthStencil = NULL;
+	g_pInitialHostDepthStencil = nullptr;
+	g_pActiveXboxDepthStencil = NULL;
+	g_pActiveHostDepthStencil = nullptr;
+
+#if 0
+	g_pCachedYuvSurface = NULL;
+#endif
+	g_bRenderState_YuvEnabled = FALSE;
+	g_dwVertexShaderUsage = 0;
+	g_VertexShaderSlots[136] = { 0 };
+	// g_pTexturePaletteStages = { nullptr, nullptr, nullptr, nullptr };
+	g_VertexShaderConstantMode = XTL::X_D3DSCM_192CONSTANTS;
+	//XTL::EmuD3DTileCache = { 0 };
+	//XTL::EmuD3DTextureStages = { 0 };
+
+	// KEEP g_EmuCDPD = { 0 };
+}
+
 // information passed to the create device proxy thread
 struct EmuD3D8CreateDeviceProxyData
 {
@@ -1965,14 +2053,8 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					while (g_pD3DDevice8->Release() != 0);
 #endif
 
-					g_pD3DDevice8 = nullptr;
 					// Prevent exceptions on stale pointers in release-builds :
-					g_pActiveHostBackBuffer = nullptr;
-					g_pActiveHostDepthStencil = nullptr;
-					g_pActiveHostRenderTarget = nullptr;
-					g_pInitialHostBackBuffer = nullptr;
-					g_pInitialXboxDepthStencil = nullptr;
-					g_pInitialXboxRenderTarget = nullptr;
+					CxbxClearGlobals();
 				}
 
 				if (g_EmuCDPD.pPresentationParameters->BufferSurfaces[0] != NULL)
@@ -2118,7 +2200,8 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					while (g_pD3DDevice8->Release() > 0)
 						;
 
-					g_pD3DDevice8 = nullptr;
+					// Prevent exceptions on stale pointers
+					CxbxClearGlobals();
 				}
 
 				// Address debug DirectX runtime warning in _DEBUG builds
