@@ -1277,6 +1277,9 @@ const DWORD X_D3DCOLORWRITEENABLE_ALL = 0x01010101; // Xbox ext.
 // Xbox D3D Texture Stage State "unknown" flag
 const DWORD X_D3DTSS_UNK = 0x7fffffff;
 
+// Xbox D3D Render State "unknown" flag
+const DWORD X_D3DRS_UNKNOWN = 0x7fffffff;
+
 // Xbox D3D Shader Constant Mode
 typedef DWORD X_D3DSHADERCONSTANTMODE;
 

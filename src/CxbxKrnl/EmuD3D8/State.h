@@ -55,6 +55,8 @@ extern void InitD3DDeferredStates();
 
 extern void DxbxUpdateDeferredStates();
 
+extern X_D3DTEXTURESTAGESTATETYPE DxbxFromNewVersion_D3DTSS(const X_D3DTEXTURESTAGESTATETYPE NewValue);
+
 extern DWORD Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue);
 
 #endif

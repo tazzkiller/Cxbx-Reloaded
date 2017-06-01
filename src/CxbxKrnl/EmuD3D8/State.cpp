@@ -260,7 +260,7 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	if (XboxRenderState >= X_D3DRS_DEFERRED_FIRST && XboxRenderState <= X_D3DRS_DEFERRED_LAST)
 	{
 		// Skip unspecified deferred render states :
-		if (XboxValue == X_D3DTSS_UNK) // TODO : These are no texture stage states, so X_D3DTSS_UNK is incorrect. Use D3DRS_UNSUPPORTED perhaps?
+		if (XboxValue == X_D3DRS_UNKNOWN)
 			return XboxValue;
 	}
 
@@ -504,14 +504,30 @@ void InitD3DDeferredStates()
 
 	DxbxBuildRenderStateMappingTable();
 
+#if 1 // Prevent CxbxKrnlCleanup calls from EmuXB2PC_* functions, by resetting cases without a 0 value
+
+	// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DBLENDOP
+	*EmuMappedD3DRenderState[X_D3DRS_BLENDOP] = X_D3DRS_UNKNOWN;
+
+	for (int s = 0; s < X_D3DTSS_STAGECOUNT; s++) {
+		// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DTEXTUREADDRESS
+		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSU)] = X_D3DTSS_UNK;
+		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSV)] = X_D3DTSS_UNK;
+		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSW)] = X_D3DTSS_UNK;
+		// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DTEXTUREOP
+		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_COLOROP)] = X_D3DTSS_UNK;
+		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ALPHAOP)] = X_D3DTSS_UNK;
+	}
+#else // Old, fix-em-all approach :
 	for (int v = 0; v < 44; v++) {
-		EmuD3DDeferredRenderState[v] = X_D3DRS_UNK;
+		EmuD3DDeferredRenderState[v] = X_D3DRS_UNKNOWN;
 	}
 
 	for (int s = 0; s < X_D3DTSS_STAGECOUNT; s++) {
 		for (int v = 0; v < X_D3DTSS_STAGESIZE; v++)
 			Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + v] = X_D3DTSS_UNK;
 	}
+#endif
 }
 
 }; // end of namespace XTL
