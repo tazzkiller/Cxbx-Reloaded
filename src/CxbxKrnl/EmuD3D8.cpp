@@ -675,14 +675,16 @@ void DecodeD3DFormatAndSize(DWORD dwD3DFormat, DWORD dwD3DSize, OUT DecodedPixel
 		decoded.dwWidth = 1 << decodedFormat.uiUSize;
 		decoded.dwHeight = 1 << decodedFormat.uiVSize;
 		decoded.dwDepth = 1 << decodedFormat.uiPSize;
-		// Compressed formats encodes 4x4 texels per block.
-		uint _RowPitch = (decoded.dwWidth * decoded.dwBPP) / 8;
+		uint _RowBits = decoded.dwWidth * decoded.dwBPP;
 		if (decoded.bIsCompressed)
-			decoded.dwRowPitch = _RowPitch * 4;
+			// Compressed formats encode 4x4 texels per block.
+			// DXT1 has 4 BPP (must become dwWidth*2), DXT3 and DXT5 have 8BPP (must become dwWidth*4) :
+			decoded.dwRowPitch = _RowBits / 2;
 		else
-			decoded.dwRowPitch = _RowPitch;
-
-		decoded.SlicePitches[0] = _RowPitch * decoded.dwHeight;
+			// All other formats must become dwWidth*BPP/8
+			decoded.dwRowPitch = _RowBits / 8;
+	
+		decoded.SlicePitches[0] = decoded.dwHeight * _RowBits / 8; // Compressed format are half-height
 		decoded.dwMipMapLevels = decodedFormat.uiMipMapLevels;
 	}
 
@@ -5358,14 +5360,14 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 #if 0 // TODO : Why was this?
 	if (PixelJar.bIsSwizzled || PixelJar.bIsCompressed)
 	{
-		uint32 w = dwWidth;
-		uint32 h = dwHeight;
+		uint32 w = PixelJar.dwWidth;
+		uint32 h = PixelJar.dwHeight;
 
-		for (uint32 v = 0; v<dwMipMapLevels; v++)
+		for (uint32 v = 0; v<PixelJar.dwMipMapLevels; v++)
 		{
 			if (((1u << v) >= w) || ((1u << v) >= h))
 			{
-				dwMipMapLevels = v + 1;
+				PixelJar.dwMipMapLevels = v + 1;
 				break;
 			}
 		}
@@ -5790,9 +5792,18 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 				if (!PixelJar.bIsSwizzled && !bConvertToARGB)
 				{
-					DWORD dwMipWidthInBytes = dwMipWidth * PixelJar.dwBPP / 8;
+					DWORD dwMipWidthInBytes;
 
-					CxbxPitchedCopy(pDest, pSrc, dwDestPitch, dwSrcPitch, dwMipWidthInBytes, dwMipHeight);
+					if (PixelJar.bIsCompressed) {
+						// Turok uses DXT1 in splash screen, DXT3 in menu textures - both work correctly with this :
+						dwMipWidthInBytes = (dwMipWidth * PixelJar.dwBPP) / 2;
+						// Compressed formats encode 4 lines per row of data, hence this division :
+						CxbxPitchedCopy(pDest, pSrc, dwDestPitch, dwSrcPitch, dwMipWidthInBytes, dwMipHeight / 4);
+					}
+					else {
+						dwMipWidthInBytes = (dwMipWidth * PixelJar.dwBPP) / 8;
+						CxbxPitchedCopy(pDest, pSrc, dwDestPitch, dwSrcPitch, dwMipWidthInBytes, dwMipHeight);
+					}
 				}
 			}
 
