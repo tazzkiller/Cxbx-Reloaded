@@ -7890,6 +7890,7 @@ void XTL::DxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 	{
 		// Draw quadlists using a single 'quad-to-triangle mapping' index buffer :
 		// Dxbx note : X-Marbles hits this case (not yet confirmed in Cxbx)
+		// Note : XDK samples reaching this case : BackBufferScale
 
 		// Assure & activate that special index buffer :
 		WORD *pwIndexData = DxbxAssureQuadListIndexBuffer(/*NrOfQuadVertices=*/VertexCount);
@@ -7989,7 +7990,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
 
     VertexPatcher VertPatch;
 
-    bool bPatched = VertPatch.Apply(&VPDesc, NULL);
+    bool bPatched = VertPatch.Apply(&VPDesc, NULL, true); // Simpler Quad and LineLoop
 
     if (IsValidCurrentShader())
     {
@@ -8049,7 +8050,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 
     VertexPatcher VertPatch;
 	bool FatalError = false;
-    VertPatch.Apply(&VPDesc, &FatalError);
+    VertPatch.Apply(&VPDesc, &FatalError, true); // Simpler Quad and LineLoop
 
 	UINT uiStartIndex = 0;
 	UINT uiNumVertices = VertexCount;
@@ -8180,7 +8181,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 
     VertexPatcher VertPatch;
 
-    bool bPatched = VertPatch.Apply(&VPDesc, NULL);
+    bool bPatched = VertPatch.Apply(&VPDesc, NULL, true); // Simpler Quad and LineLoop
 
     #ifdef _DEBUG_TRACK_VB
     if(!g_bVBSkipStream)

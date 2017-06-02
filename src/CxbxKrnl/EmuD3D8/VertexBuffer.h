@@ -82,7 +82,7 @@ class VertexPatcher
         VertexPatcher();
        ~VertexPatcher();
 
-        bool Apply(VertexPatchDesc *pPatchDesc, bool *pbFatalError);
+        bool Apply(VertexPatchDesc *pPatchDesc, bool *pbFatalError, bool bSimpler = false);
         bool Restore();
 
         // Dumps the cache to the console
@@ -122,7 +122,7 @@ class VertexPatcher
         bool NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT uiStream);
 
         // Patches the primitive of the stream
-        bool PatchPrimitive(VertexPatchDesc *pPatchDesc, UINT uiStream);
+        bool PatchPrimitive(VertexPatchDesc *pPatchDesc, UINT uiStream, bool bSimpler);
 };
 
 // inline vertex buffer emulation

@@ -743,8 +743,12 @@ bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT ui
     return m_bPatched;
 }
 
-bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
-                                        UINT             uiStream)
+bool XTL::VertexPatcher::PatchPrimitive
+(
+	VertexPatchDesc *pPatchDesc,
+    UINT uiStream,
+	bool bSimpler
+)
 {
     PATCHEDSTREAM *pStream = &m_pStreams[uiStream];
 
@@ -757,8 +761,11 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
         // Quad strip is just like a triangle strip, but requires two
         // vertices per primitive.
         case X_D3DPT_QUADSTRIP:
-            pPatchDesc->dwVertexCount -= pPatchDesc->dwVertexCount % 2;
-            pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLESTRIP;
+			if (!bSimpler)
+			{
+				pPatchDesc->dwVertexCount -= pPatchDesc->dwVertexCount % 2;
+				pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLESTRIP;
+			}
             break;
 
         // Convex polygon is the same as a triangle fan.
@@ -769,7 +776,10 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 
     pPatchDesc->dwPrimitiveCount = EmuD3DVertex2PrimitiveCount(pPatchDesc->XboxPrimitiveType, pPatchDesc->dwVertexCount);
 
-    // Skip primitives that don't need further patching.
+	if (bSimpler)
+		return false;
+
+	// Skip primitives that don't need further patching.
     switch(pPatchDesc->XboxPrimitiveType)
     {
         case X_D3DPT_QUADLIST:
@@ -939,7 +949,7 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
     return true;
 }
 
-bool XTL::VertexPatcher::Apply(VertexPatchDesc *pPatchDesc, bool *pbFatalError)
+bool XTL::VertexPatcher::Apply(VertexPatchDesc *pPatchDesc, bool *pbFatalError, bool bSimpler)
 {
     bool Patched = false;
     // Get the number of streams
@@ -959,7 +969,7 @@ bool XTL::VertexPatcher::Apply(VertexPatchDesc *pPatchDesc, bool *pbFatalError)
             continue;
         }
 
-        LocalPatched |= PatchPrimitive(pPatchDesc, uiStream);
+        LocalPatched |= PatchPrimitive(pPatchDesc, uiStream, bSimpler);
         LocalPatched |= PatchStream(pPatchDesc, uiStream);
 		if (LocalPatched)
 			if(pPatchDesc->pVertexStreamZeroData == nullptr)
@@ -1196,7 +1206,7 @@ VOID XTL::EmuFlushIVB()
 
     VertexPatcher VertPatch;
 
-    bool bPatched = VertPatch.Apply(&VPDesc, NULL);
+    bool bPatched = VertPatch.Apply(&VPDesc, NULL, true); // Simpler Quad and LineLoop
 
     if(bFVF)
         g_pD3DDevice8->SetVertexShader(dwCurFVF);

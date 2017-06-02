@@ -327,7 +327,7 @@ extern void XTL::EmuExecutePushBufferRaw
 
                 VertexPatcher VertPatch;
 
-                bool bPatched = VertPatch.Apply(&VPDesc, NULL);
+                bool bPatched = VertPatch.Apply(&VPDesc, NULL, true); // Simpler Quad and LineLoop
 
 				DxbxDrawPrimitiveUP(VPDesc);
 
