@@ -113,7 +113,10 @@ void DxbxBuildRenderStateMappingTable()
 			EmuMappedD3DRenderState[State] = DummyRenderState;
 		}
 	}
+}
 
+void DxbxBuildRenderStateMappingTable2()
+{
 	// Log the start address of the "deferred" render states (not needed anymore, just to keep logging the same) :
 	if (_D3D__RenderState != nullptr)
 	{
@@ -506,7 +509,7 @@ void InitD3DDeferredStates()
 {
 	CxbxInitializeTextureStageStates();
 
-	DxbxBuildRenderStateMappingTable();
+	DxbxBuildRenderStateMappingTable2();
 
 #if 1 // Prevent CxbxKrnlCleanup calls from EmuXB2PC_* functions, by resetting cases without a 0 value
 

@@ -219,6 +219,8 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 			XTL::Xbox_D3D_TextureState = (DWORD*)g_SymbolAddresses["D3D__TextureState"];
 			XRefDataBase[XREF_D3DDEVICE] = g_SymbolAddresses["D3DDEVICE"];
 
+			XTL::DxbxBuildRenderStateMappingTable();
+
 			XTL::InitD3DDeferredStates();
 
 			g_HLECacheUsed = true;
@@ -365,87 +367,41 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 				if(bXRefFirstPass)
                 {
-                    if (strcmp(LibraryName.c_str(), Lib_XAPILIB) == 0 &&
-                        (BuildVersion == 3911 || BuildVersion == 4034 || BuildVersion == 4134 || BuildVersion == 4361
-                      || BuildVersion == 4432 || BuildVersion == 4627 || BuildVersion == 5028 || BuildVersion == 5233
-                      || BuildVersion == 5344 || BuildVersion == 5558 || BuildVersion == 5788 || BuildVersion == 5849))
+                    if (strcmp(LibraryName.c_str(), Lib_XAPILIB) == 0)
                     {
                         xbaddr lower = pXbeHeader->dwBaseAddr;
 						xbaddr upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
                     }
-                    else if (strcmp(LibraryName.c_str(), Lib_D3D8) == 0 &&
-                        (BuildVersion == 3925 || BuildVersion == 4134 || BuildVersion == 4361 || BuildVersion == 4432
-                      || BuildVersion == 4627 || BuildVersion == 5028 || BuildVersion == 5233 || BuildVersion == 5344
-                      || BuildVersion == 5558 || BuildVersion == 5788 || BuildVersion == 5849))
+                    else if (strcmp(LibraryName.c_str(), Lib_D3D8) == 0)
                     {
+						using namespace XTL;
+
 						// Save D3D8 build version
 						g_BuildVersion = BuildVersion;
+
+						XTL::DxbxBuildRenderStateMappingTable();
 
 						xbaddr lower = pXbeHeader->dwBaseAddr;
 						xbaddr upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
 						xbaddr pFunc = (xbaddr)nullptr;
 
-                        if(BuildVersion == 3925)
-                            pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_3925, lower, upper);
-                        else if(BuildVersion < 5233)
-                            pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_4034, lower, upper);
-                        else
-                            pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_5233, lower, upper);
+						if (BuildVersion >= 5233)
+							pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_5233, lower, upper);
+						else if (BuildVersion >= 4034)
+							pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_4034, lower, upper);
+						else {
+							pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_3925, lower, upper);
+						}
 
                         // locate D3DDeferredRenderState
                         if(pFunc != (xbaddr)nullptr)
                         {
                             // offset for stencil cull enable render state in the deferred render state buffer
-							xbaddr DerivedAddr_D3DRS_CULLMODE = NULL;
-							int Decrement = 0; // TODO : Rename into something understandable
-							int Increment = 0; // TODO : Rename into something understandable
-                            int patchOffset = 0; // TODO : Rename into something understandable
+							xbaddr DerivedAddr_D3DRS_CULLMODE = *(xbaddr*)(pFunc + iX_D3DRS_CULLMODE_Offset);
 
 							// Read address of D3DRS_CULLMODE from D3DDevice_SetRenderState_CullMode
 							// TODO : Simplify this when XREF_D3DRS_CULLMODE derivation is deemed stable
 							{
-								if (BuildVersion == 3925)
-								{
-									DerivedAddr_D3DRS_CULLMODE = *(xbaddr*)(pFunc + 0x25);
-									Decrement = 0x1FC;  // TODO: Clean up (?)
-									Increment = 82 * 4;
-									patchOffset = 105 * 4; // TODO: Verify
-
-									//Decrement = 0x19F;  // TODO: Clean up (?)
-									//Increment = 72 * 4;
-									//patchOffset = 142*4; // TODO: Verify
-								}
-								else if (BuildVersion == 4034)
-								{
-									DerivedAddr_D3DRS_CULLMODE = *(xbaddr*)(pFunc + 0x2B);
-									Decrement = 0x248;  // TODO: Verify
-									Increment = 82 * 4;
-									patchOffset = 142 * 4;
-								}
-								else if (BuildVersion == 4134 || BuildVersion == 4361)
-								{
-									DerivedAddr_D3DRS_CULLMODE = *(xbaddr*)(pFunc + 0x2B);
-									Decrement = 0x200;
-									Increment = 82 * 4;
-									patchOffset = 142 * 4;
-								}
-								else if (BuildVersion == 4432)
-								{
-									DerivedAddr_D3DRS_CULLMODE = *(xbaddr*)(pFunc + 0x2B);
-									Decrement = 0x204;
-									Increment = 83 * 4;
-									patchOffset = 143 * 4;
-								}
-								else if (BuildVersion == 4627 || BuildVersion == 5028 || BuildVersion == 5233 || BuildVersion == 5344
-									|| BuildVersion == 5558 || BuildVersion == 5788 || BuildVersion == 5849)
-								{
-									// WARNING: Not thoroughly tested (just seemed very correct right away)
-									DerivedAddr_D3DRS_CULLMODE = *(xbaddr*)(pFunc + 0x2B);
-									Decrement = 0x24C;
-									Increment = 92 * 4;
-									patchOffset = 162 * 4;
-								}
-
 								// Temporary verification - is XREF_D3DDEVICE derived correctly?
 								xbaddr DerivedAddr_D3DDevice = *(xbaddr*)((xbaddr)pFunc + 0x03);
 								if (XRefDataBase[XREF_D3DDEVICE] != DerivedAddr_D3DDevice)
@@ -468,20 +424,21 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								}
 							}
 
+							::DWORD *Xbox_D3D_RenderState = ((::DWORD*)DerivedAddr_D3DRS_CULLMODE) - DxbxMapMostRecentToActiveVersion[X_D3DRS_CULLMODE];
+
 							// Derive address of EmuD3DDeferredRenderState from D3DRS_CULLMODE
-							XTL::EmuD3DDeferredRenderState = (DWORD*)(DerivedAddr_D3DRS_CULLMODE - Decrement + Increment);
-							patchOffset -= Increment;
+							XTL::EmuD3DDeferredRenderState = Xbox_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
 
 							// Derive address of a few other deferred render state slots (to help xref-based function location)
-                            XRefDataBase[XREF_D3DRS_MULTISAMPLEMODE]       = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset - 8*4;
-                            XRefDataBase[XREF_D3DRS_MULTISAMPLERENDERTARGETMODE] = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset - 7*4;
-                            XRefDataBase[XREF_D3DRS_STENCILCULLENABLE]     = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset + 0*4;
-                            XRefDataBase[XREF_D3DRS_ROPZCMPALWAYSREAD]     = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset + 1*4;
-                            XRefDataBase[XREF_D3DRS_ROPZREAD]              = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset + 2*4;
-                            XRefDataBase[XREF_D3DRS_DONOTCULLUNCOMPRESSED] = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset + 3*4;
+                            XRefDataBase[XREF_D3DRS_MULTISAMPLEMODE]             = (xbaddr)(Xbox_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_MULTISAMPLEMODE]);
+                            XRefDataBase[XREF_D3DRS_MULTISAMPLERENDERTARGETMODE] = (xbaddr)(Xbox_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_MULTISAMPLERENDERTARGETMODE]);
+                            XRefDataBase[XREF_D3DRS_STENCILCULLENABLE]           = (xbaddr)(Xbox_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_STENCILCULLENABLE]);
+                            XRefDataBase[XREF_D3DRS_ROPZCMPALWAYSREAD]           = (xbaddr)(Xbox_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_ROPZCMPALWAYSREAD]);
+                            XRefDataBase[XREF_D3DRS_ROPZREAD]                    = (xbaddr)(Xbox_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_ROPZREAD]);
+                            XRefDataBase[XREF_D3DRS_DONOTCULLUNCOMPRESSED]       = (xbaddr)(Xbox_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_DONOTCULLUNCOMPRESSED]);
 
-							g_SymbolAddresses["D3DDeferredRenderState"] = (DWORD)XTL::EmuD3DDeferredRenderState;
-							printf("HLE: 0x%.08X -> EmuD3DDeferredRenderState\n", XTL::EmuD3DDeferredRenderState);
+							g_SymbolAddresses["D3DDeferredRenderState"] = (xbaddr)EmuD3DDeferredRenderState;
+							printf("HLE: 0x%.08X -> EmuD3DDeferredRenderState\n", EmuD3DDeferredRenderState);
 							//DbgPrintf("HLE: 0x%.08X -> XREF_D3DRS_ROPZCMPALWAYSREAD\n", XRefDataBase[XREF_D3DRS_ROPZCMPALWAYSREAD] );
                         }
                         else
@@ -493,31 +450,30 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
                         // locate Xbox "D3D__TextureState" and put it in Xbox_D3D_TextureState
                         {
                             pFunc = (xbaddr)nullptr;
+							int iX_D3DTSS_TEXCOORDINDEX_Offset = 0x19; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
 
-                            if(BuildVersion == 3925)
-                                pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_3925, lower, upper);
-							// TODO : What about 4034? Use it once it's offset to XREF_D3DTSS_TEXCOORDINDEX is verified
-                            else if(BuildVersion == 4134)
-                                pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4134, lower, upper);
-                            else if(BuildVersion == 4361 || BuildVersion == 4432)
-                                pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4361, lower, upper);
-                            else if(BuildVersion == 4627 || BuildVersion == 5028 || BuildVersion == 5233 || BuildVersion == 5344
-                                 || BuildVersion == 5558 || BuildVersion == 5788 || BuildVersion == 5849)
+							if(BuildVersion >= 4627)
                                 pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4627, lower, upper);
+                            else if(BuildVersion >= 4361)
+                                pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4361, lower, upper);
+							else if (BuildVersion >= 4134) {
+								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4134, lower, upper);
+								iX_D3DTSS_TEXCOORDINDEX_Offset = 0x18; // unsure
+							} else if (BuildVersion >= 4034) {
+								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4034, lower, upper);
+								iX_D3DTSS_TEXCOORDINDEX_Offset = 0x18; // unsure
+							} else {
+								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_3925, lower, upper);
+								int iX_D3DTSS_TEXCOORDINDEX_Offset = 0x11; // verified for 3911
+							}
 
 							if (pFunc != (xbaddr)nullptr)
 							{
 								xbaddr DerivedAddr_D3DTSS_TEXCOORDINDEX = NULL;
-								int Decrement = 28/*=X_D3DTSS_TEXCOORDINDEX*/ * sizeof(DWORD); // = 28 * 4 = 112 = 0x70
 
 								// TODO : Remove this when XREF_D3DTSS_TEXCOORDINDEX derivation is deemed stable
 								{
-									if (BuildVersion == 3925) // 0x18F180
-										DerivedAddr_D3DTSS_TEXCOORDINDEX = *(xbaddr*)(pFunc + 0x11);
-									else if (BuildVersion == 4134)
-										DerivedAddr_D3DTSS_TEXCOORDINDEX = *(xbaddr*)(pFunc + 0x18);
-									else
-										DerivedAddr_D3DTSS_TEXCOORDINDEX = *(xbaddr*)(pFunc + 0x19);
+									DerivedAddr_D3DTSS_TEXCOORDINDEX = *(xbaddr*)(pFunc + iX_D3DTSS_TEXCOORDINDEX_Offset);
 								
 									// Temporary verification - is XREF_D3DTSS_TEXCOORDINDEX derived correctly?
 									if (XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] != DerivedAddr_D3DTSS_TEXCOORDINDEX)
@@ -529,9 +485,9 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 									}
 								}
 
-								XTL::Xbox_D3D_TextureState = (DWORD*)(DerivedAddr_D3DTSS_TEXCOORDINDEX - Decrement);
+								XTL::Xbox_D3D_TextureState = ((::DWORD*)DerivedAddr_D3DTSS_TEXCOORDINDEX) - DxbxFromNewVersion_D3DTSS(X_D3DTSS_TEXCOORDINDEX);
 
-								g_SymbolAddresses["D3D__TextureState"] = (DWORD)XTL::Xbox_D3D_TextureState;
+								g_SymbolAddresses["D3D__TextureState"] = (xbaddr)XTL::Xbox_D3D_TextureState;
 								printf("HLE: 0x%.08X -> D3D__TextureState\n", XTL::Xbox_D3D_TextureState);
                             }
                             else
