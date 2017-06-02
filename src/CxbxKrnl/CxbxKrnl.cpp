@@ -693,15 +693,15 @@ void CxbxKrnlInit
 
 		bLLE_APU = (CxbxLLE_Flags & LLE_APU) > 0;
 		if (bLLE_APU)
-			DbgPrintf("EmuMain : LLE enabled for APU.\n");
+			printf("EmuMain : LLE enabled for APU.\n");
 
 		bLLE_GPU = (CxbxLLE_Flags & LLE_GPU) > 0;
 		if (bLLE_GPU)
-			DbgPrintf("EmuMain : LLE enabled for GPU.\n");
+			printf("EmuMain : LLE enabled for GPU.\n");
 
 		bLLE_JIT = (CxbxLLE_Flags & LLE_JIT) > 0;
 		if (bLLE_JIT)
-			DbgPrintf("EmuMain : LLE enabled for JIT.\n");
+			printf("EmuMain : LLE enabled for JIT.\n");
 	}
 
 	// Initialize devices :
@@ -768,7 +768,7 @@ void CxbxKrnlInit
 		xboxkrnl::XeImageFileName.Buffer = (PCHAR)g_MemoryManager.Allocate(MAX_PATH);
 		sprintf(xboxkrnl::XeImageFileName.Buffer, "%c:\\%s", CxbxDefaultXbeDriveLetter, fileName.c_str());
 		xboxkrnl::XeImageFileName.Length = (USHORT)strlen(xboxkrnl::XeImageFileName.Buffer);
-		DbgPrintf("EmuMain : XeImageFileName = %s\n", xboxkrnl::XeImageFileName.Buffer);
+		printf("EmuMain : XeImageFileName = %s\n", xboxkrnl::XeImageFileName.Buffer);
 	}
 
 	// Dump Xbe information
@@ -776,16 +776,16 @@ void CxbxKrnlInit
 		// Dump Xbe certificate
 		Xbe::Certificate *pCertificate = (Xbe::Certificate*)(pXbeHeader->dwCertificateAddr);
 		if (pCertificate != NULL) {
-			DbgPrintf("EmuMain : XBE TitleID : %p\n", pCertificate->dwTitleId);
-			DbgPrintf("EmuMain : XBE TitleName : %ls\n", pCertificate->wszTitleName);
-			DbgPrintf("EmuMain : XBE Region : %s\n", GameRegionToString(pCertificate->dwGameRegion));
+			printf("EmuMain : XBE TitleID : %p\n", pCertificate->dwTitleId);
+			printf("EmuMain : XBE TitleName : %ls\n", pCertificate->wszTitleName);
+			printf("EmuMain : XBE Region : %s\n", GameRegionToString(pCertificate->dwGameRegion));
 		}
 
 		// Dump Xbe library build numbers
 		Xbe::LibraryVersion* libVersionInfo = pLibraryVersion;// (LibraryVersion *)(CxbxKrnl_XbeHeader->dwLibraryVersionsAddr);
 		if (libVersionInfo != NULL) {
 			for (uint32 v = 0; v < CxbxKrnl_XbeHeader->dwLibraryVersions; v++) {
-				DbgPrintf("EmuMain : XBE Library %d : %.8s (version %d)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
+				printf("EmuMain : XBE Library %d : %.8s (version %d)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
 				libVersionInfo++;
 			}
 		}
