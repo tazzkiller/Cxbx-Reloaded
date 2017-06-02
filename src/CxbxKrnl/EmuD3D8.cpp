@@ -169,7 +169,6 @@ static XTL::IDirect3DSurface8      *g_pActiveHostDepthStencil = nullptr;
 static XTL::X_D3DSurface           *g_pCachedYuvSurface = NULL;
 #endif
 
-static BOOL                         g_bRenderState_YuvEnabled = FALSE;
 static DWORD                        g_dwVertexShaderUsage = 0;
 static DWORD                        g_VertexShaderSlots[136];
 
@@ -261,7 +260,6 @@ void CxbxClearGlobals()
 #if 0
 	g_pCachedYuvSurface = NULL;
 #endif
-	g_bRenderState_YuvEnabled = FALSE;
 	g_dwVertexShaderUsage = 0;
 	g_VertexShaderSlots[136] = { 0 };
 	// g_pTexturePaletteStages = { nullptr, nullptr, nullptr, nullptr };
@@ -1471,9 +1469,16 @@ void DxbxSetRenderStateInternal
 
 	LOG_FINIT
 
+	// Set this value into the RenderState structure too (so other code will read the new current value) :
+	*(XTL::EmuMappedD3DRenderState[XboxRenderState]) = XboxValue;
+
+	// Don't set deferred render states at this moment (we'll transfer them at drawing time)
+	if (XboxRenderState >= XTL::X_D3DRS_DEFERRED_FIRST && XboxRenderState <= XTL::X_D3DRS_DEFERRED_LAST)
+		return;
+
 	DWORD PCValue = XTL::Dxbx_SetRenderState(XboxRenderState, XboxValue);
 
-	// Dump the value that's being forwarded to PC :
+	// Keep log identical, show the value that's being forwarded to PC :
 	{
 		const XTL::RenderStateInfo &DxbxRenderStateInfo = XTL::GetDxbxRenderStateInfo(XboxRenderState);
 
@@ -5545,7 +5550,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	case X_D3DFMT_UYVY:
 	case X_D3DFMT_YUY2:
 	{
-		if (g_bRenderState_YuvEnabled)
+		if (*(XTL::EmuMappedD3DRenderState[X_D3DRS_YUVENABLE]) == (DWORD)TRUE)
 		{
 #if 0
 			if (X_Format == X_D3DFMT_YUY2)
@@ -7230,19 +7235,21 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Simple)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(Method)
-		LOG_FUNC_ARG(Value)
-		LOG_FUNC_END;
-
 	X_D3DRENDERSTATETYPE XboxRenderState = DxbxXboxMethodToRenderState(Method);
 
-    if (XboxRenderState == X_D3DRS_UNKNOWN)
-        EmuWarning("D3DDevice_SetRenderState_Simple(0x%.08X, 0x%.08X) : Unknown NV2A method!", Method, Value);
-    else
-		// Use a helper for the simple render states, as SetRenderStateNotInline
-		// needs to be able to call it too :
-		DxbxSetRenderStateInternal(nullptr, XboxRenderState, Value);
+	if (XboxRenderState == X_D3DRS_UNKNOWN) {
+		LOG_FUNC_BEGIN
+			LOG_FUNC_ARG(Method)
+			LOG_FUNC_ARG(Value)
+			LOG_FUNC_END;
+
+		EmuWarning("D3DDevice_SetRenderState_Simple(0x%.08X, 0x%.08X) : Unknown NV2A method!", Method, Value);
+		return;
+	}
+
+	// Use a helper for the simple render states, as SetRenderStateNotInline
+	// needs to be able to call it too :
+	DxbxSetRenderStateInternal(__func__, XboxRenderState, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_VertexBlend)
@@ -7422,8 +7429,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_ShadowFunc)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Value);
-
     // ShadowFunc reflects the following Xbox-only extension
     //
     // typedef enum _D3DRENDERSTATETYPE {
@@ -7436,13 +7441,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_ShadowFunc)
     // specifies what function to use with a shadow buffer. 
     // The default value is D3DCMP_NEVER. 
 
-    // EmuXB2PC_D3DCMPFUNC(Value);
-
-	// Dxbx addition : Set this value into the RenderState structure too (so other code will read the new current value)
-	*(EmuMappedD3DRenderState[X_D3DRS_SHADOWFUNC]) = Value;
-
-    // this warning just gets annoying
-    // LOG_UNIMPLEMENTED();	
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_SHADOWFUNC, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_YuvEnable)
@@ -7452,12 +7451,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_YuvEnable)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(Enable);
-
-	g_bRenderState_YuvEnabled = Enable;
-
-	// Dxbx addition : Set this value into the RenderState structure too (so other code will read the new current value)
-	*(EmuMappedD3DRenderState[X_D3DRS_YUVENABLE]) = (DWORD)Enable;
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_YUVENABLE, (DWORD)Enable);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_SampleAlpha)
@@ -7467,9 +7461,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_SampleAlpha)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(
-		__func__,
-		X_D3DRS_SAMPLEALPHA, Value);
+	DxbxSetRenderStateInternal(__func__, X_D3DRS_SAMPLEALPHA, Value);
 }
 
 
@@ -7499,43 +7491,6 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Deferred)
 	else
 		CxbxKrnlCleanup("Unknown Deferred RenderState! (%d)\n", State);
 
-	/*
-	XDK 3911 Deferred RenderState values
-	D3DRS_FOGENABLE                 = 82,   // TRUE to enable fog blending
-	D3DRS_FOGTABLEMODE              = 83,   // D3DFOGMODE
-	D3DRS_FOGSTART                  = 84,   // float fog start (for both vertex and pixel fog)
-	D3DRS_FOGEND                    = 85,   // float fog end
-	D3DRS_FOGDENSITY                = 86,   // float fog density
-	D3DRS_RANGEFOGENABLE            = 87,   // TRUE to enable range-based fog
-	D3DRS_WRAP0                     = 88,   // D3DWRAP* flags (D3DWRAP_U, D3DWRAPCOORD_0, etc.) for 1st texture coord.
-	D3DRS_WRAP1                     = 89,   // D3DWRAP* flags (D3DWRAP_U, D3DWRAPCOORD_0, etc.) for 2nd texture coord.
-	D3DRS_WRAP2                     = 90,   // D3DWRAP* flags (D3DWRAP_U, D3DWRAPCOORD_0, etc.) for 3rd texture coord.
-	D3DRS_WRAP3                     = 91,   // D3DWRAP* flags (D3DWRAP_U, D3DWRAPCOORD_0, etc.) for 4th texture coord.
-	D3DRS_LIGHTING                  = 92,   // TRUE to enable lighting
-	D3DRS_SPECULARENABLE            = 93,   // TRUE to enable specular
-	D3DRS_LOCALVIEWER               = 94,   // TRUE to enable camera-relative specular highlights
-	D3DRS_COLORVERTEX               = 95,   // TRUE to enable per-vertex color
-	D3DRS_BACKSPECULARMATERIALSOURCE= 96,   // D3DMATERIALCOLORSOURCE (Xbox extension)
-	D3DRS_BACKDIFFUSEMATERIALSOURCE = 97,   // D3DMATERIALCOLORSOURCE (Xbox extension)
-	D3DRS_BACKAMBIENTMATERIALSOURCE = 98,   // D3DMATERIALCOLORSOURCE (Xbox extension)
-	D3DRS_BACKEMISSIVEMATERIALSOURCE= 99,   // D3DMATERIALCOLORSOURCE (Xbox extension)
-	D3DRS_SPECULARMATERIALSOURCE    = 100,  // D3DMATERIALCOLORSOURCE
-	D3DRS_DIFFUSEMATERIALSOURCE     = 101,  // D3DMATERIALCOLORSOURCE
-	D3DRS_AMBIENTMATERIALSOURCE     = 102,  // D3DMATERIALCOLORSOURCE
-	D3DRS_EMISSIVEMATERIALSOURCE    = 103,  // D3DMATERIALCOLORSOURCE
-	D3DRS_BACKAMBIENT               = 104,  // D3DCOLOR (Xbox extension)
-	D3DRS_AMBIENT                   = 105,  // D3DCOLOR
-	D3DRS_POINTSIZE                 = 106,  // float point size
-	D3DRS_POINTSIZE_MIN             = 107,  // float point size min threshold
-	D3DRS_POINTSPRITEENABLE         = 108,  // TRUE to enable point sprites
-	D3DRS_POINTSCALEENABLE          = 109,  // TRUE to enable point size scaling
-	D3DRS_POINTSCALE_A              = 110,  // float point attenuation A value
-	D3DRS_POINTSCALE_B              = 111,  // float point attenuation B value
-	D3DRS_POINTSCALE_C              = 112,  // float point attenuation C value
-	D3DRS_POINTSIZE_MAX             = 113,  // float point size max threshold
-	D3DRS_PATCHEDGESTYLE            = 114,  // D3DPATCHEDGESTYLE
-	D3DRS_PATCHSEGMENTS             = 115,  // DWORD number of segments per edge when drawing patches
-	*/
 }
 #endif
 

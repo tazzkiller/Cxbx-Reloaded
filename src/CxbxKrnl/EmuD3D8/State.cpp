@@ -226,9 +226,6 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 		return XboxValue;
 	}
 
-	// Set this value into the RenderState structure too (so other code will read the new current value) :
-	*(EmuMappedD3DRenderState[XboxRenderState]) = XboxValue;
-
 	// Skip Xbox extensions :
 	if (DxbxRenderStateInfo.PC == D3DRS_UNSUPPORTED)
 		return XboxValue;
