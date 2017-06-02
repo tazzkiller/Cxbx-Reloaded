@@ -528,7 +528,28 @@ void InitD3DDeferredStates()
 		// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DTEXTUREOP
 		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_COLOROP)] = X_D3DTSS_UNKNOWN;
 		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ALPHAOP)] = X_D3DTSS_UNKNOWN;
+#if 0
+		// Fake all transfers, perhaps that helps X-Marbles?
+		for (int v = 0; v < X_D3DTSS_STAGESIZE; v++) {
+			int HostIndex = (s * X_D3DTSS_STAGESIZE) + v;
+			int XboxIndex = (s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(v);
+			DWORD XboxValue = Xbox_D3D_TextureState[XboxIndex];
+			printf("Initial Xbox_D3D_TextureState[%d][%d/*=%s*/] = 0x%.08X \n", s, v,
+				DxbxTextureStageStateInfo[v].S, XboxValue);
+
+			TransferredTextureStageStateValues[HostIndex] = XboxValue;
+		}
+#endif
 	}
+
+#if 0
+	for (int v = X_D3DRS_FIRST; v <= X_D3DRS_LAST; v++) {
+		DWORD XboxValue = *EmuMappedD3DRenderState[v];
+		printf("Initial Xbox_D3D_RenderState[%d/*=%s*/] = 0x%.08X \n", v,
+			GetDxbxRenderStateInfo(v).S, XboxValue);
+		TransferredRenderStateValues[v] = XboxValue;
+	}
+#endif
 #else // Old, fix-em-all approach :
 	for (int v = 0; v < 44; v++) {
 		Xbox_D3D__RenderState_Deferred[v] = X_D3DRS_UNKNOWN;
