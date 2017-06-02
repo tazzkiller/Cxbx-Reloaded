@@ -8169,8 +8169,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 	CxbxUpdateNativeD3DResources();
 	CxbxUpdateActiveIndexBuffer((PWORD)pIndexData, VertexCount);
 
-    if (PrimitiveType == X_D3DPT_QUADLIST)
-        EmuWarning("Unsupported PrimitiveType! (X_D3DPT_QUADLIST)");
+    if( (PrimitiveType == X_D3DPT_LINELOOP) || (PrimitiveType == X_D3DPT_QUADLIST) )
+        EmuWarning("Unsupported PrimitiveType! (%d)", (DWORD)PrimitiveType);
 
     VertexPatchDesc VPDesc;
 
@@ -8194,45 +8194,11 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
     {
         HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
         (
-            EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
-			0, // MinVertexIndex
-			VPDesc.dwVertexCount, // NumVertexIndices,
-			VPDesc.dwPrimitiveCount,
-			pIndexData,
-			D3DFMT_INDEX16,
-			VPDesc.pVertexStreamZeroData,
-			VPDesc.uiVertexStreamZeroStride
+            EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType), 0, VPDesc.dwVertexCount, VPDesc.dwPrimitiveCount, pIndexData, D3DFMT_INDEX16, VPDesc.pVertexStreamZeroData, VPDesc.uiVertexStreamZeroStride
         );
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP");
 
 		g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
-
-		if (VPDesc.XboxPrimitiveType == X_D3DPT_LINELOOP)
-		{
-			// Close line-loops using a final single line, drawn from the end to the start vertex
-			// TODO : Which XDK samples / titles reach this case?
-
-			WORD DxbxClosingLineIndices[2];
-
-			// Close line-loops using a final single line, drawn from the end to the start vertex :
-			DxbxClosingLineIndices[0] = ((WORD *)pIndexData)[0];
-			DxbxClosingLineIndices[1] = ((WORD *)pIndexData)[VPDesc.dwVertexCount - 1]; // TODO : Use dwPrimitiveCount instead?
-
-			hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
-			(
-				D3DPT_LINELIST,
-				0, // MinVertexIndex
-				2, // NumVertexIndices,
-				1, // PrimitiveCount,
-				DxbxClosingLineIndices,
-				D3DFMT_INDEX16,
-				VPDesc.pVertexStreamZeroData,
-				VPDesc.uiVertexStreamZeroStride
-			);
-			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP");
-
-			g_dwPrimPerFrame++;
-		}
     }
 
     #ifdef _DEBUG_TRACK_VB
