@@ -50,10 +50,8 @@ inline DWORD CxbxGetRenderState(XTL::X_D3DRENDERSTATETYPE XboxRenderState)
 
 extern DWORD DxbxMapMostRecentToActiveVersion[X_D3DRS_LAST + 1];
 
-// EmuD3DDeferredRenderState
-extern DWORD *EmuD3DDeferredRenderState;
+extern DWORD *Xbox_D3D__RenderState_Deferred;
 
-// Xbox_D3D_TextureState
 extern DWORD *Xbox_D3D_TextureState; // [X_D3DTSS_STAGECOUNT][X_D3DTSS_STAGESIZE] = [(Stage * X_D3DTSS_STAGESIZE) + Offset]
 
 extern void CxbxPitchedCopy(BYTE *pDest, BYTE *pSrc, DWORD dwDestPitch, DWORD dwSrcPitch, DWORD dwWidthInBytes, DWORD dwHeight);

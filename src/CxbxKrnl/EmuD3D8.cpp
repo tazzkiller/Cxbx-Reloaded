@@ -7489,7 +7489,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderStateNotInline)
 	CxbxInternalSetRenderState(__func__, State, Value);
 }
 
-#if 0 // Dxbx note : Disabled, as we DO have EmuD3DDeferredRenderState pin-pointed correctly
+#if 0 // Dxbx note : Disabled, as we DO have Xbox_D3D__RenderState_Deferred pin-pointed correctly
 VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Deferred)
 (
 	DWORD State,
@@ -7504,14 +7504,14 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Deferred)
 		LOG_FUNC_END;
 
 	// TODO: HACK: Technically, this function doesn't need to be emulated.
-	// The location of EmuD3DDeferredRenderState for 3911 isn't correct and at
+	// The location of Xbox_D3D__RenderState_Deferred for 3911 isn't correct and at
 	// the time of writing, I don't understand how to fix it.  Until then, 
 	// I'm going to implement this in a reckless manner.  When the offset for
-	// EmuD3DDeferredRenderState is fixed for 3911, this function should be
+	// Xbox_D3D__RenderState_Deferred is fixed for 3911, this function should be
 	// obsolete!
 
 	if (State > 81 && State < 116)
-		EmuD3DDeferredRenderState[State - 82] = Value;
+		Xbox_D3D__RenderState_Deferred[State - 82] = Value;
 	else
 		CxbxKrnlCleanup("Unknown Deferred RenderState! (%d)\n", State);
 
