@@ -991,6 +991,13 @@ VOID WINAPI EMUPATCH(D3DDevice_SetTextureState_BumpEnv)
     DWORD                      Value
 );
 
+VOID WINAPI EMUPATCH(D3DDevice_SetTextureStageStateNotInline)
+(
+	DWORD                      Stage,
+	X_D3DTEXTURESTAGESTATETYPE Type,
+	DWORD                      Value
+);
+
 // ******************************************************************
 // * patch: D3DDevice_SetRenderState_FrontFace
 // ******************************************************************
@@ -1214,6 +1221,12 @@ VOID WINAPI EMUPATCH(D3DDevice_SetRenderState_ShadowFunc)
 VOID WINAPI EMUPATCH(D3DDevice_SetRenderState_YuvEnable)
 (
     BOOL Enable
+);
+
+VOID WINAPI EMUPATCH(D3DDevice_SetRenderStateNotInline)
+(
+	DWORD State,
+	DWORD Value
 );
 
 // ******************************************************************

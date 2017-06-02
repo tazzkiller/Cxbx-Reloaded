@@ -7106,6 +7106,18 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_BumpEnv)
 	CxbxInternalSetTextureStageState(__func__, Stage, Type, Value);
 }
 
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureStageStateNotInline)
+(
+	DWORD                      Stage,
+	X_D3DTEXTURESTAGESTATETYPE Type,
+	DWORD                      Value
+)
+{
+	FUNC_EXPORTS
+
+	CxbxInternalSetTextureStageState(__func__, Stage, Type, Value);
+}
+
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_TwoSidedLighting)
 (
     DWORD Value
@@ -7466,6 +7478,16 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_SampleAlpha)
 	CxbxInternalSetRenderState(__func__, X_D3DRS_SAMPLEALPHA, Value);
 }
 
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderStateNotInline)
+(
+	DWORD State,
+	DWORD Value
+)
+{
+	FUNC_EXPORTS
+
+	CxbxInternalSetRenderState(__func__, State, Value);
+}
 
 #if 0 // Dxbx note : Disabled, as we DO have EmuD3DDeferredRenderState pin-pointed correctly
 VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Deferred)
