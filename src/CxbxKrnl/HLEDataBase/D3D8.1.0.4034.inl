@@ -848,7 +848,7 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetTexture
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetTexture, 4034, 10)
+OOVPA_NO_XREF(D3DDevice_SetTexture, 4034, 10) // TODO : Alias 3911 instead ?
 
         // D3DDevice_SetTexture+0x09 : push edi
         { 0x09, 0x57 }, // (Offset,Value)-Pair #1

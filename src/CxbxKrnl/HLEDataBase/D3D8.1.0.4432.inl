@@ -598,7 +598,7 @@ OOVPATable D3D8_4432[]  {
 	REGISTER_OOVPA(D3DDevice_SetPixelShader, 4432, PATCH),
 	REGISTER_OOVPA(D3D_KickOffAndWaitForIdle, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetViewport, 4034, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetTexture, 4034, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetTexture, 4361, PATCH), // Was 4034
 	REGISTER_OOVPA(D3DDevice_EnableOverlay, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTextureState_BumpEnv, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_TwoSidedLighting, 4134, PATCH),

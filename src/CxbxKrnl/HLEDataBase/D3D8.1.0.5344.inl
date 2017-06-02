@@ -897,6 +897,41 @@ OOVPA_NO_XREF(D3DDevice_CreateIndexBuffer2, 5344, 7)
 OOVPA_END;
 
 // ******************************************************************
+// * D3DDevice_SetTexture
+// ******************************************************************
+OOVPA_NO_XREF(D3DDevice_SetTexture, 5344, 28)
+		{ 0x00, 0x83 },
+		{ 0x01, 0xEC },
+		{ 0x02, 0x08 },
+		{ 0x03, 0x53 },
+		{ 0x04, 0x55 },
+		{ 0x05, 0x8B },
+		{ 0x06, 0x2D },
+
+		{ 0x0B, 0x56 },
+		{ 0x0C, 0x8B },
+		{ 0x0D, 0x74 },
+		{ 0x0E, 0x24 },
+		{ 0x0F, 0x18 },
+		{ 0x10, 0x8B },
+		{ 0x11, 0x84 },
+		{ 0x12, 0xB5 },
+		{ 0x13, 0x68 },
+		{ 0x14, 0x0B },
+		{ 0x15, 0x00 },
+		{ 0x16, 0x00 },
+		{ 0x17, 0x85 },
+		{ 0x18, 0xC0 },
+		{ 0x19, 0x89 },
+		{ 0x1A, 0x6C },
+		{ 0x1B, 0x24 },
+		{ 0x1C, 0x0C },
+		{ 0x1D, 0x89 },
+		{ 0x1E, 0x44 },
+		{ 0x1F, 0x24 },
+OOVPA_END;
+
+// ******************************************************************
 // * D3D8_5344
 // ******************************************************************
 OOVPATable D3D8_5344[] = {
@@ -932,7 +967,7 @@ OOVPATable D3D8_5344[] = {
 	REGISTER_OOVPA(D3DDevice_SetPixelShader, 5233, PATCH),
 	REGISTER_OOVPA(D3DDevice_CreateTexture2, 5028, DISABLED), // Was 4627
 	REGISTER_OOVPA(D3DDevice_SetIndices, 5028, DISABLED),
-	REGISTER_OOVPA(D3DDevice_SetTexture, 5233, PATCH), // Was 4928
+	REGISTER_OOVPA(D3DDevice_SetTexture, 5344, PATCH), // Was 5233, and 4928 before that
 	REGISTER_OOVPA(D3DDevice_GetDisplayMode, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexData2f, 5028, PATCH), // Was 4627
 	REGISTER_OOVPA(D3DDevice_Begin, 4361, PATCH),

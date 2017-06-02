@@ -939,6 +939,41 @@ OOVPA_NO_XREF(D3DDevice_EndVisibilityTest, 4361, 7)
 OOVPA_END;
 
 // ******************************************************************
+// * D3DDevice_SetTexture
+// ******************************************************************
+OOVPA_NO_XREF(D3DDevice_SetTexture, 4361, 28)
+		{ 0x00, 0x83 },
+		{ 0x01, 0xEC },
+		{ 0x02, 0x08 },
+		{ 0x03, 0x53 },
+		{ 0x04, 0x56 },
+		{ 0x05, 0x8B },
+		{ 0x06, 0x74 },
+		{ 0x07, 0x24 },
+		{ 0x08, 0x14 },
+		{ 0x09, 0x57 },
+		{ 0x0A, 0x8B },
+		{ 0x0B, 0x3D },
+
+		{ 0x10, 0x8B },
+		{ 0x11, 0x84 },
+		{ 0x12, 0xB7 },
+		{ 0x13, 0x78 },
+		{ 0x14, 0x0A },
+		{ 0x15, 0x00 },
+		{ 0x16, 0x00 },
+		{ 0x17, 0x85 },
+		{ 0x18, 0xC0 },
+		{ 0x19, 0x89 },
+		{ 0x1A, 0x7C },
+		{ 0x1B, 0x24 },
+		{ 0x1C, 0x0C },
+		{ 0x1D, 0x89 },
+		{ 0x1E, 0x44 },
+		{ 0x1F, 0x24 },
+OOVPA_END;
+
+// ******************************************************************
 // * D3D8_4361
 // ******************************************************************
 OOVPATable D3D8_4361[] = {
@@ -975,7 +1010,7 @@ OOVPATable D3D8_4361[] = {
 	REGISTER_OOVPA(D3DDevice_SetTextureState_BorderColor, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_CreateTexture, 3925, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SetIndices, 4134, DISABLED),
-	REGISTER_OOVPA(D3DDevice_SetTexture, 4034, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetTexture, 4361, PATCH), // Was 4034
 	REGISTER_OOVPA(D3DDevice_SwitchTexture, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDisplayMode, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_Clear, 4134, PATCH),
