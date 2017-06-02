@@ -1450,7 +1450,7 @@ void CxbxUpdateNativeD3DResources()
 	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
 }
 
-void DxbxSetRenderStateInternal
+void CxbxInternalSetRenderState
 (
 	char *Caller,
 	XTL::X_D3DRENDERSTATETYPE XboxRenderState,
@@ -1471,29 +1471,31 @@ void DxbxSetRenderStateInternal
 
 	// Set this value into the RenderState structure too (so other code will read the new current value) :
 	*(XTL::EmuMappedD3DRenderState[XboxRenderState]) = XboxValue;
+	// TODO : Update the D3D DirtyFlags too?
 
 	// Don't set deferred render states at this moment (we'll transfer them at drawing time)
 	if (XboxRenderState >= XTL::X_D3DRS_DEFERRED_FIRST && XboxRenderState <= XTL::X_D3DRS_DEFERRED_LAST)
 		return;
 
+	// Transfer over the render state to PC :
 	DWORD PCValue = XTL::Dxbx_SetRenderState(XboxRenderState, XboxValue);
 
 	// Keep log identical, show the value that's being forwarded to PC :
 	{
-		const XTL::RenderStateInfo &DxbxRenderStateInfo = XTL::GetDxbxRenderStateInfo(XboxRenderState);
+		const XTL::RenderStateInfo &Info = XTL::GetDxbxRenderStateInfo(XboxRenderState);
 
 		if (PCValue != XboxValue)
 			DbgPrintf("  %s := 0x%.08X (converted from Xbox)\n", 
-				DxbxRenderStateInfo.S + 2,  // Skip "X_" prefix
+				Info.S + 2,  // Skip "X_" prefix
 				PCValue);
 		else
 			DbgPrintf("  %s := 0x%.08X\n", 
-				DxbxRenderStateInfo.S + 2,  // Skip "X_" prefix
+				Info.S + 2,  // Skip "X_" prefix
 				PCValue);
 	}
 }
 
-void CxbxSetTextureStageStateInternal
+void CxbxInternalSetTextureStageState
 (
 	char *Caller,
 	DWORD Stage,
@@ -1521,7 +1523,7 @@ void CxbxSetTextureStageStateInternal
 	// Transfer over the texture stage state to PC :
 	DWORD PCValue = XTL::Cxbx_SetTextureStageState(Stage, XboxTextureStageState, XboxValue);
 
-	// Dump the value that's being forwarded to PC :
+	// Keep log identical, show the value that's being forwarded to PC :
 	{
 		const XTL::TextureStageStateInfo &Info = XTL::DxbxTextureStageStateInfo[XboxTextureStageState];
 
@@ -5550,7 +5552,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	case X_D3DFMT_UYVY:
 	case X_D3DFMT_YUY2:
 	{
-		if (*(XTL::EmuMappedD3DRenderState[X_D3DRS_YUVENABLE]) == (DWORD)TRUE)
+		if (CxbxGetRenderState(X_D3DRS_YUVENABLE) == (DWORD)TRUE)
 		{
 #if 0
 			if (X_Format == X_D3DFMT_YUY2)
@@ -7067,7 +7069,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_TexCoordIndex)
 
 	// TODO: Xbox Direct3D supports sphere mapping OpenGL style.
 
-	CxbxSetTextureStageStateInternal(__func__, Stage, X_D3DTSS_TEXCOORDINDEX, Value);
+	CxbxInternalSetTextureStageState(__func__, Stage, X_D3DTSS_TEXCOORDINDEX, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_BorderColor)
@@ -7078,7 +7080,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_BorderColor)
 {
 	FUNC_EXPORTS
 
-	CxbxSetTextureStageStateInternal(__func__, Stage, X_D3DTSS_BORDERCOLOR, Value);
+	CxbxInternalSetTextureStageState(__func__, Stage, X_D3DTSS_BORDERCOLOR, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_ColorKeyColor)
@@ -7089,7 +7091,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_ColorKeyColor)
 {
 	FUNC_EXPORTS
 
-	CxbxSetTextureStageStateInternal(__func__, Stage, X_D3DTSS_COLORKEYCOLOR, Value);
+	CxbxInternalSetTextureStageState(__func__, Stage, X_D3DTSS_COLORKEYCOLOR, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_BumpEnv)
@@ -7101,7 +7103,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_BumpEnv)
 {
 	FUNC_EXPORTS
 
-	CxbxSetTextureStageStateInternal(__func__, Stage, Type, Value);
+	CxbxInternalSetTextureStageState(__func__, Stage, Type, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_TwoSidedLighting)
@@ -7111,7 +7113,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_TwoSidedLighting)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_TWOSIDEDLIGHTING, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_TWOSIDEDLIGHTING, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_BackFillMode)
@@ -7131,7 +7133,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_BackFillMode)
 	// of Direct3D was specifically created to take advantage of certain NVIDIA
 	// GPU registers and provide more OpenGL-like features IHMO.
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_BACKFILLMODE, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_BACKFILLMODE, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_FrontFace)
@@ -7141,7 +7143,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_FrontFace)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_FRONTFACE, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_FRONTFACE, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_LogicOp)
@@ -7151,7 +7153,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_LogicOp)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_LOGICOP, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_LOGICOP, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_NormalizeNormals)
@@ -7163,7 +7165,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_NormalizeNormals)
 
 	LOG_FUNC_ONE_ARG(Value);
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_NORMALIZENORMALS, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_NORMALIZENORMALS, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_TextureFactor)
@@ -7173,7 +7175,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_TextureFactor)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_TEXTUREFACTOR, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_TEXTUREFACTOR, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_ZBias)
@@ -7183,7 +7185,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_ZBias)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_ZBIAS, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_ZBIAS, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_EdgeAntiAlias)
@@ -7194,7 +7196,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_EdgeAntiAlias)
 	FUNC_EXPORTS
 
 //  TODO: Analyze performance and compatibility (undefined behavior on PC with triangles or points)
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_EDGEANTIALIAS, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_EDGEANTIALIAS, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_FillMode)
@@ -7204,7 +7206,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_FillMode)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_FILLMODE, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_FILLMODE, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_FogColor)
@@ -7214,7 +7216,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_FogColor)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_FOGCOLOR, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_FOGCOLOR, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_Dxt1NoiseEnable)
@@ -7224,7 +7226,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_Dxt1NoiseEnable)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_DXT1NOISEENABLE, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_DXT1NOISEENABLE, Value);
 }
 
 VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Simple)
@@ -7249,7 +7251,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Simple)
 
 	// Use a helper for the simple render states, as SetRenderStateNotInline
 	// needs to be able to call it too :
-	DxbxSetRenderStateInternal(__func__, XboxRenderState, Value);
+	CxbxInternalSetRenderState(__func__, XboxRenderState, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_VertexBlend)
@@ -7259,7 +7261,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_VertexBlend)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_VERTEXBLEND, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_VERTEXBLEND, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_PSTextureModes)
@@ -7269,7 +7271,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_PSTextureModes)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_PSTEXTUREMODES, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_PSTEXTUREMODES, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_CullMode)
@@ -7279,7 +7281,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_CullMode)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_CULLMODE, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_CULLMODE, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_LineWidth)
@@ -7289,7 +7291,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_LineWidth)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_LINEWIDTH, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_LINEWIDTH, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_StencilFail)
@@ -7299,7 +7301,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_StencilFail)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_STENCILFAIL, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_STENCILFAIL, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_OcclusionCullEnable)
@@ -7309,7 +7311,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_OcclusionCullEnable)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_OCCLUSIONCULLENABLE, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_OCCLUSIONCULLENABLE, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_StencilCullEnable)
@@ -7319,7 +7321,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_StencilCullEnable)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_STENCILCULLENABLE, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_STENCILCULLENABLE, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_RopZCmpAlwaysRead)
@@ -7329,7 +7331,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_RopZCmpAlwaysRead)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_ROPZCMPALWAYSREAD, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_ROPZCMPALWAYSREAD, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_RopZRead)
@@ -7339,7 +7341,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_RopZRead)
 {
 	FUNC_EXPORTS
 		
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_ROPZREAD, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_ROPZREAD, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_DoNotCullUncompressed)
@@ -7349,7 +7351,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_DoNotCullUncompressed)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_DONOTCULLUNCOMPRESSED, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_DONOTCULLUNCOMPRESSED, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_ZEnable)
@@ -7359,7 +7361,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_ZEnable)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_ZENABLE, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_ZENABLE, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_StencilEnable)
@@ -7369,7 +7371,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_StencilEnable)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_STENCILENABLE, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_STENCILENABLE, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleAntiAlias)
@@ -7379,7 +7381,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleAntiAlias)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_MULTISAMPLEANTIALIAS, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_MULTISAMPLEANTIALIAS, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleMask)
@@ -7389,7 +7391,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleMask)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_MULTISAMPLEMASK, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_MULTISAMPLEMASK, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleMode)
@@ -7399,7 +7401,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleMode)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_MULTISAMPLEMODE, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_MULTISAMPLEMODE, Value);
 #if 0 // TODO : Dxbx has this too - is it necessary?
 	pRenderTarget = g_EmuD3DActiveRenderTarget;
 	if (pRenderTarget == g_EmuD3DFrameBuffers[0])
@@ -7414,7 +7416,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_MultiSampleRenderTargetMode)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_MULTISAMPLERENDERTARGETMODE, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_MULTISAMPLERENDERTARGETMODE, Value);
 #if 0 // TODO : Dxbx has this too - is it necessary?
 	pRenderTarget = g_EmuD3DActiveRenderTarget;
 	if (pRenderTarget == g_EmuD3DFrameBuffers[0])
@@ -7441,7 +7443,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_ShadowFunc)
     // specifies what function to use with a shadow buffer. 
     // The default value is D3DCMP_NEVER. 
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_SHADOWFUNC, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_SHADOWFUNC, Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_YuvEnable)
@@ -7451,7 +7453,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_YuvEnable)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_YUVENABLE, (DWORD)Enable);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_YUVENABLE, (DWORD)Enable);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_SampleAlpha)
@@ -7461,7 +7463,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_SampleAlpha)
 {
 	FUNC_EXPORTS
 
-	DxbxSetRenderStateInternal(__func__, X_D3DRS_SAMPLEALPHA, Value);
+	CxbxInternalSetRenderState(__func__, X_D3DRS_SAMPLEALPHA, Value);
 }
 
 

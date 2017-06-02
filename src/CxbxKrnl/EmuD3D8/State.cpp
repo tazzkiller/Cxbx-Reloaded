@@ -217,17 +217,17 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 
 	TransferredRenderStateValues[XboxRenderState] = XboxValue;
 
-	const RenderStateInfo &DxbxRenderStateInfo = GetDxbxRenderStateInfo(XboxRenderState);
+	const RenderStateInfo &Info = GetDxbxRenderStateInfo(XboxRenderState);
 
 	// Check if the render state is mapped :
 	if (EmuMappedD3DRenderState[XboxRenderState] == DummyRenderState)
 	{
-		CxbxKrnlCleanup("Unsupported RenderState : %s (0x%p)", DxbxRenderStateInfo.S, (DWORD)XboxRenderState);
+		CxbxKrnlCleanup("Unsupported RenderState : %s (0x%p)", Info.S, (DWORD)XboxRenderState);
 		return XboxValue;
 	}
 
 	// Skip Xbox extensions :
-	if (DxbxRenderStateInfo.PC == D3DRS_UNSUPPORTED)
+	if (Info.PC == D3DRS_UNSUPPORTED)
 		return XboxValue;
 
 	// Disabled, as it messes up Nvidia rendering too much :
@@ -278,10 +278,10 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	}
 
 	// Map the Xbox state to a PC state, and check if it's supported :
-	PCRenderState = DxbxRenderStateInfo.PC;
+	PCRenderState = Info.PC;
 	if (PCRenderState == D3DRS_UNSUPPORTED)
 	{
-		EmuWarning("%s is not supported!", DxbxRenderStateInfo.S);
+		EmuWarning("%s is not supported!", Info.S);
 		return XboxValue;
 	}
 
@@ -334,7 +334,7 @@ void DxbxTransferRenderState(const X_D3DRENDERSTATETYPE XboxRenderState)
 		return;
 
 	// Read the current Xbox value, and set it locally :
-	DWORD XboxValue = *EmuMappedD3DRenderState[XboxRenderState];
+	DWORD XboxValue = CxbxGetRenderState(XboxRenderState);
 	// Prevent setting unchanged values :
 	if (TransferAll || (TransferredRenderStateValues[XboxRenderState] != XboxValue))
 		Dxbx_SetRenderState(XboxRenderState, XboxValue);
@@ -425,7 +425,7 @@ void DxbxUpdateDeferredStates()
 	if (Xbox_D3D_TextureState == nullptr)
 		return;
 
-	if (*EmuMappedD3DRenderState[X_D3DRS_POINTSPRITEENABLE] == (DWORD)TRUE) // Dxbx note : DWord cast to prevent warning
+	if (CxbxGetRenderState(X_D3DRS_POINTSPRITEENABLE) == (DWORD)TRUE) // Dxbx note : DWord cast to prevent warning
 	{
 #if 1	// TODO : Why must we copy the texure from stage 3 to 0 for X_D3DRS_POINTSPRITEENABLE?
 		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = nullptr;

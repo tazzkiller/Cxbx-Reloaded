@@ -43,6 +43,11 @@
 // XDK version independent renderstate table, containing pointers to the original locations.
 extern X_D3DRENDERSTATETYPE *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED + 1]; // 1 extra for the unsupported value itself
 
+inline DWORD CxbxGetRenderState(XTL::X_D3DRENDERSTATETYPE XboxRenderState)
+{
+	return *(XTL::EmuMappedD3DRenderState[XboxRenderState]);
+}
+
 extern DWORD DxbxMapMostRecentToActiveVersion[X_D3DRS_LAST + 1];
 
 // EmuD3DDeferredRenderState
