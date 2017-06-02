@@ -119,12 +119,18 @@ void DxbxBuildRenderStateMappingTable()
 void DxbxBuildRenderStateMappingTable2()
 {
 	// Log the start address of the "deferred" render states (not needed anymore, just to keep logging the same) :
-	if (Xbox_D3D__RenderState != nullptr)
+	if (Xbox_D3D__RenderState != NULL)
 	{
 		// Calculate the location of D3DDeferredRenderState via an XDK-dependent offset to Xbox_D3D__RenderState :
 		DWORD XDKVersion_D3DRS_DEFERRED_FIRST = DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
-		Xbox_D3D__RenderState_Deferred = Xbox_D3D__RenderState + XDKVersion_D3DRS_DEFERRED_FIRST;
-		RegisterAddressLabel(Xbox_D3D__RenderState_Deferred, "Xbox_D3D__RenderState_Deferred");
+
+		if (Xbox_D3D__RenderState_Deferred == NULL) {
+			Xbox_D3D__RenderState_Deferred = Xbox_D3D__RenderState + XDKVersion_D3DRS_DEFERRED_FIRST;
+			RegisterAddressLabel(Xbox_D3D__RenderState_Deferred, "Xbox_D3D__RenderState_Deferred");
+		}
+		else
+			if (Xbox_D3D__RenderState_Deferred != Xbox_D3D__RenderState + XDKVersion_D3DRS_DEFERRED_FIRST)
+				CxbxKrnlCleanup("DxbxBuildRenderStateMappingTable2 : Xbox D3D__RenderState_Deferred already set differently?");
 	}
 	else
 	{
