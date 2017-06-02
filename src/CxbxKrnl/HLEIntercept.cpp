@@ -384,6 +384,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 						xbaddr lower = pXbeHeader->dwBaseAddr;
 						xbaddr upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
 						xbaddr pFunc = (xbaddr)nullptr;
+						int iX_D3DRS_CULLMODE_Offset = 0x2B; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
 
 						if (BuildVersion >= 5233)
 							pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_5233, lower, upper);
@@ -391,6 +392,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 							pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_4034, lower, upper);
 						else {
 							pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_3925, lower, upper);
+							iX_D3DRS_CULLMODE_Offset = 0x25; // verified for 3911
 						}
 
                         // locate D3DDeferredRenderState
