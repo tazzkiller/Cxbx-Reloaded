@@ -7812,71 +7812,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 	}
 }
 
-#define VERTICES_PER_QUAD 4
-#define VERTICES_PER_TRIANGLE 3
-#define TRIANGLES_PER_QUAD 2
-
-UINT QuadToTriangleVertexCount(UINT NrOfQuadVertices)
-{
-	return (NrOfQuadVertices * VERTICES_PER_TRIANGLE * TRIANGLES_PER_QUAD) / VERTICES_PER_QUAD;
-}
-
-bool WindingClockwise = true;
-UINT QuadToTriangleIndexBuffer_Size = 0; // = NrOfQuadVertices
-WORD *QuadToTriangleIndexBuffer = nullptr;
-
-UINT QuadToTriangleD3DIndexBuffer_Size = 0; // = NrOfQuadVertices
-WORD *QuadToTriangleD3DIndexBuffer = nullptr;
-
-WORD *DxbxAssureQuadListIndexBuffer(UINT NrOfQuadVertices)
-{
-	if (QuadToTriangleIndexBuffer_Size < NrOfQuadVertices)
-	{
-		QuadToTriangleIndexBuffer_Size = RoundUp(NrOfQuadVertices, 1000);
-
-		int NrOfTriangleVertices = QuadToTriangleVertexCount(QuadToTriangleIndexBuffer_Size);
-		QuadToTriangleIndexBuffer = (WORD *)realloc(QuadToTriangleIndexBuffer, NrOfTriangleVertices * sizeof(WORD));
-
-		int i = 0;
-		int j = 0;
-		while (i < NrOfTriangleVertices)
-		{
-			if (WindingClockwise) {
-				// ABCD becomes ABC+CDA, so this is triangle 1 :
-				QuadToTriangleIndexBuffer[i + 0] = j + 0;
-				QuadToTriangleIndexBuffer[i + 1] = j + 1;
-				QuadToTriangleIndexBuffer[i + 2] = j + 2;
-				i += VERTICES_PER_TRIANGLE;
-
-				// And this is triangle 2 :
-				QuadToTriangleIndexBuffer[i + 0] = j + 2;
-				QuadToTriangleIndexBuffer[i + 1] = j + 3;
-				QuadToTriangleIndexBuffer[i + 2] = j + 0;
-				i += VERTICES_PER_TRIANGLE;
-			}
-			else
-			{
-				// ABCD becomes ADC+CBA, so this is triangle 1 :
-				QuadToTriangleIndexBuffer[i + 0] = j + 0;
-				QuadToTriangleIndexBuffer[i + 1] = j + 3;
-				QuadToTriangleIndexBuffer[i + 2] = j + 2;
-				i += VERTICES_PER_TRIANGLE;
-
-				// And this is triangle 2 :
-				QuadToTriangleIndexBuffer[i + 0] = j + 2;
-				QuadToTriangleIndexBuffer[i + 1] = j + 1;
-				QuadToTriangleIndexBuffer[i + 2] = j + 0;
-				i += VERTICES_PER_TRIANGLE;
-			}
-
-			// Next quad, please :
-			j += VERTICES_PER_QUAD;
-		}
-	}
-
-	return QuadToTriangleIndexBuffer;
-}
-
 void XTL::DxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
@@ -7888,31 +7823,29 @@ void XTL::DxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 
 	if (VPDesc.XboxPrimitiveType == X_D3DPT_QUADLIST)
 	{
+#if 1
+		EmuWarning("DxbxDrawPrimitiveUP : PrimitiveType X_D3DPT_QUADLIST not unsupported yet!");
+#else // TODO : Port this completely
 		// Draw quadlists using a single 'quad-to-triangle mapping' index buffer :
-		// X-Marbles hits this case
 
 		// Assure & activate that special index buffer :
-		WORD *pwIndexData = DxbxAssureQuadListIndexBuffer(/*NrOfQuadVertices=*/VertexCount);
+		PWORD pwIndexData = DxbxAssureQuadListIndexBuffer({ NrOfQuadVertices = }VertexCount);
 
 		// Convert quad vertex-count & start to triangle vertex count & start :
-		UINT NumVertexIndices = QuadToTriangleVertexCount(VertexCount);
+		UINTVertexCount = QuadToTriangleVertexCount(VertexCount);
 
-		UINT PrimitiveCount = VPDesc.dwPrimitiveCount * TRIANGLES_PER_QUAD;
-
-		// TODO : Speed this up by back-porting DxbxAssureQuadListD3DIndexBuffer
-		// so we don't have to keep uploading indices to the host GPU.
-		HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
+		g_pD3DDevice.DrawIndexedPrimitiveUP
 		(
 			D3DPT_TRIANGLELIST,
-			0, // MinVertexIndex
-			NumVertexIndices,
-			PrimitiveCount,
+			{ MinVertexIndex = }0,
+			{ NumVertexIndices = }VertexCount,
+			{ PrimitiveCount = }VPDesc.dwPrimitiveCount * TRIANGLES_PER_QUAD,
 			pwIndexData,
 			D3DFMT_INDEX16,
 			VPDesc.pVertexStreamZeroData,
 			VPDesc.uiVertexStreamZeroStride
 		);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP");
+#endif
 	}
 	else
 	{
@@ -8016,6 +7949,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
 		}
 	}
 }
+
+#define VERTICES_PER_QUAD 4
+#define TRIANGLES_PER_QUAD 2
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 (
