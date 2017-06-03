@@ -8085,7 +8085,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 		else
 		{
 			HRESULT hRet;
-
 			// Other primitives than X_D3DPT_QUADLIST can be drawn normally :
 			hRet = g_pD3DDevice8->DrawIndexedPrimitive(
 				EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
@@ -8098,29 +8097,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 
 			if (VPDesc.XboxPrimitiveType == X_D3DPT_LINELOOP)
 			{
-				// Close line-loops using a final single line, drawn from the end to the start vertex
-				// Note : XDK samples reaching this case : DebugKeyboard, Gamepad, Tiling, ShadowBuffer
-
-				WORD DxbxClosingLineIndices[2];
-
-				// Close line-loops using a final single line, drawn from the end to the start vertex :
-				DxbxClosingLineIndices[0] = uiStartIndex + VPDesc.dwPrimitiveCount;
-				DxbxClosingLineIndices[1] = uiStartIndex;
-
-				hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
-				(
-					D3DPT_LINELIST,
-					0, // MinVertexIndex
-					2, // NumVertexIndices,
-					1, // PrimitiveCount,
-					DxbxClosingLineIndices,
-					D3DFMT_INDEX16,
-					VPDesc.pVertexStreamZeroData,
-					VPDesc.uiVertexStreamZeroStride
-				);
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP");
-
-				g_dwPrimPerFrame++;
+				EmuWarning("Unsupported PrimitiveType! (%d)", (DWORD)PrimitiveType);
+				//CxbxKrnlCleanup("XTL::EmuD3DDevice_DrawIndexedVertices : X_D3DPT_LINELOOP not unsupported yet!");
+				// TODO : Close line-loops using a final single line, drawn from the end to the start vertex
 			}
 		}
 
