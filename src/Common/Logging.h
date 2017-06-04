@@ -291,7 +291,7 @@ extern thread_local std::string _logPrefix;
 #define TYPE2STR_HEADER(Type) const char * TYPE2STR(Type)(const Type &value)
 
 // Macro for implementation of rendering any Type-ToString :
-#define LOGRENDER_TYPE(Type) LOGRENDER_HEADER_BY_REF(Type) \
+#define LOGRENDER_TYPE2STR(Type) LOGRENDER_HEADER_BY_REF(Type) \
 { return os << "("#Type")" << hex4((int)value) << " = " << TYPE2STR(Type)(value); }
 
 // Macro's for Enum-ToString conversions :
@@ -301,19 +301,21 @@ extern thread_local std::string _logPrefix;
 // ENUM2STR_CASE_DEF is needed for #define'd symbols
 #define ENUM2STR_CASE_DEF(a) case a: return #a;
 #define ENUM2STR_END(EnumType) default: return "Unknown_"#EnumType; } }
-#define ENUM2STR_END_and_LOGRENDER(EnumType) ENUM2STR_END(EnumType) LOGRENDER_TYPE(EnumType)
+#define ENUM2STR_END_and_LOGRENDER(EnumType) ENUM2STR_END(EnumType) LOGRENDER_TYPE2STR(EnumType)
 
 // Macro's for Flags-ToString conversions :
 #define FLAGS2STR_HEADER(FlagType) LOGRENDER_HEADER_BY_REF(FlagType);
 #define FLAGS2STR_START(FlagType) std::string TYPE2STR(FlagType)(const FlagType &value) { std::string res;
 #define FLAG2STR(f) if (((uint32)value & f) == f) res = res + #f"|";
 #define FLAGS2STR_END if (!res.empty()) res.pop_back(); return res; }
-#define FLAGS2STR_END_and_LOGRENDER(FlagType) FLAGS2STR_END LOGRENDER_TYPE(FlagType)
+#define FLAGS2STR_END_and_LOGRENDER(FlagType) FLAGS2STR_END LOGRENDER_TYPE2STR(FlagType)
 
 // Macro's for Struct-member rendering :
+#define LOGRENDER_MEMBER_NAME_VALUE(Name, Value) << LOG_ARG_START << (Name) << "  : " << (Value)
+#define LOGRENDER_MEMBER_NAME_TYPE_VALUE(Name, Type, Value) << LOG_ARG_START << (Name) << "  : " << (Type)(Value)
 #define LOGRENDER_MEMBER_NAME(Member) << LOG_ARG_START << "."#Member << "  : "
-#define LOGRENDER_MEMBER_VALUE(Member) << value.Member
-#define LOGRENDER_MEMBER(Member) LOGRENDER_MEMBER_NAME(Member) LOGRENDER_MEMBER_VALUE(Member)
+#define LOGRENDER_MEMBER(Member) LOGRENDER_MEMBER_NAME_VALUE("."#Member, value.Member)
+#define LOGRENDER_MEMBER_TYPE(Type, Member) LOGRENDER_MEMBER_NAME(Member) << (Type)value.Member
 #define LOGRENDER_MEMBER_SANITIZED(Member, MemberType) LOGRENDER_MEMBER_NAME(Member) << _log_sanitize((MemberType)value.Member)
 
 // Macro to ease declaration of two render functions, for type and pointer-to-type :
@@ -333,10 +335,9 @@ LOGRENDER_HEADER_BY_PTR(Type)                                   \
 LOGRENDER_HEADER_BY_REF(Type)                                   \
 
 //
-// An example type rendering, for PULONG
+// An example type rendering, for PVOID
 //
 
 LOGRENDER_HEADER_BY_REF(PVOID);
-LOGRENDER_HEADER_BY_REF(PULONG);
 
 #endif _LOGGING_H
