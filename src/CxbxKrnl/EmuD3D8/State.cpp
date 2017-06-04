@@ -498,7 +498,7 @@ void DxbxUpdateDeferredStates()
 
 void CxbxInitializeTextureStageStates()
 {
-	for (int Stage = X_D3DTSS_FIRST; Stage <= X_D3DTSS_STAGECOUNT; Stage++) {
+	for (int Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++) {
 		for (X_D3DTEXTURESTAGESTATETYPE State = X_D3DTSS_FIRST; State <= X_D3DTSS_LAST; State++) {
 			DWORD NewVersion_TSS = DxbxFromOldVersion_D3DTSS(State); // Map old to new
 			void *Addr = &(Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + State]);
