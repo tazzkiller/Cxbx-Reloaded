@@ -754,16 +754,29 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
     // Unsupported primitives that don't need deep patching.
     switch(pPatchDesc->XboxPrimitiveType)
     {
-        // Quad strip is just like a triangle strip, but requires two
-        // vertices per primitive.
-        case X_D3DPT_QUADSTRIP:
-            pPatchDesc->dwVertexCount -= pPatchDesc->dwVertexCount % 2;
+		case X_D3DPT_QUADLIST:
+			// Dxbx speedup for Billboard sample - draw 1 quad as 2 triangles :
+			if (pPatchDesc->dwVertexCount == 4)
+				// Draw 1 quad as a 2 triangles in a fan (which both have the same winding order) :
+				pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLEFAN;
+
+			break;
+		case X_D3DPT_QUADSTRIP:
+			// Quad strip is just like a triangle strip, but requires two vertices per primitive.
+            pPatchDesc->dwVertexCount -= pPatchDesc->dwVertexCount % 2; // TODO : Shouldn't this be addition instead of subtraction ?
+			// A quadstrip starts with 4 vertices and adds 2 vertices per additional quad.
+			// This is much like a trianglestrip, which starts with 3 vertices and adds
+			// 1 vertex per additional triangle, so we use that instead. The planar nature
+			// of the quads 'survives' through this change. There's a catch though :
+			// In a trianglestrip, every 2nd triangle has an opposing winding order,
+			// which would cause backface culling - but this seems to be intelligently
+			// handled by d3d :
             pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLESTRIP;
             break;
 
-        // Convex polygon is the same as a triangle fan.
         case X_D3DPT_POLYGON:
-            pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLEFAN;
+	        // Convex polygon is the same as a triangle fan.
+            // No need to set : pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLEFAN;
             break;
     }
 
@@ -811,23 +824,21 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
         pStream->uiOrigStride = pPatchDesc->uiVertexStreamZeroStride;
     }
 
-    // Quad list
     if(pPatchDesc->XboxPrimitiveType == X_D3DPT_QUADLIST)
     {
-        pPatchDesc->dwPrimitiveCount *= 2;
-
-        // This is a list of sqares/rectangles, so we convert it to a list of triangles
-        dwOriginalSize  = pPatchDesc->dwPrimitiveCount * pStream->uiOrigStride * 2;
-        dwNewSize       = pPatchDesc->dwPrimitiveCount * pStream->uiOrigStride * 3;
+        // This is a list of 4-sided rectangles, we convert it to a list of 3-sided triangles (twice the amount of quads)
+		// input : 4 vertices for 1 quad
+        dwOriginalSize  = pPatchDesc->dwPrimitiveCount * pStream->uiOrigStride * 4;
+		// output : 6 vertices for 2 triangles
+        dwNewSize = pPatchDesc->dwPrimitiveCount * pStream->uiOrigStride * 6;
     }
-    // Line loop
     else if(pPatchDesc->XboxPrimitiveType == X_D3DPT_LINELOOP)
     {
-        pPatchDesc->dwPrimitiveCount += 1;
-
         // We will add exactly one more line
-        dwOriginalSize  = pPatchDesc->dwPrimitiveCount * pStream->uiOrigStride;
-        dwNewSize       = pPatchDesc->dwPrimitiveCount * pStream->uiOrigStride + pStream->uiOrigStride;
+		// input : 1 starting vertex + 1 vertex per line
+        dwOriginalSize  = (pPatchDesc->dwPrimitiveCount + 1) * pStream->uiOrigStride;
+		// output : 1 starting vertex + 1 vertex per line + 1 closing vertex
+        dwNewSize = (pPatchDesc->dwPrimitiveCount + 2) * pStream->uiOrigStride;
     }
 
     if(pPatchDesc->pVertexStreamZeroData == nullptr)
@@ -869,62 +880,79 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
     }
 
     // Copy the nonmodified data
-    memcpy(pPatchedVertexData, pOrigVertexData, pPatchDesc->dwOffset);
-    memcpy(&pPatchedVertexData[pPatchDesc->dwOffset+dwNewSize],
-           &pOrigVertexData[pPatchDesc->dwOffset+dwOriginalSize],
-           dwOriginalSizeWR - pPatchDesc->dwOffset - dwOriginalSize);
+	if (pPatchDesc->dwOffset > 0)
+		// TODO : Shouldn't we multiply by pStream->uiOrigStride ?
+		memcpy(pPatchedVertexData, pOrigVertexData, pPatchDesc->dwOffset);
 
-    // Quad list
+	if (dwOriginalSizeWR - pPatchDesc->dwOffset - dwOriginalSize > 0)
+		// TODO : Shouldn't we multiply by pStream->uiOrigStride ?
+		memcpy(&pPatchedVertexData[pPatchDesc->dwOffset + dwNewSize],
+			&pOrigVertexData[pPatchDesc->dwOffset + dwOriginalSize],
+			dwOriginalSizeWR - pPatchDesc->dwOffset - dwOriginalSize);
+
+	uint08 *pPatch0 = &pPatchedVertexData[pPatchDesc->dwOffset * pStream->uiOrigStride];
+    uint08 *pOrig0 = &pOrigVertexData[pPatchDesc->dwOffset * pStream->uiOrigStride];
+
     if(pPatchDesc->XboxPrimitiveType == X_D3DPT_QUADLIST)
     {
-        uint08 *pPatch1 = &pPatchedVertexData[pPatchDesc->dwOffset     * pStream->uiOrigStride];
-        uint08 *pPatch2 = &pPatchedVertexData[(pPatchDesc->dwOffset + 3) * pStream->uiOrigStride];
-        uint08 *pPatch3 = &pPatchedVertexData[(pPatchDesc->dwOffset + 4) * pStream->uiOrigStride];
-        uint08 *pPatch4 = &pPatchedVertexData[(pPatchDesc->dwOffset + 5) * pStream->uiOrigStride];
+        uint08 *pPatch3 = &pPatchedVertexData[(pPatchDesc->dwOffset + 3) * pStream->uiOrigStride];
+        uint08 *pPatch4 = &pPatchedVertexData[(pPatchDesc->dwOffset + 4) * pStream->uiOrigStride];
+        uint08 *pPatch5 = &pPatchedVertexData[(pPatchDesc->dwOffset + 5) * pStream->uiOrigStride];
 
-        uint08 *pOrig1 = &pOrigVertexData[pPatchDesc->dwOffset     * pStream->uiOrigStride];
         uint08 *pOrig2 = &pOrigVertexData[(pPatchDesc->dwOffset + 2) * pStream->uiOrigStride];
         uint08 *pOrig3 = &pOrigVertexData[(pPatchDesc->dwOffset + 3) * pStream->uiOrigStride];
 
-        for(uint32 i = 0;i < pPatchDesc->dwPrimitiveCount/2;i++)
+        for(uint32 i = 0;i < pPatchDesc->dwPrimitiveCount;i++)
         {
-		//	__asm int 3;
-		//	DbgPrintf( "pPatch1 = 0x%.08X pOrig1 = 0x%.08X pStream->uiOrigStride * 3 = 0x%.08X\n", pPatch1, pOrig1, pStream->uiOrigStride * 3 );
-            memcpy(pPatch1, pOrig1, pStream->uiOrigStride * 3); // Vertex 0,1,2 := Vertex 0,1,2
-		//	__asm int 3;
-            memcpy(pPatch2, pOrig2, pStream->uiOrigStride);     // Vertex 3     := Vertex 2
-		//	__asm int 3;
-            memcpy(pPatch3, pOrig3, pStream->uiOrigStride);     // Vertex 4     := Vertex 3
-		//	__asm int 3;
-            memcpy(pPatch4, pOrig1, pStream->uiOrigStride);     // Vertex 5     := Vertex 0
+			// DbgPrintf( "pPatch0 = 0x%.08X pOrig0 = 0x%.08X pStream->uiOrigStride * 3 = 0x%.08X\n", pPatch0, pOrig0, pStream->uiOrigStride * 3 );
+            memcpy(pPatch0, pOrig0, pStream->uiOrigStride * 3); // Vertex 0,1,2 := Vertex 0,1,2
+            memcpy(pPatch3, pOrig2, pStream->uiOrigStride);     // Vertex 3     := Vertex 2
+            memcpy(pPatch4, pOrig3, pStream->uiOrigStride);     // Vertex 4     := Vertex 3
+            memcpy(pPatch5, pOrig0, pStream->uiOrigStride);     // Vertex 5     := Vertex 0
 
-            pPatch1 += pStream->uiOrigStride * 6;
-            pPatch2 += pStream->uiOrigStride * 6;
-            pPatch3 += pStream->uiOrigStride * 6;
-            pPatch4 += pStream->uiOrigStride * 6;
-
-            pOrig1 += pStream->uiOrigStride * 4;
-            pOrig2 += pStream->uiOrigStride * 4;
-            pOrig3 += pStream->uiOrigStride * 4;
-
-            if(pPatchDesc->hVertexShader & D3DFVF_XYZRHW)
+			if(pPatchDesc->hVertexShader & D3DFVF_XYZRHW)
             {
                 for(int z = 0; z < 6; z++)
                 {
-                    if(((FLOAT*)&pPatchedVertexData[pPatchDesc->dwOffset + i * pStream->uiOrigStride * 6 + z * pStream->uiOrigStride])[2] == 0.0f)
-                        ((FLOAT*)&pPatchedVertexData[pPatchDesc->dwOffset + i * pStream->uiOrigStride * 6 + z * pStream->uiOrigStride])[2] = 1.0f;
-                    if(((FLOAT*)&pPatchedVertexData[pPatchDesc->dwOffset + i * pStream->uiOrigStride * 6 + z * pStream->uiOrigStride])[3] == 0.0f)
-                        ((FLOAT*)&pPatchedVertexData[pPatchDesc->dwOffset + i * pStream->uiOrigStride * 6 + z * pStream->uiOrigStride])[3] = 1.0f;
+					FLOAT *data = (FLOAT*)(&pPatch0[z * pStream->uiOrigStride]);
+
+					// TODO : Is this Z? And why reset from 0.0 to 1.0 ?
+                    if(data[2] == 0.0f)
+						data[2] = 1.0f;
+
+					// TODO : Is this R, H or W? And why reset from 0.0 to 1.0 ?
+                    if(data[3] == 0.0f)
+						data[3] = 1.0f;
                 }
             }
+
+			pPatch0 += pStream->uiOrigStride * 6;
+            pPatch3 += pStream->uiOrigStride * 6;
+            pPatch4 += pStream->uiOrigStride * 6;
+            pPatch5 += pStream->uiOrigStride * 6;
+
+            pOrig0 += pStream->uiOrigStride * 4;
+            pOrig2 += pStream->uiOrigStride * 4;
+            pOrig3 += pStream->uiOrigStride * 4;
         }
-    }
-    // Line loop
+
+		// After conversion, each 1 quad results in 2 triangles
+		pPatchDesc->dwPrimitiveCount *= 2;
+		pPatchDesc->dwVertexCount = pPatchDesc->dwPrimitiveCount * 3;
+		pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLELIST;
+	}
     else if(pPatchDesc->XboxPrimitiveType == X_D3DPT_LINELOOP)
     {
-        memcpy(&pPatchedVertexData[pPatchDesc->dwOffset], &pOrigVertexData[pPatchDesc->dwOffset], dwOriginalSize);
-	    memcpy(&pPatchedVertexData[pPatchDesc->dwOffset + dwOriginalSize], &pOrigVertexData[pPatchDesc->dwOffset], pStream->uiOrigStride);
-    }
+		memcpy(pPatch0, pOrig0, dwOriginalSize);
+		// Was memcpy(&pPatchedVertexData[pPatchDesc->dwOffset], &pOrigVertexData[pPatchDesc->dwOffset], dwOriginalSize);
+		memcpy(pPatch0 + dwOriginalSize, pOrig0, pStream->uiOrigStride);
+		// Was memcpy(&pPatchedVertexData[pPatchDesc->dwOffset + dwOriginalSize], &pOrigVertexData[pPatchDesc->dwOffset], pStream->uiOrigStride);
+
+		// After conversion, we have 1 additional (closing) line
+		pPatchDesc->dwPrimitiveCount++;
+		pPatchDesc->dwVertexCount++;
+		pPatchDesc->XboxPrimitiveType = X_D3DPT_LINELIST;
+	}
 
     if(pPatchDesc->pVertexStreamZeroData == nullptr)
     {
@@ -1188,7 +1216,8 @@ VOID XTL::EmuFlushIVB()
 
     VPDesc.XboxPrimitiveType = g_IVBPrimitiveType;
     VPDesc.dwVertexCount = g_IVBTblOffs;
-    VPDesc.dwOffset = 0;
+	VPDesc.dwPrimitiveCount = 0;
+	VPDesc.dwOffset = 0;
     VPDesc.pVertexStreamZeroData = g_pIVBVertexBuffer;
     VPDesc.uiVertexStreamZeroStride = uiStride;
     VPDesc.hVertexShader = g_CurrentVertexShader;

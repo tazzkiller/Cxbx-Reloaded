@@ -7885,6 +7885,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 
     VPDesc.XboxPrimitiveType = PrimitiveType;
     VPDesc.dwVertexCount = VertexCount;
+	VPDesc.dwPrimitiveCount = 0;
     VPDesc.dwOffset = StartVertex;
     VPDesc.pVertexStreamZeroData = 0;
     VPDesc.uiVertexStreamZeroStride = 0;
@@ -7904,7 +7905,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
         HRESULT hRet = g_pD3DDevice8->DrawPrimitive
         (
             EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
-            StartVertex,
+			VPDesc.dwOffset, // was StartVertex,
             VPDesc.dwPrimitiveCount
         );
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawPrimitive");
@@ -7934,11 +7935,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 void XTL::DxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
-
-	UINT VertexCount = VPDesc.dwVertexCount; // Dxbx addition : Use the new VertexCount
-
-	UINT uiStartIndex = 0;
-	UINT uiNumVertices = VertexCount;
 
 	if (VPDesc.XboxPrimitiveType == X_D3DPT_QUADLIST)
 	{
@@ -7970,8 +7966,6 @@ void XTL::DxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 	{
 		HRESULT hRet;
 
-		// UINT PrimitiveCount = EmuD3DVertex2PrimitiveCount(XboxPrimitiveType, VertexCount);
-
 		// Other primitives than X_D3DPT_QUADLIST can be drawn normally :
 		hRet = g_pD3DDevice8->DrawPrimitiveUP
 		(
@@ -7993,7 +7987,7 @@ void XTL::DxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 				/*src=*/VPDesc.pVertexStreamZeroData,
 				VPDesc.uiVertexStreamZeroStride);
 			memcpy(/*dest=*/&(DxbxClosingLineVertices[VPDesc.uiVertexStreamZeroStride]),
-				/*src =*/((BYTE*)VPDesc.pVertexStreamZeroData) + (VPDesc.uiVertexStreamZeroStride * (VertexCount - 1)),
+				/*src =*/((BYTE*)VPDesc.pVertexStreamZeroData) + (VPDesc.uiVertexStreamZeroStride * (VPDesc.dwVertexCount - 1)),
 				VPDesc.uiVertexStreamZeroStride);
 
 			void *pVertexStreamZeroData = &DxbxClosingLineVertices[0]; // Needed for D3D9
@@ -8034,6 +8028,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
 
     VPDesc.XboxPrimitiveType = PrimitiveType;
     VPDesc.dwVertexCount = VertexCount;
+	VPDesc.dwPrimitiveCount = 0;
     VPDesc.dwOffset = 0;
     VPDesc.pVertexStreamZeroData = pVertexStreamZeroData;
     VPDesc.uiVertexStreamZeroStride = VertexStreamZeroStride;
@@ -8081,6 +8076,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 {
 	FUNC_EXPORTS
 
+	// Hit by XDK cartoon
 	// Note : In gamepad.xbe, the gamepad is drawn by D3DDevice_DrawIndexedVertices
 
 	LOG_FUNC_BEGIN
@@ -8097,8 +8093,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 
     VPDesc.XboxPrimitiveType = PrimitiveType;
     VPDesc.dwVertexCount = VertexCount;
+	VPDesc.dwPrimitiveCount = 0;
     VPDesc.dwOffset = 0;
-    VPDesc.pVertexStreamZeroData = 0;
+    VPDesc.pVertexStreamZeroData = NULL;
     VPDesc.uiVertexStreamZeroStride = 0;
     VPDesc.hVertexShader = g_CurrentVertexShader;
 
@@ -8106,21 +8103,19 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 
 	bool FatalError = VertPatch.Apply(&VPDesc);
 
-	UINT uiStartIndex = 0;
-	UINT uiNumVertices = VertexCount;
-
     if(IsValidCurrentShader() && !FatalError)
     {
-		VertexCount = VPDesc.dwVertexCount; // Dxbx addition : Use the new VertexCount
-
 		if (VPDesc.XboxPrimitiveType == X_D3DPT_QUADLIST)
 		{
+			UINT uiStartIndex = VPDesc.dwOffset;
+			int iNumVertices = (int)VPDesc.dwVertexCount; // Dxbx addition : Use the new VertexCount
+
 			// Indexed quadlist can be drawn using unpatched indexes via multiple draws of 2 'strip' triangles :
 			// 4 vertices are just enough for two triangles (a fan starts with 3 vertices for 1 triangle,
 			// and adds 1 triangle via 1 additional vertex)
 			// This is slower (because of call-overhead) but doesn't require any index buffer patching at all!
 			// Note : XDK samples reaching this case are : DisplacementMap, Ripple
-			while ((int)VertexCount >= VERTICES_PER_QUAD)
+			while (iNumVertices >= VERTICES_PER_QUAD)
 			{
 				HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitive
 				(
@@ -8134,7 +8129,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitive(X_D3DPT_QUADLIST)");
 
 				uiStartIndex += VERTICES_PER_QUAD;
-				VertexCount -= VERTICES_PER_QUAD;
+				iNumVertices -= VERTICES_PER_QUAD;
 			}
 		}
 		else
@@ -8144,15 +8139,15 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 			hRet = g_pD3DDevice8->DrawIndexedPrimitive(
 				EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
 				/* MinVertexIndex = */0,
-				/* NumVertices = */uiNumVertices, // TODO : g_EmuD3DActiveStreamSizes[0], // Note : ATI drivers are especially picky about this -
+				/* NumVertices = */VPDesc.dwVertexCount, // TODO : g_EmuD3DActiveStreamSizes[0], // Note : ATI drivers are especially picky about this -
 				// NumVertices should be the span of covered vertices in the active vertex buffer (TODO : Is stream 0 correct?)
-				uiStartIndex,
+				VPDesc.dwOffset,
 				VPDesc.dwPrimitiveCount);
 			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitive");
 
 			if (VPDesc.XboxPrimitiveType == X_D3DPT_LINELOOP)
 			{
-				EmuWarning("Unsupported PrimitiveType! (%d)", (DWORD)PrimitiveType);
+				EmuWarning("Unsupported PrimitiveType! (X_D3DPT_LINELOOP)");
 				//CxbxKrnlCleanup("XTL::EmuD3DDevice_DrawIndexedVertices : X_D3DPT_LINELOOP not unsupported yet!");
 				// TODO : Close line-loops using a final single line, drawn from the end to the start vertex
 			}
@@ -8210,7 +8205,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 
     VPDesc.XboxPrimitiveType = PrimitiveType;
     VPDesc.dwVertexCount = VertexCount;
-    VPDesc.dwOffset = 0;
+	VPDesc.dwPrimitiveCount = 0;
+	VPDesc.dwOffset = 0;
     VPDesc.pVertexStreamZeroData = pVertexStreamZeroData;
     VPDesc.uiVertexStreamZeroStride = VertexStreamZeroStride;
     VPDesc.hVertexShader = g_CurrentVertexShader;
@@ -8228,7 +8224,14 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
     {
         HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
         (
-            EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType), 0, VPDesc.dwVertexCount, VPDesc.dwPrimitiveCount, pIndexData, D3DFMT_INDEX16, VPDesc.pVertexStreamZeroData, VPDesc.uiVertexStreamZeroStride
+            EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
+			0,
+			VPDesc.dwVertexCount,
+			VPDesc.dwPrimitiveCount,
+			pIndexData,
+			D3DFMT_INDEX16,
+			VPDesc.pVertexStreamZeroData,
+			VPDesc.uiVertexStreamZeroStride
         );
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP");
 

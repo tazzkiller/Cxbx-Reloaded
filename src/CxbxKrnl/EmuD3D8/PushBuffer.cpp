@@ -160,7 +160,6 @@ extern void XTL::EmuExecutePushBufferRaw
     // cache of last 4 indices
     WORD pIBMem[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
 
-    D3DPRIMITIVETYPE    HostPrimitiveType = (D3DPRIMITIVETYPE)-1;
     X_D3DPRIMITIVETYPE  XboxPrimitiveType = X_D3DPT_INVALID;
 
     // TODO: This technically should be enabled
@@ -226,7 +225,6 @@ extern void XTL::EmuExecutePushBufferRaw
                 #endif
 
                 XboxPrimitiveType = (X_D3DPRIMITIVETYPE)*pdwPushData;
-                HostPrimitiveType = EmuXB2PC_D3DPrimitiveType(XboxPrimitiveType);
             }
         }
         else if(dwMethod == 0x1818) // NVPB_InlineVertexArray
@@ -313,13 +311,12 @@ extern void XTL::EmuExecutePushBufferRaw
             if(dwVertexShader != -1)
             {
                 UINT VertexCount = (dwCount*sizeof(DWORD)) / dwStride;
-                UINT PrimitiveCount = EmuD3DVertex2PrimitiveCount(XboxPrimitiveType, VertexCount);
 
                 VertexPatchDesc VPDesc;
 
-                VPDesc.dwVertexCount = VertexCount;
                 VPDesc.XboxPrimitiveType = XboxPrimitiveType;
-                VPDesc.dwPrimitiveCount = PrimitiveCount;
+                VPDesc.dwVertexCount = VertexCount;
+                VPDesc.dwPrimitiveCount = 0;
                 VPDesc.dwOffset = 0;
                 VPDesc.pVertexStreamZeroData = pVertexData;
                 VPDesc.uiVertexStreamZeroStride = dwStride;
@@ -403,14 +400,13 @@ extern void XTL::EmuExecutePushBufferRaw
 
                 // render indexed vertices
                 {
-                    UINT PrimitiveCount = EmuD3DVertex2PrimitiveCount(XboxPrimitiveType, dwCount + 2);
                     VertexPatchDesc VPDesc;
 
-                    VPDesc.dwVertexCount = dwCount;
                     VPDesc.XboxPrimitiveType = XboxPrimitiveType;
-                    VPDesc.dwPrimitiveCount = PrimitiveCount;
+                    VPDesc.dwVertexCount = dwCount;
+					VPDesc.dwPrimitiveCount = 0;
                     VPDesc.dwOffset = 0;
-                    VPDesc.pVertexStreamZeroData = 0;
+                    VPDesc.pVertexStreamZeroData = NULL;
                     VPDesc.uiVertexStreamZeroStride = 0;
                     // TODO: Set the current shader and let the patcher handle it..
                     VPDesc.hVertexShader = g_CurrentVertexShader;
@@ -432,11 +428,14 @@ extern void XTL::EmuExecutePushBufferRaw
                         {
                             g_pD3DDevice8->DrawIndexedPrimitive
                             (
-                                HostPrimitiveType, 0, 8*1024*1024, 0, PrimitiveCount
-//                                HostPrimitiveType, 0, dwCount*2, 0, PrimitiveCount
+								EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
+								0, 
+								8 * 1024 * 1024, // TODO : Use dwCount * 2 ?
+								0, // = VPDesc.dwOffset, will stay 0
+								VPDesc.dwPrimitiveCount
                             );
 
-							g_dwPrimPerFrame += PrimitiveCount;
+							g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
                         }
                     }
 
@@ -572,14 +571,13 @@ extern void XTL::EmuExecutePushBufferRaw
 
                 // render indexed vertices
                 {
-                    UINT PrimitiveCount = EmuD3DVertex2PrimitiveCount(XboxPrimitiveType, dwCount);
                     VertexPatchDesc VPDesc;
 
-                    VPDesc.dwVertexCount = dwCount;
                     VPDesc.XboxPrimitiveType = XboxPrimitiveType;
-                    VPDesc.dwPrimitiveCount = PrimitiveCount;
+                    VPDesc.dwVertexCount = dwCount;
+                    VPDesc.dwPrimitiveCount = 0;
                     VPDesc.dwOffset = 0;
-                    VPDesc.pVertexStreamZeroData = 0;
+                    VPDesc.pVertexStreamZeroData = NULL;
                     VPDesc.uiVertexStreamZeroStride = 0;
                     // TODO: Set the current shader and let the patcher handle it..
                     VPDesc.hVertexShader = g_CurrentVertexShader;
@@ -595,15 +593,22 @@ extern void XTL::EmuExecutePushBufferRaw
                     {
                     #endif
 
-                    if(!g_bPBSkipPusher && IsValidCurrentShader())
-                    {
-                        g_pD3DDevice8->DrawIndexedPrimitive
-                        (
-                            HostPrimitiveType, 0, /*dwCount*2*/8*1024*1024, 0, PrimitiveCount
-                        );
+					if (!g_bPBSkipPusher)
+					{
+						if (IsValidCurrentShader())
+						{
+							g_pD3DDevice8->DrawIndexedPrimitive
+							(
+								EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
+								0,
+								8 * 1024 * 1024, // TODO : Use dwCount * 2 ?
+								0, // = VPDesc.dwOffset, will stay 0
+								VPDesc.dwPrimitiveCount
+							);
 
-						g_dwPrimPerFrame += PrimitiveCount;
-                    }
+							g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
+						}
+					}
 
                     #ifdef _DEBUG_TRACK_PB
                     }

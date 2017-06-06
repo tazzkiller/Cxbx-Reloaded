@@ -313,7 +313,7 @@ UINT EmuD3DVertexToPrimitive[X_D3DPT_POLYGON + 1][2] =
 	{ 1, 2 }, // X_D3DPT_TRIANGLEFAN
 	{ 4, 0 }, // X_D3DPT_QUADLIST
 	{ 2, 2 }, // X_D3DPT_QUADSTRIP
-	{ 1, 0 }, // X_D3DPT_POLYGON
+	{ 1, 2 }, // X_D3DPT_POLYGON // Was { 1, 0 },
 };
 
 // Table of Xbox-to-PC and Value-to-String converters for all registered types :
