@@ -5807,7 +5807,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			{
 				hRet = g_pD3DDevice8->CreateTexture
 				(
-					dwWidth, dwHeight, dwMipMapLevels, 0, PCFormat,
+					PixelJar.dwWidth, PixelJar.dwHeight, PixelJar.dwMipMapLevels, 0, PCFormat,
 					D3DPOOL_SYSTEMMEM, &pNewHostTexture
 				);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateTexture(D3DPOOL_SYSTEMMEM)");
@@ -9703,7 +9703,23 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_GetAdapterIdentifier)
 }
 #endif
 
-DWORD PushBuffer[64 * 1024 / sizeof(DWORD)];
+#define MARKER 0xCCCCCCCC
+
+DWORD PushBuffer[64 * 1024 / sizeof(DWORD)] = { MARKER };
+
+void DumpPushBufferContents()
+{
+	// TODO : Document samples that hit this
+	int i = 0;
+	while (PushBuffer[i] != MARKER)
+	{
+		// TODO : Convert NV2A methods to readable string, dump arguments, later on: execute commands
+		DbgPrintf("PushBuffer[%4d] : 0x%X\n", i, PushBuffer[i]);
+		i++;
+	}
+
+	memset(PushBuffer, MARKER, i * sizeof(DWORD));
+}
 
 PDWORD WINAPI XTL::EMUPATCH(D3D_MakeRequestedSpace)
 (
@@ -9720,6 +9736,8 @@ PDWORD WINAPI XTL::EMUPATCH(D3D_MakeRequestedSpace)
 
 	// NOTE: This function is ignored, as we currently don't emulate the push buffer
 	LOG_IGNORED();
+
+	DumpPushBufferContents();
 
 	return PushBuffer; // Return a buffer that will be filled with GPU commands
 
