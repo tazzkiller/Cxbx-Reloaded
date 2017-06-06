@@ -1195,6 +1195,100 @@ void DxbxDetermineSurFaceAndLevelByData(const DecodedPixelContainer DxbxPixelJar
 }
 #endif
 
+namespace XTL {
+D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceType, DWORD aUsage)
+{
+	// Convert Format (Xbox->PC)
+	D3DFORMAT Result = EmuXB2PC_D3DFormat(X_Format);
+
+	// Dxbx addition : Check device caps :
+	if (SUCCEEDED(g_pD3D8->CheckDeviceFormat(
+		g_EmuCDPD.CreationParameters.AdapterOrdinal,
+		g_EmuCDPD.CreationParameters.DeviceType,
+		g_EmuCDPD.NativePresentationParameters.BackBufferFormat,
+		aUsage,
+		(D3DRESOURCETYPE)aResourceType, // Note : X_D3DRTYPE_SURFACE up to X_D3DRTYPE_INDEXBUFFER values matche host D3D
+		Result)))
+		return Result;
+
+	D3DFORMAT FirstResult = Result;
+	switch (Result) {
+	case D3DFMT_P8: 
+		// Note : Allocate a BPP-identical format instead of P8 (which is nearly never supported natively),
+		// so that we at least have a BPP-identical format. Conversion to ARGB is done via bConvertToARGB in
+		// in CxbxUpdateTexture :
+		Result = D3DFMT_L8;
+		break;
+	case D3DFMT_D16:
+		switch (aResourceType) {
+		case X_D3DRTYPE_TEXTURE:
+		case X_D3DRTYPE_VOLUMETEXTURE:
+		case X_D3DRTYPE_CUBETEXTURE:
+		{
+			if ((aUsage & X_D3DUSAGE_DEPTHSTENCIL) > 0)
+			{
+				Result = D3DFMT_D16_LOCKABLE;
+				// ATI Fix : Does this card support D16 DepthStencil textures ?
+				if (FAILED(g_pD3D8->CheckDeviceFormat(
+					g_EmuCDPD.CreationParameters.AdapterOrdinal,
+					g_EmuCDPD.CreationParameters.DeviceType,
+					g_EmuCDPD.NativePresentationParameters.BackBufferFormat,
+					aUsage,
+					_D3DRESOURCETYPE(aResourceType),
+					Result)))
+				{
+					// If not, fall back to a format that's the same size and is most probably supported :
+					Result = D3DFMT_R5G6B5; // Note : If used in shaders, this will give unpredictable channel mappings!
+
+					// Since this cannot longer be created as a DepthStencil, reset the usage flag :
+					// TODO : aUsage = D3DUSAGE_RENDERTARGET; // TODO : Why rendertarget instead? This asks for a testcase!
+				}
+			}
+			else
+				Result = D3DFMT_R5G6B5; // also CheckDeviceMultiSampleType
+
+			break;
+		}
+		case X_D3DRTYPE_SURFACE:
+			Result = D3DFMT_D16_LOCKABLE;
+			break;
+		}
+		break;
+	case D3DFMT_D24S8:
+		switch (aResourceType) {
+		case X_D3DRTYPE_TEXTURE:
+		case X_D3DRTYPE_VOLUMETEXTURE:
+		case X_D3DRTYPE_CUBETEXTURE:
+		{
+			Result = D3DFMT_A8R8G8B8;
+			// Since this cannot longer be created as a DepthStencil, reset the usage flag :
+			// TODO : aUsage = D3DUSAGE_RENDERTARGET;
+			break;
+		}
+		}
+		break;
+	case D3DFMT_V16U16:
+		// This fixes NoSortAlphaBlend (after B button - z-replace) on nvidia:
+		Result = D3DFMT_A8R8G8B8;
+		break;
+
+	case D3DFMT_YUY2:
+		Result = D3DFMT_V8U8; // Use another format that's also 16 bits wide
+//      if aResourceType = X_D3DRTYPE_CUBETEXTURE then
+//        DxbxKrnlCleanup('YUV not supported for cube textures');
+		break;
+	}
+
+	if (FirstResult != Result)
+		EmuWarning("%s is an unsupported format for %s! Allocating %s",
+			X_D3DFORMAT2String(X_Format).c_str(),
+			X_D3DRESOURCETYPE2String(aResourceType).c_str(),
+			D3DFORMAT2PCHAR(Result));
+
+	return Result;
+}
+
+}
 
 #if 0 // unused
 inline XTL::X_D3DPALETTESIZE GetXboxPaletteSize(const XTL::X_D3DPalette *pPalette)
