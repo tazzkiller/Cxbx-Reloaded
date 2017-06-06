@@ -261,7 +261,7 @@ void CxbxClearGlobals()
 	g_pCachedYuvSurface = NULL;
 #endif
 	g_dwVertexShaderUsage = 0;
-	g_VertexShaderSlots[136] = { 0 };
+	memset(g_VertexShaderSlots, 0, 136 * sizeof(DWORD)); // TODO : Use ARRAY_SIZE() and/or countof()
 	// g_pTexturePaletteStages = { nullptr, nullptr, nullptr, nullptr };
 	g_VertexShaderConstantMode = XTL::X_D3DSCM_192CONSTANTS;
 	//XTL::EmuD3DTileCache = { 0 };
@@ -4735,7 +4735,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 		LOG_FUNC_ARG(Format)
 		LOG_FUNC_END;
 
-    DWORD StageLookup[X_D3DTSS_STAGECOUNT] = { NV2A_TX_OFFSET(0), NV2A_TX_OFFSET(1), NV2A_TX_OFFSET(2), NV2A_TX_OFFSET(3) };
+    static const DWORD StageLookup[X_D3DTSS_STAGECOUNT] = { NV2A_TX_OFFSET(0), NV2A_TX_OFFSET(1), NV2A_TX_OFFSET(2), NV2A_TX_OFFSET(3) };
     DWORD Stage = -1;
 
 	for (int s = 0; s < X_D3DTSS_STAGECOUNT; s++)
@@ -4744,7 +4744,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 
     if(Stage == -1)
     {
-        EmuWarning("Unknown Method (0x%.08X)", Method);
+        CxbxKrnlCleanup("D3DDevice_SwitchTexture : Unknown Method (0x%.08X)", Method);
     }
     else
     {
@@ -4762,7 +4762,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 				pHostBaseTexture = GetHostBaseTexture(pTexture);
 		}
 
-        EmuWarning("Switching Data 0x%.08X Texture 0x%.08X (0x%.08X) @ Stage %d", Data, pTexture, pHostBaseTexture, Stage);
+        DbgPrintf("Switching Data 0x%.08X Texture 0x%.08X (0x%.08X) @ Stage %d\n", Data, pTexture, pHostBaseTexture, Stage);
 
         HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, pHostBaseTexture);
 
@@ -7596,6 +7596,7 @@ VOID WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock)
 	LOG_FORWARD("D3DVertexBuffer_Lock2");
 
 	*ppbData = EMUPATCH(D3DVertexBuffer_Lock2)(pVertexBuffer, Flags) + OffsetToLock;
+	DbgPrintf("D3DVertexBuffer_Lock returns 0x%p\n", *ppbData);
 }
 #endif
 
@@ -7615,6 +7616,7 @@ BYTE* WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock2)
 
     BYTE *pbNativeData = (BYTE *)GetDataFromXboxResource(pVertexBuffer);
 
+	DbgPrintf("D3DVertexBuffer_Lock2 returns 0x%p\n", pbNativeData);
 	return pbNativeData; // TODO : Fix BYTE* logging, so we can use RETURN(pbNativeData);
 }
 #endif
@@ -9211,7 +9213,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetProjectionViewportMatrix)
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetTransform - Unable to get projection matrix!");
 
 	// Clear the destination matrix
-	Out = { 0 }; // Was ::ZeroMemory(&Out, sizeof(D3DMATRIX));
+	memset(Out, 0, sizeof(D3DMATRIX)); // = { 0 } crashes. Was ::ZeroMemory(&Out, sizeof(D3DMATRIX));
 
 	// Create the Viewport matrix manually
 	// Direct3D8 doesn't give me everything I need in a viewport structure
