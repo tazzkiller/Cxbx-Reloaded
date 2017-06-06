@@ -5697,7 +5697,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (bConvertToARGB)
 		PCFormat = D3DFMT_A8R8G8B8;
 	else
-		PCFormat = EmuXB2PC_D3DFormat(X_Format);
+		PCFormat = DxbxXB2PC_D3DFormat(X_Format, GetXboxD3DResourceType(pPixelContainer), 0); // was EmuXB2PC_D3DFormat
 
 	HRESULT hRet = S_OK;
 
