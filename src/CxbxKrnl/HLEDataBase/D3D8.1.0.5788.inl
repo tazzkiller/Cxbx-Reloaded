@@ -608,9 +608,9 @@ OOVPA_END;
 // ******************************************************************
 // * D3D::MakeRequestedSpace
 // ******************************************************************
-OOVPA_XREF(D3D_MakeRequestedSpace, 5788, 9,
+OOVPA_XREF(MakeRequestedSpace, 5788, 9,
 
-    XREF_D3D_MakeRequestedSpace,
+    XREF_MakeRequestedSpace,
     XRefZero)
 
         { 0x32, 0xC2 },
@@ -634,7 +634,7 @@ OOVPA_XREF(D3D_Unknown, 5788, 6,
     XRefNoSaveIndex,
     XRefOne)
 
-	XREF_ENTRY( 0x0A, XREF_D3D_MakeRequestedSpace ),
+	XREF_ENTRY( 0x0A, XREF_MakeRequestedSpace ),
 
         { 0x05, 0x50 },
         { 0x06, 0xD1 },
@@ -1113,7 +1113,7 @@ OOVPATable D3D8_5788[] = {
 	REGISTER_OOVPA(D3DDevice_SetPalette, 5788, PATCH),
 	REGISTER_OOVPA(D3DDevice_LoadVertexShaderProgram, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetPushBufferOffset, 5788, PATCH),
-	REGISTER_OOVPA(D3D_MakeRequestedSpace, 5788, XREF),
+	REGISTER_OOVPA(MakeRequestedSpace, 5788, XREF),
 	REGISTER_OOVPA(D3D_Unknown, 5788, XREF),
 	REGISTER_OOVPA(D3DDevice_SetVertexShaderConstantNotInline, 5233, PATCH),
 	REGISTER_OOVPA(D3DDevice_FlushVertexCache, 4134, PATCH),

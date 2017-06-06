@@ -1923,7 +1923,7 @@ HRESULT WINAPI EMUPATCH(D3D_GetAdapterIdentifier)
 // ******************************************************************
 // * patch: D3D::MakeRequestedSpace
 // ******************************************************************
-PDWORD WINAPI EMUPATCH(D3D_MakeRequestedSpace)
+PDWORD WINAPI EMUPATCH(MakeRequestedSpace)
 (
 	DWORD MinimumSpace,
 	DWORD RequestedSpace

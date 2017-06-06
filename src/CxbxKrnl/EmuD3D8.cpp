@@ -1332,6 +1332,7 @@ XTL::X_D3DTexture *EmuNewD3DTexture()
 	return result;
 }
 
+#if 0
 XTL::X_D3DVolumeTexture *EmuNewD3DVolumeTexture()
 {
 	XTL::X_D3DVolumeTexture *result = (XTL::X_D3DVolumeTexture *)g_MemoryManager.AllocateZeroed(1, sizeof(XTL::X_D3DVolumeTexture));
@@ -9719,7 +9720,7 @@ void DumpPushBufferContents()
 	memset(PushBuffer, 0, i * sizeof(DWORD));
 }
 
-PDWORD WINAPI XTL::EMUPATCH(D3D_MakeRequestedSpace)
+PDWORD WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 (
 	DWORD MinimumSpace,
 	DWORD RequestedSpace
