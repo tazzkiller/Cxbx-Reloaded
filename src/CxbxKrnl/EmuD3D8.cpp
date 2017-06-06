@@ -650,7 +650,7 @@ void DecodeD3DCommon(DWORD D3DCommon, Decoded_D3DCommon &decoded)
 struct Decoded_D3DFormat {
 	uint uiDMAChannel; // 1 = DMA channel A - the default for all system memory, 2 = DMA channel B - unused
 	BOOL bIsCubeMap; // Set if the texture if a cube map
-	BOOL bIsBorderSource; // If set, uses D3DTSS_BORDERCOLOR as a border
+	BOOL bIsBorderTexture; // Set if the texture has a 4 texel wide additional border
 	uint uiDimensions; // # of dimensions, must be 2 or 3
 	XTL::X_D3DFORMAT X_Format; // D3DFORMAT - See X_D3DFMT_* 
 	uint uiMipMapLevels; // 1-10 mipmap levels (always 1 for surfaces)
@@ -663,7 +663,7 @@ void DecodeD3DFormat(DWORD D3DFormat, Decoded_D3DFormat &decoded)
 {
 	decoded.uiDMAChannel = D3DFormat & X_D3DFORMAT_DMACHANNEL_MASK;
 	decoded.bIsCubeMap = (D3DFormat & X_D3DFORMAT_CUBEMAP) > 0;
-	decoded.bIsBorderSource = (D3DFormat & X_D3DFORMAT_BORDERSOURCE_COLOR) > 0;
+	decoded.bIsBorderTexture = (D3DFormat & X_D3DFORMAT_BORDERSOURCE_COLOR) == 0;
 	decoded.uiDimensions = (D3DFormat & X_D3DFORMAT_DIMENSION_MASK) >> X_D3DFORMAT_DIMENSION_SHIFT;
 	decoded.X_Format = (XTL::X_D3DFORMAT)((D3DFormat & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT);
 	decoded.uiMipMapLevels = (D3DFormat & X_D3DFORMAT_MIPMAP_MASK) >> X_D3DFORMAT_MIPMAP_SHIFT;
@@ -694,7 +694,7 @@ struct DecodedPixelContainer {
 	BOOL bIsSwizzled;
 	BOOL bIsCompressed;
 	BOOL bIsCubeMap;
-	BOOL bIsBorderSource;
+	BOOL bIsBorderTexture;
 	BOOL bIs3D;
 	DWORD dwWidth; // Number of pixels on 1 line (measured at mipmap level 0)
 	DWORD dwHeight; // Number of lines (measured at mipmap level 0)
@@ -716,7 +716,7 @@ void DumpDecodedPixelContainer(DecodedPixelContainer &decoded)
 	DbgPrintf("bIsSwizzled = %d\n", decoded.bIsSwizzled);
 	DbgPrintf("bIsCompressed = %d\n", decoded.bIsCompressed);
 	DbgPrintf("bIsCubeMap = %d\n", decoded.bIsCubeMap);
-	DbgPrintf("bIsBorderSource = %d\n", decoded.bIsBorderSource);
+	DbgPrintf("bIsBorderTexture = %d\n", decoded.bIsBorderTexture);
 	DbgPrintf("bIs3D = %d\n", decoded.bIs3D);
 	DbgPrintf("dwWidth = %d\n", decoded.dwWidth);
 	DbgPrintf("dwHeight = %d\n", decoded.dwHeight);
@@ -738,7 +738,7 @@ void DecodeD3DFormatAndSize(DWORD dwD3DFormat, DWORD dwD3DSize, OUT DecodedPixel
 	decoded.bIsCompressed = EmuXBFormatIsCompressed(decoded.X_Format);
 	// Cubemap textures have the X_D3DFORMAT_CUBEMAP bit set (also, their size is 6 times a normal texture)
 	decoded.bIsCubeMap = decodedFormat.bIsCubeMap;
-	decoded.bIsBorderSource = decodedFormat.bIsBorderSource;
+	decoded.bIsBorderTexture = decodedFormat.bIsBorderTexture; // TODO : increase size (left,top,right,bottom) with 4 texel border ALSO for mipmaps
 	// Volumes have 3 dimensions, the rest have 2.
 	decoded.bIs3D = (decodedFormat.uiDimensions == 3);
 
@@ -6065,7 +6065,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 					}
 				}
 
-				if (PixelJar.bIsBorderSource)
+				if (PixelJar.bIsBorderTexture)
 				{
 					if (face == 0 && level == 0 && slice == 0) // Log warning only once per resource
 						EmuWarning("Ignoring D3DFORMAT_BORDERSOURCE_COLOR"); // We need to know test-cases that log this
