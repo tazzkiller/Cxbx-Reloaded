@@ -7875,7 +7875,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 
     VertexPatcher VertPatch;
 
-    bool bPatched = VertPatch.Apply(&VPDesc, NULL);
+    VertPatch.Apply(&VPDesc);
 
     if(IsValidCurrentShader())
     {
@@ -8024,7 +8024,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
 
     VertexPatcher VertPatch;
 
-    bool bPatched = VertPatch.Apply(&VPDesc, NULL);
+    VertPatch.Apply(&VPDesc);
 
     if (IsValidCurrentShader())
     {
@@ -8086,8 +8086,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
     VPDesc.hVertexShader = g_CurrentVertexShader;
 
     VertexPatcher VertPatch;
-	bool FatalError = false;
-    VertPatch.Apply(&VPDesc, &FatalError);
+
+	bool FatalError = VertPatch.Apply(&VPDesc);
 
 	UINT uiStartIndex = 0;
 	UINT uiNumVertices = VertexCount;
@@ -8200,7 +8200,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 
     VertexPatcher VertPatch;
 
-    bool bPatched = VertPatch.Apply(&VPDesc, NULL);
+    VertPatch.Apply(&VPDesc);
 
     #ifdef _DEBUG_TRACK_VB
     if(!g_bVBSkipStream)

@@ -939,9 +939,10 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
     return true;
 }
 
-bool XTL::VertexPatcher::Apply(VertexPatchDesc *pPatchDesc, bool *pbFatalError)
+bool XTL::VertexPatcher::Apply(VertexPatchDesc *pPatchDesc)
 {
-    bool Patched = false;
+	bool bFatalError = false;
+
     // Get the number of streams
     m_uiNbrStreams = GetNbrStreams(pPatchDesc);
     if(VshHandleIsVertexShader(pPatchDesc->hVertexShader))
@@ -953,7 +954,7 @@ bool XTL::VertexPatcher::Apply(VertexPatchDesc *pPatchDesc, bool *pbFatalError)
     {
         bool LocalPatched = false;
 
-        if(ApplyCachedStream(pPatchDesc, uiStream, pbFatalError))
+        if(ApplyCachedStream(pPatchDesc, uiStream, &bFatalError))
         {
             m_pStreams[uiStream].bUsedCached = true;
             continue;
@@ -968,11 +969,9 @@ bool XTL::VertexPatcher::Apply(VertexPatchDesc *pPatchDesc, bool *pbFatalError)
 				CacheStream(pPatchDesc, uiStream);
 				m_pStreams[uiStream].bUsedCached = true;
 			}
-
-        Patched |= LocalPatched;
     }
 
-    return Patched;
+	return bFatalError;
 }
 
 bool XTL::VertexPatcher::Restore()
@@ -1196,7 +1195,7 @@ VOID XTL::EmuFlushIVB()
 
     VertexPatcher VertPatch;
 
-    bool bPatched = VertPatch.Apply(&VPDesc, NULL);
+    VertPatch.Apply(&VPDesc);
 
     if(bFVF)
         g_pD3DDevice8->SetVertexShader(dwCurFVF);

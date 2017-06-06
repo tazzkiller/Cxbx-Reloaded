@@ -82,7 +82,7 @@ class VertexPatcher
         VertexPatcher();
        ~VertexPatcher();
 
-        bool Apply(VertexPatchDesc *pPatchDesc, bool *pbFatalError);
+        bool Apply(VertexPatchDesc *pPatchDesc);
         bool Restore();
 
         // Dumps the cache to the console

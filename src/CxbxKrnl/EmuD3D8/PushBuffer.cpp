@@ -327,7 +327,7 @@ extern void XTL::EmuExecutePushBufferRaw
 
                 VertexPatcher VertPatch;
 
-                bool bPatched = VertPatch.Apply(&VPDesc, NULL);
+                VertPatch.Apply(&VPDesc);
 
 				DxbxDrawPrimitiveUP(VPDesc);
 
@@ -417,7 +417,7 @@ extern void XTL::EmuExecutePushBufferRaw
 
                     VertexPatcher VertPatch;
 
-                    bool bPatched = VertPatch.Apply(&VPDesc, NULL);
+                    VertPatch.Apply(&VPDesc);
 
                     g_pD3DDevice8->SetIndices(pIndexBuffer, 0);
 
@@ -586,7 +586,7 @@ extern void XTL::EmuExecutePushBufferRaw
 
                     VertexPatcher VertPatch;
 
-                    bool bPatched = VertPatch.Apply(&VPDesc, NULL);
+                    VertPatch.Apply(&VPDesc);
 
                     g_pD3DDevice8->SetIndices(pIndexBuffer, 0);
 
