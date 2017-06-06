@@ -153,7 +153,7 @@ void XTL::VertexPatcher::CacheStream(VertexPatchDesc *pPatchDesc,
         if(FAILED(pOrigVertexBuffer->GetDesc(&Desc)))
             CxbxKrnlCleanup("Could not retrieve original buffer size");
 
-		if(FAILED(pOrigVertexBuffer->Lock(0, 0, (uint08**)&pCalculateData, 0)))
+		if(FAILED(pOrigVertexBuffer->Lock(0, 0, (uint08**)&pCalculateData, D3DLOCK_READONLY)))
             CxbxKrnlCleanup("Couldn't lock the original buffer");
 
         uiLength = Desc.Size;
@@ -274,7 +274,7 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
         if(pCachedStream->uiCheckCount == (pCachedStream->uiCheckFrequency - 1))
         {
             if(pOrigVertexBuffer != nullptr)
-                if(FAILED(pOrigVertexBuffer->Lock(0, 0, (uint08**)&pCalculateData, 0)))
+                if(FAILED(pOrigVertexBuffer->Lock(0, 0, (uint08**)&pCalculateData, D3DLOCK_READONLY)))
                     CxbxKrnlCleanup("Couldn't lock the original buffer");
 
             // Use the cached stream length (which is a must for the UP stream)
@@ -417,11 +417,11 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
 		pStreamPatch->ConvertedStride = max(pStreamPatch->ConvertedStride, uiStride); // ??
 		dwNewSize = uiVertexCount * pStreamPatch->ConvertedStride;
 
-        if(FAILED(pOrigVertexBuffer->Lock(0, 0, &pOrigData, 0)))
+        if(FAILED(pOrigVertexBuffer->Lock(0, 0, &pOrigData, D3DLOCK_READONLY)))
             CxbxKrnlCleanup("Couldn't lock the original buffer");
 
 		g_pD3DDevice8->CreateVertexBuffer(dwNewSize, 0, 0, XTL::D3DPOOL_MANAGED, &pNewVertexBuffer);
-        if(FAILED(pNewVertexBuffer->Lock(0, 0, &pNewData, 0)))
+        if(FAILED(pNewVertexBuffer->Lock(0, 0, &pNewData, D3DLOCK_DISCARD)))
             CxbxKrnlCleanup("Couldn't lock the new buffer");
         
 		if(!pStream->pOriginalStream)
@@ -664,11 +664,11 @@ bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT ui
 		uiVertexCount = Desc.Size / uiStride;
         
         uint08 *pOrigData;
-        if(FAILED(pOrigVertexBuffer->Lock(0, 0, &pOrigData, 0)))
+        if(FAILED(pOrigVertexBuffer->Lock(0, 0, &pOrigData, D3DLOCK_READONLY)))
             CxbxKrnlCleanup("Couldn't lock original FVF buffer.");
 
 		g_pD3DDevice8->CreateVertexBuffer(Desc.Size, 0, 0, XTL::D3DPOOL_MANAGED, &pNewVertexBuffer);
-        if(FAILED(pNewVertexBuffer->Lock(0, 0, &pData, 0)))
+        if(FAILED(pNewVertexBuffer->Lock(0, 0, &pData, D3DLOCK_DISCARD)))
             CxbxKrnlCleanup("Couldn't lock new FVF buffer.");
 
 		memcpy(pData, pOrigData, Desc.Size);
@@ -860,10 +860,10 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
         g_pD3DDevice8->CreateVertexBuffer(dwNewSizeWR, 0, 0, XTL::D3DPOOL_MANAGED, &pStream->pPatchedStream);
 
 		if(pStream->pOriginalStream != nullptr)
-            pStream->pOriginalStream->Lock(0, 0, &pOrigVertexData, 0);
+            pStream->pOriginalStream->Lock(0, 0, &pOrigVertexData, D3DLOCK_READONLY);
 
         if(pStream->pPatchedStream != nullptr)
-            pStream->pPatchedStream->Lock(0, 0, &pPatchedVertexData, 0);
+            pStream->pPatchedStream->Lock(0, 0, &pPatchedVertexData, D3DLOCK_DISCARD);
     }
     else
     {

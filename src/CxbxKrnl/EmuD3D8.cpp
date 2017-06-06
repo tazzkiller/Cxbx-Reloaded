@@ -5506,7 +5506,7 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 		/*OffsetToLock=*/0, 
 		/*SizeToLock=*/0/*=entire buffer*/, 
 		&pNativeData, 
-		/*Flags=*/0);
+		/*Flags=*/D3DLOCK_DISCARD);
 	DEBUG_D3DRESULT(hRet, "pNewHostVertexBuffer->Lock");
 
 	if(FAILED(hRet))
@@ -7887,7 +7887,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
     VPDesc.dwVertexCount = VertexCount;
 	VPDesc.dwPrimitiveCount = 0;
     VPDesc.dwOffset = StartVertex;
-    VPDesc.pVertexStreamZeroData = 0;
+    VPDesc.pVertexStreamZeroData = NULL;
     VPDesc.uiVertexStreamZeroStride = 0;
     VPDesc.hVertexShader = g_CurrentVertexShader;
 

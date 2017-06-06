@@ -391,7 +391,7 @@ extern void XTL::EmuExecutePushBufferRaw
                 {
                     WORD *pData=0;
 
-                    pIndexBuffer->Lock(0, dwCount*2 + 2*2, (UCHAR**)&pData, NULL);
+                    pIndexBuffer->Lock(0, dwCount*2 + 2*2, (UCHAR**)&pData, D3DLOCK_DISCARD);
 
                     memcpy(pData, pIBMem, dwCount*2 + 2*2);
 
@@ -551,7 +551,7 @@ extern void XTL::EmuExecutePushBufferRaw
                 {
                     WORD *pData=0;
 
-                    pIndexBuffer->Lock(0, dwCount*2, (UCHAR**)&pData, NULL);
+                    pIndexBuffer->Lock(0, dwCount*2, (UCHAR**)&pData, D3DLOCK_DISCARD);
 
                     memcpy(pData, pIndexData, dwCount*2);
 
