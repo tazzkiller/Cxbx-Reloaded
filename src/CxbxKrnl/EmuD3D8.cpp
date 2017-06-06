@@ -276,7 +276,8 @@ struct EmuD3D8CreateDeviceProxyData
 	XTL::D3DDEVICE_CREATION_PARAMETERS CreationParameters;
     XTL::X_D3DPRESENT_PARAMETERS    *pPresentationParameters; // Original Xbox version
 	XTL::D3DPRESENT_PARAMETERS		 NativePresentationParameters; // Converted to Windows
-    volatile bool                    bReady;
+	XTL::IDirect3DDevice8          **ppReturnedDeviceInterface;
+	volatile bool                    bReady;
     union
     {
         volatile HRESULT  hRet;
@@ -2372,7 +2373,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					g_EmuCDPD.CreationParameters.hFocusWindow,
 					g_EmuCDPD.CreationParameters.BehaviorFlags,
 					&(g_EmuCDPD.NativePresentationParameters),
-					&g_pD3DDevice8
+					g_EmuCDPD.ppReturnedDeviceInterface
 				);
 				DEBUG_D3DRESULT(g_EmuCDPD.hRet, "IDirect3D8::CreateDevice");
 
@@ -2389,13 +2390,16 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 						g_EmuCDPD.CreationParameters.hFocusWindow,
 						g_EmuCDPD.CreationParameters.BehaviorFlags,
 						&(g_EmuCDPD.NativePresentationParameters),
-						&g_pD3DDevice8
+						g_EmuCDPD.ppReturnedDeviceInterface
 					);
 					DEBUG_D3DRESULT(g_EmuCDPD.hRet, "IDirect3D8::CreateDevice");
 				}
 
 				if (FAILED(g_EmuCDPD.hRet))
                     CxbxKrnlCleanup("IDirect3D8::CreateDevice failed");
+
+				// cache device pointer
+				g_pD3DDevice8 = *g_EmuCDPD.ppReturnedDeviceInterface;
 
 				// Update Xbox PresentationParameters :
 				g_EmuCDPD.pPresentationParameters->BackBufferWidth = g_EmuCDPD.NativePresentationParameters.BackBufferWidth;
@@ -2865,6 +2869,7 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
     g_EmuCDPD.CreationParameters.DeviceType = DeviceType;
     g_EmuCDPD.CreationParameters.hFocusWindow = hFocusWindow;
     g_EmuCDPD.pPresentationParameters = pPresentationParameters;
+	g_EmuCDPD.ppReturnedDeviceInterface = ppReturnedDeviceInterface;
 
     // Wait until proxy is done with an existing call (i highly doubt this situation will come up)
     while(g_EmuCDPD.bReady)
