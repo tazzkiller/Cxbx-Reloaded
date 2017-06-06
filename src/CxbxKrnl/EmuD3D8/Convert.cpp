@@ -1178,8 +1178,8 @@ DWORD EmuXB2PC_D3DTEXTUREADDRESS(DWORD Value)
 		return D3DTADDRESS_BORDER;
 	case X_D3DTADDRESS_CLAMPTOEDGE:
 		// Note : PC has D3DTADDRESS_MIRRORONCE in it's place
-		EmuWarning("Unsupported X_D3DTEXTUREADDRESS : X_D3DTADDRESS_CLAMPTOEDGE. Using D3DTADDRESS_CLAMP approximation.");
-		return D3DTADDRESS_CLAMP;
+		EmuWarning("Unsupported X_D3DTEXTUREADDRESS : X_D3DTADDRESS_CLAMPTOEDGE. Using D3DTADDRESS_BORDER approximation.");
+		return D3DTADDRESS_BORDER; // Note : D3DTADDRESS_CLAMP is not a good approximation
 	default:
 		CxbxKrnlCleanup("Unknown X_D3DTEXTUREADDRESS (0x%.08X)", (DWORD)Value);
 		return (DWORD)Value; // Never reached
