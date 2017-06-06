@@ -394,8 +394,8 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								printf("HLE: Located 0x%.08X -> D3DDevice_SetRenderState_CullMode\n", pFunc);
 
 								// Read address of D3DRS_CULLMODE from D3DDevice_SetRenderState_CullMode
-								xbaddr DerivedAddr_D3DRS_CULLMODE = *(xbaddr*)(pFunc + iCodeOffsetFor_X_D3DRS_CULLMODE);
-								DWORD XDK_D3DRS_CULLMODE = DxbxMapMostRecentToActiveVersion[X_D3DRS_CULLMODE];
+								xbaddr DerivedAddr_D3DRS_CULLMODE = *((xbaddr*)(pFunc + iCodeOffsetFor_X_D3DRS_CULLMODE));
+								::DWORD XDK_D3DRS_CULLMODE = DxbxMapMostRecentToActiveVersion[X_D3DRS_CULLMODE];
 								printf("HLE: Derived 0x%.08X -> D3D__RenderState[%d/*=D3DRS_CULLMODE*/]\n", DerivedAddr_D3DRS_CULLMODE, XDK_D3DRS_CULLMODE);
 
 								// Temporary verification - is XREF_D3DRS_CULLMODE derived correctly?
@@ -411,7 +411,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								// Temporary verification - is XREF_D3DDEVICE derived correctly?
 								// TODO : Remove this when D3DEVICE derivation is deemed stable
 								{
-									xbaddr DerivedAddr_D3DDevice = *(xbaddr*)((xbaddr)pFunc + 0x03);
+									xbaddr DerivedAddr_D3DDevice = *((xbaddr*)(pFunc + 0x03));
 									if (XRefDataBase[XREF_D3DDEVICE] != DerivedAddr_D3DDevice)
 									{
 										if (XRefDataBase[XREF_D3DDEVICE] != XREF_ADDR_DERIVE)
@@ -481,13 +481,14 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								printf("HLE: Located 0x%.08X -> D3DDevice_SetTextureState_TexCoordIndex\n", pFunc);
 
 								// Read address of D3DTSS_TEXCOORDINDEX from D3DDevice_SetTextureState_TexCoordIndex
-								xbaddr DerivedAddr_D3DTSS_TEXCOORDINDEX = *(xbaddr*)(pFunc + iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX);
+								xbaddr DerivedAddr_D3DTSS_TEXCOORDINDEX = *((xbaddr*)(pFunc + iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX));
 								printf("HLE: Derived 0x%.08X -> D3D__TextureState[/*Stage*/0][D3DTSS_TEXCOORDINDEX]\n", DerivedAddr_D3DTSS_TEXCOORDINDEX);
 
 								// Temporary verification - is XREF_D3DTSS_TEXCOORDINDEX derived correctly?
 								// TODO : Remove this when XREF_D3DTSS_TEXCOORDINDEX derivation is deemed stable
 								if (XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] != DerivedAddr_D3DTSS_TEXCOORDINDEX) {
 									if (XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] != XREF_ADDR_DERIVE)
+										// Kabuki Warriors hits this case
 										CxbxPopupMessage("Second derived XREF_D3DTSS_TEXCOORDINDEX differs from first!");
 
 									XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] = DerivedAddr_D3DTSS_TEXCOORDINDEX;

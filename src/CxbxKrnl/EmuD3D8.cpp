@@ -261,7 +261,7 @@ void CxbxClearGlobals()
 	g_pCachedYuvSurface = NULL;
 #endif
 	g_dwVertexShaderUsage = 0;
-	g_VertexShaderSlots[136] = { 0 };
+	memset(g_VertexShaderSlots, 0, 136 * sizeof(DWORD)); // TODO : Use ARRAY_SIZE() and/or countof()
 	// g_pTexturePaletteStages = { nullptr, nullptr, nullptr, nullptr };
 	g_VertexShaderConstantMode = XTL::X_D3DSCM_192CONSTANTS;
 	//XTL::EmuD3DTileCache = { 0 };
@@ -276,7 +276,8 @@ struct EmuD3D8CreateDeviceProxyData
 	XTL::D3DDEVICE_CREATION_PARAMETERS CreationParameters;
     XTL::X_D3DPRESENT_PARAMETERS    *pPresentationParameters; // Original Xbox version
 	XTL::D3DPRESENT_PARAMETERS		 NativePresentationParameters; // Converted to Windows
-    volatile bool                    bReady;
+	XTL::IDirect3DDevice8          **ppReturnedDeviceInterface;
+	volatile bool                    bReady;
     union
     {
         volatile HRESULT  hRet;
@@ -710,7 +711,7 @@ struct DecodedPixelContainer {
 
 void DumpDecodedPixelContainer(DecodedPixelContainer &decoded)
 {
-	DbgPrintf("X_Format = 0x%.02X (%s)\n", decoded.X_Format, TYPE2STR(X_D3DFORMAT)(decoded.X_Format));
+	DbgPrintf("X_Format = 0x%.02X (%s)\n", decoded.X_Format, TYPE2PCHAR(X_D3DFORMAT)(decoded.X_Format));
 	DbgPrintf("dwBPP = %d\n", decoded.dwBPP);
 	DbgPrintf("bIsSwizzled = %d\n", decoded.bIsSwizzled);
 	DbgPrintf("bIsCompressed = %d\n", decoded.bIsCompressed);
@@ -1195,6 +1196,100 @@ void DxbxDetermineSurFaceAndLevelByData(const DecodedPixelContainer DxbxPixelJar
 }
 #endif
 
+namespace XTL {
+D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceType, DWORD aUsage)
+{
+	// Convert Format (Xbox->PC)
+	D3DFORMAT Result = EmuXB2PC_D3DFormat(X_Format);
+
+	// Dxbx addition : Check device caps :
+	if (SUCCEEDED(g_pD3D8->CheckDeviceFormat(
+		g_EmuCDPD.CreationParameters.AdapterOrdinal,
+		g_EmuCDPD.CreationParameters.DeviceType,
+		g_EmuCDPD.NativePresentationParameters.BackBufferFormat,
+		aUsage,
+		(D3DRESOURCETYPE)aResourceType, // Note : X_D3DRTYPE_SURFACE up to X_D3DRTYPE_INDEXBUFFER values matche host D3D
+		Result)))
+		return Result;
+
+	D3DFORMAT FirstResult = Result;
+	switch (Result) {
+	case D3DFMT_P8: 
+		// Note : Allocate a BPP-identical format instead of P8 (which is nearly never supported natively),
+		// so that we at least have a BPP-identical format. Conversion to ARGB is done via bConvertToARGB in
+		// in CxbxUpdateTexture :
+		Result = D3DFMT_L8;
+		break;
+	case D3DFMT_D16:
+		switch (aResourceType) {
+		case X_D3DRTYPE_TEXTURE:
+		case X_D3DRTYPE_VOLUMETEXTURE:
+		case X_D3DRTYPE_CUBETEXTURE:
+		{
+			if ((aUsage & X_D3DUSAGE_DEPTHSTENCIL) > 0)
+			{
+				Result = D3DFMT_D16_LOCKABLE;
+				// ATI Fix : Does this card support D16 DepthStencil textures ?
+				if (FAILED(g_pD3D8->CheckDeviceFormat(
+					g_EmuCDPD.CreationParameters.AdapterOrdinal,
+					g_EmuCDPD.CreationParameters.DeviceType,
+					g_EmuCDPD.NativePresentationParameters.BackBufferFormat,
+					aUsage,
+					_D3DRESOURCETYPE(aResourceType),
+					Result)))
+				{
+					// If not, fall back to a format that's the same size and is most probably supported :
+					Result = D3DFMT_R5G6B5; // Note : If used in shaders, this will give unpredictable channel mappings!
+
+					// Since this cannot longer be created as a DepthStencil, reset the usage flag :
+					// TODO : aUsage = D3DUSAGE_RENDERTARGET; // TODO : Why rendertarget instead? This asks for a testcase!
+				}
+			}
+			else
+				Result = D3DFMT_R5G6B5; // also CheckDeviceMultiSampleType
+
+			break;
+		}
+		case X_D3DRTYPE_SURFACE:
+			Result = D3DFMT_D16_LOCKABLE;
+			break;
+		}
+		break;
+	case D3DFMT_D24S8:
+		switch (aResourceType) {
+		case X_D3DRTYPE_TEXTURE:
+		case X_D3DRTYPE_VOLUMETEXTURE:
+		case X_D3DRTYPE_CUBETEXTURE:
+		{
+			Result = D3DFMT_A8R8G8B8;
+			// Since this cannot longer be created as a DepthStencil, reset the usage flag :
+			// TODO : aUsage = D3DUSAGE_RENDERTARGET;
+			break;
+		}
+		}
+		break;
+	case D3DFMT_V16U16:
+		// This fixes NoSortAlphaBlend (after B button - z-replace) on nvidia:
+		Result = D3DFMT_A8R8G8B8;
+		break;
+
+	case D3DFMT_YUY2:
+		Result = D3DFMT_V8U8; // Use another format that's also 16 bits wide
+//      if aResourceType = X_D3DRTYPE_CUBETEXTURE then
+//        DxbxKrnlCleanup('YUV not supported for cube textures');
+		break;
+	}
+
+	if (FirstResult != Result)
+		EmuWarning("%s is an unsupported format for %s! Allocating %s",
+			X_D3DFORMAT2String(X_Format).c_str(),
+			X_D3DRESOURCETYPE2String(aResourceType).c_str(),
+			D3DFORMAT2PCHAR(Result));
+
+	return Result;
+}
+
+}
 
 #if 0 // unused
 inline XTL::X_D3DPALETTESIZE GetXboxPaletteSize(const XTL::X_D3DPalette *pPalette)
@@ -2278,7 +2373,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					g_EmuCDPD.CreationParameters.hFocusWindow,
 					g_EmuCDPD.CreationParameters.BehaviorFlags,
 					&(g_EmuCDPD.NativePresentationParameters),
-					&g_pD3DDevice8
+					g_EmuCDPD.ppReturnedDeviceInterface
 				);
 				DEBUG_D3DRESULT(g_EmuCDPD.hRet, "IDirect3D8::CreateDevice");
 
@@ -2295,13 +2390,16 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 						g_EmuCDPD.CreationParameters.hFocusWindow,
 						g_EmuCDPD.CreationParameters.BehaviorFlags,
 						&(g_EmuCDPD.NativePresentationParameters),
-						&g_pD3DDevice8
+						g_EmuCDPD.ppReturnedDeviceInterface
 					);
 					DEBUG_D3DRESULT(g_EmuCDPD.hRet, "IDirect3D8::CreateDevice");
 				}
 
 				if (FAILED(g_EmuCDPD.hRet))
                     CxbxKrnlCleanup("IDirect3D8::CreateDevice failed");
+
+				// cache device pointer
+				g_pD3DDevice8 = *g_EmuCDPD.ppReturnedDeviceInterface;
 
 				// Update Xbox PresentationParameters :
 				g_EmuCDPD.pPresentationParameters->BackBufferWidth = g_EmuCDPD.NativePresentationParameters.BackBufferWidth;
@@ -2771,6 +2869,7 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
     g_EmuCDPD.CreationParameters.DeviceType = DeviceType;
     g_EmuCDPD.CreationParameters.hFocusWindow = hFocusWindow;
     g_EmuCDPD.pPresentationParameters = pPresentationParameters;
+	g_EmuCDPD.ppReturnedDeviceInterface = ppReturnedDeviceInterface;
 
     // Wait until proxy is done with an existing call (i highly doubt this situation will come up)
     while(g_EmuCDPD.bReady)
@@ -4735,7 +4834,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 		LOG_FUNC_ARG(Format)
 		LOG_FUNC_END;
 
-    DWORD StageLookup[X_D3DTSS_STAGECOUNT] = { NV2A_TX_OFFSET(0), NV2A_TX_OFFSET(1), NV2A_TX_OFFSET(2), NV2A_TX_OFFSET(3) };
+    static const DWORD StageLookup[X_D3DTSS_STAGECOUNT] = { NV2A_TX_OFFSET(0), NV2A_TX_OFFSET(1), NV2A_TX_OFFSET(2), NV2A_TX_OFFSET(3) };
     DWORD Stage = -1;
 
 	for (int s = 0; s < X_D3DTSS_STAGECOUNT; s++)
@@ -4744,7 +4843,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 
     if(Stage == -1)
     {
-        EmuWarning("Unknown Method (0x%.08X)", Method);
+        CxbxKrnlCleanup("D3DDevice_SwitchTexture : Unknown Method (0x%.08X)", Method);
     }
     else
     {
@@ -4762,7 +4861,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 				pHostBaseTexture = GetHostBaseTexture(pTexture);
 		}
 
-        EmuWarning("Switching Data 0x%.08X Texture 0x%.08X (0x%.08X) @ Stage %d", Data, pTexture, pHostBaseTexture, Stage);
+        DbgPrintf("Switching Data 0x%.08X Texture 0x%.08X (0x%.08X) @ Stage %d\n", Data, pTexture, pHostBaseTexture, Stage);
 
         HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, pHostBaseTexture);
 
@@ -4801,15 +4900,16 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayMode)
         hRet = g_pD3DDevice8->GetDisplayMode(pPCMode);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetDisplayMode");
 
-        // Convert Format (PC->Xbox)
-        pMode->Format = EmuPC2XB_D3DFormat(pPCMode->Format);
+		// Convert Format (PC->Xbox)
+		pMode->Format = EmuPC2XB_D3DFormat(pPCMode->Format); // TODO : g_EmuCDPD.pPresentationParameters->BackBufferFormat;
 
         // TODO: Make this configurable in the future?
         pMode->Flags  = 0x000000A1; // D3DPRESENTFLAG_FIELD | D3DPRESENTFLAG_INTERLACED | D3DPRESENTFLAG_LOCKABLE_BACKBUFFER
 
-        // TODO: Retrieve from current CreateDevice settings?
-        pMode->Width = 640;
-        pMode->Height = 480;
+		// TODO: Retrieve from current CreateDevice settings?
+		pMode->Width = 640; // TODO : g_EmuCDPD.pPresentationParameters->BackBufferWidth;
+		pMode->Height = 480; // TODO : g_EmuCDPD.pPresentationParameters->BackBufferHeight;
+		pMode->RefreshRate = 50; // New
     }
 
     return hRet;
@@ -5603,7 +5703,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (bConvertToARGB)
 		PCFormat = D3DFMT_A8R8G8B8;
 	else
-		PCFormat = EmuXB2PC_D3DFormat(X_Format);
+		PCFormat = DxbxXB2PC_D3DFormat(X_Format, GetXboxD3DResourceType(pPixelContainer), 0); // was EmuXB2PC_D3DFormat
 
 	HRESULT hRet = S_OK;
 
@@ -5713,7 +5813,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			{
 				hRet = g_pD3DDevice8->CreateTexture
 				(
-					dwWidth, dwHeight, dwMipMapLevels, 0, PCFormat,
+					PixelJar.dwWidth, PixelJar.dwHeight, PixelJar.dwMipMapLevels, 0, PCFormat,
 					D3DPOOL_SYSTEMMEM, &pNewHostTexture
 				);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateTexture(D3DPOOL_SYSTEMMEM)");
@@ -7596,6 +7696,7 @@ VOID WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock)
 	LOG_FORWARD("D3DVertexBuffer_Lock2");
 
 	*ppbData = EMUPATCH(D3DVertexBuffer_Lock2)(pVertexBuffer, Flags) + OffsetToLock;
+	DbgPrintf("D3DVertexBuffer_Lock returns 0x%p\n", *ppbData);
 }
 #endif
 
@@ -7615,6 +7716,7 @@ BYTE* WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock2)
 
     BYTE *pbNativeData = (BYTE *)GetDataFromXboxResource(pVertexBuffer);
 
+	DbgPrintf("D3DVertexBuffer_Lock2 returns 0x%p\n", pbNativeData);
 	return pbNativeData; // TODO : Fix BYTE* logging, so we can use RETURN(pbNativeData);
 }
 #endif
@@ -9211,7 +9313,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetProjectionViewportMatrix)
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetTransform - Unable to get projection matrix!");
 
 	// Clear the destination matrix
-	Out = { 0 }; // Was ::ZeroMemory(&Out, sizeof(D3DMATRIX));
+	memset(Out, 0, sizeof(D3DMATRIX)); // = { 0 } crashes. Was ::ZeroMemory(&Out, sizeof(D3DMATRIX));
 
 	// Create the Viewport matrix manually
 	// Direct3D8 doesn't give me everything I need in a viewport structure
@@ -9607,9 +9709,23 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_GetAdapterIdentifier)
 }
 #endif
 
-DWORD PushBuffer[64 * 1024 / sizeof(DWORD)];
+DWORD PushBuffer[64 * 1024 / sizeof(DWORD)] = { 0 };
 
-PDWORD WINAPI XTL::EMUPATCH(D3D_MakeRequestedSpace)
+void DumpPushBufferContents()
+{
+	// TODO : Document samples that hit this
+	int i = 0;
+	while (PushBuffer[i] != 0)
+	{
+		// TODO : Convert NV2A methods to readable string, dump arguments, later on: execute commands
+		DbgPrintf("PushBuffer[%4d] : 0x%X\n", i, PushBuffer[i]);
+		i++;
+	}
+
+	memset(PushBuffer, 0, i * sizeof(DWORD));
+}
+
+PDWORD WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 (
 	DWORD MinimumSpace,
 	DWORD RequestedSpace
@@ -9624,6 +9740,8 @@ PDWORD WINAPI XTL::EMUPATCH(D3D_MakeRequestedSpace)
 
 	// NOTE: This function is ignored, as we currently don't emulate the push buffer
 	LOG_IGNORED();
+
+	DumpPushBufferContents();
 
 	return PushBuffer; // Return a buffer that will be filled with GPU commands
 

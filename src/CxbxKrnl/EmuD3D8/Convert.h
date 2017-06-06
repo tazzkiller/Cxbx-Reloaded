@@ -79,6 +79,11 @@ extern std::string BOOL2String(DWORD Value);
 
 extern std::string DxbxXBDefaultToString(DWORD Value);
 
+#define D3DFORMAT2PCHAR(Value) TYPE2PCHAR(D3DFORMAT)((D3DFORMAT)Value)
+
+#define ForwardTYPE2STRToString(Type) \
+extern std::string Type##2String(DWORD Value);
+
 // TODO : Back-port these
 #define X_D3DBLEND2String DxbxXBDefaultToString
 #define X_D3DBLENDOP2String DxbxXBDefaultToString
@@ -86,18 +91,18 @@ extern std::string DxbxXBDefaultToString(DWORD Value);
 #define X_D3DCMPFUNC2String DxbxXBDefaultToString
 #define X_D3DCOLORWRITEENABLE2String DxbxXBDefaultToString
 #define X_D3DCUBEMAP_FACES2String DxbxXBDefaultToString
-#define X_D3DCULL2String DxbxXBDefaultToString // TYPE2STR(X_D3DCULL)
+ForwardTYPE2STRToString(X_D3DCULL)
 #define X_D3DDCC2String DxbxXBDefaultToString
 #define X_D3DFILLMODE2String DxbxXBDefaultToString
 #define X_D3DFOGMODE2String DxbxXBDefaultToString
-#define X_D3DFORMAT2String DxbxXBDefaultToString // TYPE2STR(X_D3DFORMAT)
+ForwardTYPE2STRToString(X_D3DFORMAT)
 #define X_D3DFRONT2String DxbxXBDefaultToString
 #define X_D3DLOGICOP2String DxbxXBDefaultToString
 #define X_D3DMCS2String DxbxXBDefaultToString
 #define X_D3DMULTISAMPLE_TYPE2String DxbxXBDefaultToString
 #define X_D3DMULTISAMPLEMODE2String DxbxXBDefaultToString
-#define X_D3DPRIMITIVETYPE2String DxbxXBDefaultToString // TYPE2STR(X_D3DPRIMITIVETYPE)
-#define X_D3DRESOURCETYPE2String DxbxXBDefaultToString // TYPE2STR(X_D3DRESOURCETYPE)
+ForwardTYPE2STRToString(X_D3DPRIMITIVETYPE)
+ForwardTYPE2STRToString(X_D3DRESOURCETYPE)
 #define X_D3DSAMPLEALPHA2String DxbxXBDefaultToString
 #define X_D3DSHADEMODE2String DxbxXBDefaultToString
 #define X_D3DSTENCILOP2String DxbxXBDefaultToString
@@ -110,6 +115,8 @@ extern std::string DxbxXBDefaultToString(DWORD Value);
 #define X_D3DVERTEXBLENDFLAGS2String DxbxXBDefaultToString
 #define X_D3DVSDE2String DxbxXBDefaultToString
 #define X_D3DWRAP2String DxbxXBDefaultToString
+
+#undef ForwardTYPE2STRToString
 
 extern std::string DWFloat2String(DWORD Value);
 

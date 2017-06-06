@@ -144,7 +144,7 @@ enum XRefDataBaseOffset
     XREF_D3D_BLOCKONTIME,
     XREF_D3D_SETFENCE,
 	XREF_D3D_KickOffAndWaitForIdle,
-	XREF_D3D_MakeRequestedSpace,
+	XREF_MakeRequestedSpace,
 	XREF_D3D_KickOff,
     XREF_XNINIT,
     XREF_FCLOSEDEVICE,

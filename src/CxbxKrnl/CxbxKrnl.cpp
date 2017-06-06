@@ -704,6 +704,19 @@ void CxbxKrnlInit
 			printf("EmuMain : LLE enabled for JIT.\n");
 	}
 
+	// Process XInput Enabled flag
+	{
+		int XInputEnabled;
+		g_EmuShared->GetXInputEnabled(&XInputEnabled);
+		if (XInputEnabled) {
+			g_XInputEnabled = true;
+			printf("EmuMain : Using XInput\n");
+		} else {
+			g_XInputEnabled = false;
+			printf("EmuMain : Using DirectInput\n");
+		}
+	}
+
 	// Initialize devices :
 	char szBuffer[MAX_PATH];
 	SHGetSpecialFolderPath(NULL, szBuffer, CSIDL_APPDATA, TRUE);
