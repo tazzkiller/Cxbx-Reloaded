@@ -1197,7 +1197,7 @@ void DxbxDetermineSurFaceAndLevelByData(const DecodedPixelContainer DxbxPixelJar
 #endif
 
 namespace XTL {
-D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceType, DWORD aUsage)
+D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceType, IN OUT DWORD &aUsage)
 {
 	// Convert Format (Xbox->PC)
 	D3DFORMAT Result = EmuXB2PC_D3DFormat(X_Format);
@@ -1208,7 +1208,7 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 		g_EmuCDPD.CreationParameters.DeviceType,
 		g_EmuCDPD.NativePresentationParameters.BackBufferFormat,
 		aUsage,
-		(D3DRESOURCETYPE)aResourceType, // Note : X_D3DRTYPE_SURFACE up to X_D3DRTYPE_INDEXBUFFER values matche host D3D
+		(D3DRESOURCETYPE)aResourceType, // Note : X_D3DRTYPE_SURFACE up to X_D3DRTYPE_INDEXBUFFER values matches host D3D
 		Result)))
 		return Result;
 
@@ -1242,7 +1242,7 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 					Result = D3DFMT_R5G6B5; // Note : If used in shaders, this will give unpredictable channel mappings!
 
 					// Since this cannot longer be created as a DepthStencil, reset the usage flag :
-					// TODO : aUsage = D3DUSAGE_RENDERTARGET; // TODO : Why rendertarget instead? This asks for a testcase!
+					aUsage &= ~X_D3DUSAGE_DEPTHSTENCIL; // TODO : This asks for a testcase!
 				}
 			}
 			else
@@ -1263,20 +1263,22 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 		{
 			Result = D3DFMT_A8R8G8B8;
 			// Since this cannot longer be created as a DepthStencil, reset the usage flag :
-			// TODO : aUsage = D3DUSAGE_RENDERTARGET;
+			aUsage &= ~X_D3DUSAGE_DEPTHSTENCIL; // TODO : This asks for a testcase!
 			break;
 		}
 		}
 		break;
 	case D3DFMT_V16U16:
-		// This fixes NoSortAlphaBlend (after B button - z-replace) on nvidia:
+		// HACK. This fixes NoSortAlphaBlend (after B button - z-replace) on nvidia:
 		Result = D3DFMT_A8R8G8B8;
 		break;
 
 	case D3DFMT_YUY2:
+		// TODO : Is this still neccessary?
 		Result = D3DFMT_V8U8; // Use another format that's also 16 bits wide
-//      if aResourceType = X_D3DRTYPE_CUBETEXTURE then
-//        DxbxKrnlCleanup('YUV not supported for cube textures');
+		if (aResourceType == X_D3DRTYPE_CUBETEXTURE)
+			CxbxKrnlCleanup("YUV not supported for cube textures");
+
 		break;
 	}
 
@@ -5698,12 +5700,18 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	XTL::IDirect3DVolumeTexture8 *pNewHostVolumeTexture = nullptr;
 	XTL::IDirect3DTexture8 *pNewHostTexture = nullptr;
 
+	// Note : For now, we create and fill textures only once (Xbox changes are put
+	// in new host resources), so it seems using D3DUSAGE_DYNAMIC and D3DPOOL_DEFAULT
+	// isn't needed (plus, we don't have to check for D3DCAPS2_DYNAMICTEXTURES)
+	DWORD D3DUsage = 0; // TODO : | D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL
+	D3DPOOL D3DPool = D3DPOOL_MANAGED;
+
 	D3DFORMAT PCFormat;
 
 	if (bConvertToARGB)
 		PCFormat = D3DFMT_A8R8G8B8;
 	else
-		PCFormat = DxbxXB2PC_D3DFormat(X_Format, GetXboxD3DResourceType(pPixelContainer), 0); // was EmuXB2PC_D3DFormat
+		PCFormat = DxbxXB2PC_D3DFormat(X_Format, GetXboxD3DResourceType(pPixelContainer), D3DUsage); // Was EmuXB2PC_D3DFormat
 
 	HRESULT hRet = S_OK;
 
@@ -5746,7 +5754,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			dwMipMapLevels = 3;
 		}
 #endif
-
 		if (PixelJar.bIsCubeMap)
 		{
 			DbgPrintf("CreateCubeTexture(%d, %d, 0, %d, D3DPOOL_MANAGED)\n", 
@@ -5754,8 +5761,8 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 			hRet = g_pD3DDevice8->CreateCubeTexture
 			(
-				PixelJar.dwWidth, PixelJar.dwMipMapLevels, 0, PCFormat,
-				D3DPOOL_MANAGED, &pNewHostCubeTexture
+				PixelJar.dwWidth, PixelJar.dwMipMapLevels, D3DUsage, PCFormat,
+				D3DPool, &pNewHostCubeTexture
 			);
 			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateCubeTexture");
 
@@ -5764,7 +5771,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				DXGetErrorString8A(hRet), DXGetErrorDescription8A(hRet)*/);
 
 			SetHostCubeTexture((XTL::X_D3DResource *)pPixelContainer, pNewHostCubeTexture);
-			DbgPrintf("CxbxUpdateTexture : Successfully Created CubeTexture (0x%.08X, 0x%.08X)\n", pPixelContainer, pNewHostCubeTexture);
+			DbgPrintf("CxbxUpdateTexture : CreateCubeTexture succeeded : 0x%.08X (0x%.08X)\n", pPixelContainer, pNewHostCubeTexture);
 
 			result = (IDirect3DBaseTexture8 *)pNewHostCubeTexture;
 		}
@@ -5777,8 +5784,8 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			hRet = g_pD3DDevice8->CreateVolumeTexture
 			(
 				PixelJar.dwWidth, PixelJar.dwHeight, PixelJar.dwDepth, PixelJar.dwMipMapLevels,
-				0,  // TODO: Xbox Allows a border to be drawn (maybe hack this in software ;[)
-				PCFormat, D3DPOOL_MANAGED, &pNewHostVolumeTexture
+				D3DUsage,
+				PCFormat, D3DPool, &pNewHostVolumeTexture
 			);
 			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateVolumeTexture");
 
@@ -5787,7 +5794,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				DXGetErrorString8A(hRet), DXGetErrorDescription8A(hRet)*/);
 
 			SetHostVolumeTexture((XTL::X_D3DResource *)pPixelContainer, pNewHostVolumeTexture);
-			DbgPrintf("CxbxUpdateTexture: Created Volume Texture : 0x%.08X (0x%.08X)\n", pPixelContainer, pNewHostVolumeTexture);
+			DbgPrintf("CxbxUpdateTexture: CreateVolumeTexture succeeded : 0x%.08X (0x%.08X)\n", pPixelContainer, pNewHostVolumeTexture);
 
 			result = (IDirect3DBaseTexture8 *)pNewHostVolumeTexture;
 		} else
@@ -5804,8 +5811,8 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 			hRet = g_pD3DDevice8->CreateTexture
 			(
-				PixelJar.dwWidth, PixelJar.dwHeight, PixelJar.dwMipMapLevels, 0, PCFormat,
-				D3DPOOL_MANAGED, &pNewHostTexture
+				PixelJar.dwWidth, PixelJar.dwHeight, PixelJar.dwMipMapLevels, D3DUsage, PCFormat,
+				D3DPool, &pNewHostTexture
 			);
 			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateTexture");
 
@@ -5813,7 +5820,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			{
 				hRet = g_pD3DDevice8->CreateTexture
 				(
-					PixelJar.dwWidth, PixelJar.dwHeight, PixelJar.dwMipMapLevels, 0, PCFormat,
+					PixelJar.dwWidth, PixelJar.dwHeight, PixelJar.dwMipMapLevels, D3DUsage, PCFormat,
 					D3DPOOL_SYSTEMMEM, &pNewHostTexture
 				);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateTexture(D3DPOOL_SYSTEMMEM)");
@@ -5825,7 +5832,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			else
             {
 				SetHostTexture((XTL::X_D3DResource *)pPixelContainer, pNewHostTexture);
-				DbgPrintf("CxbxUpdateTexture : Successfully Created Texture (0x%.08X, 0x%.08X)\n", pPixelContainer, pNewHostTexture);
+				DbgPrintf("CxbxUpdateTexture : CreateTexture succeeded : 0x%.08X (0x%.08X)\n", pPixelContainer, pNewHostTexture);
 
 				result = (IDirect3DBaseTexture8 *)pNewHostTexture;
 			}
@@ -5859,11 +5866,13 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		for (uint level = 0; level < PixelJar.dwMipMapLevels; level++)
 		{
 			DWORD dwMipSizeInBytes = PixelJar.MipMapOffsets[level + 1] - PixelJar.MipMapOffsets[level];
+			DWORD LockFlags = D3DLOCK_DISCARD; // We're about to overwrite the entire resource. (Was 0)
 			D3DLOCKED_BOX LockedBox;
 
+			// TODO : Reorder this for speed : pNewHostTexture first, then pNewHostSurface, pNewHostCubeTexture and pNewHostVolumeTexture last
 			if (pNewHostVolumeTexture != nullptr) {
 
-				hRet = pNewHostVolumeTexture->LockBox(level, &LockedBox, NULL, 0);
+				hRet = pNewHostVolumeTexture->LockBox(level, &LockedBox, NULL, LockFlags);
 				DEBUG_D3DRESULT(hRet, "pNewHostVolumeTexture->LockBox");
 			}
 			else
@@ -5872,16 +5881,16 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 				if (pNewHostSurface != nullptr) {
 
-					hRet = pNewHostSurface->LockRect(&LockedRect, NULL, 0);
+					hRet = pNewHostSurface->LockRect(&LockedRect, NULL, LockFlags);
 					DEBUG_D3DRESULT(hRet, "pNewHostVolumeTexture->LockBox");
 				}
 				else if (pNewHostCubeTexture != nullptr) {
-					hRet = pNewHostCubeTexture->LockRect((D3DCUBEMAP_FACES)face, level, &LockedRect, NULL, 0);
+					hRet = pNewHostCubeTexture->LockRect((D3DCUBEMAP_FACES)face, level, &LockedRect, NULL, LockFlags);
 					DEBUG_D3DRESULT(hRet, "pNewHostVolumeTexture->LockBox");
 				}
 				else {
 					assert(pNewHostTexture != nullptr);
-					hRet = pNewHostTexture->LockRect(level, &LockedRect, NULL, 0);
+					hRet = pNewHostTexture->LockRect(level, &LockedRect, NULL, LockFlags);
 					DEBUG_D3DRESULT(hRet, "pNewHostVolumeTexture->LockBox");
 				}
 
@@ -6054,6 +6063,14 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 						dwMipWidthInBytes = (dwMipWidth * PixelJar.dwBPP) / 8;
 						CxbxPitchedCopy(pDest, pSrc, dwDestPitch, dwSrcPitch, dwMipWidthInBytes, dwMipHeight);
 					}
+				}
+
+				if (PixelJar.bIsBorderSource)
+				{
+					if (face == 0 && level == 0 && slice == 0) // Log warning only once per resource
+						EmuWarning("Ignoring D3DFORMAT_BORDERSOURCE_COLOR"); // We need to know test-cases that log this
+
+					// TODO: Emulate X_D3DFORMAT_BORDERSOURCE_COLOR (allows a border to be drawn maybe hack this in software?)
 				}
 			}
 
