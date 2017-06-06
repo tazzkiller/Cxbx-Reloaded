@@ -488,6 +488,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								// TODO : Remove this when XREF_D3DTSS_TEXCOORDINDEX derivation is deemed stable
 								if (XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] != DerivedAddr_D3DTSS_TEXCOORDINDEX) {
 									if (XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] != XREF_ADDR_DERIVE)
+										// Kabuki Warriors hits this case
 										CxbxPopupMessage("Second derived XREF_D3DTSS_TEXCOORDINDEX differs from first!");
 
 									XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] = DerivedAddr_D3DTSS_TEXCOORDINDEX;
