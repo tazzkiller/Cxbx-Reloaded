@@ -287,7 +287,7 @@ extern void XTL::EmuExecutePushBufferRaw
             {
                 uint08 *pData = 0;
 
-                HRESULT hRet = pVertexBuffer->Lock(0, dwCount*4, &pData, 0);
+                HRESULT hRet = pVertexBuffer->Lock(0, dwCount*4, &pData, D3DLOCK_DISCARD);
 
                 if(FAILED(hRet))
                     CxbxKrnlCleanup("Unable to lock vertex buffer cache for PushBuffer emulation (0x1818, dwCount : %d)", dwCount);

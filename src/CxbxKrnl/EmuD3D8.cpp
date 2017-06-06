@@ -6548,9 +6548,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DSurface_LockRect)
     {
 		CxbxUpdateResource(pThis);
 
-		DWORD NewFlags = 0;
+		DWORD LockFlags = 0;
 		if (Flags & X_D3DLOCK_READONLY)
-			NewFlags |= D3DLOCK_READONLY;
+			LockFlags |= D3DLOCK_READONLY;
 
 		if (Flags & X_D3DLOCK_TILED)
 			EmuWarning("D3DLOCK_TILED ignored!");
@@ -6573,7 +6573,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DSurface_LockRect)
 			else
 			{
 				pHostTexture->UnlockRect(0); // remove old lock
-				hRet = pHostTexture->LockRect(0, pLockedRect, pRect, Flags);
+				hRet = pHostTexture->LockRect(0, pLockedRect, pRect, LockFlags);
 				DEBUG_D3DRESULT(hRet, "pHostTexture->LockRect");
 			}
 			break;
@@ -6589,7 +6589,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DSurface_LockRect)
 			else
 			{
 				pHostSurface->UnlockRect(); // remove old lock
-				hRet = pHostSurface->LockRect(pLockedRect, pRect, NewFlags);
+				hRet = pHostSurface->LockRect(pLockedRect, pRect, LockFlags);
 				DEBUG_D3DRESULT(hRet, "pHostSurface->LockRect");
 			}
 			break;
