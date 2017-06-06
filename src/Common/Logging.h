@@ -287,28 +287,28 @@ extern thread_local std::string _logPrefix;
 #define LOGRENDER_HEADER_BY_REF(Type) std::ostream& operator<<(std::ostream& os, const Type& value)
 #define LOGRENDER_HEADER_BY_PTR(Type) std::ostream& operator<<(std::ostream& os, const Type *value)
 
-#define TYPE2STR(Type) Type##ToString
-#define TYPE2STR_HEADER(Type) const char * TYPE2STR(Type)(const Type &value)
+#define TYPE2PCHAR(Type) Type##ToPCHAR
+#define TYPE2PCHAR_HEADER(Type) const char * TYPE2PCHAR(Type)(const Type &value)
 
 // Macro for implementation of rendering any Type-ToString :
-#define LOGRENDER_TYPE2STR(Type) LOGRENDER_HEADER_BY_REF(Type) \
-{ return os << "("#Type")" << hex4((int)value) << " = " << TYPE2STR(Type)(value); }
+#define LOGRENDER_TYPE(Type) LOGRENDER_HEADER_BY_REF(Type) \
+{ return os << "("#Type")" << hex4((int)value) << " = " << TYPE2PCHAR(Type)(value); }
 
 // Macro's for Enum-ToString conversions :
-#define ENUM2STR_HEADER(EnumType) extern TYPE2STR_HEADER(EnumType); LOGRENDER_HEADER_BY_REF(EnumType);
-#define ENUM2STR_START(EnumType) TYPE2STR_HEADER(EnumType) { switch (value) {
+#define ENUM2STR_HEADER(EnumType) extern TYPE2PCHAR_HEADER(EnumType); LOGRENDER_HEADER_BY_REF(EnumType);
+#define ENUM2STR_START(EnumType) TYPE2PCHAR_HEADER(EnumType) { switch (value) {
 #define ENUM2STR_CASE(a) case a: return #a;
 // ENUM2STR_CASE_DEF is needed for #define'd symbols
 #define ENUM2STR_CASE_DEF(a) case a: return #a;
 #define ENUM2STR_END(EnumType) default: return "Unknown_"#EnumType; } }
-#define ENUM2STR_END_and_LOGRENDER(EnumType) ENUM2STR_END(EnumType) LOGRENDER_TYPE2STR(EnumType)
+#define ENUM2STR_END_and_LOGRENDER(EnumType) ENUM2STR_END(EnumType) LOGRENDER_TYPE(EnumType)
 
 // Macro's for Flags-ToString conversions :
 #define FLAGS2STR_HEADER(FlagType) LOGRENDER_HEADER_BY_REF(FlagType);
-#define FLAGS2STR_START(FlagType) std::string TYPE2STR(FlagType)(const FlagType &value) { std::string res;
+#define FLAGS2STR_START(FlagType) std::string TYPE2PCHAR(FlagType)(const FlagType &value) { std::string res;
 #define FLAG2STR(f) if (((uint32)value & f) == f) res = res + #f"|";
 #define FLAGS2STR_END if (!res.empty()) res.pop_back(); return res; }
-#define FLAGS2STR_END_and_LOGRENDER(FlagType) FLAGS2STR_END LOGRENDER_TYPE2STR(FlagType)
+#define FLAGS2STR_END_and_LOGRENDER(FlagType) FLAGS2STR_END LOGRENDER_TYPE(FlagType)
 
 // Macro's for Struct-member rendering :
 #define LOGRENDER_MEMBER_NAME_VALUE(Name, Value) << LOG_ARG_START << (Name) << "  : " << (Value)

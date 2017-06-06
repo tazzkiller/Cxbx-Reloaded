@@ -710,7 +710,7 @@ struct DecodedPixelContainer {
 
 void DumpDecodedPixelContainer(DecodedPixelContainer &decoded)
 {
-	DbgPrintf("X_Format = 0x%.02X (%s)\n", decoded.X_Format, TYPE2STR(X_D3DFORMAT)(decoded.X_Format));
+	DbgPrintf("X_Format = 0x%.02X (%s)\n", decoded.X_Format, TYPE2PCHAR(X_D3DFORMAT)(decoded.X_Format));
 	DbgPrintf("dwBPP = %d\n", decoded.dwBPP);
 	DbgPrintf("bIsSwizzled = %d\n", decoded.bIsSwizzled);
 	DbgPrintf("bIsCompressed = %d\n", decoded.bIsCompressed);

@@ -40,6 +40,7 @@
 #include "CxbxKrnl/Emu.h"
 #include "CxbxKrnl/EmuXTL.h"
 #include "Convert.h"
+#include "CxbxKrnl/EmuD3D8Logging.h"
 
 // D3D build version
 extern uint32 g_BuildVersion;
@@ -715,6 +716,16 @@ std::string DxbxXBDefaultToString(DWORD Value)
 	return std::to_string(Value);
 }
 
+#define ForwardTYPE2PCHARToString(Type) \
+std::string Type##2String(DWORD Value) { \
+	std::string Result = TYPE2PCHAR(Type)((Type)Value); \
+	return Result; }
+
+ForwardTYPE2PCHARToString(X_D3DCULL)
+ForwardTYPE2PCHARToString(X_D3DFORMAT)
+ForwardTYPE2PCHARToString(X_D3DPRIMITIVETYPE)
+ForwardTYPE2PCHARToString(X_D3DRESOURCETYPE)
+
 /* TODO : Back-port these
 X_D3DBLEND2String
 X_D3DBLENDOP2String
@@ -722,18 +733,18 @@ X_D3DCLEAR2String
 X_D3DCMPFUNC2String
 X_D3DCOLORWRITEENABLE2String
 X_D3DCUBEMAP_FACES2String
-X_D3DCULL2String
+//X_D3DCULL2String
 X_D3DDCC2String
 X_D3DFILLMODE2String
 X_D3DFOGMODE2String
-X_D3DFORMAT2String
+//X_D3DFORMAT2String
 X_D3DFRONT2String
 X_D3DLOGICOP2String
 X_D3DMCS2String
 X_D3DMULTISAMPLE_TYPE2String
 X_D3DMULTISAMPLEMODE2String
-X_D3DPRIMITIVETYPE2String
-X_D3DRESOURCETYPE2String
+//X_D3DPRIMITIVETYPE2String
+//X_D3DRESOURCETYPE2String
 X_D3DSAMPLEALPHA2String
 X_D3DSHADEMODE2String
 X_D3DSTENCILOP2String
