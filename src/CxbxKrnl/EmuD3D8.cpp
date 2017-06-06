@@ -9703,22 +9703,20 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_GetAdapterIdentifier)
 }
 #endif
 
-#define MARKER 0xCCCCCCCC
-
-DWORD PushBuffer[64 * 1024 / sizeof(DWORD)] = { MARKER };
+DWORD PushBuffer[64 * 1024 / sizeof(DWORD)] = { 0 };
 
 void DumpPushBufferContents()
 {
 	// TODO : Document samples that hit this
 	int i = 0;
-	while (PushBuffer[i] != MARKER)
+	while (PushBuffer[i] != 0)
 	{
 		// TODO : Convert NV2A methods to readable string, dump arguments, later on: execute commands
 		DbgPrintf("PushBuffer[%4d] : 0x%X\n", i, PushBuffer[i]);
 		i++;
 	}
 
-	memset(PushBuffer, MARKER, i * sizeof(DWORD));
+	memset(PushBuffer, 0, i * sizeof(DWORD));
 }
 
 PDWORD WINAPI XTL::EMUPATCH(D3D_MakeRequestedSpace)
