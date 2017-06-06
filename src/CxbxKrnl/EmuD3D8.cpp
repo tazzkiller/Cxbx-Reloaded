@@ -4895,15 +4895,16 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayMode)
         hRet = g_pD3DDevice8->GetDisplayMode(pPCMode);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetDisplayMode");
 
-        // Convert Format (PC->Xbox)
-        pMode->Format = EmuPC2XB_D3DFormat(pPCMode->Format);
+		// Convert Format (PC->Xbox)
+		pMode->Format = EmuPC2XB_D3DFormat(pPCMode->Format); // TODO : g_EmuCDPD.pPresentationParameters->BackBufferFormat;
 
         // TODO: Make this configurable in the future?
         pMode->Flags  = 0x000000A1; // D3DPRESENTFLAG_FIELD | D3DPRESENTFLAG_INTERLACED | D3DPRESENTFLAG_LOCKABLE_BACKBUFFER
 
-        // TODO: Retrieve from current CreateDevice settings?
-        pMode->Width = 640;
-        pMode->Height = 480;
+		// TODO: Retrieve from current CreateDevice settings?
+		pMode->Width = 640; // TODO : g_EmuCDPD.pPresentationParameters->BackBufferWidth;
+		pMode->Height = 480; // TODO : g_EmuCDPD.pPresentationParameters->BackBufferHeight;
+		pMode->RefreshRate = 50; // New
     }
 
     return hRet;
