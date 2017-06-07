@@ -1018,11 +1018,17 @@ bool XTL::VertexPatcher::Restore()
         {
             // Release the reference to original stream we got via GetStreamSource() :
             UINT a = m_pStreams[uiStream].pOriginalStream->Release();
+			/* TODO : Although correct, this currently leads to a null-pointer exception :
+            if (a == 0)
+                m_pStreams[uiStream].pOriginalStream = nullptr;*/
         }
 
         if(m_pStreams[uiStream].pPatchedStream != NULL)
         {
             UINT b = m_pStreams[uiStream].pPatchedStream->Release();
+			/* TODO : Although correct, this currently leads to a null-pointer exception :
+			if (b == 0)
+                m_pStreams[uiStream].pPatchedStream = nullptr;*/
         }
 
         if(!m_pStreams[uiStream].bUsedCached)
