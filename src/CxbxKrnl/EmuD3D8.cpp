@@ -7769,6 +7769,22 @@ XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource)
     RETURN(pVertexBuffer);
 }
 
+// TODO : Introduce OOVPA for D3DDevice_GetStreamSource2
+HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource2)
+(
+	UINT                StreamNumber,
+	X_D3DVertexBuffer **ppStreamData,
+	UINT               *pStride
+)
+{
+	FUNC_EXPORTS
+
+	LOG_FORWARD("D3DDevice_GetStreamSource");
+
+	*ppStreamData = EMUPATCH(D3DDevice_GetStreamSource)(StreamNumber, pStride);
+	return D3D_OK;
+}
+
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
 (
     UINT                StreamNumber,

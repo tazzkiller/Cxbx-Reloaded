@@ -1278,6 +1278,16 @@ XTL::X_D3DVertexBuffer* WINAPI EMUPATCH(D3DDevice_GetStreamSource)
 );
 
 // ******************************************************************
+// * patch: D3DDevice_GetStreamSource2
+// ******************************************************************
+HRESULT WINAPI EMUPATCH(D3DDevice_GetStreamSource2)
+(
+	UINT                StreamNumber,
+	X_D3DVertexBuffer **ppStreamData,
+	UINT               *pStride
+);
+
+// ******************************************************************
 // * patch: D3DDevice_SetStreamSource
 // ******************************************************************
 VOID WINAPI EMUPATCH(D3DDevice_SetStreamSource)
