@@ -41,6 +41,7 @@
 #include "CxbxKrnl/EmuD3D8Types.h" // For X_D3DFORMAT
 #include "CxbxKrnl/ResourceTracker.h"
 #include "CxbxKrnl/MemoryManager.h"
+#include "State.h"
 
 uint32  XTL::g_dwPrimaryPBCount = 0;
 uint32 *XTL::g_pPrimaryPB = 0;
@@ -484,7 +485,13 @@ extern void XTL::EmuExecutePushBufferRaw
                 XTL::IDirect3DVertexBuffer8 *pActiveVB = NULL;
                 UINT  uiStride;
 
+#ifdef DISABLE_STREAMSOURCE
+				pActiveVB = CxbxUpdateVertexBuffer(Xbox_g_Stream[0].pVertexBuffer);
+				pActiveVB->AddRef(); // Avoid memory-curruption when this is Release()ed later
+				uiStride = Xbox_g_Stream[0].Stride;
+#else
                 g_pD3DDevice8->GetStreamSource(0, &pActiveVB, &uiStride);
+#endif
 
                 // retrieve stream desc
                 D3DVERTEXBUFFER_DESC VBDesc;
@@ -662,7 +669,13 @@ void DbgDumpMesh(WORD *pIndexData, DWORD dwCount)
     UINT  uiStride;
 
     // retrieve stream data
-    g_pD3DDevice8->GetStreamSource(0, &pActiveVB, &uiStride);
+#ifdef DISABLE_STREAMSOURCE
+	pActiveVB = XTL::CxbxUpdateVertexBuffer(XTL::Xbox_g_Stream[0].pVertexBuffer);
+	pActiveVB->AddRef(); // Avoid memory-curruption when this is Release()ed later
+	uiStride = XTL::Xbox_g_Stream[0].Stride;
+#else
+	g_pD3DDevice8->GetStreamSource(0, &pActiveVB, &uiStride);
+#endif
 
     char szFileName[128];
     sprintf(szFileName, "D:\\_cxbx\\mesh\\CxbxMesh-0x%.08X.x", pIndexData);

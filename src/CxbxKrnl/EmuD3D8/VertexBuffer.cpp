@@ -149,6 +149,7 @@ void XTL::VertexPatcher::CacheStream(VertexPatchDesc *pPatchDesc,
 
         pOrigVertexBuffer = m_pStreams[uiStream].pOriginalStream;
         pOrigVertexBuffer->AddRef();
+
         m_pStreams[uiStream].pPatchedStream->AddRef();
         if(FAILED(pOrigVertexBuffer->GetDesc(&Desc)))
             CxbxKrnlCleanup("Could not retrieve original buffer size");
@@ -228,10 +229,16 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
 
     if(pPatchDesc->pVertexStreamZeroData == nullptr)
     {
-        g_pD3DDevice8->GetStreamSource(
+#ifdef DISABLE_STREAMSOURCE
+		pOrigVertexBuffer = CxbxUpdateVertexBuffer(Xbox_g_Stream[uiStream].pVertexBuffer);
+		pOrigVertexBuffer->AddRef(); // Avoid memory-curruption when this is Release()ed later
+		uiStride = Xbox_g_Stream[uiStream].Stride;
+#else
+		g_pD3DDevice8->GetStreamSource(
 			uiStream, 
 			&pOrigVertexBuffer, 
 			&uiStride);
+#endif
         if(!pOrigVertexBuffer)
 		{
 			if(pbFatalError)
@@ -341,7 +348,7 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
 
     g_PatchedStreamsCache.Unlock();
 
-    if(pOrigVertexBuffer != nullptr)
+	if(pOrigVertexBuffer != nullptr)
         pOrigVertexBuffer->Release();
 
     return bApplied;
@@ -402,10 +409,16 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
     {
 		XTL::D3DVERTEXBUFFER_DESC  Desc;
 
-        g_pD3DDevice8->GetStreamSource(
+#ifdef DISABLE_STREAMSOURCE
+		pOrigVertexBuffer = CxbxUpdateVertexBuffer(Xbox_g_Stream[uiStream].pVertexBuffer);
+		pOrigVertexBuffer->AddRef(); // Avoid memory-curruption when this is Release()ed later
+		uiStride = Xbox_g_Stream[uiStream].Stride;
+#else
+		g_pD3DDevice8->GetStreamSource(
 			uiStream, 
 			&pOrigVertexBuffer, 
 			&uiStride);
+#endif
         if(FAILED(pOrigVertexBuffer->GetDesc(&Desc)))
             CxbxKrnlCleanup("Could not retrieve original buffer size");
 
@@ -657,8 +670,14 @@ bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT ui
 		IDirect3DVertexBuffer8 *pOrigVertexBuffer;
         XTL::D3DVERTEXBUFFER_DESC Desc;
 
+#ifdef DISABLE_STREAMSOURCE
+		pOrigVertexBuffer = CxbxUpdateVertexBuffer(Xbox_g_Stream[uiStream].pVertexBuffer);
+		pOrigVertexBuffer->AddRef(); // Avoid memory-curruption when this is Release()ed later
+		uiStride = Xbox_g_Stream[uiStream].Stride;
+#else
         g_pD3DDevice8->GetStreamSource(uiStream, &pOrigVertexBuffer, &uiStride);
-        if(!pOrigVertexBuffer || FAILED(pOrigVertexBuffer->GetDesc(&Desc)))
+#endif
+		if(!pOrigVertexBuffer || FAILED(pOrigVertexBuffer->GetDesc(&Desc)))
             CxbxKrnlCleanup("Could not retrieve original FVF buffer size.");
 
 		uiVertexCount = Desc.Size / uiStride;
@@ -816,7 +835,14 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 
     if(pPatchDesc->pVertexStreamZeroData == nullptr)
     {
-        g_pD3DDevice8->GetStreamSource(0, &pStream->pOriginalStream, &pStream->uiOrigStride);
+#ifdef DISABLE_STREAMSOURCE
+		pStream->pOriginalStream = CxbxUpdateVertexBuffer(Xbox_g_Stream[0].pVertexBuffer);
+		pStream->pOriginalStream->AddRef(); // Avoid memory-curruption when this is Release()ed later
+		pStream->uiOrigStride = Xbox_g_Stream[0].Stride;
+#else
+		g_pD3DDevice8->GetStreamSource(0, &pStream->pOriginalStream, &pStream->uiOrigStride);
+#endif
+
         pStream->uiNewStride = pStream->uiOrigStride; // The stride is still the same
     }
     else
