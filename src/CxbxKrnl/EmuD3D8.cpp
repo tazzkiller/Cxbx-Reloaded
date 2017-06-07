@@ -7800,6 +7800,10 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
 
 	if (StreamNumber < MAX_NBR_STREAMS)
 	{
+		/* TODO : Call into unpatched D3DResource_Release function :
+		if (g_D3DStreams[StreamNumber] != NULL)
+			EMUPATCH(D3DResource_Release)(g_D3DStreams[StreamNumber]);*/
+
 		// Remember these for D3DDevice_GetStreamSource to read:
 		g_D3DStreams[StreamNumber] = pStreamData;
 		g_D3DStreamStrides[StreamNumber] = Stride;
