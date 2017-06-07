@@ -7751,8 +7751,6 @@ XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource)
 		LOG_FUNC_ARG(pStride)
 		LOG_FUNC_END;
 
-	LOG_UNIMPLEMENTED();
-
 	X_D3DVertexBuffer* pVertexBuffer = NULL;
 	*pStride = 0;
 
