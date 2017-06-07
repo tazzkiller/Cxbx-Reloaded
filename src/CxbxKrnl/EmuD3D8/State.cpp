@@ -52,6 +52,9 @@ namespace XTL {
 
 // TODO : Set these after symbols are scanned/loaded :
 DWORD *Xbox_D3D__Device = NULL; // The Xbox1 D3D__Device
+#ifdef DISABLE_STREAMSOURCE
+X_Stream *Xbox_g_Stream = { NULL }; // The Xbox1 g_Stream[16] array
+#endif
 DWORD *Xbox_D3D__RenderState = NULL;
 // Texture state lookup table (same size in all XDK versions, so defined as a fixed size array) :
 DWORD *Xbox_D3D_TextureState = NULL; // [X_D3DTSS_STAGECOUNT][X_D3DTSS_STAGESIZE] = [(Stage * X_D3DTSS_STAGESIZE) + Offset]
