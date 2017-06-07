@@ -1016,6 +1016,7 @@ bool XTL::VertexPatcher::Restore()
 
         if(m_pStreams[uiStream].pOriginalStream != NULL)
         {
+            // Release the reference to original stream we got via GetStreamSource() :
             UINT a = m_pStreams[uiStream].pOriginalStream->Release();
         }
 
@@ -1072,6 +1073,7 @@ VOID XTL::EmuFlushIVB()
 
     DbgPrintf("g_IVBTblOffs := %d\n", g_IVBTblOffs);
 
+    // Do this once, not inside the for-loop :
     DWORD dwPos = dwCurFVF & D3DFVF_POSITION_MASK;
 	DWORD dwTexN = (dwCurFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
 
@@ -1226,6 +1228,14 @@ VOID XTL::EmuFlushIVB()
 
     VertPatch.Apply(&VPDesc);
 
+    // Disable this 'fix', as it doesn't really help; On ATI, it isn't needed (and causes missing
+    // textures if enabled). On Nvidia, it stops the jumping (but also removes the font from view).
+    // So I think it's better to keep this bug visible, as a motivation for a real fix, and better
+    // rendering on ATI chipsets...
+
+//    bFVF = true; // This fixes jumping triangles on Nvidia chipsets, as suggested by Defiance
+    // As a result however, this change also seems to remove the texture of the fonts in XSokoban!?!
+
     if(bFVF)
         g_pD3DDevice8->SetVertexShader(dwCurFVF);
 
@@ -1236,6 +1246,9 @@ VOID XTL::EmuFlushIVB()
 
     VertPatch.Restore();
 
+  // TODO : Clear the portion that was in use previously (as only that part was written to) :
+//  if (g_IVBTblOffs > 0)
+//    memset(g_IVBTable, 0, sizeof(g_IVBTable[0])*(g_IVBTblOffs+1));
     g_IVBTblOffs = 0;
 
     return;
