@@ -399,7 +399,13 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetStreamSource
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetStreamSource, 3925, 12)
+OOVPA_XREF(D3DDevice_SetStreamSource, 3925, 1+12,
+
+	XRefNoSaveIndex,
+	XRefOne)
+	
+		XREF_ENTRY(0x23, XREF_G_STREAM), // Derived
+
         // D3DDevice_SetStreamSource+0x39 : add edx, 0xFFF80000
         { 0x39, 0x81 }, // (Offset,Value)-Pair #1
         { 0x3A, 0xC2 }, // (Offset,Value)-Pair #2

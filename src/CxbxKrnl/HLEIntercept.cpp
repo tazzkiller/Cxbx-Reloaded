@@ -262,6 +262,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 		XRefDataBase[XREF_D3DDEVICE] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_D3DRS_CULLMODE] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] = XREF_ADDR_DERIVE;
+		XRefDataBase[XREF_G_STREAM] = XREF_ADDR_DERIVE;
 
 		for(int p=0;UnResolvedXRefs < LastUnResolvedXRefs;p++)
         {
