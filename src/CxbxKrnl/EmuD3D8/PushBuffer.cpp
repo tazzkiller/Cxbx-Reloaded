@@ -516,6 +516,7 @@ extern void XTL::EmuExecutePushBufferRaw
                 // release ptr
                 pActiveVB->Unlock();
 #endif
+				pActiveVB->Release(); // Was absent (thus leaked memory)
 
                 DbgDumpMesh((WORD*)pIndexData, dwCount);
             }
@@ -770,6 +771,8 @@ void DbgDumpMesh(WORD *pIndexData, DWORD dwCount)
 
     // release ptr
     pActiveVB->Unlock();
+
+	pActiveVB->Release(); // Was absent (thus leaked memory)
 }
 
 void XTL::DbgDumpPushBuffer( DWORD* PBData, DWORD dwSize )
