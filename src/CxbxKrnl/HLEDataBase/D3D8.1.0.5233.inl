@@ -170,7 +170,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetTexture
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetTexture, 5233, 10)
+OOVPA_XREF(D3DDevice_SetTexture, 5233, 1+10,
+
+    XRefNoSaveIndex,
+    XRefOne)
+
+		XREF_ENTRY( 0x13, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
 
         { 0x16, 0x00 },
         { 0x17, 0x85 },

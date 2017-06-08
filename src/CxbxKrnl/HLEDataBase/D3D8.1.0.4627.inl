@@ -807,7 +807,13 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetTexture
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetTexture, 4627, 28)
+OOVPA_XREF(D3DDevice_SetTexture, 4627, 1+28,
+
+    XRefNoSaveIndex,
+    XRefOne)
+
+		XREF_ENTRY( 0x13, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
+
 		{ 0x00, 0x83 },
 		{ 0x01, 0xEC },
 		{ 0x02, 0x08 },
@@ -842,7 +848,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetTexture
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetTexture, 4928, 10)
+OOVPA_XREF(D3DDevice_SetTexture, 4928, 1+10,
+
+    XRefNoSaveIndex,
+    XRefOne)
+
+		XREF_ENTRY( 0x13, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
 
         { 0x0B, 0x56 }, // (Offset,Value)-Pair #1
 
@@ -2158,18 +2169,41 @@ OOVPA_XREF(D3DDevice_KickPushBuffer, 4627, 4,
 OOVPA_END;
 
 // ******************************************************************
-// * IDirect3DDevice8::GetTexture2
+// * D3DDevice_GetTexture2
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_GetTexture2, 4627, 8)
+OOVPA_XREF(D3DDevice_GetTexture2, 4627, 1 + 21, // Also for 5344, 5558, 5659, 5788, 5849, 5933
 
-        { 0x03, 0x04 },
-        { 0x0A, 0x56 },
-        { 0x0D, 0x81 },
-        { 0x0E, 0x38 },
-        { 0x12, 0x8B },
-        { 0x17, 0x06 },
-        { 0x1E, 0x8B },
-        { 0x21, 0xC2 },
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY( 0x0E, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
+
+		{ 0x00, 0x8B },
+		{ 0x01, 0x44 },
+		{ 0x02, 0x24 },
+		{ 0x03, 0x04 },
+		{ 0x04, 0x8B },
+		{ 0x05, 0x0D },
+	
+		{ 0x0A, 0x56 },
+		{ 0x0B, 0x8D },
+		{ 0x0C, 0xB4 },
+		{ 0x0D, 0x81 },
+
+		{ 0x10, 0x00 },
+		{ 0x11, 0x00 },
+		{ 0x12, 0x8B },
+		{ 0x13, 0x06 },
+		{ 0x14, 0x85 },
+		{ 0x15, 0xC0 },
+		{ 0x16, 0x74 },
+
+		{ 0x18, 0x50 },
+		{ 0x19, 0xE8 },
+
+		{ 0x1E, 0x8B },
+		{ 0x1F, 0x06 },
+//        { 0x21, 0xC2 },
 OOVPA_END;
 
 // ******************************************************************
@@ -2812,6 +2846,7 @@ OOVPATable D3D8_4627[] = {
 	REGISTER_OOVPA(D3DDevice_CreateTexture2, 4831, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SetIndices, 4134, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SetIndices, 4627, DISABLED),
+	REGISTER_OOVPA(D3DDevice_GetTexture2, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTexture, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDisplayMode, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_RunPushBuffer, 4627, PATCH),

@@ -569,9 +569,52 @@ OOVPA_NO_XREF(D3DDevice_SetTexture, 3925, 12) // Deprecated in favor of 3911 bel
 OOVPA_END;
 
 // ******************************************************************
+// * D3DDevice_GetTexture, named with 2 suffix to match EMUPATCH(D3DDevice_GetTexture2)
+// ******************************************************************
+OOVPA_XREF(D3DDevice_GetTexture2, 3911, 1 + 21, // Also for 4361
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+	XREF_ENTRY( 0x0E, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
+
+		{ 0x00, 0x8B },
+		{ 0x01, 0x44 },
+		{ 0x02, 0x24 },
+		{ 0x03, 0x04 },
+		{ 0x04, 0x8B },
+		{ 0x05, 0x0D },
+
+		{ 0x0A, 0x56 },
+		{ 0x0B, 0x8D },
+		{ 0x0C, 0xB4 },
+		{ 0x0D, 0x81 },
+
+		{ 0x10, 0x00 },
+		{ 0x11, 0x00 },
+		{ 0x12, 0x8B },
+		{ 0x13, 0x06 },
+		{ 0x14, 0x85 },
+		{ 0x15, 0xC0 },
+		{ 0x16, 0x74 },
+
+		{ 0x18, 0x50 },
+		{ 0x19, 0xE8 },
+
+		{ 0x1E, 0x8B },
+		{ 0x1F, 0x16 },
+OOVPA_END;
+
+// ******************************************************************
 // * D3DDevice_SetTexture
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetTexture, 3911, 28)
+OOVPA_XREF(D3DDevice_SetTexture, 3911, 1+28,
+
+    XRefNoSaveIndex,
+    XRefOne)
+
+		XREF_ENTRY( 0x11, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
+
 		{ 0x00, 0x51 },
 		{ 0x01, 0x53 },
 		{ 0x02, 0x8B },
@@ -3884,6 +3927,7 @@ OOVPATable D3D8_3925[] = {
 	REGISTER_OOVPA(D3DDevice_SetPixelShader, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetIndices, 3925, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SetViewport, 3925, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetTexture2, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTexture, 3911, PATCH), // Was 3925
 	REGISTER_OOVPA(D3DDevice_DrawIndexedVertices, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_Begin, 3925, PATCH),

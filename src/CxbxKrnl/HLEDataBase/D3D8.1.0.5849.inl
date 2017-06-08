@@ -210,7 +210,7 @@ OOVPATable D3D8_5849[] = {
 	REGISTER_OOVPA(D3DDevice_SetRenderState_YuvEnable, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShader, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetIndices, 5558, DISABLED),
-	REGISTER_OOVPA(D3DDevice_SetTexture, 5788, PATCH), // Was 5233
+	REGISTER_OOVPA(D3DDevice_SetTexture, 5344, PATCH), // Was 5233
 	REGISTER_OOVPA(D3DDevice_LazySetStateVB, 5558, XREF),
 	REGISTER_OOVPA(D3DDevice_BeginPush, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_EndPush, 4627, PATCH),
@@ -324,7 +324,7 @@ OOVPATable D3D8_5849[] = {
 	REGISTER_OOVPA(D3DDevice_DeleteStateBlock, 5788, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_StencilCullEnable, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_RopZCmpAlwaysRead, 5788, PATCH),
-	REGISTER_OOVPA(D3DDevice_GetTexture2, 5788, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetTexture2, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderTargetFast, 5344, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetDepthClipPlanes, 5849, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetScreenSpaceOffset, 5849, PATCH),
