@@ -254,11 +254,11 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 				printf(output.str().c_str());
 			}
 
+			XTL::DxbxBuildRenderStateMappingTable();
+
 			SetGlobalSymbols();
 
 			XRefDataBase[XREF_D3DDEVICE] = g_SymbolAddresses["D3DDEVICE"];
-
-			XTL::DxbxBuildRenderStateMappingTable();
 
 			XTL::InitD3DDeferredStates();
 
@@ -543,14 +543,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 							}
 						}
 #endif
-
-#ifdef UNPATCH_TEXTURES
-						g_SymbolAddresses["offsetof(D3DDevice,m_Textures)"] = XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES];
-#endif
-
-						SetGlobalSymbols();
-
-						XTL::InitD3DDeferredStates();
 					}
                 }
 
@@ -580,6 +572,14 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
     }
 
 	printf("\n");
+
+#ifdef UNPATCH_TEXTURES
+	g_SymbolAddresses["offsetof(D3DDevice,m_Textures)"] = XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES];
+#endif
+
+	SetGlobalSymbols();
+
+	XTL::InitD3DDeferredStates();
 
 	// Write the HLE Database version string
 	WritePrivateProfileString("Info", "HLEDatabaseVersion", szHLELastCompileTime, filename.c_str());
