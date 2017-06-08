@@ -52,7 +52,7 @@ namespace XTL {
 
 // TODO : Set these after symbols are scanned/loaded :
 DWORD *Xbox_D3D__Device = NULL; // The Xbox1 D3D__Device
-#ifdef DISABLE_STREAMSOURCE
+#ifdef UNPATCH_STREAMSOURCE
 X_Stream *Xbox_g_Stream = { NULL }; // The Xbox1 g_Stream[16] array
 #endif
 DWORD *Xbox_D3D__RenderState = NULL;

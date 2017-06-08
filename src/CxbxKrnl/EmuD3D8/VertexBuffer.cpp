@@ -229,7 +229,7 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
 
     if(pPatchDesc->pVertexStreamZeroData == nullptr)
     {
-#ifdef DISABLE_STREAMSOURCE
+#ifdef UNPATCH_STREAMSOURCE
 		pOrigVertexBuffer = CxbxUpdateVertexBuffer(Xbox_g_Stream[uiStream].pVertexBuffer);
 		pOrigVertexBuffer->AddRef(); // Avoid memory-curruption when this is Release()ed later
 		uiStride = Xbox_g_Stream[uiStream].Stride;
@@ -409,7 +409,7 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
     {
 		XTL::D3DVERTEXBUFFER_DESC  Desc;
 
-#ifdef DISABLE_STREAMSOURCE
+#ifdef UNPATCH_STREAMSOURCE
 		pOrigVertexBuffer = CxbxUpdateVertexBuffer(Xbox_g_Stream[uiStream].pVertexBuffer);
 		pOrigVertexBuffer->AddRef(); // Avoid memory-curruption when this is Release()ed later
 		uiStride = Xbox_g_Stream[uiStream].Stride;
@@ -670,7 +670,7 @@ bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT ui
 		IDirect3DVertexBuffer8 *pOrigVertexBuffer;
         XTL::D3DVERTEXBUFFER_DESC Desc;
 
-#ifdef DISABLE_STREAMSOURCE
+#ifdef UNPATCH_STREAMSOURCE
 		pOrigVertexBuffer = CxbxUpdateVertexBuffer(Xbox_g_Stream[uiStream].pVertexBuffer);
 		pOrigVertexBuffer->AddRef(); // Avoid memory-curruption when this is Release()ed later
 		uiStride = Xbox_g_Stream[uiStream].Stride;
@@ -835,7 +835,7 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 
     if(pPatchDesc->pVertexStreamZeroData == nullptr)
     {
-#ifdef DISABLE_STREAMSOURCE
+#ifdef UNPATCH_STREAMSOURCE
 		pStream->pOriginalStream = CxbxUpdateVertexBuffer(Xbox_g_Stream[0].pVertexBuffer);
 		pStream->pOriginalStream->AddRef(); // Avoid memory-curruption when this is Release()ed later
 		pStream->uiOrigStride = Xbox_g_Stream[0].Stride;

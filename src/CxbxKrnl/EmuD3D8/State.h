@@ -50,7 +50,7 @@ inline DWORD CxbxGetRenderState(XTL::X_D3DRENDERSTATETYPE XboxRenderState)
 
 extern DWORD DxbxMapMostRecentToActiveVersion[X_D3DRS_LAST + 1];
 
-#ifdef DISABLE_STREAMSOURCE
+#ifdef UNPATCH_STREAMSOURCE
 struct X_Stream
 {
 	DWORD Stride;

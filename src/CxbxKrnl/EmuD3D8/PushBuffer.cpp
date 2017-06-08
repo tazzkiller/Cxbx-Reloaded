@@ -485,7 +485,7 @@ extern void XTL::EmuExecutePushBufferRaw
                 XTL::IDirect3DVertexBuffer8 *pActiveVB = NULL;
                 UINT  uiStride;
 
-#ifdef DISABLE_STREAMSOURCE
+#ifdef UNPATCH_STREAMSOURCE
 				pActiveVB = CxbxUpdateVertexBuffer(Xbox_g_Stream[0].pVertexBuffer);
 				pActiveVB->AddRef(); // Avoid memory-curruption when this is Release()ed later
 				uiStride = Xbox_g_Stream[0].Stride;
@@ -669,7 +669,7 @@ void DbgDumpMesh(WORD *pIndexData, DWORD dwCount)
     UINT  uiStride;
 
     // retrieve stream data
-#ifdef DISABLE_STREAMSOURCE
+#ifdef UNPATCH_STREAMSOURCE
 	pActiveVB = XTL::CxbxUpdateVertexBuffer(XTL::Xbox_g_Stream[0].pVertexBuffer);
 	pActiveVB->AddRef(); // Avoid memory-curruption when this is Release()ed later
 	uiStride = XTL::Xbox_g_Stream[0].Stride;

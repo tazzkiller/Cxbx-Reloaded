@@ -135,7 +135,7 @@ static DWORD                        g_dwBaseVertexIndex = 0;// current active in
 // current active vertex stream
 static XTL::IDirect3DVertexBuffer8 *g_pDummyBuffer = NULL;  // Dummy buffer, used to set unused stream sources with
 
-#ifndef DISABLE_STREAMSOURCE // Used by D3DDevice_GetStreamSource and D3DDevice_SetStreamSource (instead, use Xbox_g_Stream)
+#ifndef UNPATCH_STREAMSOURCE // Used by D3DDevice_GetStreamSource and D3DDevice_SetStreamSource (instead, use Xbox_g_Stream)
 static XTL::X_D3DVertexBuffer      *g_D3DStreams[MAX_NBR_STREAMS] = {};  // The vertex buffer streams set by D3DDevice::SetStreamSource
 static UINT                         g_D3DStreamStrides[MAX_NBR_STREAMS] = {};
 #endif
@@ -233,7 +233,7 @@ void CxbxClearGlobals()
 #endif
 
 	g_pDummyBuffer = NULL;
-#ifndef DISABLE_STREAMSOURCE
+#ifndef UNPATCH_STREAMSOURCE
 	//g_D3DStreams = {};
 	//g_D3DStreamStrides = {};
 #endif
@@ -7746,7 +7746,7 @@ BYTE* WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock2)
 }
 #endif
 
-#ifndef DISABLE_STREAMSOURCE // Reads Xbox g_Stream[StreamNumber].pVertexBuffer
+#ifndef UNPATCH_STREAMSOURCE // Reads Xbox g_Stream[StreamNumber].pVertexBuffer
 XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource)
 (
     UINT  StreamNumber,
@@ -7793,7 +7793,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource2)
 }
 #endif
 
-#ifndef DISABLE_STREAMSOURCE // Writes Xbox g_Stream[StreamNumber].pVertexBuffer
+#ifndef UNPATCH_STREAMSOURCE // Writes Xbox g_Stream[StreamNumber].pVertexBuffer
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
 (
     UINT                StreamNumber,
