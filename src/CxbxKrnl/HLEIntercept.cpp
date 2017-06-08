@@ -157,6 +157,9 @@ void SetGlobalSymbols()
 #ifdef UNPATCH_STREAMSOURCE
 	XTL::Xbox_g_Stream = (XTL::X_Stream *)FindSymbolAddress("g_Stream", false); // Optional - aerox2 hits this case
 #endif
+#ifdef UNPATCH_TEXTURES
+	XTL::EmuD3DTextureStages = (XTL::X_D3DBaseTexture *)((byte *)XTL::g_XboxD3DDevice + (uint)FindSymbolAddress("offsetof(D3DDevice,m_Textures)"));
+#endif
 }
 
 void EmuHLEIntercept(Xbe::Header *pXbeHeader)
@@ -299,6 +302,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 		XRefDataBase[XREF_D3DRS_CULLMODE] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_G_STREAM] = XREF_ADDR_DERIVE;
+		XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES] = XREF_ADDR_DERIVE;
 
 		for(int p=0;UnResolvedXRefs < LastUnResolvedXRefs;p++)
         {
@@ -539,6 +543,11 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 							}
 						}
 #endif
+
+#ifdef UNPATCH_TEXTURES
+						g_SymbolAddresses["offsetof(D3DDevice,m_Textures)"] = XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES];
+#endif
+
 						SetGlobalSymbols();
 
 						XTL::InitD3DDeferredStates();

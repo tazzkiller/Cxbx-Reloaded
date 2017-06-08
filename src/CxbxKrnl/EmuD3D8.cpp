@@ -183,8 +183,12 @@ static XTL::X_D3DSHADERCONSTANTMODE g_VertexShaderConstantMode = XTL::X_D3DSCM_1
 // cached Direct3D tiles
 XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 
+#ifdef UNPATCH_TEXTURES
+XTL::X_D3DBaseTexture *XTL::EmuD3DTextureStages = NULL;
+#else
 // cached active texture
 XTL::X_D3DBaseTexture *XTL::EmuD3DTextureStages[X_D3DTSS_STAGECOUNT] = {0,0,0,0};
+#endif
 
 void CxbxClearGlobals()
 {
@@ -4739,6 +4743,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetIndices)
 
 #endif
 
+#ifndef UNPATCH_TEXTURES
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 (
     DWORD           Stage,
@@ -4828,7 +4833,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTexture");
 #endif
 }
+#endif
 
+// TODO : #ifndef UNPATCH_TEXTURES D3DDevice_SwitchTexture too?
 VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 (
     DWORD           Method,
@@ -9424,6 +9431,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_KickPushBuffer)()
 
 }
 
+#ifndef UNPATCH_TEXTURES
 XTL::X_D3DResource* WINAPI XTL::EMUPATCH(D3DDevice_GetTexture2)
 (
 	DWORD Stage
@@ -9440,6 +9448,7 @@ XTL::X_D3DResource* WINAPI XTL::EMUPATCH(D3DDevice_GetTexture2)
 
 	RETURN(pRet);
 }
+#endif
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStateVB)( ULONG Unknown1 )
 {

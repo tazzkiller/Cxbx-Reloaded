@@ -68,8 +68,13 @@ extern VOID EmuD3DCleanup();
 // EmuD3DTileCache (8 tiles maximum)
 extern X_D3DTILE EmuD3DTileCache[0x08];
 
-// EmuD3DTextureStages
+#ifdef UNPATCH_TEXTURES
+extern DWORD g_XboxD3DDevice[64 * ONE_KB / sizeof(DWORD)];
+
+XTL::X_D3DBaseTexture *EmuD3DTextureStages = NULL; // TODO : Rename to Xbox_D3DDevice_m_Textures
+#else
 extern X_D3DBaseTexture *EmuD3DTextureStages[X_D3DTSS_STAGECOUNT];
+#endif
 
 XTL::IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, const DWORD *pPalette);
 XTL::IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer *pXboxVertexBuffer);
