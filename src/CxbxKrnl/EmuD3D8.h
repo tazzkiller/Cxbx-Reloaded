@@ -71,7 +71,7 @@ extern X_D3DTILE EmuD3DTileCache[0x08];
 #ifdef UNPATCH_TEXTURES
 extern DWORD g_XboxD3DDevice[64 * ONE_KB / sizeof(DWORD)];
 
-XTL::X_D3DBaseTexture *EmuD3DTextureStages = NULL; // TODO : Rename to Xbox_D3DDevice_m_Textures
+extern X_D3DBaseTexture **EmuD3DTextureStages; // TODO : Rename to Xbox_D3DDevice_m_Textures
 #else
 extern X_D3DBaseTexture *EmuD3DTextureStages[X_D3DTSS_STAGECOUNT];
 #endif

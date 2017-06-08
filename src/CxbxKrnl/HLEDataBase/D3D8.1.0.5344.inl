@@ -884,7 +884,7 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetTexture
 // ******************************************************************
-OOVPA_XREF(D3DDevice_SetTexture, 5344, 1+26 // Also for 5558, 5659, 5788, 5849, 5933
+OOVPA_XREF(D3DDevice_SetTexture, 5344, 1+26, // Also for 5558, 5659, 5788, 5849, 5933
 
     XRefNoSaveIndex,
     XRefOne)

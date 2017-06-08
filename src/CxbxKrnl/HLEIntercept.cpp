@@ -158,7 +158,7 @@ void SetGlobalSymbols()
 	XTL::Xbox_g_Stream = (XTL::X_Stream *)FindSymbolAddress("g_Stream", false); // Optional - aerox2 hits this case
 #endif
 #ifdef UNPATCH_TEXTURES
-	XTL::EmuD3DTextureStages = (XTL::X_D3DBaseTexture *)((byte *)XTL::g_XboxD3DDevice + (uint)FindSymbolAddress("offsetof(D3DDevice,m_Textures)"));
+	XTL::EmuD3DTextureStages = (XTL::X_D3DBaseTexture **)((byte *)XTL::g_XboxD3DDevice + (uint)FindSymbolAddress("offsetof(D3DDevice,m_Textures)"));
 #endif
 }
 

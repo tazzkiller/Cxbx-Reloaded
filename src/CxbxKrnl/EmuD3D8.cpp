@@ -184,7 +184,7 @@ static XTL::X_D3DSHADERCONSTANTMODE g_VertexShaderConstantMode = XTL::X_D3DSCM_1
 XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 
 #ifdef UNPATCH_TEXTURES
-XTL::X_D3DBaseTexture *XTL::EmuD3DTextureStages = NULL;
+XTL::X_D3DBaseTexture **XTL::EmuD3DTextureStages = NULL;
 #else
 // cached active texture
 XTL::X_D3DBaseTexture *XTL::EmuD3DTextureStages[X_D3DTSS_STAGECOUNT] = {0,0,0,0};
@@ -316,7 +316,7 @@ g_EmuCDPD = {0};
 #endif
 
 // TODO: This should be a D3DDevice structure
-DWORD g_XboxD3DDevice[64 * ONE_KB / sizeof(DWORD)] = { 0 };
+DWORD XTL::g_XboxD3DDevice[64 * ONE_KB / sizeof(DWORD)] = { 0 };
 
 const char *CxbxGetErrorDescription(HRESULT hResult)
 {
@@ -2826,7 +2826,7 @@ void CxbxUpdateActiveIndexBuffer
 	// Determine active the vertex index
 	// This reads from g_pDevice->m_IndexBase in Xbox D3D
 	// TODO: Move this into a global symbol, similar to RenderState/Texture State
-	static DWORD *pdwXboxD3D_IndexBase = &g_XboxD3DDevice[7];
+	static DWORD *pdwXboxD3D_IndexBase = &XTL::g_XboxD3DDevice[7];
 
 	DWORD indexBase = 0;
 	indexBase = *pdwXboxD3D_IndexBase;
