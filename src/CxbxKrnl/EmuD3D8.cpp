@@ -1209,8 +1209,8 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 
 	// Dxbx addition : Check device caps :
 	if (SUCCEEDED(g_pD3D8->CheckDeviceFormat(
-		g_EmuCDPD.CreationParameters.AdapterOrdinal,
-		g_EmuCDPD.CreationParameters.DeviceType,
+		g_EmuCDPD.CreationParameters.AdapterOrdinal, // Note : D3DADAPTER_DEFAULT = 0
+		g_EmuCDPD.CreationParameters.DeviceType, // Note : D3DDEVTYPE_HAL = 1, D3DDEVTYPE_REF = 2, D3DDEVTYPE_SW = 3
 		g_EmuCDPD.NativePresentationParameters.BackBufferFormat,
 		aUsage,
 		(D3DRESOURCETYPE)aResourceType, // Note : X_D3DRTYPE_SURFACE up to X_D3DRTYPE_INDEXBUFFER values matches host D3D
@@ -1273,11 +1273,14 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 		}
 		}
 		break;
+	case D3DFMT_X1R5G5B5:
+		// TODO: HACK: This texture format fails on some newer hardware
+		Result = D3DFMT_R5G6B5;
+		break;
 	case D3DFMT_V16U16:
 		// HACK. This fixes NoSortAlphaBlend (after B button - z-replace) on nvidia:
 		Result = D3DFMT_A8R8G8B8;
 		break;
-
 	case D3DFMT_YUY2:
 		// TODO : Is this still neccessary?
 		Result = D3DFMT_V8U8; // Use another format that's also 16 bits wide
