@@ -8038,9 +8038,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 	}
 }
 
-#define VERTICES_PER_QUAD 4
-#define TRIANGLES_PER_QUAD 2
-
 void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT

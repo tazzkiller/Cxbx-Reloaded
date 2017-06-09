@@ -850,10 +850,10 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
     }
 
     // This is a list of 4-sided rectangles, we convert it to a list of 3-sided triangles (twice the amount of quads)
-	// input : 4 vertices for 1 quad
-    dwOriginalSize  = pPatchDesc->dwPrimitiveCount * pStream->uiOrigStride * 4;
-	// output : 6 vertices for 2 triangles
-    dwNewSize = pPatchDesc->dwPrimitiveCount * pStream->uiOrigStride * 6;
+	// input : specified number of vertices (4 per quad)
+    dwOriginalSize = pStream->uiOrigStride * pPatchDesc->dwVertexCount;
+	// output : 2 triagles of 3 vertices per quad of 4 vertices
+    dwNewSize = pStream->uiOrigStride * ((pPatchDesc->dwVertexCount / VERTICES_PER_QUAD) * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE);
 
     if(pPatchDesc->pVertexStreamZeroData == nullptr)
     {
@@ -895,8 +895,7 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 
     // Copy the nonmodified data
 	if (pPatchDesc->dwOffset > 0)
-		// TODO : Shouldn't we multiply by pStream->uiOrigStride ?
-		memcpy(pPatchedVertexData, pOrigVertexData, pPatchDesc->dwOffset);
+		memcpy(pPatchedVertexData, pOrigVertexData, pStream->uiOrigStride * pPatchDesc->dwOffset);
 
 	if (dwOriginalSizeWR - pPatchDesc->dwOffset - dwOriginalSize > 0)
 		// TODO : Shouldn't we multiply by pStream->uiOrigStride ?
@@ -904,58 +903,57 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 			&pOrigVertexData[pPatchDesc->dwOffset + dwOriginalSize],
 			dwOriginalSizeWR - pPatchDesc->dwOffset - dwOriginalSize);
 
-	uint08 *pPatch0 = &pPatchedVertexData[pPatchDesc->dwOffset * pStream->uiOrigStride];
-    uint08 *pOrig0 = &pOrigVertexData[pPatchDesc->dwOffset * pStream->uiOrigStride];
+	uint08 *pPatch0 = &pPatchedVertexData[pStream->uiOrigStride * (pPatchDesc->dwOffset + 0)];
+    uint08 *pPatch3 = &pPatchedVertexData[pStream->uiOrigStride * (pPatchDesc->dwOffset + 3)];
+    uint08 *pPatch4 = &pPatchedVertexData[pStream->uiOrigStride * (pPatchDesc->dwOffset + 4)];
+    uint08 *pPatch5 = &pPatchedVertexData[pStream->uiOrigStride * (pPatchDesc->dwOffset + 5)];
 
-    if(pPatchDesc->XboxPrimitiveType == X_D3DPT_QUADLIST)
+    uint08 *pOrig0 = &pOrigVertexData[pStream->uiOrigStride * (pPatchDesc->dwOffset + 0)];
+    uint08 *pOrig2 = &pOrigVertexData[pStream->uiOrigStride * (pPatchDesc->dwOffset + 2)];
+    uint08 *pOrig3 = &pOrigVertexData[pStream->uiOrigStride * (pPatchDesc->dwOffset + 3)];
+
+    for(uint32 i = 0; i < pPatchDesc->dwVertexCount; i += VERTICES_PER_QUAD)
     {
-        uint08 *pPatch3 = &pPatchedVertexData[(pPatchDesc->dwOffset + 3) * pStream->uiOrigStride];
-        uint08 *pPatch4 = &pPatchedVertexData[(pPatchDesc->dwOffset + 4) * pStream->uiOrigStride];
-        uint08 *pPatch5 = &pPatchedVertexData[(pPatchDesc->dwOffset + 5) * pStream->uiOrigStride];
+		// DbgPrintf( "pPatch0 = 0x%.08X pOrig0 = 0x%.08X pStream->uiOrigStride * 3 = 0x%.08X\n", pPatch0, pOrig0, pStream->uiOrigStride * 3 );
+		// Copy first three vertices of the quad, to form a first triangle :
+        memcpy(pPatch0, pOrig0, pStream->uiOrigStride * VERTICES_PER_TRIANGLE); // Vertex 0,1,2 := Vertex 0,1,2
 
-        uint08 *pOrig2 = &pOrigVertexData[(pPatchDesc->dwOffset + 2) * pStream->uiOrigStride];
-        uint08 *pOrig3 = &pOrigVertexData[(pPatchDesc->dwOffset + 3) * pStream->uiOrigStride];
+		// Copy the last two and the first vertices of the quad, to form a second triangle :
+        memcpy(pPatch3, pOrig2, pStream->uiOrigStride);     // Vertex 3     := Vertex 2
+        memcpy(pPatch4, pOrig3, pStream->uiOrigStride);     // Vertex 4     := Vertex 3
+        memcpy(pPatch5, pOrig0, pStream->uiOrigStride);     // Vertex 5     := Vertex 0
 
-        for(uint32 i = 0;i < pPatchDesc->dwPrimitiveCount;i++)
+		if ((pPatchDesc->hVertexShader & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW)
+		// Was : if (pPatchDesc->hVertexShader & D3DFVF_XYZRHW)
         {
-			// DbgPrintf( "pPatch0 = 0x%.08X pOrig0 = 0x%.08X pStream->uiOrigStride * 3 = 0x%.08X\n", pPatch0, pOrig0, pStream->uiOrigStride * 3 );
-            memcpy(pPatch0, pOrig0, pStream->uiOrigStride * 3); // Vertex 0,1,2 := Vertex 0,1,2
-            memcpy(pPatch3, pOrig2, pStream->uiOrigStride);     // Vertex 3     := Vertex 2
-            memcpy(pPatch4, pOrig3, pStream->uiOrigStride);     // Vertex 4     := Vertex 3
-            memcpy(pPatch5, pOrig0, pStream->uiOrigStride);     // Vertex 5     := Vertex 0
-
-			if ((pPatchDesc->hVertexShader & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW)
-			// Was : if (pPatchDesc->hVertexShader & D3DFVF_XYZRHW)
+            for(int z = 0; z < TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE; z++)
             {
-                for(int z = 0; z < 6; z++)
-                {
-					FLOAT *data = (FLOAT*)(&pPatch0[z * pStream->uiOrigStride]);
+				FLOAT *data = (FLOAT*)(&pPatch0[pStream->uiOrigStride * z]);
 
-					// TODO : Is this Z? And why reset from 0.0 to 1.0 ?
-                    if(data[2] == 0.0f)
-						data[2] = 1.0f;
+				// TODO : Is this Z? And why reset from 0.0 to 1.0 ?
+                if (data[2] == 0.0f)
+					data[2] = 1.0f;
 
-					// TODO : Is this R, H or W? And why reset from 0.0 to 1.0 ?
-                    if(data[3] == 0.0f)
-						data[3] = 1.0f;
-                }
+				// TODO : Is this R, H or W? And why reset from 0.0 to 1.0 ?
+                if (data[3] == 0.0f)
+					data[3] = 1.0f;
             }
-
-			pPatch0 += pStream->uiOrigStride * 6;
-            pPatch3 += pStream->uiOrigStride * 6;
-            pPatch4 += pStream->uiOrigStride * 6;
-            pPatch5 += pStream->uiOrigStride * 6;
-
-            pOrig0 += pStream->uiOrigStride * 4;
-            pOrig2 += pStream->uiOrigStride * 4;
-            pOrig3 += pStream->uiOrigStride * 4;
         }
 
-		// After conversion, each 1 quad results in 2 triangles
-		pPatchDesc->dwPrimitiveCount *= 2;
-		pPatchDesc->dwVertexCount = pPatchDesc->dwPrimitiveCount * 3;
-		pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLELIST;
-	}
+        pOrig0 += pStream->uiOrigStride * VERTICES_PER_QUAD;
+        pOrig2 += pStream->uiOrigStride * VERTICES_PER_QUAD;
+        pOrig3 += pStream->uiOrigStride * VERTICES_PER_QUAD;
+
+		pPatch0 += pStream->uiOrigStride * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
+        pPatch3 += pStream->uiOrigStride * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
+        pPatch4 += pStream->uiOrigStride * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
+        pPatch5 += pStream->uiOrigStride * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE;
+    }
+
+	// After conversion, each 1 quad results in 2 triangles
+	pPatchDesc->dwPrimitiveCount *= TRIANGLES_PER_QUAD;
+	pPatchDesc->dwVertexCount = pPatchDesc->dwPrimitiveCount * VERTICES_PER_TRIANGLE;
+	pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLELIST;
 
     if(pPatchDesc->pVertexStreamZeroData == nullptr)
     {

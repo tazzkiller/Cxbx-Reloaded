@@ -36,6 +36,10 @@
 
 #include "CxbxKrnl.h"
 
+#define VERTICES_PER_TRIANGLE 3
+#define VERTICES_PER_QUAD 4
+#define TRIANGLES_PER_QUAD 2
+
 // Convert a 'method' DWORD into it's associated 'pixel-shader' or 'simple' render state.
 extern X_D3DRENDERSTATETYPE DxbxXboxMethodToRenderState(const NV2AMETHOD aMethod);
 
