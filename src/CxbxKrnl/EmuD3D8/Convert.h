@@ -179,6 +179,11 @@ inline int EmuD3DPrimitive2VertexCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int
     return (PrimitiveCount * EmuD3DVertexToPrimitive[XboxPrimitiveType][0]) + EmuD3DVertexToPrimitive[XboxPrimitiveType][1];
 }
 
+inline int EmuD3DIndexCountToVertexCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int IndexCount)
+{
+	return IndexCount;
+}
+
 extern void EmuUnswizzleRect
 (
 	PVOID pSrcBuff,

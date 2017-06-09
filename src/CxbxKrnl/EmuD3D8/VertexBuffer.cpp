@@ -774,15 +774,16 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
     switch(pPatchDesc->XboxPrimitiveType)
     {
 		case X_D3DPT_QUADLIST:
-			// Dxbx speedup for Billboard sample - draw 1 quad as 2 triangles :
-			if (pPatchDesc->dwVertexCount == 4)
+			if (pPatchDesc->dwVertexCount == 4) {
+				// Prevent slow conversion by drawing 1 quad as 2 triangles :
 				// Draw 1 quad as a 2 triangles in a fan (which both have the same winding order) :
+				// Test-case : XDK Samples (Billboard, BumpLens, DebugKeyboard, Gamepad, Lensflare, PerfTest?VolumeLight, PointSprites, Tiling, VolumeFog, VolumeSprites, etc)
 				pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLEFAN;
+			}
 
 			break;
 		case X_D3DPT_QUADSTRIP:
 			// Quad strip is just like a triangle strip, but requires two vertices per primitive.
-            pPatchDesc->dwVertexCount -= pPatchDesc->dwVertexCount % 2; // TODO : Shouldn't this be addition instead of subtraction ?
 			// A quadstrip starts with 4 vertices and adds 2 vertices per additional quad.
 			// This is much like a trianglestrip, which starts with 3 vertices and adds
 			// 1 vertex per additional triangle, so we use that instead. The planar nature
@@ -790,31 +791,24 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 			// In a trianglestrip, every 2nd triangle has an opposing winding order,
 			// which would cause backface culling - but this seems to be intelligently
 			// handled by d3d :
+			// Test-case : XDK Samples (FocusBlur, MotionBlur, Trees, PaintEffect, PlayField)
             pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLESTRIP;
             break;
 
         case X_D3DPT_POLYGON:
 	        // Convex polygon is the same as a triangle fan.
             // No need to set : pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLEFAN;
-            break;
+			// TODO : Test-case needed
+			break;
     }
 
     pPatchDesc->dwPrimitiveCount = EmuD3DVertex2PrimitiveCount(pPatchDesc->XboxPrimitiveType, pPatchDesc->dwVertexCount);
 
     // Skip primitives that don't need further patching.
-    switch(pPatchDesc->XboxPrimitiveType)
-    {
-        case X_D3DPT_QUADLIST:
-			//EmuWarning("VertexPatcher::PatchPrimitive: Processing D3DPT_QUADLIST");
-			break;
-        case X_D3DPT_LINELOOP:
-			//EmuWarning("VertexPatcher::PatchPrimitive: Processing D3DPT_LINELOOP");
-            break;
+    if (pPatchDesc->XboxPrimitiveType != X_D3DPT_QUADLIST)
+		return false;
 
-        default:
-            return false;
-    }
-
+	//EmuWarning("VertexPatcher::PatchPrimitive: Processing D3DPT_QUADLIST");
 	if (pPatchDesc->pVertexStreamZeroData != nullptr)
 		if(uiStream > 0)
 			CxbxKrnlCleanup("Draw..UP call with more than one stream!\n");
@@ -850,22 +844,11 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
         pStream->uiOrigStride = pPatchDesc->uiVertexStreamZeroStride;
     }
 
-    if(pPatchDesc->XboxPrimitiveType == X_D3DPT_QUADLIST)
-    {
-        // This is a list of 4-sided rectangles, we convert it to a list of 3-sided triangles (twice the amount of quads)
-		// input : 4 vertices for 1 quad
-        dwOriginalSize  = pPatchDesc->dwPrimitiveCount * pStream->uiOrigStride * 4;
-		// output : 6 vertices for 2 triangles
-        dwNewSize = pPatchDesc->dwPrimitiveCount * pStream->uiOrigStride * 6;
-    }
-    else if(pPatchDesc->XboxPrimitiveType == X_D3DPT_LINELOOP)
-    {
-        // We will add exactly one more line
-		// input : 1 starting vertex + 1 vertex per line
-        dwOriginalSize  = (pPatchDesc->dwPrimitiveCount + 1) * pStream->uiOrigStride;
-		// output : 1 starting vertex + 1 vertex per line + 1 closing vertex
-        dwNewSize = (pPatchDesc->dwPrimitiveCount + 2) * pStream->uiOrigStride;
-    }
+    // This is a list of 4-sided rectangles, we convert it to a list of 3-sided triangles (twice the amount of quads)
+	// input : 4 vertices for 1 quad
+    dwOriginalSize  = pPatchDesc->dwPrimitiveCount * pStream->uiOrigStride * 4;
+	// output : 6 vertices for 2 triangles
+    dwNewSize = pPatchDesc->dwPrimitiveCount * pStream->uiOrigStride * 6;
 
     if(pPatchDesc->pVertexStreamZeroData == nullptr)
     {
@@ -936,7 +919,8 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
             memcpy(pPatch4, pOrig3, pStream->uiOrigStride);     // Vertex 4     := Vertex 3
             memcpy(pPatch5, pOrig0, pStream->uiOrigStride);     // Vertex 5     := Vertex 0
 
-			if(pPatchDesc->hVertexShader & D3DFVF_XYZRHW)
+			if ((pPatchDesc->hVertexShader & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW)
+			// Was : if (pPatchDesc->hVertexShader & D3DFVF_XYZRHW)
             {
                 for(int z = 0; z < 6; z++)
                 {
@@ -966,18 +950,6 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 		pPatchDesc->dwPrimitiveCount *= 2;
 		pPatchDesc->dwVertexCount = pPatchDesc->dwPrimitiveCount * 3;
 		pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLELIST;
-	}
-    else if(pPatchDesc->XboxPrimitiveType == X_D3DPT_LINELOOP)
-    {
-		memcpy(pPatch0, pOrig0, dwOriginalSize);
-		// Was memcpy(&pPatchedVertexData[pPatchDesc->dwOffset], &pOrigVertexData[pPatchDesc->dwOffset], dwOriginalSize);
-		memcpy(pPatch0 + dwOriginalSize, pOrig0, pStream->uiOrigStride);
-		// Was memcpy(&pPatchedVertexData[pPatchDesc->dwOffset + dwOriginalSize], &pOrigVertexData[pPatchDesc->dwOffset], pStream->uiOrigStride);
-
-		// After conversion, we have 1 additional (closing) line
-		pPatchDesc->dwPrimitiveCount++;
-		pPatchDesc->dwVertexCount++;
-		pPatchDesc->XboxPrimitiveType = X_D3DPT_LINELIST;
 	}
 
     if(pPatchDesc->pVertexStreamZeroData == nullptr)
@@ -1256,10 +1228,6 @@ VOID XTL::EmuFlushIVB()
     VPDesc.uiVertexStreamZeroStride = uiStride;
     VPDesc.hVertexShader = g_CurrentVertexShader;
 
-    VertexPatcher VertPatch;
-
-    VertPatch.Apply(&VPDesc);
-
     // Disable this 'fix', as it doesn't really help; On ATI, it isn't needed (and causes missing
     // textures if enabled). On Nvidia, it stops the jumping (but also removes the font from view).
     // So I think it's better to keep this bug visible, as a motivation for a real fix, and better
@@ -1271,12 +1239,10 @@ VOID XTL::EmuFlushIVB()
     if(bFVF)
         g_pD3DDevice8->SetVertexShader(dwCurFVF);
 
-	DxbxDrawPrimitiveUP(VPDesc);
+	CxbxDrawPrimitiveUP(VPDesc);
 
     if(bFVF)
         g_pD3DDevice8->SetVertexShader(g_CurrentVertexShader);
-
-    VertPatch.Restore();
 
   // TODO : Clear the portion that was in use previously (as only that part was written to) :
 //  if (g_IVBTblOffs > 0)

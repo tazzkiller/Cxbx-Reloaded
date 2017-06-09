@@ -184,8 +184,8 @@ extern void XTL::EmuExecutePushBufferRaw
     }
     #endif
 
-    static LPDIRECT3DINDEXBUFFER8  pIndexBuffer=0;
-    static LPDIRECT3DVERTEXBUFFER8 pVertexBuffer=0;
+    static LPDIRECT3DINDEXBUFFER8  pIndexBuffer = nullptr;
+    static LPDIRECT3DVERTEXBUFFER8 pVertexBuffer = nullptr;
 
     static uint maxIBSize = 0;
 
@@ -311,7 +311,7 @@ extern void XTL::EmuExecutePushBufferRaw
             // render vertices
             if(dwVertexShader != -1)
             {
-                UINT VertexCount = (dwCount*sizeof(DWORD)) / dwStride;
+                UINT VertexCount = (dwCount * sizeof(DWORD)) / dwStride;
 
                 VertexPatchDesc VPDesc;
 
@@ -323,13 +323,7 @@ extern void XTL::EmuExecutePushBufferRaw
                 VPDesc.uiVertexStreamZeroStride = dwStride;
                 VPDesc.hVertexShader = dwVertexShader;
 
-                VertexPatcher VertPatch;
-
-                VertPatch.Apply(&VPDesc);
-
-				DxbxDrawPrimitiveUP(VPDesc);
-
-                VertPatch.Restore();
+				CxbxDrawPrimitiveUP(VPDesc);
             }
 
             pdwPushData--;
@@ -366,87 +360,58 @@ extern void XTL::EmuExecutePushBufferRaw
             // perform rendering
             if(pIBMem[0] != 0xFFFF)
             {
-                HRESULT hRet;
+				DWORD dwIndexCount = dwCount + 2;
+				DWORD dwIndexBufferSize = dwIndexCount * sizeof(WORD);
 
                 // TODO: depreciate maxIBSize after N milliseconds..then N milliseconds later drop down to new highest
-                if((dwCount*2 + 2*2) > maxIBSize)
+                if(maxIBSize < dwIndexBufferSize)
                 {
-                    if(pIndexBuffer != 0)
-                    {
+                    if(pIndexBuffer != nullptr)
                         pIndexBuffer->Release();
-                    }
 
-                    hRet = g_pD3DDevice8->CreateIndexBuffer(dwCount*2 + 2*2, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &pIndexBuffer);
+					HRESULT hRet = g_pD3DDevice8->CreateIndexBuffer(dwIndexBufferSize, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &pIndexBuffer);
+					if(FAILED(hRet))
+						CxbxKrnlCleanup("Unable to create index buffer for PushBuffer emulation (0x1808, dwCount : %d)", dwCount);
 
-                    maxIBSize = dwCount*2 + 2*2;
+                    maxIBSize = dwIndexBufferSize;
                 }
-                else
-                {
-                    hRet = D3D_OK;
-                }
-
-                if(FAILED(hRet))
-                    CxbxKrnlCleanup("Unable to create index buffer for PushBuffer emulation (0x1808, dwCount : %d)", dwCount);
 
                 // copy index data
                 {
-                    WORD *pData=0;
+                    WORD *pData = nullptr;
 
-                    pIndexBuffer->Lock(0, dwCount*2 + 2*2, (UCHAR**)&pData, D3DLOCK_DISCARD);
-
-                    memcpy(pData, pIBMem, dwCount*2 + 2*2);
-
+                    pIndexBuffer->Lock(0, dwIndexBufferSize, (BYTE**)(&pData), D3DLOCK_DISCARD);
+                    memcpy(pData, pIBMem, dwIndexBufferSize);
                     pIndexBuffer->Unlock();
                 }
 
+                #ifdef _DEBUG_TRACK_PB
+                if(!g_PBTrackDisable.exists(pdwOrigPushData))
+                #endif
                 // render indexed vertices
                 {
-                    VertexPatchDesc VPDesc;
-
-                    VPDesc.XboxPrimitiveType = XboxPrimitiveType;
-                    VPDesc.dwVertexCount = dwCount;
-					VPDesc.dwPrimitiveCount = 0;
-                    VPDesc.dwOffset = 0;
-                    VPDesc.pVertexStreamZeroData = NULL;
-                    VPDesc.uiVertexStreamZeroStride = 0;
-                    // TODO: Set the current shader and let the patcher handle it..
-                    VPDesc.hVertexShader = g_CurrentVertexShader;
-
-                    VertexPatcher VertPatch;
-
-                    VertPatch.Apply(&VPDesc);
-
-                    g_pD3DDevice8->SetIndices(pIndexBuffer, 0);
-
-                    #ifdef _DEBUG_TRACK_PB
-                    if(!g_PBTrackDisable.exists(pdwOrigPushData))
-                    {
-                    #endif
-
                     if(!g_bPBSkipPusher)
                     {
                         if(IsValidCurrentShader())
                         {
-                            g_pD3DDevice8->DrawIndexedPrimitive
-                            (
-								EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
-								0, 
-								8 * 1024 * 1024, // TODO : Use dwCount * 2 ?
-								0, // = VPDesc.dwOffset, will stay 0
-								VPDesc.dwPrimitiveCount
-                            );
+							VertexPatchDesc VPDesc;
 
-							g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
+							VPDesc.XboxPrimitiveType = XboxPrimitiveType;
+							VPDesc.dwVertexCount = EmuD3DIndexCountToVertexCount(XboxPrimitiveType, dwIndexCount);
+							VPDesc.dwPrimitiveCount = 0;
+							VPDesc.dwOffset = 0;
+							VPDesc.pVertexStreamZeroData = NULL;
+							VPDesc.uiVertexStreamZeroStride = 0;
+							// TODO: Set the current shader and let the patcher handle it..
+							VPDesc.hVertexShader = g_CurrentVertexShader;
+
+							g_pD3DDevice8->SetIndices(pIndexBuffer, 0);
+
+							CxbxDrawIndexed(VPDesc);
+
+		                    g_pD3DDevice8->SetIndices(nullptr, 0);
                         }
                     }
-
-                    #ifdef _DEBUG_TRACK_PB
-                    }
-                    #endif
-
-                    VertPatch.Restore();
-
-                    g_pD3DDevice8->SetIndices(0, 0);
                 }
             }
 
@@ -533,35 +498,28 @@ extern void XTL::EmuExecutePushBufferRaw
 
             // perform rendering
             {
-                HRESULT hRet;
+				DWORD dwIndexCount = dwCount;
+				DWORD dwIndexBufferSize = dwIndexCount * sizeof(WORD);
 
                 // TODO: depreciate maxIBSize after N milliseconds..then N milliseconds later drop down to new highest
-                if(dwCount*2 > maxIBSize)
+                if(maxIBSize < dwIndexBufferSize)
                 {
-                    if(pIndexBuffer != 0)
-                    {
+                    if(pIndexBuffer != nullptr)
                         pIndexBuffer->Release();
-                    }
 
-                    hRet = g_pD3DDevice8->CreateIndexBuffer(dwCount*2, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &pIndexBuffer);
+					HRESULT hRet = g_pD3DDevice8->CreateIndexBuffer(dwIndexBufferSize, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &pIndexBuffer);
+					if(FAILED(hRet))
+						CxbxKrnlCleanup("Unable to create index buffer for PushBuffer emulation (0x1800, dwCount : %d)", dwCount);
 
-                    maxIBSize = dwCount*2;
+                    maxIBSize = dwIndexBufferSize;
                 }
-                else
-                {
-                    hRet = D3D_OK;
-                }
-
-                if(FAILED(hRet))
-                    CxbxKrnlCleanup("Unable to create index buffer for PushBuffer emulation (0x1800, dwCount : %d)", dwCount);
 
                 // copy index data
                 {
-                    WORD *pData=0;
+                    WORD *pData = nullptr;
 
-                    pIndexBuffer->Lock(0, dwCount*2, (UCHAR**)&pData, D3DLOCK_DISCARD);
-
-                    memcpy(pData, pIndexData, dwCount*2);
+                    pIndexBuffer->Lock(0, dwIndexBufferSize, (BYTE **)(&pData), D3DLOCK_DISCARD);
+                    memcpy(pData, pIndexData, dwIndexBufferSize);
 
                     // remember last 2 indices
                     if(dwCount >= 2)
@@ -577,54 +535,33 @@ extern void XTL::EmuExecutePushBufferRaw
                     pIndexBuffer->Unlock();
                 }
 
+                #ifdef _DEBUG_TRACK_PB
+                if(!g_PBTrackDisable.exists(pdwOrigPushData))
+                #endif
                 // render indexed vertices
                 {
-                    VertexPatchDesc VPDesc;
-
-                    VPDesc.XboxPrimitiveType = XboxPrimitiveType;
-                    VPDesc.dwVertexCount = dwCount;
-                    VPDesc.dwPrimitiveCount = 0;
-                    VPDesc.dwOffset = 0;
-                    VPDesc.pVertexStreamZeroData = NULL;
-                    VPDesc.uiVertexStreamZeroStride = 0;
-                    // TODO: Set the current shader and let the patcher handle it..
-                    VPDesc.hVertexShader = g_CurrentVertexShader;
-
-                    VertexPatcher VertPatch;
-
-                    VertPatch.Apply(&VPDesc);
-
-                    g_pD3DDevice8->SetIndices(pIndexBuffer, 0);
-
-                    #ifdef _DEBUG_TRACK_PB
-                    if(!g_PBTrackDisable.exists(pdwOrigPushData))
-                    {
-                    #endif
-
 					if (!g_bPBSkipPusher)
 					{
 						if (IsValidCurrentShader())
 						{
-							g_pD3DDevice8->DrawIndexedPrimitive
-							(
-								EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
-								0,
-								8 * 1024 * 1024, // TODO : Use dwCount * 2 ?
-								0, // = VPDesc.dwOffset, will stay 0
-								VPDesc.dwPrimitiveCount
-							);
+							VertexPatchDesc VPDesc;
 
-							g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
+							VPDesc.XboxPrimitiveType = XboxPrimitiveType;
+							VPDesc.dwVertexCount = EmuD3DIndexCountToVertexCount(XboxPrimitiveType, dwIndexCount);
+							VPDesc.dwPrimitiveCount = 0;
+							VPDesc.dwOffset = 0;
+							VPDesc.pVertexStreamZeroData = NULL;
+							VPDesc.uiVertexStreamZeroStride = 0;
+							// TODO: Set the current shader and let the patcher handle it..
+							VPDesc.hVertexShader = g_CurrentVertexShader;
+
+							g_pD3DDevice8->SetIndices(pIndexBuffer, 0);
+
+							CxbxDrawIndexed(VPDesc);
+
+							g_pD3DDevice8->SetIndices(nullptr, 0);
 						}
 					}
-
-                    #ifdef _DEBUG_TRACK_PB
-                    }
-                    #endif
-
-                    VertPatch.Restore();
-
-                    g_pD3DDevice8->SetIndices(0, 0);
                 }
             }
 
