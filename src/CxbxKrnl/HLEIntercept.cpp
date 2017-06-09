@@ -493,7 +493,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x18; // unsure
 							} else {
 								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_3925, lower, upper);
-								int iX_D3DTSS_TEXCOORDINDEX_Offset = 0x11; // verified for 3911
+								iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x11; // verified for 3911
 							}
 
 							if (pFunc != NULL)
