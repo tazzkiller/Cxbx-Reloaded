@@ -66,8 +66,8 @@ XTL::VertexPatcher::VertexPatcher()
     ZeroMemory(this->m_pStreams, sizeof(PATCHEDSTREAM) * MAX_NBR_STREAMS);
     this->m_bPatched = false;
     this->m_bAllocatedStreamZeroData = false;
-    this->m_pNewVertexStreamZeroData = NULL;
-    this->m_pDynamicPatch = NULL;
+    this->m_pNewVertexStreamZeroData = nullptr;
+    this->m_pDynamicPatch = nullptr;
 }
 
 XTL::VertexPatcher::~VertexPatcher()
@@ -100,7 +100,7 @@ void XTL::VertexPatcher::CacheStream(VertexPatchDesc *pPatchDesc,
 {
     //UINT                       uiStride;
     IDirect3DVertexBuffer8    *pOrigVertexBuffer = nullptr;
-    void                      *pCalculateData = NULL;
+    void                      *pCalculateData = nullptr;
     uint32                     uiKey;
     UINT                       uiLength;
     CACHEDSTREAM              *pCachedStream = (CACHEDSTREAM *)calloc(1, sizeof(CACHEDSTREAM));
@@ -143,7 +143,7 @@ void XTL::VertexPatcher::CacheStream(VertexPatchDesc *pPatchDesc,
     }
 
     // Start the actual stream caching
-    if(pPatchDesc->pVertexStreamZeroData == nullptr)
+    if(pPatchDesc->pVertexStreamZeroData == NULL)
     {
 		XTL::D3DVERTEXBUFFER_DESC  Desc;
 
@@ -221,13 +221,13 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
 {
     UINT                       uiStride;
     IDirect3DVertexBuffer8    *pOrigVertexBuffer = nullptr;
-    void                      *pCalculateData = NULL;
+    void                      *pCalculateData = nullptr;
     UINT                       uiLength;
     bool                       bApplied = false;
     uint32                     uiKey;
     //CACHEDSTREAM              *pCachedStream = (CACHEDSTREAM *)malloc(sizeof(CACHEDSTREAM));
 
-    if(pPatchDesc->pVertexStreamZeroData == nullptr)
+    if(pPatchDesc->pVertexStreamZeroData == NULL)
     {
 #ifdef UNPATCH_STREAMSOURCE
 		pOrigVertexBuffer = CxbxUpdateVertexBuffer(Xbox_g_Stream[uiStream].pVertexBuffer);
@@ -305,7 +305,7 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
                 {
                     FreeCachedStream(pCachedStream->Stream.pOriginalStream);
                 }
-                pCachedStream = NULL;
+                pCachedStream = nullptr;
                 bMismatch = true;
             }
 
@@ -455,7 +455,7 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
         // TODO: This is sometimes the number of indices, which isn't too good
 		uiVertexCount = pPatchDesc->dwVertexCount;
         dwNewSize = uiVertexCount * pStreamPatch->ConvertedStride;
-        pNewVertexBuffer = NULL;
+        pNewVertexBuffer = nullptr;
         pNewData = (uint08*)g_MemoryManager.Allocate(dwNewSize);
         if(pNewData == nullptr)
             CxbxKrnlCleanup("Couldn't allocate the new stream zero buffer");
@@ -585,7 +585,7 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
 		}
 	}
 
-    if(pPatchDesc->pVertexStreamZeroData == nullptr)
+    if(pPatchDesc->pVertexStreamZeroData == NULL)
     {
         //if(pNewVertexBuffer != nullptr) // Dxbx addition
 			pNewVertexBuffer->Unlock();
@@ -655,7 +655,7 @@ bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT ui
     IDirect3DVertexBuffer8 *pNewVertexBuffer;
     PATCHEDSTREAM *pStream;
 
-    if(pPatchDesc->pVertexStreamZeroData != nullptr)
+    if(pPatchDesc->pVertexStreamZeroData != NULL)
     {
         // In-place patching of inline buffer.
         uiStride = pPatchDesc->uiVertexStreamZeroStride;
@@ -812,7 +812,7 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 		return false;
 
 	//EmuWarning("VertexPatcher::PatchPrimitive: Processing D3DPT_QUADLIST");
-	if (pPatchDesc->pVertexStreamZeroData != nullptr)
+	if (pPatchDesc->pVertexStreamZeroData != NULL)
 		if(uiStream > 0)
 			CxbxKrnlCleanup("Draw..UP call with more than one stream!\n");
 
@@ -832,7 +832,7 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
     BYTE *pOrigVertexData = nullptr;
     BYTE *pPatchedVertexData = nullptr;
 
-    if(pPatchDesc->pVertexStreamZeroData == nullptr)
+    if(pPatchDesc->pVertexStreamZeroData == NULL)
     {
 #ifdef UNPATCH_STREAMSOURCE
 		pStream->pOriginalStream = CxbxUpdateVertexBuffer(Xbox_g_Stream[0].pVertexBuffer);
@@ -855,7 +855,7 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 	// output : 2 triagles of 3 vertices per quad of 4 vertices
     dwNewSize = pStream->uiOrigStride * ((pPatchDesc->dwVertexCount / VERTICES_PER_QUAD) * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE);
 
-    if(pPatchDesc->pVertexStreamZeroData == nullptr)
+    if(pPatchDesc->pVertexStreamZeroData == NULL)
     {
         // Retrieve the original buffer size
         {
@@ -955,7 +955,7 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 	pPatchDesc->dwVertexCount = pPatchDesc->dwPrimitiveCount * VERTICES_PER_TRIANGLE;
 	pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLELIST;
 
-    if(pPatchDesc->pVertexStreamZeroData == nullptr)
+    if(pPatchDesc->pVertexStreamZeroData == NULL)
     {
         pStream->pOriginalStream->Unlock();
         pStream->pPatchedStream->Unlock();
@@ -992,7 +992,7 @@ bool XTL::VertexPatcher::Apply(VertexPatchDesc *pPatchDesc)
         LocalPatched |= PatchPrimitive(pPatchDesc, uiStream);
         LocalPatched |= PatchStream(pPatchDesc, uiStream);
 		if (LocalPatched)
-			if(pPatchDesc->pVertexStreamZeroData == nullptr)
+			if(pPatchDesc->pVertexStreamZeroData == NULL)
 			{
 				// Insert the patched stream in the cache
 				CacheStream(pPatchDesc, uiStream);
@@ -1010,12 +1010,12 @@ bool XTL::VertexPatcher::Restore()
 
     for(UINT uiStream = 0; uiStream < m_uiNbrStreams; uiStream++)
     {
-        if(m_pStreams[uiStream].pOriginalStream != NULL && m_pStreams[uiStream].pPatchedStream != NULL)
+        if(m_pStreams[uiStream].pOriginalStream != nullptr && m_pStreams[uiStream].pPatchedStream != nullptr)
         {
             g_pD3DDevice8->SetStreamSource(0, m_pStreams[uiStream].pOriginalStream, m_pStreams[uiStream].uiOrigStride);
         }
 
-        if(m_pStreams[uiStream].pOriginalStream != NULL)
+        if(m_pStreams[uiStream].pOriginalStream != nullptr)
         {
             // Release the reference to original stream we got via GetStreamSource() :
             UINT a = m_pStreams[uiStream].pOriginalStream->Release();
@@ -1024,7 +1024,7 @@ bool XTL::VertexPatcher::Restore()
                 m_pStreams[uiStream].pOriginalStream = nullptr;*/
         }
 
-        if(m_pStreams[uiStream].pPatchedStream != NULL)
+        if(m_pStreams[uiStream].pPatchedStream != nullptr)
         {
             UINT b = m_pStreams[uiStream].pPatchedStream->Release();
 			/* TODO : Although correct, this currently leads to a null-pointer exception :

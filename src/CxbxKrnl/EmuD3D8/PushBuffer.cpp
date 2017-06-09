@@ -145,7 +145,7 @@ extern void XTL::EmuExecutePushBufferRaw
     if(g_bSkipPush)
         return;
 
-	if (!pdwPushData) {
+	if (pdwPushData == NULL) {
 		EmuWarning("pdwPushData is null");
 		return;
 	}
@@ -249,7 +249,7 @@ extern void XTL::EmuExecutePushBufferRaw
                 CxbxKrnlCleanup("Non-FVF Vertex Shaders not yet supported for PushBuffer emulation!");
                 dwVertexShader = 0;
             }
-            else if(dwVertexShader == 0)
+            else if(dwVertexShader == NULL)
             {
                 EmuWarning("FVF Vertex Shader is null");
                 dwVertexShader = -1;
@@ -449,7 +449,7 @@ extern void XTL::EmuExecutePushBufferRaw
                 printf("\n");
 
                 // retrieve stream data
-                XTL::IDirect3DVertexBuffer8 *pActiveVB = NULL;
+                XTL::IDirect3DVertexBuffer8 *pActiveVB = nullptr;
                 UINT  uiStride;
 
 #ifdef UNPATCH_STREAMSOURCE
@@ -601,7 +601,7 @@ void DbgDumpMesh(WORD *pIndexData, DWORD dwCount)
     if(!XTL::IsValidCurrentShader() || (dwCount == 0))
         return;
 
-    XTL::IDirect3DVertexBuffer8 *pActiveVB = NULL;
+    XTL::IDirect3DVertexBuffer8 *pActiveVB = nullptr;
 
     XTL::D3DVERTEXBUFFER_DESC VBDesc;
 
@@ -757,7 +757,7 @@ void XTL::DbgDumpPushBuffer( DWORD* PBData, DWORD dwSize )
 	sprintf( szPB, "D:\\cxbx\\_pushbuffer\\pushbuffer%.03d.txt", PbNumber++ );
 
 	// Create a new file for this pushbuffer's data
-	HANDLE hFile = CreateFile( szPB, GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0 );
+	HANDLE hFile = CreateFile( szPB, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0 );
 	if( hFile == INVALID_HANDLE_VALUE )
 		EmuWarning("Error creating pushbuffer file!");
 
@@ -766,8 +766,8 @@ void XTL::DbgDumpPushBuffer( DWORD* PBData, DWORD dwSize )
 	// Write pushbuffer data to the file.
 	// TODO: Cache the 32-bit XXHash32::hash() of each pushbuffer to ensure that the same
 	// pushbuffer is not written twice within a given emulation session.
-	WriteFile( hFile, &g_CurrentVertexShader, sizeof( DWORD ), &dwBytesWritten, NULL );
-	WriteFile( hFile, PBData, dwSize, &dwBytesWritten, NULL );
+	WriteFile( hFile, &g_CurrentVertexShader, sizeof( DWORD ), &dwBytesWritten, nullptr);
+	WriteFile( hFile, PBData, dwSize, &dwBytesWritten, nullptr);
 
 	// Close handle
 	CloseHandle( hFile );
