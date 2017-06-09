@@ -7903,15 +7903,13 @@ void CxbxDrawIndexedClosingLine(WORD FromIndex, WORD ToIndex)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-	using namespace XTL;
-
-	static IDirect3DIndexBuffer8 *ClosingLineLoopIndexBuffer = nullptr;
+	static XTL::IDirect3DIndexBuffer8 *ClosingLineLoopIndexBuffer = nullptr;
 
 	HRESULT hRet;
 
 	if (ClosingLineLoopIndexBuffer == nullptr)
 	{
-		hRet = g_pD3DDevice8->CreateIndexBuffer(2, D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT, &ClosingLineLoopIndexBuffer);
+		hRet = g_pD3DDevice8->CreateIndexBuffer(2, D3DUSAGE_WRITEONLY, XTL::D3DFMT_INDEX16, XTL::D3DPOOL_DEFAULT, &ClosingLineLoopIndexBuffer);
 		if (FAILED(hRet))
 			CxbxKrnlCleanup("Unable to create index buffer for D3DPT_LINELOOP emulation");
 	}
@@ -7931,7 +7929,7 @@ void CxbxDrawIndexedClosingLine(WORD FromIndex, WORD ToIndex)
 
 	hRet = g_pD3DDevice8->DrawIndexedPrimitive
 	(
-		D3DPT_LINELIST,
+		XTL::D3DPT_LINELIST,
 		0, // minIndex
 		2, // NumVertexIndices,
 		0, // startIndex)
@@ -7941,7 +7939,7 @@ void CxbxDrawIndexedClosingLine(WORD FromIndex, WORD ToIndex)
 
 	// Known memleak : ClosingLineLoopIndexBuffer->Release();
 
-	g_dwPrimPerFrame++;
+	XTL::g_dwPrimPerFrame++;
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
@@ -8013,7 +8011,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 			*/
 
 			// Close line-loops using a final single line, drawn from the end to the start vertex :
-			CxbxDrawIndexedClosingLine(VPDesc.dwOffset + VPDesc.dwPrimitiveCount, VPDesc.dwOffset);
+			CxbxDrawIndexedClosingLine((WORD)(VPDesc.dwOffset + VPDesc.dwPrimitiveCount), (WORD)VPDesc.dwOffset);
 
 			/* TODO : Is this necessary?
 			hRet = g_pD3DDevice8->SetIndices(CurrentIndexBuffer, CurrentBaseVertexIndex);
