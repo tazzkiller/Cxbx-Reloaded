@@ -104,7 +104,6 @@ void DxbxBuildRenderStateMappingTable()
 			// If it is available, register this offset in the various mapping tables we use :
 			DxbxMapActiveVersionToMostRecent[XDKVersion_D3DRS] = State;
 			DxbxMapMostRecentToActiveVersion[State] = XDKVersion_D3DRS;
-			EmuMappedD3DRenderState[State] = &(Xbox_D3D__RenderState[XDKVersion_D3DRS]);
 			// Step to the next offset :
 			XDKVersion_D3DRS++;
 		}
@@ -114,13 +113,14 @@ void DxbxBuildRenderStateMappingTable()
 			// so the mapping table will correspond to the actual (version dependent) layout :
 			// DxbxMapActiveVersionToMostRecent shouldn't be set here, as there's no element for this state!
 			DxbxMapMostRecentToActiveVersion[State] = X_D3DRS_UNSUPPORTED;
-			EmuMappedD3DRenderState[State] = DummyRenderState;
 		}
 	}
 }
 
-void DxbxBuildRenderStateMappingTable2()
+void CxbxInitializeEmuMappedD3DRenderState()
 {
+	int delta = 0;
+
 	// Log the start address of the "deferred" render states (not needed anymore, just to keep logging the same) :
 	if (Xbox_D3D__RenderState != NULL)
 	{
@@ -133,30 +133,35 @@ void DxbxBuildRenderStateMappingTable2()
 		}
 		else
 			if (Xbox_D3D__RenderState_Deferred != Xbox_D3D__RenderState + XDKVersion_D3DRS_DEFERRED_FIRST)
-				CxbxKrnlCleanup("DxbxBuildRenderStateMappingTable2 : Xbox D3D__RenderState_Deferred already set differently?");
+				CxbxKrnlCleanup("CxbxInitializeEmuMappedD3DRenderState : Xbox D3D__RenderState_Deferred already set differently?");
 	}
 	else
 	{
 		// TEMPORARY work-around until Xbox_D3D__RenderState is determined via OOVPA symbol scanning;
-		// map all render states based on the first deferred render state (which we have the address
+		// Map all render states based on the first deferred render state (which we have the address
 		// of in Xbox_D3D__RenderState_Deferred) :
-
-		// assert(Xbox_D3D__RenderState_Deferred != NULL);
-
-		int delta = (int)(Xbox_D3D__RenderState_Deferred - DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST]);
-		for (X_D3DRENDERSTATETYPE State = X_D3DRS_FIRST; State <= X_D3DRS_LAST; State++) {
-			if (EmuMappedD3DRenderState[State] != DummyRenderState) {
-				DWORD XDKVersion_D3DRS = DxbxMapMostRecentToActiveVersion[State];
-				EmuMappedD3DRenderState[State] += delta / sizeof(DWORD); // Increment per DWORD (not per 4!)
-				RegisterAddressLabel(EmuMappedD3DRenderState[State], "D3D__RenderState[%d/*=%s*/]", 
-					XDKVersion_D3DRS,
-					GetDxbxRenderStateInfo(State).S + 2); // Skip "X_" prefix
-				// TODO : Should we label "g_Device." members too?
-			}
-		}
-
-		Xbox_D3D__RenderState = EmuMappedD3DRenderState[X_D3DRS_FIRST];
+		if (Xbox_D3D__RenderState_Deferred != NULL)
+			delta = (int)(Xbox_D3D__RenderState_Deferred - DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST]);
+		else
+			CxbxKrnlCleanup("CxbxInitializeEmuMappedD3DRenderState : Missing Xbox D3D__RenderState and D3D__RenderState_Deferred!");
 	}
+
+	for (X_D3DRENDERSTATETYPE rs = X_D3DRS_FIRST; rs <= X_D3DRS_LAST; rs++) {
+		DWORD XDKVersion_D3DRS = DxbxMapMostRecentToActiveVersion[rs];
+		if (XDKVersion_D3DRS != X_D3DRS_UNSUPPORTED) {
+			EmuMappedD3DRenderState[rs] = &(Xbox_D3D__RenderState[XDKVersion_D3DRS]);
+			EmuMappedD3DRenderState[rs] += delta / sizeof(DWORD); // Increment per DWORD (not per 4!)
+			RegisterAddressLabel(EmuMappedD3DRenderState[rs], "D3D__RenderState[%d/*=%s*/]",
+				XDKVersion_D3DRS,
+				GetDxbxRenderStateInfo(rs).S + 2); // Skip "X_" prefix
+			// TODO : Should we label "g_Device." members too?
+		}
+		else
+			EmuMappedD3DRenderState[rs] = DummyRenderState;
+	}
+
+	if (Xbox_D3D__RenderState == NULL)
+		Xbox_D3D__RenderState = EmuMappedD3DRenderState[X_D3DRS_FIRST];
 
 	// Initialize the dummy render state :
 	EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED] = DummyRenderState;
@@ -516,7 +521,7 @@ void InitD3DDeferredStates()
 {
 	CxbxInitializeTextureStageStates();
 
-	DxbxBuildRenderStateMappingTable2();
+	CxbxInitializeEmuMappedD3DRenderState();
 
 #if 1 // Prevent CxbxKrnlCleanup calls from EmuXB2PC_* functions, by resetting cases without a 0 value
 
