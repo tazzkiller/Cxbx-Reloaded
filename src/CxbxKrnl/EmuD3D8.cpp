@@ -2651,44 +2651,6 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 }
 
 #if 0
-// check if a resource has been converted yet (if not, do it)
-static void CxbxUpdateResource(XTL::X_D3DResource *pResource)
-{
-	// Skip unassigned resources
-	if (pResource == NULL)
-		return;
-
-	// Skip resources without data
-	if (pResource->Data == NULL)
-		return;
-
-	// Determine the resource type, and initialize
-	DWORD dwCommonType = GetXboxCommonResourceType(pResource);
-	switch (dwCommonType)
-	{
-	case X_D3DCOMMON_TYPE_VERTEXBUFFER:
-	{
-		DbgPrintf("CxbxUpdateResource :-> VertexBuffer...\n");
-		CxbxUpdateVertexBuffer((XTL::X_D3DVertexBuffer *)pResource);
-		break;
-	}
-	case X_D3DCOMMON_TYPE_SURFACE:
-	{
-		DbgPrintf("CxbxUpdateResource :-> Surface...\n");
-		CxbxUpdateSurface((XTL::X_D3DSurface *)pResource);
-		break;
-	}
-	case X_D3DCOMMON_TYPE_TEXTURE:
-	{
-		DbgPrintf("CxbxUpdateResource :-> Texture...\n");
-		CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pResource, g_pTexturePaletteStages[0]); // HACK : Use palette from stage 0!
-		break;
-	}
-	}
-}
-#endif
-
-#if 0
 // ensure a given width/height are powers of 2
 static void EmuAdjustPower2(UINT *dwWidth, UINT *dwHeight)
 {
