@@ -765,8 +765,6 @@ bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT ui
 bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
                                         UINT             uiStream)
 {
-    PATCHEDSTREAM *pStream = &m_pStreams[uiStream];
-
     if((pPatchDesc->XboxPrimitiveType < X_D3DPT_POINTLIST) || (pPatchDesc->XboxPrimitiveType > X_D3DPT_POLYGON))
         CxbxKrnlCleanup("Unknown primitive type: 0x%.02X\n", pPatchDesc->XboxPrimitiveType);
 
@@ -778,7 +776,8 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 				// Prevent slow conversion by drawing 1 quad as 2 triangles :
 				// Draw 1 quad as a 2 triangles in a fan (which both have the same winding order) :
 				// Test-case : XDK Samples (Billboard, BumpLens, DebugKeyboard, Gamepad, Lensflare, PerfTest?VolumeLight, PointSprites, Tiling, VolumeFog, VolumeSprites, etc)
-				pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLEFAN;
+				if (!pPatchDesc->bCanRenderQuadListUnpatched)
+					pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLEFAN;
 			}
 
 			break;
@@ -808,10 +807,16 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
     if (pPatchDesc->XboxPrimitiveType != X_D3DPT_QUADLIST)
 		return false;
 
+	// Indexed drawing of D3DPT_QUADLIST doesn't need a conversion (see CxbxDrawIndexed)
+	if (pPatchDesc->bCanRenderQuadListUnpatched)
+		return false;
+
 	//EmuWarning("VertexPatcher::PatchPrimitive: Processing D3DPT_QUADLIST");
 	if (pPatchDesc->pVertexStreamZeroData != nullptr)
 		if(uiStream > 0)
 			CxbxKrnlCleanup("Draw..UP call with more than one stream!\n");
+
+    PATCHEDSTREAM *pStream = &m_pStreams[uiStream];
 
     pStream->uiOrigStride = 0;
 
@@ -1227,6 +1232,7 @@ VOID XTL::EmuFlushIVB()
     VPDesc.pVertexStreamZeroData = g_pIVBVertexBuffer;
     VPDesc.uiVertexStreamZeroStride = uiStride;
     VPDesc.hVertexShader = g_CurrentVertexShader;
+	VPDesc.bCanRenderQuadListUnpatched = false;
 
     // Disable this 'fix', as it doesn't really help; On ATI, it isn't needed (and causes missing
     // textures if enabled). On Nvidia, it stops the jumping (but also removes the font from view).

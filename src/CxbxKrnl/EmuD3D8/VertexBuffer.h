@@ -41,15 +41,17 @@
 
 typedef struct _VertexPatchDesc
 {
-    IN     X_D3DPRIMITIVETYPE    XboxPrimitiveType;
+    IN OUT X_D3DPRIMITIVETYPE    XboxPrimitiveType;
     IN     DWORD                 dwVertexCount;
-    IN     DWORD                 dwPrimitiveCount;
-    IN     DWORD                 dwOffset;
+    OUT    DWORD                 dwPrimitiveCount;
+    IN     DWORD                 dwOffset; // TODO : OUT ?
     // Data if Draw...UP call
     IN OUT PVOID                 pVertexStreamZeroData;
-    IN     UINT                  uiVertexStreamZeroStride;
+    IN     UINT                  uiVertexStreamZeroStride; // TODO : OUT ?
     // The current vertex shader, used to identify the streams
     IN     DWORD                 hVertexShader;
+	// Indicator for Indexed drawing
+	IN     BOOL                  bCanRenderQuadListUnpatched;
 }
 VertexPatchDesc;
 
