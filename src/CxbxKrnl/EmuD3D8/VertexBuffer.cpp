@@ -824,10 +824,6 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
     DWORD dwOriginalSize    = 0;
     DWORD dwNewSize         = 0;
 
-    // sizes with the rest of the buffer
-    DWORD dwOriginalSizeWR  = 0;
-    DWORD dwNewSizeWR       = 0;
-
     // vertex data arrays
     BYTE *pOrigVertexData = nullptr;
     BYTE *pPatchedVertexData = nullptr;
@@ -853,38 +849,20 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 	// input : specified number of vertices (4 per quad)
     dwOriginalSize = pStream->uiOrigStride * pPatchDesc->dwVertexCount;
 	// output : 2 triagles of 3 vertices per quad of 4 vertices
-    dwNewSize = pStream->uiOrigStride * ((pPatchDesc->dwVertexCount / VERTICES_PER_QUAD) * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE);
+    dwNewSize = pStream->uiOrigStride * (pPatchDesc->dwPrimitiveCount * TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE);
 
     if(pPatchDesc->pVertexStreamZeroData == NULL)
     {
-        // Retrieve the original buffer size
-        {
-            XTL::D3DVERTEXBUFFER_DESC Desc;
-
-            if(FAILED(pStream->pOriginalStream->GetDesc(&Desc)))
-                CxbxKrnlCleanup("Could not retrieve buffer size");
-
-            // Here we save the full buffer size
-            dwOriginalSizeWR = Desc.Size;
-            // So we can now calculate the size of the rest (dwOriginalSizeWR - dwOriginalSize) and
-            // add it to our new calculated size of the patched buffer
-            dwNewSizeWR = dwNewSize + dwOriginalSizeWR - dwOriginalSize;
-        }
-
-        g_pD3DDevice8->CreateVertexBuffer(dwNewSizeWR, 0, 0, XTL::D3DPOOL_MANAGED, &pStream->pPatchedStream);
+        g_pD3DDevice8->CreateVertexBuffer(dwNewSize, D3DUSAGE_WRITEONLY, 0, XTL::D3DPOOL_MANAGED, &pStream->pPatchedStream);
+        if(pStream->pPatchedStream != nullptr)
+            pStream->pPatchedStream->Lock(0, 0, &pPatchedVertexData, D3DLOCK_DISCARD);
 
 		if(pStream->pOriginalStream != nullptr)
             pStream->pOriginalStream->Lock(0, 0, &pOrigVertexData, D3DLOCK_READONLY);
-
-        if(pStream->pPatchedStream != nullptr)
-            pStream->pPatchedStream->Lock(0, 0, &pPatchedVertexData, D3DLOCK_DISCARD);
     }
     else
     {
-        dwOriginalSizeWR = dwOriginalSize;
-        dwNewSizeWR = dwNewSize;
-
-        m_pNewVertexStreamZeroData = (uint08*)malloc(dwNewSizeWR);
+        m_pNewVertexStreamZeroData = (uint08*)malloc(dwNewSize);
         m_bAllocatedStreamZeroData = true;
 
         pPatchedVertexData = (uint08*)m_pNewVertexStreamZeroData;
@@ -896,12 +874,6 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
     // Copy the nonmodified data
 	if (pPatchDesc->dwOffset > 0)
 		memcpy(pPatchedVertexData, pOrigVertexData, pStream->uiOrigStride * pPatchDesc->dwOffset);
-
-	if (dwOriginalSizeWR - pPatchDesc->dwOffset - dwOriginalSize > 0)
-		// TODO : Shouldn't we multiply by pStream->uiOrigStride ?
-		memcpy(&pPatchedVertexData[pPatchDesc->dwOffset + dwNewSize],
-			&pOrigVertexData[pPatchDesc->dwOffset + dwOriginalSize],
-			dwOriginalSizeWR - pPatchDesc->dwOffset - dwOriginalSize);
 
 	uint08 *pPatch0 = &pPatchedVertexData[pStream->uiOrigStride * (pPatchDesc->dwOffset + 0)];
     uint08 *pPatch3 = &pPatchedVertexData[pStream->uiOrigStride * (pPatchDesc->dwOffset + 3)];
