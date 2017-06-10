@@ -74,7 +74,7 @@ typedef struct _CACHEDSTREAM
     void          *pStreamUP;           // Draw..UP (instead of pOriginalStream)
     uint32         uiLength;            // The length of the stream
     uint32         uiCheckCount;        // XXHash32::hash() check count
-    uint32         dwPrimitiveCount;
+	VertexPatchDesc Copy;
     long           lLastUsed;           // For cache removal purposes
 } CACHEDSTREAM;
 

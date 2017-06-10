@@ -186,7 +186,7 @@ void XTL::VertexPatcher::CacheStream(VertexPatchDesc *pPatchDesc,
     pCachedStream->uiCheckCount = 0;
     pCachedStream->uiLength = uiLength;
     pCachedStream->uiCacheHit = 0;
-    pCachedStream->dwPrimitiveCount = pPatchDesc->dwPrimitiveCount;
+    pCachedStream->Copy = *pPatchDesc;
     pCachedStream->lLastUsed = clock();
 
     g_PatchedStreamsCache.insert(uiKey, pCachedStream);
@@ -335,11 +335,10 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
                 pPatchDesc->uiVertexStreamZeroStride = pCachedStream->Stream.uiNewStride;
             }
 
-            if(pCachedStream->dwPrimitiveCount > 0)
-            {
-                // The primitives were patched, draw with the correct number of primimtives from the cache
-                pPatchDesc->dwPrimitiveCount = pCachedStream->dwPrimitiveCount;
-            }
+            // The primitives were patched, draw with the correct number of primimtives from the cache
+			pPatchDesc->XboxPrimitiveType = pCachedStream->Copy.XboxPrimitiveType;
+			pPatchDesc->dwPrimitiveCount = pCachedStream->Copy.dwPrimitiveCount;
+			pPatchDesc->dwVertexCount = pCachedStream->Copy.dwVertexCount;
 
             bApplied = true;
             m_bPatched = true;
