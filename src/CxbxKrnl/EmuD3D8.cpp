@@ -5467,7 +5467,7 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
     // create vertex buffer
     hRet = g_pD3DDevice8->CreateVertexBuffer
     (
-        Size, 0, 0, D3DPOOL_MANAGED,
+        Size, 0/*D3DUSAGE_WRITEONLY?*/, 0, D3DPOOL_MANAGED,
         &pNewHostVertexBuffer
     );
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateVertexBuffer");
