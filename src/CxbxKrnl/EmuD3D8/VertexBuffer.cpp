@@ -199,13 +199,13 @@ void XTL::VertexPatcher::FreeCachedStream(void *pStream)
 	CACHEDSTREAM *pCachedStream = (CACHEDSTREAM *)g_PatchedStreamsCache.get(pStream);
     if(pCachedStream != nullptr)
     {
-        if(pCachedStream->bIsUP && pCachedStream->pStreamUP)
+        if(pCachedStream->bIsUP && (pCachedStream->pStreamUP != nullptr))
             free(pCachedStream->pStreamUP);
 
-		if(pCachedStream->Stream.pOriginalStream)
+		if(pCachedStream->Stream.pOriginalStream != nullptr)
             pCachedStream->Stream.pOriginalStream->Release();
 
-		if(pCachedStream->Stream.pPatchedStream)
+		if(pCachedStream->Stream.pPatchedStream != nullptr)
             pCachedStream->Stream.pPatchedStream->Release();
 
 		free(pCachedStream);
@@ -394,10 +394,10 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
 
     // Do some groovy patchin'
     
-    IDirect3DVertexBuffer8    *pOrigVertexBuffer;
-    IDirect3DVertexBuffer8    *pNewVertexBuffer;
-    uint08                    *pOrigData;
-    uint08                    *pNewData;
+    IDirect3DVertexBuffer8    *pOrigVertexBuffer = nullptr;
+    IDirect3DVertexBuffer8    *pNewVertexBuffer = nullptr;
+    uint08                    *pOrigData = nullptr;
+    uint08                    *pNewData = nullptr;
 	UINT                       uiVertexCount;
     UINT                       uiStride;
     PATCHEDSTREAM             *pStream = &m_pStreams[uiStream];
@@ -586,15 +586,16 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
 
     if(pPatchDesc->pVertexStreamZeroData == NULL)
     {
-        //if(pNewVertexBuffer != nullptr) // Dxbx addition
+        if (pNewVertexBuffer != nullptr) // Dxbx addition
 			pNewVertexBuffer->Unlock();
-		//if (pOrigVertexBuffer != nullptr) // Dxbx addition
+
+		if (pOrigVertexBuffer != nullptr) // Dxbx addition
 			pOrigVertexBuffer->Unlock();
 
         if(FAILED(g_pD3DDevice8->SetStreamSource(uiStream, pNewVertexBuffer, pStreamPatch->ConvertedStride)))
             CxbxKrnlCleanup("Failed to set the type patched buffer as the new stream source!\n");
 
-		if(pStream->pPatchedStream)
+		if(pStream->pPatchedStream != nullptr)
             // The stream was already primitive patched, release the previous vertex buffer to avoid memory leaks
             pStream->pPatchedStream->Release();
 
@@ -749,7 +750,7 @@ bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT ui
         if(FAILED(g_pD3DDevice8->SetStreamSource(uiStream, pNewVertexBuffer, uiStride)))
             CxbxKrnlCleanup("Failed to set the texcoord patched FVF buffer as the new stream source.");
 
-		if(pStream->pPatchedStream)
+		if(pStream->pPatchedStream != nullptr)
             pStream->pPatchedStream->Release();
 
         pStream->pPatchedStream = pNewVertexBuffer;
