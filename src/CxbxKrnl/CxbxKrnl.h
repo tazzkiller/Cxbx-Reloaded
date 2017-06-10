@@ -112,6 +112,8 @@ typedef uint32 xbaddr;
 #define VECTOR2IRQL(vector) (PROFILE_LEVEL - VECTOR2IRQ(vector))
 
 void CxbxPopupMessage(const char *message);
+extern Xbe::Certificate *g_pCertificate;
+
 
 /*! validate version string match */
 bool CxbxKrnlVerifyVersion(const char *szVersion);

@@ -78,6 +78,7 @@ Xbe::Header *CxbxKrnl_XbeHeader = NULL;
 HWND CxbxKrnl_hEmuParent = NULL;
 DebugMode CxbxKrnl_DebugMode = DebugMode::DM_NONE;
 char* CxbxKrnl_DebugFileName = NULL;
+Xbe::Certificate *g_pCertificate = NULL;
 
 /*! thread handles */
 static HANDLE g_hThreads[MAXIMUM_XBOX_THREADS] = { 0 };
@@ -117,13 +118,11 @@ XbeType GetXbeType(Xbe::Header *pXbeHeader)
 
 void ApplyMediaPatches()
 {
-	Xbe::Certificate *pCertificate = (Xbe::Certificate*)CxbxKrnl_XbeHeader->dwCertificateAddr;
-
 	// Patch the XBE Header to allow running from all media types
-	pCertificate->dwAllowedMedia = XBEIMAGE_MEDIA_TYPE_HARD_DISK | XBEIMAGE_MEDIA_TYPE_DVD_CD | XBEIMAGE_MEDIA_TYPE_MEDIA_BOARD;
+	g_pCertificate->dwAllowedMedia = XBEIMAGE_MEDIA_TYPE_HARD_DISK | XBEIMAGE_MEDIA_TYPE_DVD_CD | XBEIMAGE_MEDIA_TYPE_MEDIA_BOARD;
 
 	// Patch the XBE Header to allow running on all regions
-	pCertificate->dwGameRegion = XBEIMAGE_GAME_REGION_MANUFACTURING | XBEIMAGE_GAME_REGION_NA | XBEIMAGE_GAME_REGION_JAPAN | XBEIMAGE_GAME_REGION_RESTOFWORLD;
+	g_pCertificate->dwGameRegion = XBEIMAGE_GAME_REGION_MANUFACTURING | XBEIMAGE_GAME_REGION_NA | XBEIMAGE_GAME_REGION_JAPAN | XBEIMAGE_GAME_REGION_RESTOFWORLD;
 
 	// Generic Media Check Patches (From DVD2XBOX)
 	typedef struct
@@ -167,20 +166,19 @@ void ApplyMediaPatches()
 void SetupPerTitleKeys()
 {
 	// Generate per-title keys from the XBE Certificate
-	Xbe::Certificate *pCertificate = (Xbe::Certificate*)CxbxKrnl_XbeHeader->dwCertificateAddr;
 	UCHAR Digest[20] = {};
 
 	// Set the LAN Key
-	xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, pCertificate->bzLanKey, xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
+	xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, g_pCertificate->bzLanKey, xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
 	memcpy(xboxkrnl::XboxLANKey, Digest, xboxkrnl::XBOX_KEY_LENGTH);
 
 	// Signature Key
-	xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, pCertificate->bzSignatureKey, xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
+	xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, g_pCertificate->bzSignatureKey, xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
 	memcpy(xboxkrnl::XboxSignatureKey, Digest, xboxkrnl::XBOX_KEY_LENGTH);
 
 	// Alternate Signature Keys
 	for (int i = 0; i < xboxkrnl::ALTERNATE_SIGNATURE_COUNT; i++) {
-		xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, pCertificate->bzTitleAlternateSignatureKey[i], xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
+		xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, g_pCertificate->bzTitleAlternateSignatureKey[i], xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
 		memcpy(xboxkrnl::XboxAlternateSignatureKeys[i], Digest, xboxkrnl::XBOX_KEY_LENGTH);
 	}
 
@@ -595,6 +593,7 @@ void CxbxKrnlInit
 	CxbxKrnl_hEmuParent = IsWindow(hwndParent) ? hwndParent : NULL;
 	CxbxKrnl_DebugMode = DbgMode;
 	CxbxKrnl_DebugFileName = (char*)szDebugFilename;
+	g_pCertificate = (Xbe::Certificate *)(CxbxKrnl_XbeHeader->dwCertificateAddr);
 	// for unicode conversions
 	setlocale(LC_ALL, "English");
 	g_CurrentProcessHandle = GetCurrentProcess();
@@ -735,7 +734,7 @@ void CxbxKrnlInit
 	std::string xbeDirectory(szBuffer);
 	CxbxBasePathHandle = CreateFile(CxbxBasePath.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
 	memset(szBuffer, 0, MAX_PATH);
-	sprintf(szBuffer, "%08X", ((Xbe::Certificate*)pXbeHeader->dwCertificateAddr)->dwTitleId);
+	sprintf(szBuffer, "%08X", g_pCertificate->dwTitleId);
 	std::string titleId(szBuffer);
 	// Games may assume they are running from CdRom :
 	CxbxDefaultXbeDriveIndex = CxbxRegisterDeviceHostPath(DeviceCdrom0, xbeDirectory);
@@ -787,11 +786,10 @@ void CxbxKrnlInit
 	// Dump Xbe information
 	{
 		// Dump Xbe certificate
-		Xbe::Certificate *pCertificate = (Xbe::Certificate*)(pXbeHeader->dwCertificateAddr);
-		if (pCertificate != NULL) {
-			printf("EmuMain : XBE TitleID : %p\n", pCertificate->dwTitleId);
-			printf("EmuMain : XBE TitleName : %ls\n", pCertificate->wszTitleName);
-			printf("EmuMain : XBE Region : %s\n", GameRegionToString(pCertificate->dwGameRegion));
+		if (g_pCertificate != NULL) {
+			printf("EmuMain : XBE TitleID : %p\n", g_pCertificate->dwTitleId);
+			printf("EmuMain : XBE TitleName : %ls\n", g_pCertificate->wszTitleName);
+			printf("EmuMain : XBE Region : %s\n", GameRegionToString(g_pCertificate->dwGameRegion));
 		}
 
 		// Dump Xbe library build numbers
