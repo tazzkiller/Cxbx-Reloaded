@@ -1036,11 +1036,13 @@ DWORD WINAPI XTL::EMUPATCH(XGetLaunchInfo)
 )
 {
 	FUNC_EXPORTS
+
 	// TODO : This patch can be removed once we're sure all XAPI library
 	// functions indirectly reference our xboxkrnl::LaunchDataPage variable.
 	// For this, we need a test-case that hits this function, and run that
 	// with and without this patch enabled. Behavior should be identical.
 	// When this is verified, this patch can be removed.
+	LOG_TEST_CASE("Unpatching test needed");
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pdwLaunchDataType)

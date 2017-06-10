@@ -6048,7 +6048,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				if (PixelJar.bIsBorderTexture)
 				{
 					if (face == 0 && level == 0 && slice == 0) // Log warning only once per resource
-						EmuWarning("Ignoring D3DFORMAT_BORDERSOURCE_COLOR"); // We need to know test-cases that log this
+						LOG_TEST_CASE("Ignoring D3DFORMAT_BORDERSOURCE_COLOR"); // We need to know test-cases that log this
 
 					// TODO: Emulate X_D3DFORMAT_BORDERSOURCE_COLOR (allows a border to be drawn maybe hack this in software?)
 				}
@@ -7965,7 +7965,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 		if (VPDesc.XboxPrimitiveType == X_D3DPT_LINELOOP)
 		{
 			// Close line-loops using a final single line, drawn from the end to the start vertex
-			// TODO : Text-cases needed
+			LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Text-cases needed
 
 			/* TODO : Is this necessary?
 			IDirect3DIndexBuffer8 *CurrentIndexBuffer;
@@ -8062,7 +8062,7 @@ void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 			if (VPDesc.XboxPrimitiveType == X_D3DPT_LINELOOP)
 			{
 				// Close line-loops using a final single line, drawn from the end to the start vertex
-				// TODO : Test-case needed
+				LOG_TEST_CASE("X_D3DPT_LINELOOP");
 
 				IDirect3DIndexBuffer8 *CurrentIndexBuffer;
 				UINT CurrentBaseVertexIndex;
@@ -8341,7 +8341,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 		if (VPDesc.XboxPrimitiveType == X_D3DPT_LINELOOP)
 		{
 			// Close line-loops using a final single line, drawn from the end to the start vertex
-			// TODO : Which XDK samples / titles reach this case?
+			LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Which XDK samples / titles reach this case?
 
 			WORD DxbxClosingLineIndices[2];
 

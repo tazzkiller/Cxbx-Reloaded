@@ -522,7 +522,8 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
 				break;
 			}
 			case X_D3DVSDT_NORMSHORT1: { // 0x11: // Make it FLOAT1
-				// UNTESTED - Need test-case!
+				LOG_TEST_CASE("X_D3DVSDT_NORMSHORT1"); // UNTESTED - Need test-case!
+
 				((FLOAT *)pNewDataPos)[0] = ((FLOAT)((SHORT*)pOrigVertex)[0]) / 32767.0f;
 				//((FLOAT *)pNewDataPos)[1] = 0.0f; // Would be needed for FLOAT2
 				pOrigVertex += 1 * sizeof(SHORT);
@@ -530,7 +531,7 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
 			}
 #if !DXBX_USE_D3D9 // No need for patching in D3D9
 			case X_D3DVSDT_NORMSHORT2: { // 0x21: // Make it FLOAT2
-				// UNTESTED - Need test-case!
+				LOG_TEST_CASE("X_D3DVSDT_NORMSHORT2"); // UNTESTED - Need test-case!
 				((FLOAT *)pNewDataPos)[0] = ((FLOAT)((SHORT*)pOrigVertex)[0]) / 32767.0f;
 				((FLOAT *)pNewDataPos)[1] = ((FLOAT)((SHORT*)pOrigVertex)[1]) / 32767.0f;
 				pOrigVertex += 2 * sizeof(SHORT);
@@ -538,7 +539,7 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
 			}
 #endif
 			case X_D3DVSDT_NORMSHORT3: { // 0x31: // Make it FLOAT3
-				// UNTESTED - Need test-case!
+				LOG_TEST_CASE("X_D3DVSDT_NORMSHORT3"); // UNTESTED - Need test-case!
 				((FLOAT *)pNewDataPos)[0] = ((FLOAT)((SHORT*)pOrigVertex)[0]) / 32767.0f;
 				((FLOAT *)pNewDataPos)[1] = ((FLOAT)((SHORT*)pOrigVertex)[1]) / 32767.0f;
 				((FLOAT *)pNewDataPos)[2] = ((FLOAT)((SHORT*)pOrigVertex)[2]) / 32767.0f;
@@ -547,7 +548,7 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
 			}
 #if !DXBX_USE_D3D9 // No need for patching in D3D9
 			case X_D3DVSDT_NORMSHORT4: { // 0x41: // Make it FLOAT4
-				// UNTESTED - Need test-case!
+				LOG_TEST_CASE("X_D3DVSDT_NORMSHORT4"); // UNTESTED - Need test-case!
 				((FLOAT *)pNewDataPos)[0] = ((FLOAT)((SHORT*)pOrigVertex)[0]) / 32767.0f;
 				((FLOAT *)pNewDataPos)[1] = ((FLOAT)((SHORT*)pOrigVertex)[1]) / 32767.0f;
 				((FLOAT *)pNewDataPos)[2] = ((FLOAT)((SHORT*)pOrigVertex)[2]) / 32767.0f;
@@ -797,7 +798,7 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
         case X_D3DPT_POLYGON:
 	        // Convex polygon is the same as a triangle fan.
             // No need to set : pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLEFAN;
-			// TODO : Test-case needed
+			LOG_TEST_CASE("X_D3DPT_POLYGON");
 			break;
     }
 
@@ -898,6 +899,8 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 		if ((pPatchDesc->hVertexShader & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW)
 		// Was : if (pPatchDesc->hVertexShader & D3DFVF_XYZRHW)
         {
+			LOG_TEST_CASE("D3DFVF_XYZRHW");
+
             for(int z = 0; z < TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE; z++)
             {
 				FLOAT *data = (FLOAT*)(&pPatch0[pStream->uiOrigStride * z]);
