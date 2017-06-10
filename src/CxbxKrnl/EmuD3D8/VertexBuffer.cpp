@@ -896,22 +896,24 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
         memcpy(pPatch4, pOrig3, pStream->uiOrigStride);     // Vertex 4     := Vertex 3
         memcpy(pPatch5, pOrig0, pStream->uiOrigStride);     // Vertex 5     := Vertex 0
 
+		// Handle pre-transformed vertices (which bypass the vertex shader pipeline)
 		if ((pPatchDesc->hVertexShader & D3DFVF_POSITION_MASK) == D3DFVF_XYZRHW)
-		// Was : if (pPatchDesc->hVertexShader & D3DFVF_XYZRHW)
         {
-			LOG_TEST_CASE("D3DFVF_XYZRHW");
-
             for(int z = 0; z < TRIANGLES_PER_QUAD * VERTICES_PER_TRIANGLE; z++)
             {
 				FLOAT *data = (FLOAT*)(&pPatch0[pStream->uiOrigStride * z]);
 
-				// TODO : Is this Z? And why reset from 0.0 to 1.0 ?
-                if (data[2] == 0.0f)
+				// Check Z. TODO : Why reset Z from 0.0 to 1.0 ? (Maybe fog-related?)
+				if (data[2] == 0.0f) {
+					// LOG_TEST_CASE("D3DFVF_XYZRHW (Z)"); // Test-case : Many XDK Samples (AlphaFog, PointSprites)
 					data[2] = 1.0f;
+				}
 
-				// TODO : Is this R, H or W? And why reset from 0.0 to 1.0 ?
-                if (data[3] == 0.0f)
+				// Check RHW. TODO : Why reset from 0.0 to 1.0 ? (Maybe 1.0 indicates that the vertices are not to be transformed)
+				if (data[3] == 0.0f) {
+					// LOG_TEST_CASE("D3DFVF_XYZRHW (RHW)"); // Test-case : Many XDK Samples (AlphaFog, PointSprites)
 					data[3] = 1.0f;
+				}
             }
         }
 
