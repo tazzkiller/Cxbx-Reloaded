@@ -112,6 +112,9 @@ typedef uint32 xbaddr;
 #define VECTOR2IRQL(vector) (PROFILE_LEVEL - VECTOR2IRQ(vector))
 
 void CxbxPopupMessage(const char *message, ...);
+
+#define LOG_TEST_CASE(message) do { static bool bPopupShown = false; if (!bPopupShown) { bPopupShown = true; CxbxPopupMessage("Please report that %ls shows this test-case: %s\nIn %s (%s)", g_pCertificate->wszTitleName, message, __func__, __FILE__); } } while(0)
+
 extern Xbe::Certificate *g_pCertificate;
 
 
