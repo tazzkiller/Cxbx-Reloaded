@@ -335,10 +335,17 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 
 #pragma optimize("", off)
 
-void CxbxPopupMessage(const char *message)
+void CxbxPopupMessage(const char *message, ...)
 {
-	DbgPrintf("Popup : %s\n", message);
-	MessageBox(NULL, message, TEXT("Cxbx-Reloaded"), MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST | MB_SETFOREGROUND);
+	char Buffer[1024];
+	va_list argp;
+
+	va_start(argp, message);
+	vsprintf(Buffer, message, argp);
+	va_end(argp);
+
+	DbgPrintf("Popup : %s\n", Buffer);
+	MessageBox(NULL, Buffer, TEXT("Cxbx-Reloaded"), MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST | MB_SETFOREGROUND);
 }
 
 void CxbxKrnlMain(int argc, char* argv[])
@@ -946,21 +953,14 @@ void CxbxKrnlCleanup(const char *szErrorMessage, ...)
     // print out error message (if exists)
     if(szErrorMessage != NULL)
     {
-        char szBuffer1[255];
-        char szBuffer2[255];
-
+        char szBuffer2[1024];
         va_list argp;
-
-        sprintf(szBuffer1, "[0x%X] EmuMain: Received Fatal Message:\n\n* ", GetCurrentThreadId());
 
         va_start(argp, szErrorMessage);
         vsprintf(szBuffer2, szErrorMessage, argp);
         va_end(argp);
 
-        strcat(szBuffer1, szBuffer2);
-        strcat(szBuffer1, "\n");
-
-		CxbxPopupMessage(szBuffer1); // Will also DbgPrintf
+		CxbxPopupMessage("[0x%X] EmuMain: Received Fatal Message:\n\n* %s\n", GetCurrentThreadId(), szBuffer2); // Will also DbgPrintf
     }
 
     printf("CxbxKrnl: Terminating Process\n");
