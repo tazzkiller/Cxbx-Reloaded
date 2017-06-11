@@ -7870,19 +7870,20 @@ void CxbxDrawIndexedClosingLine(WORD FromIndex, WORD ToIndex)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-	static XTL::IDirect3DIndexBuffer8 *ClosingLineLoopIndexBuffer = nullptr;
-
 	HRESULT hRet;
+
+	static XTL::IDirect3DIndexBuffer8 *ClosingLineLoopIndexBuffer = nullptr;
+	const UINT uiIndexBufferSize = sizeof(WORD) * 2; // 4 bytes needed for 2 indices
 
 	if (ClosingLineLoopIndexBuffer == nullptr)
 	{
-		hRet = g_pD3DDevice8->CreateIndexBuffer(2, D3DUSAGE_WRITEONLY, XTL::D3DFMT_INDEX16, XTL::D3DPOOL_DEFAULT, &ClosingLineLoopIndexBuffer);
+		hRet = g_pD3DDevice8->CreateIndexBuffer(uiIndexBufferSize, D3DUSAGE_WRITEONLY, XTL::D3DFMT_INDEX16, XTL::D3DPOOL_DEFAULT, &ClosingLineLoopIndexBuffer);
 		if (FAILED(hRet))
 			CxbxKrnlCleanup("Unable to create index buffer for D3DPT_LINELOOP emulation");
 	}
 
 	WORD *DxbxClosingLineIndices;
-	hRet = ClosingLineLoopIndexBuffer->Lock(0, 2, (BYTE **)(&DxbxClosingLineIndices), D3DLOCK_DISCARD);
+	hRet = ClosingLineLoopIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE **)(&DxbxClosingLineIndices), D3DLOCK_DISCARD);
 	DEBUG_D3DRESULT(hRet, "ClosingLineLoopIndexBuffer->Lock");
 
 	DxbxClosingLineIndices[0] = FromIndex;
