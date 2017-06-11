@@ -184,10 +184,8 @@ extern void XTL::EmuExecutePushBufferRaw
     }
     #endif
 
-    static LPDIRECT3DINDEXBUFFER8  pIndexBuffer = nullptr;
-    // static LPDIRECT3DVERTEXBUFFER8 pVertexBuffer = nullptr;
-
-    static uint maxIBSize = 0;
+    static IDirect3DIndexBuffer8 *pIndexBuffer = nullptr;
+    static uint uiIndexBufferMaxSize = 0;
 
     while(true)
     {
@@ -363,17 +361,17 @@ extern void XTL::EmuExecutePushBufferRaw
 				UINT uiIndexCount = dwCount + 2;
 				UINT uiIndexBufferSize = sizeof(INDEX16) * uiIndexCount;
 
-                // TODO: depreciate maxIBSize after N milliseconds..then N milliseconds later drop down to new highest
-                if(maxIBSize < uiIndexBufferSize)
+                // TODO: depreciate uiIndexBufferMaxSize after N milliseconds..then N milliseconds later drop down to new highest
+                if(uiIndexBufferMaxSize < uiIndexBufferSize)
                 {
                     if(pIndexBuffer != nullptr)
                         pIndexBuffer->Release();
 
-					HRESULT hRet = g_pD3DDevice8->CreateIndexBuffer(uiIndexBufferSize, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &pIndexBuffer);
+					HRESULT hRet = g_pD3DDevice8->CreateIndexBuffer(uiIndexBufferSize, 0/*D3DUSAGE_DYNAMIC?*/, D3DFMT_INDEX16, D3DPOOL_MANAGED, &pIndexBuffer);
 					if(FAILED(hRet))
 						CxbxKrnlCleanup("Unable to create index buffer for PushBuffer emulation (0x1808, dwCount : %d)", dwCount);
 
-                    maxIBSize = uiIndexBufferSize;
+                    uiIndexBufferMaxSize = uiIndexBufferSize;
                 }
 
                 // copy index data
@@ -381,7 +379,7 @@ extern void XTL::EmuExecutePushBufferRaw
 					INDEX16* pIndexBufferData = nullptr;
 
                     pIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE**)(&pIndexBufferData), D3DLOCK_DISCARD);
-                    memcpy(pIndexBufferData, pIBMem, uiIndexBufferSize);
+					memcpy(pIndexBufferData, pIBMem, uiIndexBufferSize); // TODO : This doesn't look right - pIBMem is only 4 elements long!!
                     pIndexBuffer->Unlock();
                 }
 
@@ -463,16 +461,6 @@ extern void XTL::EmuExecutePushBufferRaw
 
                 pActiveVB->GetDesc(&VBDesc);
 
-#if 0
-				// unlock just in case
-                pActiveVB->Unlock();
-
-                // grab ptr
-                BYTE *pVBData = 0;
-
-                pActiveVB->Lock(0, 0, &pVBData, D3DLOCK_READONLY);
-#endif
-
                 // print out stream data
                 {
                     printf("\n");
@@ -484,10 +472,6 @@ extern void XTL::EmuExecutePushBufferRaw
                     printf("\n");
                 }
 
-#if 0
-                // release ptr
-                pActiveVB->Unlock();
-#endif
 				pActiveVB->Release(); // Was absent (thus leaked memory)
 
                 DbgDumpMesh((INDEX16*)pIndexData, dwCount);
@@ -501,8 +485,8 @@ extern void XTL::EmuExecutePushBufferRaw
 				UINT dwIndexCount = dwCount;
 				UINT uiIndexBufferSize = sizeof(INDEX16) * dwIndexCount;
 
-                // TODO: depreciate maxIBSize after N milliseconds..then N milliseconds later drop down to new highest
-                if(maxIBSize < uiIndexBufferSize)
+                // TODO: depreciate uiIndexBufferMaxSize after N milliseconds..then N milliseconds later drop down to new highest
+                if(uiIndexBufferMaxSize < uiIndexBufferSize)
                 {
                     if(pIndexBuffer != nullptr)
                         pIndexBuffer->Release();
@@ -511,7 +495,7 @@ extern void XTL::EmuExecutePushBufferRaw
 					if(FAILED(hRet))
 						CxbxKrnlCleanup("Unable to create index buffer for PushBuffer emulation (0x1800, dwCount : %d)", dwCount);
 
-                    maxIBSize = uiIndexBufferSize;
+                    uiIndexBufferMaxSize = uiIndexBufferSize;
                 }
 
                 // copy index data
@@ -522,7 +506,7 @@ extern void XTL::EmuExecutePushBufferRaw
                     memcpy(pIndexBufferData, pIndexData, uiIndexBufferSize);
 
                     // remember last 2 indices
-                    if(dwCount >= 2)
+                    if(dwCount >= 2) // TODO : Is 2 indices enough for all primitive types?
                     {
                         pIBMem[0] = pIndexBufferData[dwCount - 2];
                         pIBMem[1] = pIndexBufferData[dwCount - 1];
