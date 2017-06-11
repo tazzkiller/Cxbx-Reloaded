@@ -44,7 +44,7 @@ typedef struct _VertexPatchDesc
     IN OUT X_D3DPRIMITIVETYPE    XboxPrimitiveType;
     IN     DWORD                 dwVertexCount;
     OUT    DWORD                 dwPrimitiveCount;
-    IN     DWORD                 dwOffset; // TODO : OUT ?
+    IN     DWORD                 dwOffset;
     // Data if Draw...UP call
     IN OUT PVOID                 pVertexStreamZeroData;
     IN     UINT                  uiVertexStreamZeroStride; // TODO : OUT ?
