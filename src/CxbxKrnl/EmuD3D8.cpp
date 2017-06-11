@@ -6047,8 +6047,10 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 				if (PixelJar.bIsBorderTexture)
 				{
-					if (face == 0 && level == 0 && slice == 0) // Log warning only once per resource
-						LOG_TEST_CASE("Ignoring D3DFORMAT_BORDERSOURCE_COLOR"); // We need to know test-cases that log this
+					if (face == 0 && level == 0 && slice == 0) { // Log warning only once per resource
+						EmuWarning("Ignoring D3DFORMAT_BORDERSOURCE_COLOR");
+						// LOG_TEST_CASE Test case : Fuzion Frenzy
+					}
 
 					// TODO: Emulate X_D3DFORMAT_BORDERSOURCE_COLOR (allows a border to be drawn maybe hack this in software?)
 				}
