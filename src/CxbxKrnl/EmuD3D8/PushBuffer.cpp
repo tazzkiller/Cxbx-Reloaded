@@ -361,27 +361,27 @@ extern void XTL::EmuExecutePushBufferRaw
             if(pIBMem[0] != 0xFFFF)
             {
 				DWORD dwIndexCount = dwCount + 2;
-				DWORD dwIndexBufferSize = dwIndexCount * sizeof(WORD);
+				UINT uiIndexBufferSize = dwIndexCount * sizeof(WORD);
 
                 // TODO: depreciate maxIBSize after N milliseconds..then N milliseconds later drop down to new highest
-                if(maxIBSize < dwIndexBufferSize)
+                if(maxIBSize < uiIndexBufferSize)
                 {
                     if(pIndexBuffer != nullptr)
                         pIndexBuffer->Release();
 
-					HRESULT hRet = g_pD3DDevice8->CreateIndexBuffer(dwIndexBufferSize, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &pIndexBuffer);
+					HRESULT hRet = g_pD3DDevice8->CreateIndexBuffer(uiIndexBufferSize, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &pIndexBuffer);
 					if(FAILED(hRet))
 						CxbxKrnlCleanup("Unable to create index buffer for PushBuffer emulation (0x1808, dwCount : %d)", dwCount);
 
-                    maxIBSize = dwIndexBufferSize;
+                    maxIBSize = uiIndexBufferSize;
                 }
 
                 // copy index data
                 {
                     WORD *pData = nullptr;
 
-                    pIndexBuffer->Lock(0, dwIndexBufferSize, (BYTE**)(&pData), D3DLOCK_DISCARD);
-                    memcpy(pData, pIBMem, dwIndexBufferSize);
+                    pIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE**)(&pData), D3DLOCK_DISCARD);
+                    memcpy(pData, pIBMem, uiIndexBufferSize);
                     pIndexBuffer->Unlock();
                 }
 
@@ -499,27 +499,27 @@ extern void XTL::EmuExecutePushBufferRaw
             // perform rendering
             {
 				DWORD dwIndexCount = dwCount;
-				DWORD dwIndexBufferSize = dwIndexCount * sizeof(WORD);
+				UINT uiIndexBufferSize = dwIndexCount * sizeof(WORD);
 
                 // TODO: depreciate maxIBSize after N milliseconds..then N milliseconds later drop down to new highest
-                if(maxIBSize < dwIndexBufferSize)
+                if(maxIBSize < uiIndexBufferSize)
                 {
                     if(pIndexBuffer != nullptr)
                         pIndexBuffer->Release();
 
-					HRESULT hRet = g_pD3DDevice8->CreateIndexBuffer(dwIndexBufferSize, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &pIndexBuffer);
+					HRESULT hRet = g_pD3DDevice8->CreateIndexBuffer(uiIndexBufferSize, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &pIndexBuffer);
 					if(FAILED(hRet))
 						CxbxKrnlCleanup("Unable to create index buffer for PushBuffer emulation (0x1800, dwCount : %d)", dwCount);
 
-                    maxIBSize = dwIndexBufferSize;
+                    maxIBSize = uiIndexBufferSize;
                 }
 
                 // copy index data
                 {
                     WORD *pData = nullptr;
 
-                    pIndexBuffer->Lock(0, dwIndexBufferSize, (BYTE **)(&pData), D3DLOCK_DISCARD);
-                    memcpy(pData, pIndexData, dwIndexBufferSize);
+                    pIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE **)(&pData), D3DLOCK_DISCARD);
+                    memcpy(pData, pIndexData, uiIndexBufferSize);
 
                     // remember last 2 indices
                     if(dwCount >= 2)

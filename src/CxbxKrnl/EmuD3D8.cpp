@@ -2711,11 +2711,11 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 	if (IndexCount == 0)
 		return nullptr;
 
-	uint IndexBufferSize = IndexCount * sizeof(WORD);
+	uint uiIndexBufferSize = IndexCount * sizeof(WORD);
 
 	// TODO : Don't hash every time (peek at how the vertex buffer cache avoids this)
 	uint32_t uiHash = 0; // TODO : seed with characteristics
-	uiHash = XXHash32::hash((void *)pIndexBufferData, (uint64_t)IndexBufferSize, uiHash);
+	uiHash = XXHash32::hash((void *)pIndexBufferData, (uint64_t)uiIndexBufferSize, uiHash);
 
 	// TODO : Lock this
 
@@ -2746,7 +2746,7 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 
 	// Create a new native index buffer of the above determined size :
 	HRESULT hRet = g_pD3DDevice8->CreateIndexBuffer(
-		IndexBufferSize,
+		uiIndexBufferSize,
 		D3DUSAGE_WRITEONLY,
 		XTL::D3DFMT_INDEX16,
 		XTL::D3DPOOL_MANAGED,
@@ -2764,7 +2764,7 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 	if (pData == nullptr)
 		CxbxKrnlCleanup("CxbxUpdateIndexBuffer: Could not lock index buffer!");
 
-	memcpy(pData, pIndexBufferData, IndexBufferSize);
+	memcpy(pData, pIndexBufferData, uiIndexBufferSize);
 	hRet = result->Unlock();
 	DEBUG_D3DRESULT(hRet, "result->Unlock");
 
@@ -7977,9 +7977,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 
 				/* TODO : Is this necessary?
 				IDirect3DIndexBuffer8 *CurrentIndexBuffer;
-				UINT CurrentBaseVertexIndex;
+				UINT uiCurrentBaseVertexIndex;
 
-				hRet = g_pD3DDevice8->GetIndices(&CurrentIndexBuffer, &CurrentBaseVertexIndex);
+				hRet = g_pD3DDevice8->GetIndices(&CurrentIndexBuffer, &uiCurrentBaseVertexIndex);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetIndices");
 				*/
 
@@ -7987,7 +7987,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 				CxbxDrawIndexedClosingLine((WORD)(VPDesc.dwOffset + VPDesc.dwPrimitiveCount), (WORD)VPDesc.dwOffset);
 
 				/* TODO : Is this necessary?
-				hRet = g_pD3DDevice8->SetIndices(CurrentIndexBuffer, CurrentBaseVertexIndex);
+				hRet = g_pD3DDevice8->SetIndices(CurrentIndexBuffer, uiCurrentBaseVertexIndex);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetIndices");
 				*/
 			}
@@ -8088,9 +8088,9 @@ void DxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
 
 		// Create a new native index buffer of the above determined size :
 		UINT NrOfTriangleVertices = QuadToTriangleVertexCount(QuadToTriangleD3DIndexBuffer_Size);
-		UINT Length = NrOfTriangleVertices * sizeof(WORD);
+		UINT uiIndexBufferSize = NrOfTriangleVertices * sizeof(WORD);
 		hRet = g_pD3DDevice8->CreateIndexBuffer(
-			Length,
+			uiIndexBufferSize,
 			D3DUSAGE_WRITEONLY,
 			XTL::D3DFMT_INDEX16,
 			XTL::D3DPOOL_MANAGED,
@@ -8102,13 +8102,13 @@ void DxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
 
 		// Put quadlist-to-triangle-list index mappings into this buffer :
 		WORD* pwData = nullptr;
-		hRet = QuadToTriangleD3DIndexBuffer->Lock(0, Length, (BYTE **)&pwData, D3DLOCK_DISCARD);
+		hRet = QuadToTriangleD3DIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE **)&pwData, D3DLOCK_DISCARD);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateIndexBuffer");
 		
 		if (pwData == nullptr)
 			CxbxKrnlCleanup("DxbxAssureQuadListD3DIndexBuffer : Could not lock index buffer!");
 
-		memcpy(pwData, DxbxAssureQuadListIndexBuffer(NrOfQuadVertices), Length);
+		memcpy(pwData, DxbxAssureQuadListIndexBuffer(NrOfQuadVertices), uiIndexBufferSize);
 
 		QuadToTriangleD3DIndexBuffer->Unlock();
 	}
@@ -8181,14 +8181,14 @@ void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 				// Close line-loops using a final single line, drawn from the end to the start vertex
 				LOG_TEST_CASE("X_D3DPT_LINELOOP");
 
-				IDirect3DIndexBuffer8 *CurrentIndexBuffer;
-				UINT CurrentBaseVertexIndex;
+				IDirect3DIndexBuffer8 *pCurrentIndexBuffer = nullptr;
+				UINT uiCurrentBaseVertexIndex = 0;
 
-				hRet = g_pD3DDevice8->GetIndices(&CurrentIndexBuffer, &CurrentBaseVertexIndex);
+				hRet = g_pD3DDevice8->GetIndices(&pCurrentIndexBuffer, &uiCurrentBaseVertexIndex);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetIndices");
 
-				WORD *CurrentLineIndices;
-				hRet = CurrentIndexBuffer->Lock(VPDesc.dwOffset, 0, (BYTE **)(&CurrentLineIndices), D3DLOCK_DISCARD);
+				WORD *CurrentLineIndices = nullptr;
+				hRet = pCurrentIndexBuffer->Lock(sizeof(WORD) * VPDesc.dwOffset, 0, (BYTE **)(&CurrentLineIndices), D3DLOCK_DISCARD);
 				DEBUG_D3DRESULT(hRet, "CurrentIndexBuffer->Lock");
 
 				// Close line-loops using a final single line, drawn from the end to the start vertex :
@@ -8196,10 +8196,10 @@ void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 				CxbxClosingLineIndices[0] = CurrentLineIndices[0];
 				CxbxClosingLineIndices[1] = CurrentLineIndices[VPDesc.dwPrimitiveCount]; // TODO : Is this the correct ending offset?
 
-				hRet = CurrentIndexBuffer->Unlock();
+				hRet = pCurrentIndexBuffer->Unlock();
 				DEBUG_D3DRESULT(hRet, "CurrentIndexBuffer->Unlock");
 
-				CurrentIndexBuffer->Release();
+				pCurrentIndexBuffer->Release();
 
 				CxbxDrawIndexedClosingLine(CxbxClosingLineIndices[0], CxbxClosingLineIndices[1]);
 			}
