@@ -114,7 +114,8 @@ static DWORD						g_CallbackParam;		// Callback param
 static BOOL                         g_bHasDepthStencilSurface = FALSE; // Does device have a Depth/Stencil surface?
 static BOOL                         g_bHasDepthBits = FALSE;    // Has the Depth/Stencil surface a depth component?
 static BOOL                         g_bHasStencilBits = FALSE;  // Has the Depth/Stencil surface a stencil component?
-//static DWORD						g_dwPrimPerFrame = 0;	// Number of primitives within one frame
+static DWORD						g_dwPrimPerFrame = 0;	// Number of primitives within one frame
+
 
 // D3D based variables
 static GUID                         g_ddguid;               // DirectDraw driver GUID
@@ -4906,22 +4907,22 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Begin)
 
 	LOG_FUNC_ONE_ARG(PrimitiveType);
 
-    g_IVBPrimitiveType = PrimitiveType;
+    g_InlineVertexBuffer_PrimitiveType = PrimitiveType;
 
-    if(g_IVBTable == nullptr)
+    if(g_InlineVertexBuffer_Table == nullptr)
     {
-        g_IVBTable = (struct XTL::_D3DIVB*)g_MemoryManager.Allocate(sizeof(XTL::_D3DIVB)*IVB_TABLE_SIZE);
+        g_InlineVertexBuffer_Table = (struct XTL::_D3DIVB*)g_MemoryManager.Allocate(INLINE_VERTEX_BUFFER_TABLE_SIZE);
     }
 
-    g_IVBTblOffs = 0;
-    g_IVBFVF = 0;
+    g_InlineVertexBuffer_TableOffset = 0;
+    g_InlineVertexBuffer_FVF = 0;
 
     // default values
-    memset(g_IVBTable, 0, sizeof(XTL::_D3DIVB)*IVB_TABLE_SIZE);
+    memset(g_InlineVertexBuffer_Table, 0, INLINE_VERTEX_BUFFER_TABLE_SIZE);
 
-    if(g_pIVBVertexBuffer == nullptr)
+    if(g_InlineVertexBuffer_pdwData == nullptr)
     {
-        g_pIVBVertexBuffer = (DWORD*)g_MemoryManager.Allocate(IVB_BUFFER_SIZE);
+		g_InlineVertexBuffer_pdwData = (DWORD*)g_MemoryManager.Allocate(sizeof(DWORD) * INLINE_VERTEX_BUFFER_SIZE);
     }
 
     
@@ -4983,10 +4984,10 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 
     HRESULT hRet = D3D_OK;
 
-	int o = g_IVBTblOffs;
+	int o = g_InlineVertexBuffer_TableOffset;
 
-	if (o >= IVB_TABLE_SIZE) {
-		CxbxKrnlCleanup("Overflow g_IVBTblOffs : %d", o);
+	if (o >= INLINE_VERTEX_BUFFER_SIZE) {
+		CxbxKrnlCleanup("Overflow g_InlineVertexBuffer_TableOffset : %d", o);
 	}
 
     switch(Register)
@@ -4995,39 +4996,39 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 
         case X_D3DVSDE_POSITION:
         {
-            g_IVBTable[o].Position.x = a;
-            g_IVBTable[o].Position.y = b;
-            g_IVBTable[o].Position.z = c;
-            g_IVBTable[o].Rhw = d; // Was : 1.0f; // Dxbx note : Why set Rhw to 1.0? And why ignore d?
+            g_InlineVertexBuffer_Table[o].Position.x = a;
+            g_InlineVertexBuffer_Table[o].Position.y = b;
+            g_InlineVertexBuffer_Table[o].Position.z = c;
+            g_InlineVertexBuffer_Table[o].Rhw = d; // Was : 1.0f; // Dxbx note : Why set Rhw to 1.0? And why ignore d?
 
-            g_IVBTblOffs++;
+            g_InlineVertexBuffer_TableOffset++;
 
-            g_IVBFVF |= D3DFVF_XYZRHW;
+            g_InlineVertexBuffer_FVF |= D3DFVF_XYZRHW;
 	        break;
         }
 
 		case X_D3DVSDE_BLENDWEIGHT:
 		{
-            g_IVBTable[o].Position.x = a;
-            g_IVBTable[o].Position.y = b;
-            g_IVBTable[o].Position.z = c;
-			g_IVBTable[o].Blend1 = d;
+            g_InlineVertexBuffer_Table[o].Position.x = a;
+            g_InlineVertexBuffer_Table[o].Position.y = b;
+            g_InlineVertexBuffer_Table[o].Position.z = c;
+			g_InlineVertexBuffer_Table[o].Blend1 = d;
 
-            g_IVBTblOffs++;
+            g_InlineVertexBuffer_TableOffset++;
 
-            g_IVBFVF |= D3DFVF_XYZB1;
+            g_InlineVertexBuffer_FVF |= D3DFVF_XYZB1;
 		    break;
         }
 
 		case X_D3DVSDE_NORMAL:
         {
-            g_IVBTable[o].Normal.x = a;
-            g_IVBTable[o].Normal.y = b;
-            g_IVBTable[o].Normal.z = c;
+            g_InlineVertexBuffer_Table[o].Normal.x = a;
+            g_InlineVertexBuffer_Table[o].Normal.y = b;
+            g_InlineVertexBuffer_Table[o].Normal.z = c;
 
-            g_IVBTblOffs++;
+            g_InlineVertexBuffer_TableOffset++;
 
-            g_IVBFVF |= D3DFVF_NORMAL;
+            g_InlineVertexBuffer_FVF |= D3DFVF_NORMAL;
 			break;
         }
 
@@ -5038,9 +5039,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
             DWORD cg = FtoDW(b) << 8;
             DWORD cb = FtoDW(c) << 0;
 
-            g_IVBTable[o].Diffuse = ca | cr | cg | cb;
+            g_InlineVertexBuffer_Table[o].Diffuse = ca | cr | cg | cb;
 
-            g_IVBFVF |= D3DFVF_DIFFUSE;
+            g_InlineVertexBuffer_FVF |= D3DFVF_DIFFUSE;
 			break;
         }
 
@@ -5051,9 +5052,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
             DWORD cg = FtoDW(b) << 8;
             DWORD cb = FtoDW(c) << 0;
 
-            g_IVBTable[o].Specular = ca | cr | cg | cb;
+            g_InlineVertexBuffer_Table[o].Specular = ca | cr | cg | cb;
 
-            g_IVBFVF |= D3DFVF_SPECULAR;
+            g_InlineVertexBuffer_FVF |= D3DFVF_SPECULAR;
 			break;
         }
 
@@ -5070,13 +5071,13 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 
 		case X_D3DVSDE_TEXCOORD0:
         {
-            g_IVBTable[o].TexCoord1.x = a;
-            g_IVBTable[o].TexCoord1.y = b;
+            g_InlineVertexBuffer_Table[o].TexCoord1.x = a;
+            g_InlineVertexBuffer_Table[o].TexCoord1.y = b;
 
-            if( (g_IVBFVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX1)
+            if( (g_InlineVertexBuffer_FVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX1)
             {
 				// Dxbx fix : Use mask, else the format might get expanded incorrectly :
-				g_IVBFVF = (g_IVBFVF & ~D3DFVF_TEXCOUNT_MASK) | D3DFVF_TEX1;
+				g_InlineVertexBuffer_FVF = (g_InlineVertexBuffer_FVF & ~D3DFVF_TEXCOUNT_MASK) | D3DFVF_TEX1;
 				// Dxbx note : Correct usage of D3DFVF_TEX1 (and the other cases below)
 				// can be tested with "Daphne Xbox" (the Laserdisc Arcade Game Emulator).
 			}
@@ -5086,13 +5087,13 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 
 		case X_D3DVSDE_TEXCOORD1:
         {
-            g_IVBTable[o].TexCoord2.x = a;
-            g_IVBTable[o].TexCoord2.y = b;
+            g_InlineVertexBuffer_Table[o].TexCoord2.x = a;
+            g_InlineVertexBuffer_Table[o].TexCoord2.y = b;
 
-            if( (g_IVBFVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX2)
+            if( (g_InlineVertexBuffer_FVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX2)
             {
 				// Dxbx fix : Use mask, else the format might get expanded incorrectly :
-				g_IVBFVF = (g_IVBFVF & ~D3DFVF_TEXCOUNT_MASK) | D3DFVF_TEX2;
+				g_InlineVertexBuffer_FVF = (g_InlineVertexBuffer_FVF & ~D3DFVF_TEXCOUNT_MASK) | D3DFVF_TEX2;
 			}
 
 			break;
@@ -5100,13 +5101,13 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 
 		case X_D3DVSDE_TEXCOORD2:
         {
-            g_IVBTable[o].TexCoord3.x = a;
-            g_IVBTable[o].TexCoord3.y = b;
+            g_InlineVertexBuffer_Table[o].TexCoord3.x = a;
+            g_InlineVertexBuffer_Table[o].TexCoord3.y = b;
 
-            if( (g_IVBFVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX3)
+            if( (g_InlineVertexBuffer_FVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX3)
             {
 				// Dxbx fix : Use mask, else the format might get expanded incorrectly :
-				g_IVBFVF = (g_IVBFVF & ~D3DFVF_TEXCOUNT_MASK) | D3DFVF_TEX3;
+				g_InlineVertexBuffer_FVF = (g_InlineVertexBuffer_FVF & ~D3DFVF_TEXCOUNT_MASK) | D3DFVF_TEX3;
 			}
 
 			break;
@@ -5114,13 +5115,13 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 
 		case X_D3DVSDE_TEXCOORD3:
         {
-            g_IVBTable[o].TexCoord4.x = a;
-            g_IVBTable[o].TexCoord4.y = b;
+            g_InlineVertexBuffer_Table[o].TexCoord4.x = a;
+            g_InlineVertexBuffer_Table[o].TexCoord4.y = b;
 
-            if( (g_IVBFVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX4)
+            if( (g_InlineVertexBuffer_FVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX4)
             {
 				// Dxbx fix : Use mask, else the format might get expanded incorrectly :
-                g_IVBFVF = (g_IVBFVF & ~D3DFVF_TEXCOUNT_MASK) | D3DFVF_TEX4;
+                g_InlineVertexBuffer_FVF = (g_InlineVertexBuffer_FVF & ~D3DFVF_TEXCOUNT_MASK) | D3DFVF_TEX4;
             }
 
 	        break;
@@ -5128,18 +5129,18 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 
         case X_D3DVSDE_VERTEX:
         {
-            g_IVBTable[o].Position.x = a;
-            g_IVBTable[o].Position.y = b;
-            g_IVBTable[o].Position.z = c;
-            g_IVBTable[o].Rhw = d;
+            g_InlineVertexBuffer_Table[o].Position.x = a;
+            g_InlineVertexBuffer_Table[o].Position.y = b;
+            g_InlineVertexBuffer_Table[o].Position.z = c;
+            g_InlineVertexBuffer_Table[o].Rhw = d;
 
             // Copy current color to next vertex
-            g_IVBTable[o+1].Diffuse  = g_IVBTable[o].Diffuse;
-            g_IVBTable[o+1].Specular = g_IVBTable[o].Specular;
+            g_InlineVertexBuffer_Table[o+1].Diffuse  = g_InlineVertexBuffer_Table[o].Diffuse;
+            g_InlineVertexBuffer_Table[o+1].Specular = g_InlineVertexBuffer_Table[o].Specular;
 			// Dxbx note : Must we copy Blend1 (blendweight) too?
-            g_IVBTblOffs++;
+            g_InlineVertexBuffer_TableOffset++;
 
-            g_IVBFVF |= D3DFVF_XYZRHW;
+            g_InlineVertexBuffer_FVF |= D3DFVF_XYZRHW;
 
 			break;
         }
@@ -5211,12 +5212,12 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_End)()
 
 	LOG_FUNC();
 
-    if(g_IVBTblOffs != 0)
+    if(g_InlineVertexBuffer_TableOffset != 0)
         EmuFlushIVB();
 
     // TODO: Should technically clean this up at some point..but on XP doesnt matter much
-//    g_MemoryManager.Free(g_pIVBVertexBuffer);
-//    g_MemoryManager.Free(g_IVBTable);
+//    g_MemoryManager.Free(g_InlineVertexBuffer_pdwData);
+//    g_MemoryManager.Free(g_InlineVertexBuffer_Table);
 
     
 
@@ -7907,7 +7908,7 @@ void CxbxDrawIndexedClosingLine(XTL::INDEX16 FromIndex, XTL::INDEX16 ToIndex)
 
 	// Known memleak : ClosingLineLoopIndexBuffer->Release();
 
-	XTL::g_dwPrimPerFrame++;
+	g_dwPrimPerFrame++;
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)

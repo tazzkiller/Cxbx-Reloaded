@@ -126,14 +126,14 @@ class VertexPatcher
 };
 
 // inline vertex buffer emulation
-extern DWORD                  *g_pIVBVertexBuffer;
-extern X_D3DPRIMITIVETYPE      g_IVBPrimitiveType;
-extern DWORD                   g_IVBFVF;
+extern DWORD                  *g_InlineVertexBuffer_pdwData;
+extern X_D3DPRIMITIVETYPE      g_InlineVertexBuffer_PrimitiveType;
+extern DWORD                   g_InlineVertexBuffer_FVF;
 
-#define IVB_TABLE_SIZE 2047 // Max nr of DWORD for D3DPUSH_ENCODE
-#define IVB_BUFFER_SIZE sizeof(_D3DIVB)*IVB_TABLE_SIZE
-// TODO : Enlarge IVB_TABLE_SIZE and IVB_BUFFER_SIZE
-// TODO : Calculate IVB_BUFFER_SIZE using sizeof(DWORD)
+#define INLINE_VERTEX_BUFFER_SIZE 2047 // Max nr of DWORD for D3DPUSH_ENCODE
+#define INLINE_VERTEX_BUFFER_TABLE_SIZE (sizeof(_D3DIVB) * INLINE_VERTEX_BUFFER_SIZE)
+// TODO : Enlarge INLINE_VERTEX_BUFFER_SIZE
+// TODO : Calculate INLINE_VERTEX_BUFFER_TABLE_SIZE using sizeof(DWORD)
 
 extern struct _D3DIVB
 {
@@ -151,14 +151,10 @@ extern struct _D3DIVB
     XTL::D3DXVECTOR2 TexCoord3;
     XTL::D3DXVECTOR2 TexCoord4;
 }
-*g_IVBTable;
+*g_InlineVertexBuffer_Table;
 
-extern UINT g_IVBTblOffs;
+extern UINT g_InlineVertexBuffer_TableOffset;
 
 extern VOID EmuFlushIVB();
 
-extern VOID EmuUpdateActiveTexture();
-
-extern DWORD g_dwPrimPerFrame;
- 
 #endif

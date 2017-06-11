@@ -51,14 +51,12 @@
 #define VERTEX_BUFFER_CACHE_SIZE 256
 #define MAX_STREAM_NOT_USED_TIME (2 * CLOCKS_PER_SEC) // TODO: Trim the not used time
 
-// inline vertex buffer emulation
-XTL::DWORD                  *XTL::g_pIVBVertexBuffer = nullptr;
-XTL::X_D3DPRIMITIVETYPE      XTL::g_IVBPrimitiveType = XTL::X_D3DPT_INVALID;
-UINT                         XTL::g_IVBTblOffs = 0;
-struct XTL::_D3DIVB         *XTL::g_IVBTable = nullptr;
-extern DWORD                 XTL::g_IVBFVF = 0;
-
-extern DWORD				XTL::g_dwPrimPerFrame = 0;
+// Inline vertex buffer emulation
+XTL::DWORD                  *XTL::g_InlineVertexBuffer_pdwData = nullptr;
+XTL::X_D3DPRIMITIVETYPE      XTL::g_InlineVertexBuffer_PrimitiveType = XTL::X_D3DPT_INVALID;
+UINT                         XTL::g_InlineVertexBuffer_TableOffset = 0;
+struct XTL::_D3DIVB         *XTL::g_InlineVertexBuffer_Table = nullptr;
+extern DWORD                 XTL::g_InlineVertexBuffer_FVF = 0;
 
 XTL::VertexPatcher::VertexPatcher()
 {
@@ -377,7 +375,7 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
     // need normalization if used with linear textures.
     if(VshHandleIsFVF(pPatchDesc->hVertexShader))
     {
-        if(pPatchDesc->hVertexShader & D3DFVF_TEXCOUNT_MASK)
+        if((pPatchDesc->hVertexShader & D3DFVF_TEXCOUNT_MASK) > 0)
         {
             return NormalizeTexCoords(pPatchDesc, uiStream);
         }
@@ -902,7 +900,7 @@ VOID XTL::EmuFlushIVB()
 {
     XTL::DxbxUpdateDeferredStates();
 
-    DWORD *pdwVB = (DWORD*)g_pIVBVertexBuffer;
+    FLOAT *pVertexBufferData = (FLOAT*)g_InlineVertexBuffer_pdwData;
 
     // Parse IVB table with current FVF shader if possible.
     boolean bFVF = VshHandleIsFVF(g_CurrentVertexShader);
@@ -914,83 +912,83 @@ VOID XTL::EmuFlushIVB()
 		// HACK: Halo...
 		if(dwCurFVF == 0)
 		{
-			EmuWarning("EmuFlushIVB(): using g_IVBFVF instead of current FVF!");
-			dwCurFVF = g_IVBFVF;
+			EmuWarning("EmuFlushIVB(): using g_InlineVertexBuffer_FVF instead of current FVF!");
+			dwCurFVF = g_InlineVertexBuffer_FVF;
 		}
     }
     else
     {
-        dwCurFVF = g_IVBFVF;
+        dwCurFVF = g_InlineVertexBuffer_FVF;
     }
 
-    DbgPrintf("g_IVBTblOffs := %d\n", g_IVBTblOffs);
+    DbgPrintf("g_InlineVertexBuffer_TableOffset := %d\n", g_InlineVertexBuffer_TableOffset);
 
     // Do this once, not inside the for-loop :
     DWORD dwPos = dwCurFVF & D3DFVF_POSITION_MASK;
 	DWORD dwTexN = (dwCurFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
 
-	for(uint v=0;v<g_IVBTblOffs;v++)
+	for(uint v=0;v<g_InlineVertexBuffer_TableOffset;v++)
     {
         if(dwPos == D3DFVF_XYZRHW)
         {
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].Rhw;
+            *pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.x;
+            *pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.y;
+            *pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.z;
+            *pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Rhw;
 
-            DbgPrintf("IVB Position := {%f, %f, %f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z, g_IVBTable[v].Position.z, g_IVBTable[v].Rhw);
+            DbgPrintf("IVB Position := {%f, %f, %f, %f, %f}\n", g_InlineVertexBuffer_Table[v].Position.x, g_InlineVertexBuffer_Table[v].Position.y, g_InlineVertexBuffer_Table[v].Position.z, g_InlineVertexBuffer_Table[v].Position.z, g_InlineVertexBuffer_Table[v].Rhw);
         }
 		else // XYZRHW cannot be combined with NORMAL, but the other XYZ formats can :
 		{
 			if (dwPos == D3DFVF_XYZ)
 			{
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.x;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.y;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.z;
 
-				DbgPrintf("IVB Position := {%f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z);
+				DbgPrintf("IVB Position := {%f, %f, %f}\n", g_InlineVertexBuffer_Table[v].Position.x, g_InlineVertexBuffer_Table[v].Position.y, g_InlineVertexBuffer_Table[v].Position.z);
 			}
 			else if (dwPos == D3DFVF_XYZB1)
 			{
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend1;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.x;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.y;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.z;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Blend1;
 
-				DbgPrintf("IVB Position := {%f, %f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z, g_IVBTable[v].Blend1);
+				DbgPrintf("IVB Position := {%f, %f, %f, %f}\n", g_InlineVertexBuffer_Table[v].Position.x, g_InlineVertexBuffer_Table[v].Position.y, g_InlineVertexBuffer_Table[v].Position.z, g_InlineVertexBuffer_Table[v].Blend1);
 			}
 			else if (dwPos == D3DFVF_XYZB2)
 			{
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend1;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend2;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.x;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.y;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.z;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Blend1;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Blend2;
 
-				DbgPrintf("IVB Position := {%f, %f, %f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z, g_IVBTable[v].Blend1, g_IVBTable[v].Blend2);
+				DbgPrintf("IVB Position := {%f, %f, %f, %f, %f}\n", g_InlineVertexBuffer_Table[v].Position.x, g_InlineVertexBuffer_Table[v].Position.y, g_InlineVertexBuffer_Table[v].Position.z, g_InlineVertexBuffer_Table[v].Blend1, g_InlineVertexBuffer_Table[v].Blend2);
 			}
 			else if (dwPos == D3DFVF_XYZB3)
 			{
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend1;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend2;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend3;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.x;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.y;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.z;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Blend1;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Blend2;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Blend3;
 
-				DbgPrintf("IVB Position := {%f, %f, %f, %f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z, g_IVBTable[v].Blend1, g_IVBTable[v].Blend2, g_IVBTable[v].Blend3);
+				DbgPrintf("IVB Position := {%f, %f, %f, %f, %f, %f}\n", g_InlineVertexBuffer_Table[v].Position.x, g_InlineVertexBuffer_Table[v].Position.y, g_InlineVertexBuffer_Table[v].Position.z, g_InlineVertexBuffer_Table[v].Blend1, g_InlineVertexBuffer_Table[v].Blend2, g_InlineVertexBuffer_Table[v].Blend3);
 			}
 			else if (dwPos == D3DFVF_XYZB4)
 			{
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend1;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend2;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend3;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend4;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.x;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.y;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.z;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Blend1;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Blend2;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Blend3;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Blend4;
 
-				DbgPrintf("IVB Position := {%f, %f, %f, %f, %f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z, g_IVBTable[v].Blend1, g_IVBTable[v].Blend2, g_IVBTable[v].Blend3, g_IVBTable[v].Blend4);
+				DbgPrintf("IVB Position := {%f, %f, %f, %f, %f, %f, %f}\n", g_InlineVertexBuffer_Table[v].Position.x, g_InlineVertexBuffer_Table[v].Position.y, g_InlineVertexBuffer_Table[v].Position.z, g_InlineVertexBuffer_Table[v].Blend1, g_InlineVertexBuffer_Table[v].Blend2, g_InlineVertexBuffer_Table[v].Blend3, g_InlineVertexBuffer_Table[v].Blend4);
 			}
 			else
 			{
@@ -1000,26 +998,26 @@ VOID XTL::EmuFlushIVB()
 			//      if(dwPos == D3DFVF_NORMAL)	// <- This didn't look right but if it is, change it back...
 			if (dwCurFVF & D3DFVF_NORMAL)
 			{
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Normal.x;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Normal.y;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].Normal.z;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Normal.x;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Normal.y;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Normal.z;
 
-				DbgPrintf("IVB Normal := {%f, %f, %f}\n", g_IVBTable[v].Normal.x, g_IVBTable[v].Normal.y, g_IVBTable[v].Normal.z);
+				DbgPrintf("IVB Normal := {%f, %f, %f}\n", g_InlineVertexBuffer_Table[v].Normal.x, g_InlineVertexBuffer_Table[v].Normal.y, g_InlineVertexBuffer_Table[v].Normal.z);
 			}
 		}
 
         if(dwCurFVF & D3DFVF_DIFFUSE)
         {
-            *(DWORD*)pdwVB++ = g_IVBTable[v].Diffuse;
+            *(DWORD*)pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Diffuse;
 
-            DbgPrintf("IVB Diffuse := 0x%.08X\n", g_IVBTable[v].Diffuse);
+            DbgPrintf("IVB Diffuse := 0x%.08X\n", g_InlineVertexBuffer_Table[v].Diffuse);
         }
 
         if(dwCurFVF & D3DFVF_SPECULAR)
         {
-            *(DWORD*)pdwVB++ = g_IVBTable[v].Specular;
+            *(DWORD*)pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Specular;
 
-            DbgPrintf("IVB Specular := 0x%.08X\n", g_IVBTable[v].Specular);
+            DbgPrintf("IVB Specular := 0x%.08X\n", g_InlineVertexBuffer_Table[v].Specular);
         }
 
 		// TODO -oDxbx : Handle other sizes than D3DFVF_TEXCOORDSIZE2 too!
@@ -1027,39 +1025,39 @@ VOID XTL::EmuFlushIVB()
 		// See and/or X_D3DVSD_DATATYPEMASK values other than D3DVSDT_FLOAT2
 		if(dwTexN >= 1)
         {
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord1.x;
-            *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord1.y;
+            *pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord1.x;
+            *pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord1.y;
 
-            DbgPrintf("IVB TexCoord1 := {%f, %f}\n", g_IVBTable[v].TexCoord1.x, g_IVBTable[v].TexCoord1.y);
+            DbgPrintf("IVB TexCoord1 := {%f, %f}\n", g_InlineVertexBuffer_Table[v].TexCoord1.x, g_InlineVertexBuffer_Table[v].TexCoord1.y);
 
 			if(dwTexN >= 2)
 			{
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord2.x;
-				*(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord2.y;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord2.x;
+				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord2.y;
 
-				DbgPrintf("IVB TexCoord2 := {%f, %f}\n", g_IVBTable[v].TexCoord2.x, g_IVBTable[v].TexCoord2.y);
+				DbgPrintf("IVB TexCoord2 := {%f, %f}\n", g_InlineVertexBuffer_Table[v].TexCoord2.x, g_InlineVertexBuffer_Table[v].TexCoord2.y);
 
 				if(dwTexN >= 3)
 				{
-					*(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord3.x;
-					*(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord3.y;
+					*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord3.x;
+					*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord3.y;
 
-					DbgPrintf("IVB TexCoord3 := {%f, %f}\n", g_IVBTable[v].TexCoord3.x, g_IVBTable[v].TexCoord3.y);
+					DbgPrintf("IVB TexCoord3 := {%f, %f}\n", g_InlineVertexBuffer_Table[v].TexCoord3.x, g_InlineVertexBuffer_Table[v].TexCoord3.y);
 
 					if(dwTexN >= 4)
 					{
-						*(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord4.x;
-						*(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord4.y;
+						*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord4.x;
+						*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord4.y;
 
-						DbgPrintf("IVB TexCoord4 := {%f, %f}\n", g_IVBTable[v].TexCoord4.x, g_IVBTable[v].TexCoord4.y);
+						DbgPrintf("IVB TexCoord4 := {%f, %f}\n", g_InlineVertexBuffer_Table[v].TexCoord4.x, g_InlineVertexBuffer_Table[v].TexCoord4.y);
 					}
 				}
 			}
         }
 
-		uint VertexBufferUsage = (BYTE *)pdwVB - (BYTE *)g_pIVBVertexBuffer;
-		if (VertexBufferUsage >= IVB_BUFFER_SIZE)
-			CxbxKrnlCleanup("Overflow g_pIVBVertexBuffer  : %d", v);
+		uint VertexBufferUsage = (uintptr_t)pVertexBufferData - (uintptr_t)g_InlineVertexBuffer_pdwData;
+		if (VertexBufferUsage >= INLINE_VERTEX_BUFFER_TABLE_SIZE)
+			CxbxKrnlCleanup("Overflow g_InlineVertexBuffer_pdwData  : %d", v);
 	}
 
 	// Dxbx note : Instead of calculating this above (when v=0),
@@ -1068,11 +1066,11 @@ VOID XTL::EmuFlushIVB()
 
     VertexPatchDesc VPDesc;
 
-    VPDesc.XboxPrimitiveType = g_IVBPrimitiveType;
-    VPDesc.dwVertexCount = g_IVBTblOffs;
+    VPDesc.XboxPrimitiveType = g_InlineVertexBuffer_PrimitiveType;
+    VPDesc.dwVertexCount = g_InlineVertexBuffer_TableOffset;
 	VPDesc.dwPrimitiveCount = 0;
 	VPDesc.dwOffset = 0;
-    VPDesc.pVertexStreamZeroData = g_pIVBVertexBuffer;
+    VPDesc.pVertexStreamZeroData = g_InlineVertexBuffer_pdwData;
     VPDesc.uiVertexStreamZeroStride = uiStride;
     VPDesc.hVertexShader = g_CurrentVertexShader;
 
@@ -1093,9 +1091,9 @@ VOID XTL::EmuFlushIVB()
         g_pD3DDevice8->SetVertexShader(g_CurrentVertexShader);
 
   // TODO : Clear the portion that was in use previously (as only that part was written to) :
-//  if (g_IVBTblOffs > 0)
-//    memset(g_IVBTable, 0, sizeof(g_IVBTable[0])*(g_IVBTblOffs+1));
-    g_IVBTblOffs = 0;
+//  if (g_InlineVertexBuffer_TableOffset > 0)
+//    memset(g_InlineVertexBuffer_Table, 0, sizeof(g_InlineVertexBuffer_Table[0])*(g_InlineVertexBuffer_TableOffset+1));
+    g_InlineVertexBuffer_TableOffset = 0;
 
     return;
 }
