@@ -378,10 +378,10 @@ extern void XTL::EmuExecutePushBufferRaw
 
                 // copy index data
                 {
-					INDEX16* pIndexData = nullptr;
+					INDEX16* pIndexBufferData = nullptr;
 
-                    pIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE**)(&pIndexData), D3DLOCK_DISCARD);
-                    memcpy(pIndexData, pIBMem, uiIndexBufferSize);
+                    pIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE**)(&pIndexBufferData), D3DLOCK_DISCARD);
+                    memcpy(pIndexBufferData, pIBMem, uiIndexBufferSize);
                     pIndexBuffer->Unlock();
                 }
 
@@ -498,7 +498,8 @@ extern void XTL::EmuExecutePushBufferRaw
 
             // perform rendering
             {
-				UINT uiIndexBufferSize = sizeof(INDEX16) * dwCount;
+				UINT dwIndexCount = dwCount;
+				UINT uiIndexBufferSize = sizeof(INDEX16) * dwIndexCount;
 
                 // TODO: depreciate maxIBSize after N milliseconds..then N milliseconds later drop down to new highest
                 if(maxIBSize < uiIndexBufferSize)
@@ -515,16 +516,16 @@ extern void XTL::EmuExecutePushBufferRaw
 
                 // copy index data
                 {
-					INDEX16 *pIndexData = nullptr;
+					INDEX16 *pIndexBufferData = nullptr;
 
-                    pIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE **)(&pIndexData), D3DLOCK_DISCARD);
-                    memcpy(pIndexData, pIndexData, uiIndexBufferSize);
+                    pIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE **)(&pIndexBufferData), D3DLOCK_DISCARD);
+                    memcpy(pIndexBufferData, pIndexData, uiIndexBufferSize);
 
                     // remember last 2 indices
                     if(dwCount >= 2)
                     {
-                        pIBMem[0] = pIndexData[dwCount - 2];
-                        pIBMem[1] = pIndexData[dwCount - 1];
+                        pIBMem[0] = pIndexBufferData[dwCount - 2];
+                        pIBMem[1] = pIndexBufferData[dwCount - 1];
                     }
                     else
                     {
