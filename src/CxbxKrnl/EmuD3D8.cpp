@@ -7937,7 +7937,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
     VPDesc.pVertexStreamZeroData = NULL;
     VPDesc.uiVertexStreamZeroStride = 0;
     VPDesc.hVertexShader = g_CurrentVertexShader;
-	VPDesc.bCanRenderQuadListUnpatched = true; // D3DDevice_DrawVertices can draw unpatched D3DPT_QUADLIST vertices
 
 	if (StartVertex > 0) {
 		// LOG_TEST_CASE("StartVertex > 0"); // Test case : XDK Sample (PlayField)
@@ -8126,8 +8125,6 @@ void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-	VPDesc.bCanRenderQuadListUnpatched = true; // CxbxDrawIndexed can draw unpatched D3DPT_QUADLIST vertices
-
 	VertexPatcher VertPatch;
 	bool FatalError = VertPatch.Apply(&VPDesc);
 
@@ -8214,8 +8211,6 @@ void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 void XTL::CxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
-
-	VPDesc.bCanRenderQuadListUnpatched = true; // CxbxDrawPrimitiveUP can draw unpatched D3DPT_QUADLIST vertices
 
 	VertexPatcher VertPatch;
 	VertPatch.Apply(&VPDesc);
@@ -8328,7 +8323,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
     VPDesc.pVertexStreamZeroData = pVertexStreamZeroData;
     VPDesc.uiVertexStreamZeroStride = VertexStreamZeroStride;
     VPDesc.hVertexShader = g_CurrentVertexShader;
-	VPDesc.bCanRenderQuadListUnpatched = false;
 
     if (IsValidCurrentShader())
     {
@@ -8385,7 +8379,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
     VPDesc.pVertexStreamZeroData = NULL;
     VPDesc.uiVertexStreamZeroStride = 0;
     VPDesc.hVertexShader = g_CurrentVertexShader;
-	VPDesc.bCanRenderQuadListUnpatched = true;
 
 	CxbxDrawIndexed(VPDesc);
 
@@ -8472,7 +8465,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 			VPDesc.pVertexStreamZeroData = pVertexStreamZeroData;
 			VPDesc.uiVertexStreamZeroStride = VertexStreamZeroStride;
 			VPDesc.hVertexShader = g_CurrentVertexShader;
-			VPDesc.bCanRenderQuadListUnpatched = true; // D3DDevice_DrawIndexedVerticesUP already handled D3DPT_QUADLIST above
 
 			VertexPatcher VertPatch;
 

@@ -50,8 +50,6 @@ typedef struct _VertexPatchDesc
     IN     UINT                  uiVertexStreamZeroStride; // TODO : OUT ?
     // The current vertex shader, used to identify the streams
     IN     DWORD                 hVertexShader;
-	// Indicator for Indexed drawing
-	IN     BOOL                  bCanRenderQuadListUnpatched;
 }
 VertexPatchDesc;
 

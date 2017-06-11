@@ -322,7 +322,6 @@ extern void XTL::EmuExecutePushBufferRaw
                 VPDesc.pVertexStreamZeroData = pVertexData;
                 VPDesc.uiVertexStreamZeroStride = dwStride;
                 VPDesc.hVertexShader = dwVertexShader;
-				VPDesc.bCanRenderQuadListUnpatched = true;
 
 				CxbxDrawPrimitiveUP(VPDesc);
             }
@@ -405,7 +404,6 @@ extern void XTL::EmuExecutePushBufferRaw
 							VPDesc.uiVertexStreamZeroStride = 0;
 							// TODO: Set the current shader and let the patcher handle it..
 							VPDesc.hVertexShader = g_CurrentVertexShader;
-							VPDesc.bCanRenderQuadListUnpatched = true;
 
 							g_pD3DDevice8->SetIndices(pIndexBuffer, 0);
 
@@ -556,7 +554,6 @@ extern void XTL::EmuExecutePushBufferRaw
 							VPDesc.uiVertexStreamZeroStride = 0;
 							// TODO: Set the current shader and let the patcher handle it..
 							VPDesc.hVertexShader = g_CurrentVertexShader;
-							VPDesc.bCanRenderQuadListUnpatched = true;
 
 							g_pD3DDevice8->SetIndices(pIndexBuffer, 0);
 

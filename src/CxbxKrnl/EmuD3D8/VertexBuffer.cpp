@@ -1205,7 +1205,6 @@ VOID XTL::EmuFlushIVB()
     VPDesc.pVertexStreamZeroData = g_pIVBVertexBuffer;
     VPDesc.uiVertexStreamZeroStride = uiStride;
     VPDesc.hVertexShader = g_CurrentVertexShader;
-	VPDesc.bCanRenderQuadListUnpatched = false;
 
     // Disable this 'fix', as it doesn't really help; On ATI, it isn't needed (and causes missing
     // textures if enabled). On Nvidia, it stops the jumping (but also removes the font from view).
