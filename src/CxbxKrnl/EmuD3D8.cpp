@@ -8074,6 +8074,8 @@ WORD *DxbxAssureQuadListIndexBuffer(UINT NrOfQuadVertices)
 
 void DxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
 {
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
 	HRESULT hRet;
 
 	if (QuadToTriangleD3DIndexBuffer_Size < NrOfQuadVertices)
@@ -8091,12 +8093,16 @@ void DxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
 			XTL::D3DFMT_INDEX16,
 			XTL::D3DPOOL_MANAGED,
 			&QuadToTriangleD3DIndexBuffer);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateIndexBuffer");
+
 		if (FAILED(hRet))
 			CxbxKrnlCleanup("DxbxAssureQuadListD3DIndexBuffer : IndexBuffer Create Failed!");
 
 		// Put quadlist-to-triangle-list index mappings into this buffer :
 		WORD* pwData = nullptr;
 		hRet = QuadToTriangleD3DIndexBuffer->Lock(0, Length, (BYTE **)&pwData, D3DLOCK_DISCARD);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateIndexBuffer");
+		
 		if (pwData == nullptr)
 			CxbxKrnlCleanup("DxbxAssureQuadListD3DIndexBuffer : Could not lock index buffer!");
 
@@ -8107,6 +8113,8 @@ void DxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
 
 	// Activate the new native index buffer :
 	hRet = g_pD3DDevice8->SetIndices(QuadToTriangleD3DIndexBuffer, 0);
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateIndexBuffer");
+
 	if (FAILED(hRet))
 		CxbxKrnlCleanup("DxbxAssureQuadListD3DIndexBuffer : SetIndices Failed!"); // +DxbxD3DErrorString(hRet));
 }

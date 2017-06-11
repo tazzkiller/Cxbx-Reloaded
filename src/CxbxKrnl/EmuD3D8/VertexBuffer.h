@@ -132,8 +132,8 @@ extern DWORD                  *g_pIVBVertexBuffer;
 extern X_D3DPRIMITIVETYPE      g_IVBPrimitiveType;
 extern DWORD                   g_IVBFVF;
 
-#define IVB_TABLE_SIZE 1024
-#define IVB_BUFFER_SIZE sizeof(_D3DIVB)*1024
+#define IVB_TABLE_SIZE 2047 // Max nr of DWORD for D3DPUSH_ENCODE
+#define IVB_BUFFER_SIZE sizeof(_D3DIVB)*IVB_TABLE_SIZE
 // TODO : Enlarge IVB_TABLE_SIZE and IVB_BUFFER_SIZE
 // TODO : Calculate IVB_BUFFER_SIZE using sizeof(DWORD)
 
