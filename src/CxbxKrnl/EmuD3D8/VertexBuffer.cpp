@@ -763,8 +763,7 @@ bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT ui
     return m_bPatched;
 }
 
-bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
-                                        UINT             uiStream)
+void XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc)
 {
     if((pPatchDesc->XboxPrimitiveType < X_D3DPT_POINTLIST) || (pPatchDesc->XboxPrimitiveType > X_D3DPT_POLYGON))
         CxbxKrnlCleanup("Unknown primitive type: 0x%.02X\n", pPatchDesc->XboxPrimitiveType);
@@ -803,7 +802,7 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
     }
 
     pPatchDesc->dwPrimitiveCount = EmuD3DVertex2PrimitiveCount(pPatchDesc->XboxPrimitiveType, pPatchDesc->dwVertexCount);
-
+#if 0
     // Skip primitives that don't need further patching.
     if (pPatchDesc->XboxPrimitiveType != X_D3DPT_QUADLIST)
 		return false;
@@ -943,6 +942,7 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
     m_bPatched = true;
 
     return true;
+#endif
 }
 
 bool XTL::VertexPatcher::Apply(VertexPatchDesc *pPatchDesc)
@@ -958,17 +958,13 @@ bool XTL::VertexPatcher::Apply(VertexPatchDesc *pPatchDesc)
 
     for(UINT uiStream = 0; uiStream < m_uiNbrStreams; uiStream++)
     {
-        bool LocalPatched = false;
-
         if(ApplyCachedStream(pPatchDesc, uiStream, &bFatalError))
         {
             m_pStreams[uiStream].bUsedCached = true;
             continue;
         }
 
-        LocalPatched |= PatchPrimitive(pPatchDesc, uiStream);
-        LocalPatched |= PatchStream(pPatchDesc, uiStream);
-		if (LocalPatched)
+		if (PatchStream(pPatchDesc, uiStream))
 			if(pPatchDesc->pVertexStreamZeroData == NULL)
 			{
 				// Insert the patched stream in the cache
@@ -976,6 +972,8 @@ bool XTL::VertexPatcher::Apply(VertexPatchDesc *pPatchDesc)
 				m_pStreams[uiStream].bUsedCached = true;
 			}
     }
+        
+	PatchPrimitive(pPatchDesc);
 
 	return bFatalError;
 }
