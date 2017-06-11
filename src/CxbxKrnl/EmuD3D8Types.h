@@ -1374,6 +1374,8 @@ const int X_D3DVSDT_NONE        = 0x02; // xbox ext. nsp
 
 const int MAX_NBR_STREAMS = 16; // Dxbx addition?
 
+typedef WORD INDEX16;
+
 // unused #define X_D3DVSD_MASK_TESSUV 0x10000000
 #define X_D3DVSD_MASK_SKIP 0x10000000 // Skips (normally) dwords
 #define X_D3DVSD_MASK_SKIPBYTES 0x08000000 // Skips bytes (no, really?!)
