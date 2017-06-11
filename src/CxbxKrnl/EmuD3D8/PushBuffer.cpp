@@ -52,7 +52,7 @@ bool XTL::g_bBrkPush  = false;
 
 bool g_bPBSkipPusher = false;
 
-static void DbgDumpMesh(WORD *pIndexData, DWORD dwCount);
+static void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount);
 
 int XTL::DxbxFVF_GetTextureSize(DWORD dwFVF, int aTextureIndex)
 // Determine the size (in bytes) of the texture format (indexed 0 .. 3).
@@ -159,7 +159,7 @@ extern void XTL::EmuExecutePushBufferRaw
     DWORD dwStride = -1;
 
     // cache of last 4 indices
-    WORD pIBMem[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
+	INDEX16 pIBMem[4] = {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF};
 
     X_D3DPRIMITIVETYPE  XboxPrimitiveType = X_D3DPT_INVALID;
 
@@ -337,13 +337,13 @@ extern void XTL::EmuExecutePushBufferRaw
                 printf("\n");
                 printf("  Index Array Data...\n");
 
-                WORD *pwVal = (WORD*)(pdwPushData + 1);
+				INDEX16 *pIndices = (INDEX16*)(pdwPushData + 1);
 
                 for(uint s=0;s<dwCount;s++)
                 {
                     if(s%8 == 0) printf("\n  ");
 
-                    printf("  %.04X", *pwVal++);
+                    printf("  %.04X", *pIndices++);
                 }
 
                 printf("\n");
@@ -351,17 +351,17 @@ extern void XTL::EmuExecutePushBufferRaw
             }
             #endif
 
-            WORD *pwVal = (WORD*)(pdwPushData + 1);
+			INDEX16 *pIndices = (INDEX16*)(pdwPushData + 1);
             for(uint mi=0;mi<dwCount;mi++)
             {
-                pIBMem[mi+2] = pwVal[mi];
+                pIBMem[mi+2] = pIndices[mi];
             }
 
             // perform rendering
             if(pIBMem[0] != 0xFFFF)
             {
-				DWORD dwIndexCount = dwCount + 2;
-				UINT uiIndexBufferSize = dwIndexCount * sizeof(WORD);
+				UINT uiIndexCount = dwCount + 2;
+				UINT uiIndexBufferSize = sizeof(INDEX16) * uiIndexCount;
 
                 // TODO: depreciate maxIBSize after N milliseconds..then N milliseconds later drop down to new highest
                 if(maxIBSize < uiIndexBufferSize)
@@ -378,10 +378,10 @@ extern void XTL::EmuExecutePushBufferRaw
 
                 // copy index data
                 {
-                    WORD *pData = nullptr;
+					INDEX16* pIndexData = nullptr;
 
-                    pIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE**)(&pData), D3DLOCK_DISCARD);
-                    memcpy(pData, pIBMem, uiIndexBufferSize);
+                    pIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE**)(&pIndexData), D3DLOCK_DISCARD);
+                    memcpy(pIndexData, pIBMem, uiIndexBufferSize);
                     pIndexBuffer->Unlock();
                 }
 
@@ -397,7 +397,7 @@ extern void XTL::EmuExecutePushBufferRaw
 							VertexPatchDesc VPDesc;
 
 							VPDesc.XboxPrimitiveType = XboxPrimitiveType;
-							VPDesc.dwVertexCount = EmuD3DIndexCountToVertexCount(XboxPrimitiveType, dwIndexCount);
+							VPDesc.dwVertexCount = EmuD3DIndexCountToVertexCount(XboxPrimitiveType, uiIndexCount);
 							VPDesc.dwPrimitiveCount = 0;
 							VPDesc.dwOffset = 0;
 							VPDesc.pVertexStreamZeroData = NULL;
@@ -435,13 +435,13 @@ extern void XTL::EmuExecutePushBufferRaw
                 printf("\n");
                 printf("  Index Array Data...\n");
 
-                WORD *pwVal = (WORD*)pIndexData;
+                INDEX16 *pIndices = (INDEX16*)pIndexData;
 
                 for(uint s=0;s<dwCount;s++)
                 {
                     if(s%8 == 0) printf("\n  ");
 
-                    printf("  %.04X", *pwVal++);
+                    printf("  %.04X", *pIndices++);
                 }
 
                 printf("\n");
@@ -490,7 +490,7 @@ extern void XTL::EmuExecutePushBufferRaw
 #endif
 				pActiveVB->Release(); // Was absent (thus leaked memory)
 
-                DbgDumpMesh((WORD*)pIndexData, dwCount);
+                DbgDumpMesh((INDEX16*)pIndexData, dwCount);
             }
             #endif
 
@@ -498,8 +498,7 @@ extern void XTL::EmuExecutePushBufferRaw
 
             // perform rendering
             {
-				DWORD dwIndexCount = dwCount;
-				UINT uiIndexBufferSize = dwIndexCount * sizeof(WORD);
+				UINT uiIndexBufferSize = sizeof(INDEX16) * dwCount;
 
                 // TODO: depreciate maxIBSize after N milliseconds..then N milliseconds later drop down to new highest
                 if(maxIBSize < uiIndexBufferSize)
@@ -516,16 +515,16 @@ extern void XTL::EmuExecutePushBufferRaw
 
                 // copy index data
                 {
-                    WORD *pData = nullptr;
+					INDEX16 *pIndexData = nullptr;
 
-                    pIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE **)(&pData), D3DLOCK_DISCARD);
-                    memcpy(pData, pIndexData, uiIndexBufferSize);
+                    pIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE **)(&pIndexData), D3DLOCK_DISCARD);
+                    memcpy(pIndexData, pIndexData, uiIndexBufferSize);
 
                     // remember last 2 indices
                     if(dwCount >= 2)
                     {
-                        pIBMem[0] = pData[dwCount - 2];
-                        pIBMem[1] = pData[dwCount - 1];
+                        pIBMem[0] = pIndexData[dwCount - 2];
+                        pIBMem[1] = pIndexData[dwCount - 1];
                     }
                     else
                     {
@@ -593,7 +592,7 @@ extern void XTL::EmuExecutePushBufferRaw
 }
 
 #ifdef _DEBUG_TRACK_PB
-void DbgDumpMesh(WORD *pIndexData, DWORD dwCount)
+void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
 {
     if(!XTL::IsValidCurrentShader() || (dwCount == 0))
         return;
@@ -629,13 +628,13 @@ void DbgDumpMesh(WORD *pIndexData, DWORD dwCount)
 
     // print out stream data
     {
-        uint32 maxIndex = 0;
+        XTL::INDEX16 maxIndex = 0;
 
-        WORD *pwChk = (WORD*)pIndexData;
+		XTL::INDEX16 *pIndexCheck = pIndexData;
 
         for(uint chk=0;chk<dwCount;chk++)
         {
-            DWORD x = *pwChk++;
+			XTL::INDEX16 x = *pIndexCheck++;
 
             if(x > maxIndex)
                 maxIndex = x;
@@ -688,13 +687,13 @@ void DbgDumpMesh(WORD *pIndexData, DWORD dwCount)
 
         fprintf(dbgVertices, "      %d;\n", dwCount - 2);
 
-        WORD *pwVal = (WORD*)pIndexData;
+		XTL::INDEX16 *pIndexValues = pIndexData;
 
         max = dwCount;
 
-        DWORD a = *pwVal++;
-        DWORD b = *pwVal++;
-        DWORD c = *pwVal++;
+        DWORD a = *pIndexValues++;
+        DWORD b = *pIndexValues++;
+        DWORD c = *pIndexValues++;
 
         DWORD la = a,lb = b,lc = c;
 
@@ -705,7 +704,7 @@ void DbgDumpMesh(WORD *pIndexData, DWORD dwCount)
 
             a = b;
             b = c;
-            c = *pwVal++;
+            c = *pIndexValues++;
 
             la = a;
             lb = b;

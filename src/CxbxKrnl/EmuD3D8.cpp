@@ -2711,7 +2711,7 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 	if (IndexCount == 0)
 		return nullptr;
 
-	uint uiIndexBufferSize = IndexCount * sizeof(WORD);
+	uint uiIndexBufferSize = sizeof(XTL::INDEX16) * IndexCount;
 
 	// TODO : Don't hash every time (peek at how the vertex buffer cache avoids this)
 	uint32_t uiHash = 0; // TODO : seed with characteristics
@@ -7866,14 +7866,14 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
     return hRet;
 }
 
-void CxbxDrawIndexedClosingLine(WORD FromIndex, WORD ToIndex)
+void CxbxDrawIndexedClosingLine(XTL::INDEX16 FromIndex, XTL::INDEX16 ToIndex)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	HRESULT hRet;
 
 	static XTL::IDirect3DIndexBuffer8 *ClosingLineLoopIndexBuffer = nullptr;
-	const UINT uiIndexBufferSize = sizeof(WORD) * 2; // 4 bytes needed for 2 indices
+	const UINT uiIndexBufferSize = sizeof(XTL::INDEX16) * 2; // 4 bytes needed for 2 indices
 
 	if (ClosingLineLoopIndexBuffer == nullptr)
 	{
@@ -7984,7 +7984,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 				*/
 
 				// Close line-loops using a final single line, drawn from the end to the start vertex :
-				CxbxDrawIndexedClosingLine((WORD)(VPDesc.dwOffset + VPDesc.dwPrimitiveCount), (WORD)VPDesc.dwOffset);
+				CxbxDrawIndexedClosingLine((INDEX16)(VPDesc.dwOffset + VPDesc.dwPrimitiveCount), (INDEX16)VPDesc.dwOffset);
 
 				/* TODO : Is this necessary?
 				hRet = g_pD3DDevice8->SetIndices(CurrentIndexBuffer, uiCurrentBaseVertexIndex);
@@ -8020,7 +8020,7 @@ UINT QuadToTriangleVertexCount(UINT NrOfQuadVertices)
 
 bool WindingClockwise = true;
 UINT QuadToTriangleIndexBuffer_Size = 0; // = NrOfQuadVertices
-WORD *QuadToTriangleIndexBuffer = nullptr;
+XTL::INDEX16 *QuadToTriangleIndexBuffer = nullptr;
 
 UINT QuadToTriangleD3DIndexBuffer_Size = 0; // = NrOfQuadVertices
 XTL::IDirect3DIndexBuffer8 *QuadToTriangleD3DIndexBuffer = nullptr;
@@ -8032,10 +8032,10 @@ WORD *DxbxAssureQuadListIndexBuffer(UINT NrOfQuadVertices)
 		QuadToTriangleIndexBuffer_Size = RoundUp(NrOfQuadVertices, 1000);
 
 		int NrOfTriangleVertices = QuadToTriangleVertexCount(QuadToTriangleIndexBuffer_Size);
-		QuadToTriangleIndexBuffer = (WORD *)realloc(QuadToTriangleIndexBuffer, NrOfTriangleVertices * sizeof(WORD));
+		QuadToTriangleIndexBuffer = (XTL::INDEX16 *)realloc(QuadToTriangleIndexBuffer, sizeof(XTL::INDEX16) * NrOfTriangleVertices);
 
 		int i = 0;
-		int j = 0;
+		XTL::INDEX16 j = 0;
 		while (i < NrOfTriangleVertices)
 		{
 			if (WindingClockwise) {
@@ -8088,7 +8088,7 @@ void DxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
 
 		// Create a new native index buffer of the above determined size :
 		UINT NrOfTriangleVertices = QuadToTriangleVertexCount(QuadToTriangleD3DIndexBuffer_Size);
-		UINT uiIndexBufferSize = NrOfTriangleVertices * sizeof(WORD);
+		UINT uiIndexBufferSize = sizeof(XTL::INDEX16) * NrOfTriangleVertices;
 		hRet = g_pD3DDevice8->CreateIndexBuffer(
 			uiIndexBufferSize,
 			D3DUSAGE_WRITEONLY,
@@ -8101,14 +8101,14 @@ void DxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
 			CxbxKrnlCleanup("DxbxAssureQuadListD3DIndexBuffer : IndexBuffer Create Failed!");
 
 		// Put quadlist-to-triangle-list index mappings into this buffer :
-		WORD* pwData = nullptr;
-		hRet = QuadToTriangleD3DIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE **)&pwData, D3DLOCK_DISCARD);
+		XTL::INDEX16* pIndexData = nullptr;
+		hRet = QuadToTriangleD3DIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE **)&pIndexData, D3DLOCK_DISCARD);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateIndexBuffer");
 		
-		if (pwData == nullptr)
+		if (pIndexData == nullptr)
 			CxbxKrnlCleanup("DxbxAssureQuadListD3DIndexBuffer : Could not lock index buffer!");
 
-		memcpy(pwData, DxbxAssureQuadListIndexBuffer(NrOfQuadVertices), uiIndexBufferSize);
+		memcpy(pIndexData, DxbxAssureQuadListIndexBuffer(NrOfQuadVertices), uiIndexBufferSize);
 
 		QuadToTriangleD3DIndexBuffer->Unlock();
 	}
@@ -8187,14 +8187,14 @@ void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 				hRet = g_pD3DDevice8->GetIndices(&pCurrentIndexBuffer, &uiCurrentBaseVertexIndex);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetIndices");
 
-				WORD *CurrentLineIndices = nullptr;
-				hRet = pCurrentIndexBuffer->Lock(sizeof(WORD) * VPDesc.dwOffset, 0, (BYTE **)(&CurrentLineIndices), D3DLOCK_DISCARD);
+				INDEX16 *pCurrentLineIndices = nullptr;
+				hRet = pCurrentIndexBuffer->Lock(sizeof(INDEX16) * VPDesc.dwOffset, 0, (BYTE **)(&pCurrentLineIndices), D3DLOCK_DISCARD);
 				DEBUG_D3DRESULT(hRet, "CurrentIndexBuffer->Lock");
 
 				// Close line-loops using a final single line, drawn from the end to the start vertex :
-				WORD CxbxClosingLineIndices[2];
-				CxbxClosingLineIndices[0] = CurrentLineIndices[0];
-				CxbxClosingLineIndices[1] = CurrentLineIndices[VPDesc.dwPrimitiveCount]; // TODO : Is this the correct ending offset?
+				INDEX16 CxbxClosingLineIndices[2];
+				CxbxClosingLineIndices[0] = pCurrentLineIndices[0];
+				CxbxClosingLineIndices[1] = pCurrentLineIndices[VPDesc.dwPrimitiveCount]; // TODO : Is this the correct ending offset?
 
 				hRet = pCurrentIndexBuffer->Unlock();
 				DEBUG_D3DRESULT(hRet, "CurrentIndexBuffer->Unlock");
@@ -8431,7 +8431,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 			// This is slower (because of call-overhead) but doesn't require any index buffer patching at all!
 			LOG_TEST_CASE("X_D3DPT_QUADLIST");
 
-			WORD* pWalkIndexData = (WORD*)pIndexData;
+			INDEX16* pWalkIndexData = (INDEX16*)pIndexData;
 			int iNumVertices = (int)VertexCount;
 			while (iNumVertices >= VERTICES_PER_QUAD)
 			{
@@ -8491,11 +8491,11 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 				// Close line-loops using a final single line, drawn from the end to the start vertex
 				LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Which titles reach this case?
 
-				WORD DxbxClosingLineIndices[2];
+				INDEX16 DxbxClosingLineIndices[2];
 
 				// Close line-loops using a final single line, drawn from the end to the start vertex :
-				DxbxClosingLineIndices[0] = ((WORD *)pIndexData)[0];
-				DxbxClosingLineIndices[1] = ((WORD *)pIndexData)[VPDesc.dwVertexCount - 1]; // TODO : Use dwPrimitiveCount instead?
+				DxbxClosingLineIndices[0] = ((INDEX16*)pIndexData)[0];
+				DxbxClosingLineIndices[1] = ((INDEX16*)pIndexData)[VPDesc.dwPrimitiveCount];
 
 				hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
 				(
