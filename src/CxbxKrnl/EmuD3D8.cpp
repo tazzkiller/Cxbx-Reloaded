@@ -7903,7 +7903,7 @@ void CxbxDrawIndexedClosingLine(XTL::INDEX16 FromIndex, XTL::INDEX16 ToIndex)
 		0, // startIndex)
 		1 // primCount,
 	);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitive");
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitive(CxbxDrawIndexedClosingLine)");
 
 	// Known memleak : ClosingLineLoopIndexBuffer->Release();
 
@@ -8082,7 +8082,7 @@ void DxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
 
 	if (QuadToTriangleD3DIndexBuffer_Size < NrOfQuadVertices)
 	{
-		QuadToTriangleD3DIndexBuffer_Size = RoundUp(NrOfQuadVertices, 1000);
+		QuadToTriangleD3DIndexBuffer_Size = RoundUp(NrOfQuadVertices, 2048);
 		if (QuadToTriangleD3DIndexBuffer != nullptr)
 			QuadToTriangleD3DIndexBuffer->Release();
 
@@ -8134,13 +8134,15 @@ void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 		if (VPDesc.XboxPrimitiveType == X_D3DPT_QUADLIST)
 		{
 			UINT uiStartIndex = VPDesc.dwOffset;
-			int iNumVertices = (int)VPDesc.dwVertexCount; // Dxbx addition : Use the new VertexCount
+			int iNumVertices = (int)VPDesc.dwVertexCount;
 
 			// Indexed quadlist can be drawn using unpatched indexes via multiple draws of 2 'strip' triangles :
 			// 4 vertices are just enough for two triangles (a fan starts with 3 vertices for 1 triangle,
 			// and adds 1 triangle via 1 additional vertex)
-			// This is slower (because of call-overhead) but doesn't require any index buffer patching at all!
-			// Note : XDK samples reaching this case are : DisplacementMap, Ripple
+			// This is slower (because of call-overhead) but doesn't require any index buffer patching.
+			// Draw 1 quad as a 2 triangles in a fan (which both have the same winding order) :
+			// Test-cases : XDK samples reaching this case are : DisplacementMap, Ripple
+			// Test-case : XDK Samples (Billboard, BumpLens, DebugKeyboard, Gamepad, Lensflare, PerfTest?VolumeLight, PointSprites, Tiling, VolumeFog, VolumeSprites, etc)
 			while (iNumVertices >= VERTICES_PER_QUAD)
 			{
 				HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitive
@@ -8164,7 +8166,7 @@ void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 		{
 			HRESULT hRet;
 
-			// Other primitives than X_D3DPT_QUADLIST can be drawn normally :
+			// Primitives other than X_D3DPT_QUADLIST can be drawn using one DrawIndexedPrimitive call :
 			hRet = g_pD3DDevice8->DrawIndexedPrimitive(
 				EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
 				/* MinVertexIndex = */0,
@@ -8245,15 +8247,14 @@ void XTL::CxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 			startVertex,
 			primCount
 		);
-
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitive");
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitive(X_D3DPT_QUADLIST)");
 	}
 	else
 	{
 		assert(VPDesc.dwOffset == 0);
 		assert(VPDesc.pVertexStreamZeroData != NULL);
 
-		// Other primitives than X_D3DPT_QUADLIST can be drawn normally :
+		// Primitives other than X_D3DPT_QUADLIST can be drawn using one DrawPrimitiveUP call :
 		HRESULT hRet = g_pD3DDevice8->DrawPrimitiveUP
 		(
 			EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
@@ -8429,7 +8430,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 			// 4 vertices are just enough for two triangles (a fan starts with 3 vertices for 1 triangle,
 			// and adds 1 triangle via 1 additional vertex)
 			// This is slower (because of call-overhead) but doesn't require any index buffer patching at all!
-			LOG_TEST_CASE("X_D3DPT_QUADLIST");
+
+			// Draw 1 quad as a 2 triangles in a fan (which both have the same winding order) :
+			LOG_TEST_CASE("X_D3DPT_QUADLIST"); // Possible test-case : XDK Samples (Billboard, BumpLens, DebugKeyboard, Gamepad, Lensflare, PerfTest?VolumeLight, PointSprites, Tiling, VolumeFog, VolumeSprites, etc)
 
 			INDEX16* pWalkIndexData = (INDEX16*)pIndexData;
 			int iNumVertices = (int)VertexCount;
