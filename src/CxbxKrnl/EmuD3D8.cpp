@@ -7935,60 +7935,64 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
     VPDesc.pVertexStreamZeroData = NULL;
     VPDesc.uiVertexStreamZeroStride = 0;
     VPDesc.hVertexShader = g_CurrentVertexShader;
-	VPDesc.bCanRenderQuadListUnpatched = false;
+	VPDesc.bCanRenderQuadListUnpatched = true; // D3DDevice_DrawVertices can draw unpatched D3DPT_QUADLIST vertices
 
-	if (StartVertex > 0)
-		// Test case : XDK Sample (PlayField)
+	if (StartVertex > 0) {
+		// LOG_TEST_CASE("StartVertex > 0"); // Test case : XDK Sample (PlayField)
 		VPDesc.dwOffset = StartVertex; // Breakpoint location for testing. 
+	}
 
-    VertexPatcher VertPatch;
-
-    VertPatch.Apply(&VPDesc);
-
+    #ifdef _DEBUG_TRACK_VB
+    if(!g_bVBSkipStream)
+    #endif
     if(IsValidCurrentShader())
     {
-        #ifdef _DEBUG_TRACK_VB
-        if(!g_bVBSkipStream)
-        {
-        #endif
-
-        HRESULT hRet = g_pD3DDevice8->DrawPrimitive
-        (
-            EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
-			VPDesc.dwOffset,
-            VPDesc.dwPrimitiveCount
-        );
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawPrimitive");
-
-		g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
-
-		if (VPDesc.XboxPrimitiveType == X_D3DPT_LINELOOP)
+		if (VPDesc.XboxPrimitiveType == X_D3DPT_QUADLIST)
 		{
-			// Close line-loops using a final single line, drawn from the end to the start vertex
-			LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Text-cases needed
-
-			/* TODO : Is this necessary?
-			IDirect3DIndexBuffer8 *CurrentIndexBuffer;
-			UINT CurrentBaseVertexIndex;
-
-			hRet = g_pD3DDevice8->GetIndices(&CurrentIndexBuffer, &CurrentBaseVertexIndex);
-			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetIndices");
-			*/
-
-			// Close line-loops using a final single line, drawn from the end to the start vertex :
-			CxbxDrawIndexedClosingLine((WORD)(VPDesc.dwOffset + VPDesc.dwPrimitiveCount), (WORD)VPDesc.dwOffset);
-
-			/* TODO : Is this necessary?
-			hRet = g_pD3DDevice8->SetIndices(CurrentIndexBuffer, CurrentBaseVertexIndex);
-			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetIndices");
-			*/
+			// Use this functions index-based QUADLIST emulation :
+			CxbxDrawPrimitiveUP(VPDesc);
 		}
-        #ifdef _DEBUG_TRACK_VB
-        }
-        #endif
-    }
+		else
+		{
+			VertexPatcher VertPatch;
 
-    VertPatch.Restore();
+			VertPatch.Apply(&VPDesc);
+
+			HRESULT hRet = g_pD3DDevice8->DrawPrimitive
+			(
+				EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
+				VPDesc.dwOffset,
+				VPDesc.dwPrimitiveCount
+			);
+			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawPrimitive");
+
+			g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
+
+			if (VPDesc.XboxPrimitiveType == X_D3DPT_LINELOOP)
+			{
+				// Close line-loops using a final single line, drawn from the end to the start vertex
+				LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Text-cases needed
+
+				/* TODO : Is this necessary?
+				IDirect3DIndexBuffer8 *CurrentIndexBuffer;
+				UINT CurrentBaseVertexIndex;
+
+				hRet = g_pD3DDevice8->GetIndices(&CurrentIndexBuffer, &CurrentBaseVertexIndex);
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetIndices");
+				*/
+
+				// Close line-loops using a final single line, drawn from the end to the start vertex :
+				CxbxDrawIndexedClosingLine((WORD)(VPDesc.dwOffset + VPDesc.dwPrimitiveCount), (WORD)VPDesc.dwOffset);
+
+				/* TODO : Is this necessary?
+				hRet = g_pD3DDevice8->SetIndices(CurrentIndexBuffer, CurrentBaseVertexIndex);
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetIndices");
+				*/
+			}
+
+			VertPatch.Restore();
+		}
+    }
 
 	// Execute callback procedure
 	if( g_CallbackType == X_D3DCALLBACK_WRITE )
@@ -8017,7 +8021,7 @@ UINT QuadToTriangleIndexBuffer_Size = 0; // = NrOfQuadVertices
 WORD *QuadToTriangleIndexBuffer = nullptr;
 
 UINT QuadToTriangleD3DIndexBuffer_Size = 0; // = NrOfQuadVertices
-WORD *QuadToTriangleD3DIndexBuffer = nullptr;
+XTL::IDirect3DIndexBuffer8 *QuadToTriangleD3DIndexBuffer = nullptr;
 
 WORD *DxbxAssureQuadListIndexBuffer(UINT NrOfQuadVertices)
 {
@@ -8067,6 +8071,46 @@ WORD *DxbxAssureQuadListIndexBuffer(UINT NrOfQuadVertices)
 
 	return QuadToTriangleIndexBuffer;
 }
+
+void DxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
+{
+	HRESULT hRet;
+
+	if (QuadToTriangleD3DIndexBuffer_Size < NrOfQuadVertices)
+	{
+		QuadToTriangleD3DIndexBuffer_Size = RoundUp(NrOfQuadVertices, 1000);
+		if (QuadToTriangleD3DIndexBuffer != nullptr)
+			QuadToTriangleD3DIndexBuffer->Release();
+
+		// Create a new native index buffer of the above determined size :
+		UINT NrOfTriangleVertices = QuadToTriangleVertexCount(QuadToTriangleD3DIndexBuffer_Size);
+		UINT Length = NrOfTriangleVertices * sizeof(WORD);
+		hRet = g_pD3DDevice8->CreateIndexBuffer(
+			Length,
+			D3DUSAGE_WRITEONLY,
+			XTL::D3DFMT_INDEX16,
+			XTL::D3DPOOL_MANAGED,
+			&QuadToTriangleD3DIndexBuffer);
+		if (FAILED(hRet))
+			CxbxKrnlCleanup("DxbxAssureQuadListD3DIndexBuffer : IndexBuffer Create Failed!");
+
+		// Put quadlist-to-triangle-list index mappings into this buffer :
+		WORD* pwData = nullptr;
+		hRet = QuadToTriangleD3DIndexBuffer->Lock(0, Length, (BYTE **)&pwData, D3DLOCK_DISCARD);
+		if (pwData == nullptr)
+			CxbxKrnlCleanup("DxbxAssureQuadListD3DIndexBuffer : Could not lock index buffer!");
+
+		memcpy(pwData, DxbxAssureQuadListIndexBuffer(NrOfQuadVertices), Length);
+
+		QuadToTriangleD3DIndexBuffer->Unlock();
+	}
+
+	// Activate the new native index buffer :
+	hRet = g_pD3DDevice8->SetIndices(QuadToTriangleD3DIndexBuffer, 0);
+	if (FAILED(hRet))
+		CxbxKrnlCleanup("DxbxAssureQuadListD3DIndexBuffer : SetIndices Failed!"); // +DxbxD3DErrorString(hRet));
+}
+
 
 void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 {
@@ -8161,10 +8205,7 @@ void XTL::CxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-	assert(VPDesc.dwOffset == 0);
-	assert(VPDesc.pVertexStreamZeroData != NULL);
-
-	VPDesc.bCanRenderQuadListUnpatched = true;
+	VPDesc.bCanRenderQuadListUnpatched = true; // CxbxDrawPrimitiveUP can draw unpatched D3DPT_QUADLIST vertices
 
 	VertexPatcher VertPatch;
 	VertPatch.Apply(&VPDesc);
@@ -8172,37 +8213,42 @@ void XTL::CxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 	if (VPDesc.XboxPrimitiveType == X_D3DPT_QUADLIST)
 	{
 		// Draw quadlists using a single 'quad-to-triangle mapping' index buffer :
-		LOG_TEST_CASE("X_D3DPT_QUADLIST"); // X-Marbles hits this case
+		// LOG_TEST_CASE("X_D3DPT_QUADLIST"); // X-Marbles and XDK Sample PlayField hits this case
 
 		// Assure & activate that special index buffer :
-		WORD *pwIndexData = DxbxAssureQuadListIndexBuffer(/*NrOfQuadVertices=*/VPDesc.dwVertexCount);
+		DxbxAssureQuadListD3DIndexBuffer(/*NrOfQuadVertices=*/VPDesc.dwVertexCount);
 
 		// Convert quad vertex-count to triangle vertex count :
 		UINT NumVertexIndices = QuadToTriangleVertexCount(VPDesc.dwVertexCount);
 
 		UINT PrimitiveCount = VPDesc.dwPrimitiveCount * TRIANGLES_PER_QUAD;
 
-		// TODO : Speed this up by back-porting DxbxAssureQuadListD3DIndexBuffer
-		// so we don't have to keep uploading indices to the host GPU.
-		HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
+		// Convert quad vertex-count & start to triangle vertex count & start :
+		UINT NumVertices = QuadToTriangleVertexCount(VPDesc.dwVertexCount);
+		UINT startVertex = QuadToTriangleVertexCount(VPDesc.dwOffset);
+		UINT primCount = VPDesc.dwPrimitiveCount * TRIANGLES_PER_QUAD;
+
+		HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitive
 		(
 			D3DPT_TRIANGLELIST,
-			0, // MinVertexIndex
-			NumVertexIndices,
-			PrimitiveCount,
-			pwIndexData,
-			D3DFMT_INDEX16,
-			VPDesc.pVertexStreamZeroData,
-			VPDesc.uiVertexStreamZeroStride
+#ifdef DXBX_USE_D3D9 
+			0, // BaseVertexIndex
+#endif
+			0, // minIndex
+			NumVertices,
+			startVertex,
+			primCount
 		);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP");
+
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitive");
 	}
 	else
 	{
-		HRESULT hRet;
+		assert(VPDesc.dwOffset == 0);
+		assert(VPDesc.pVertexStreamZeroData != NULL);
 
 		// Other primitives than X_D3DPT_QUADLIST can be drawn normally :
-		hRet = g_pD3DDevice8->DrawPrimitiveUP
+		HRESULT hRet = g_pD3DDevice8->DrawPrimitiveUP
 		(
 			EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
 			VPDesc.dwPrimitiveCount,
@@ -8368,79 +8414,105 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 	CxbxUpdateNativeD3DResources();
 	CxbxUpdateActiveIndexBuffer((PWORD)pIndexData, VertexCount);
 
-    if( PrimitiveType == X_D3DPT_QUADLIST)
-        EmuWarning("Unsupported PrimitiveType! (X_D3DPT_QUADLIST)");
-
-    VertexPatchDesc VPDesc;
-
-    VPDesc.XboxPrimitiveType = PrimitiveType;
-    VPDesc.dwVertexCount = VertexCount;
-	VPDesc.dwPrimitiveCount = 0;
-	VPDesc.dwOffset = 0;
-    VPDesc.pVertexStreamZeroData = pVertexStreamZeroData;
-    VPDesc.uiVertexStreamZeroStride = VertexStreamZeroStride;
-    VPDesc.hVertexShader = g_CurrentVertexShader;
-	VPDesc.bCanRenderQuadListUnpatched = false;
-
-    VertexPatcher VertPatch;
-
-    VertPatch.Apply(&VPDesc);
-
     #ifdef _DEBUG_TRACK_VB
     if(!g_bVBSkipStream)
-    {
     #endif
-
-    if (IsValidCurrentShader())
-    {
-        HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
-        (
-            EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
-			0,
-			VPDesc.dwVertexCount,
-			VPDesc.dwPrimitiveCount,
-			pIndexData,
-			D3DFMT_INDEX16,
-			VPDesc.pVertexStreamZeroData,
-			VPDesc.uiVertexStreamZeroStride
-        );
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP");
-
-		g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
-
-		if (VPDesc.XboxPrimitiveType == X_D3DPT_LINELOOP)
+	if (IsValidCurrentShader())
+	{
+		if (PrimitiveType == X_D3DPT_QUADLIST)
 		{
-			// Close line-loops using a final single line, drawn from the end to the start vertex
-			LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Which XDK samples / titles reach this case?
+			// Indexed quadlist can be drawn using unpatched indexes via multiple draws of 2 'strip' triangles :
+			// 4 vertices are just enough for two triangles (a fan starts with 3 vertices for 1 triangle,
+			// and adds 1 triangle via 1 additional vertex)
+			// This is slower (because of call-overhead) but doesn't require any index buffer patching at all!
+			LOG_TEST_CASE("X_D3DPT_QUADLIST");
 
-			WORD DxbxClosingLineIndices[2];
+			WORD* pWalkIndexData = (WORD*)pIndexData;
+			int iNumVertices = (int)VertexCount;
+			while (iNumVertices >= VERTICES_PER_QUAD)
+			{
+				HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
+				(
+					D3DPT_TRIANGLEFAN, // Draw a triangle-fan instead of a quad
+					0,
+					/* NumVertices = */VERTICES_PER_QUAD, // Use all 4 vertices of 1 quad
+					/* primCount = */TRIANGLES_PER_QUAD, // Draw 2 triangles with that
+					pWalkIndexData,
+					D3DFMT_INDEX16,
+					pVertexStreamZeroData,
+					VertexStreamZeroStride
+				);
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP(X_D3DPT_QUADLIST)");
 
-			// Close line-loops using a final single line, drawn from the end to the start vertex :
-			DxbxClosingLineIndices[0] = ((WORD *)pIndexData)[0];
-			DxbxClosingLineIndices[1] = ((WORD *)pIndexData)[VPDesc.dwVertexCount - 1]; // TODO : Use dwPrimitiveCount instead?
+				pWalkIndexData += VERTICES_PER_QUAD;
+				iNumVertices -= VERTICES_PER_QUAD;
+			}
 
-			hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
+			g_dwPrimPerFrame += VertexCount / VERTICES_PER_QUAD * TRIANGLES_PER_QUAD;
+		}
+		else
+		{
+			// Test cases : XDK Samples (FastLoad, Trees)
+			VertexPatchDesc VPDesc;
+
+			VPDesc.XboxPrimitiveType = PrimitiveType;
+			VPDesc.dwVertexCount = VertexCount;
+			VPDesc.dwPrimitiveCount = 0;
+			VPDesc.dwOffset = 0;
+			VPDesc.pVertexStreamZeroData = pVertexStreamZeroData;
+			VPDesc.uiVertexStreamZeroStride = VertexStreamZeroStride;
+			VPDesc.hVertexShader = g_CurrentVertexShader;
+			VPDesc.bCanRenderQuadListUnpatched = true; // D3DDevice_DrawIndexedVerticesUP already handled D3DPT_QUADLIST above
+
+			VertexPatcher VertPatch;
+
+			VertPatch.Apply(&VPDesc);
+
+			HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
 			(
-				D3DPT_LINELIST,
-				0, // MinVertexIndex
-				2, // NumVertexIndices,
-				1, // PrimitiveCount,
-				DxbxClosingLineIndices, // pIndexData
-				D3DFMT_INDEX16, // IndexDataFormat
+				EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
+				0,
+				VPDesc.dwVertexCount,
+				VPDesc.dwPrimitiveCount,
+				pIndexData,
+				D3DFMT_INDEX16,
 				VPDesc.pVertexStreamZeroData,
 				VPDesc.uiVertexStreamZeroStride
 			);
 			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP");
 
-			g_dwPrimPerFrame++;
+			g_dwPrimPerFrame += VPDesc.dwPrimitiveCount;
+
+			if (VPDesc.XboxPrimitiveType == X_D3DPT_LINELOOP)
+			{
+				// Close line-loops using a final single line, drawn from the end to the start vertex
+				LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Which titles reach this case?
+
+				WORD DxbxClosingLineIndices[2];
+
+				// Close line-loops using a final single line, drawn from the end to the start vertex :
+				DxbxClosingLineIndices[0] = ((WORD *)pIndexData)[0];
+				DxbxClosingLineIndices[1] = ((WORD *)pIndexData)[VPDesc.dwVertexCount - 1]; // TODO : Use dwPrimitiveCount instead?
+
+				hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
+				(
+					D3DPT_LINELIST,
+					0, // MinVertexIndex
+					2, // NumVertexIndices,
+					1, // PrimitiveCount,
+					DxbxClosingLineIndices, // pIndexData
+					D3DFMT_INDEX16, // IndexDataFormat
+					VPDesc.pVertexStreamZeroData,
+					VPDesc.uiVertexStreamZeroStride
+				);
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP");
+
+				g_dwPrimPerFrame++;
+			}
+
+		    VertPatch.Restore();
 		}
 	}
-
-    #ifdef _DEBUG_TRACK_VB
-    }
-    #endif
-
-    VertPatch.Restore();
 
 	// Execute callback procedure
 	if( g_CallbackType == X_D3DCALLBACK_WRITE )
