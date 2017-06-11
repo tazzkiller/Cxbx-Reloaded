@@ -202,6 +202,12 @@ BOOL WINAPI XTL::EMUPATCH(XGetDeviceChanges)
 		RETURN(ret);
 	}
 
+	// TitleID 0x4D57000E = Gauntlet Dark Legacy
+	// ~PatrickvL
+	if (g_pCertificate->dwTitleId == 0x4D57000E) {
+		RETURN(ret);
+	}
+
 	// If we have no connected devices, report one insertion
 	if (DeviceType->CurrentConnected == 0) {
 		*pdwInsertions = 1;
