@@ -122,7 +122,7 @@ class VertexPatcher
         bool NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT uiStream);
 
         // Patches the primitive of the stream
-        bool PatchPrimitive(VertexPatchDesc *pPatchDesc, UINT uiStream);
+        void PatchPrimitive(VertexPatchDesc *pPatchDesc);
 };
 
 // inline vertex buffer emulation
