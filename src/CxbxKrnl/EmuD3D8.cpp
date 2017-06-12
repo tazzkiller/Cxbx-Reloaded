@@ -136,11 +136,6 @@ static DWORD                        g_dwBaseVertexIndex = 0;// current active in
 // current active vertex stream
 static XTL::IDirect3DVertexBuffer8 *g_pDummyBuffer = nullptr;  // Dummy buffer, used to set unused stream sources with
 
-#ifndef UNPATCH_STREAMSOURCE // Used by D3DDevice_GetStreamSource and D3DDevice_SetStreamSource (instead, use Xbox_g_Stream)
-static XTL::X_D3DVertexBuffer      *g_D3DStreams[MAX_NBR_STREAMS] = {};  // The vertex buffer streams set by D3DDevice::SetStreamSource
-static UINT                         g_D3DStreamStrides[MAX_NBR_STREAMS] = {};
-#endif
-
 // current vertical blank information
 static XTL::X_D3DVBLANKDATA         g_VBData = {0};
 static DWORD                        g_VBLastSwap = 0;
@@ -238,10 +233,6 @@ void CxbxClearGlobals()
 #endif
 
 	g_pDummyBuffer = nullptr;
-#ifndef UNPATCH_STREAMSOURCE
-	//g_D3DStreams = {};
-	//g_D3DStreamStrides = {};
-#endif
 
 	g_VBData = { 0 };
 	g_VBLastSwap = 0;
@@ -1144,7 +1135,7 @@ void SetHostVertexBuffer(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DVertex
 	SetHostResource(pXboxResource, (XTL::IDirect3DResource8 *)pHostVertexBuffer);
 }
 
-void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
+void *XTL::GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 {
 	// Don't pass in unassigned Xbox resources
 	if(pXboxResource == NULL)
@@ -4909,23 +4900,22 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Begin)
 
     g_InlineVertexBuffer_PrimitiveType = PrimitiveType;
 
-    if(g_InlineVertexBuffer_Table == nullptr)
-    {
-        g_InlineVertexBuffer_Table = (struct XTL::_D3DIVB*)g_MemoryManager.Allocate(INLINE_VERTEX_BUFFER_TABLE_SIZE);
+    if (g_InlineVertexBuffer_Table == nullptr) {
+        g_InlineVertexBuffer_Table = (struct XTL::_D3DIVB*)g_MemoryManager.AllocateZeroed(INLINE_VERTEX_BUFFER_SIZE, sizeof(_D3DIVB));
     }
+	else {
+		if (g_InlineVertexBuffer_TableOffset > 0) {
+			memset(g_InlineVertexBuffer_Table, 0, sizeof(_D3DIVB) * g_InlineVertexBuffer_TableOffset);
+		}
+	}
 
+    // default values
     g_InlineVertexBuffer_TableOffset = 0;
     g_InlineVertexBuffer_FVF = 0;
 
-    // default values
-    memset(g_InlineVertexBuffer_Table, 0, INLINE_VERTEX_BUFFER_TABLE_SIZE);
-
-    if(g_InlineVertexBuffer_pdwData == nullptr)
-    {
-		g_InlineVertexBuffer_pdwData = (DWORD*)g_MemoryManager.Allocate(sizeof(DWORD) * INLINE_VERTEX_BUFFER_SIZE);
+    if(g_InlineVertexBuffer_pData == nullptr) {
+		g_InlineVertexBuffer_pData = g_MemoryManager.Allocate(sizeof(DWORD) * INLINE_VERTEX_BUFFER_SIZE);
     }
-
-    
 
     return D3D_OK;
 }
@@ -5212,11 +5202,11 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_End)()
 
 	LOG_FUNC();
 
-    if(g_InlineVertexBuffer_TableOffset != 0)
+    if(g_InlineVertexBuffer_TableOffset > 0)
         EmuFlushIVB();
 
     // TODO: Should technically clean this up at some point..but on XP doesnt matter much
-//    g_MemoryManager.Free(g_InlineVertexBuffer_pdwData);
+//    g_MemoryManager.Free(g_InlineVertexBuffer_pData);
 //    g_MemoryManager.Free(g_InlineVertexBuffer_Table);
 
     
@@ -7721,7 +7711,7 @@ BYTE* WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock2)
 }
 #endif
 
-#ifndef UNPATCH_STREAMSOURCE // Reads Xbox g_Stream[StreamNumber].pVertexBuffer
+#if 0 // Reads Xbox g_Stream[StreamNumber].pVertexBuffer
 XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource)
 (
     UINT  StreamNumber,
@@ -7768,7 +7758,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource2)
 }
 #endif
 
-#ifndef UNPATCH_STREAMSOURCE // Writes Xbox g_Stream[StreamNumber].pVertexBuffer
+#if 0 // Writes Xbox g_Stream[StreamNumber].pVertexBuffer
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
 (
     UINT                StreamNumber,
@@ -8216,6 +8206,8 @@ void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 	VertPatch.Restore();
 }
 
+// Drawing function specifically for rendering Xbox draw calls supplying a 'User Pointer',
+// or for drawing X_D3DPT_QUADLIST using a separate index buffer when there's a vertex buffer active
 void XTL::CxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT

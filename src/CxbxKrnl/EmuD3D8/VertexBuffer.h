@@ -55,9 +55,9 @@ VertexPatchDesc;
 
 typedef struct _PATCHEDSTREAM
 {
-    IDirect3DVertexBuffer8 *pOriginalStream;
-    IDirect3DVertexBuffer8 *pPatchedStream;
+	void                   *pXboxVertexData;
     UINT                    uiOrigStride;
+    IDirect3DVertexBuffer8 *pPatchedStream;
     UINT                    uiNewStride;
     bool                    bUsedCached;
 } PATCHEDSTREAM;
@@ -83,7 +83,7 @@ class VertexPatcher
        ~VertexPatcher();
 
         bool Apply(VertexPatchDesc *pPatchDesc);
-        bool Restore();
+        void Restore();
 
         // Dumps the cache to the console
         static void DumpCache(void);
@@ -115,25 +115,19 @@ class VertexPatcher
                                UINT             uiStream,
 							   bool			   *pbFatalError);
 
-        // Patches the types of the stream
-        bool PatchStream(VertexPatchDesc *pPatchDesc, UINT uiStream);
-
-        // Normalize texture coordinates in FVF stream if needed
-        bool NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT uiStream);
+        // Convert the contents of the stream
+        void ConvertStream(VertexPatchDesc *pPatchDesc, UINT uiStream);
 
         // Patches the primitive of the stream
         void PatchPrimitive(VertexPatchDesc *pPatchDesc);
 };
 
 // inline vertex buffer emulation
-extern DWORD                  *g_InlineVertexBuffer_pdwData;
+extern PVOID                   g_InlineVertexBuffer_pData;
 extern X_D3DPRIMITIVETYPE      g_InlineVertexBuffer_PrimitiveType;
 extern DWORD                   g_InlineVertexBuffer_FVF;
 
 #define INLINE_VERTEX_BUFFER_SIZE 2047 // Max nr of DWORD for D3DPUSH_ENCODE
-#define INLINE_VERTEX_BUFFER_TABLE_SIZE (sizeof(_D3DIVB) * INLINE_VERTEX_BUFFER_SIZE)
-// TODO : Enlarge INLINE_VERTEX_BUFFER_SIZE
-// TODO : Calculate INLINE_VERTEX_BUFFER_TABLE_SIZE using sizeof(DWORD)
 
 extern struct _D3DIVB
 {

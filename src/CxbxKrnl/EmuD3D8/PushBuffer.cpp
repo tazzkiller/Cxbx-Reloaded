@@ -444,17 +444,15 @@ extern void XTL::EmuExecutePushBufferRaw
 
                 printf("\n");
 
+#if 0
                 // retrieve stream data
                 XTL::IDirect3DVertexBuffer8 *pActiveVB = nullptr;
                 UINT  uiStride;
 
-#ifdef UNPATCH_STREAMSOURCE
-				pActiveVB = CxbxUpdateVertexBuffer(Xbox_g_Stream[0].pVertexBuffer);
-				pActiveVB->AddRef(); // Avoid memory-curruption when this is Release()ed later
-				uiStride = Xbox_g_Stream[0].Stride;
-#else
+				// pActiveVB = CxbxUpdateVertexBuffer(Xbox_g_Stream[0].pVertexBuffer);
+				// pActiveVB->AddRef(); // Avoid memory-curruption when this is Release()ed later
+				// uiStride = Xbox_g_Stream[0].Stride;
                 g_pD3DDevice8->GetStreamSource(0, &pActiveVB, &uiStride);
-#endif
 
                 // retrieve stream desc
                 D3DVERTEXBUFFER_DESC VBDesc;
@@ -473,6 +471,7 @@ extern void XTL::EmuExecutePushBufferRaw
                 }
 
 				pActiveVB->Release(); // Was absent (thus leaked memory)
+#endif
 
                 DbgDumpMesh((INDEX16*)pIndexData, dwCount);
             }
@@ -582,34 +581,13 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
     if(!XTL::IsValidCurrentShader() || (dwCount == 0))
         return;
 
-    XTL::IDirect3DVertexBuffer8 *pActiveVB = nullptr;
-
-    XTL::D3DVERTEXBUFFER_DESC VBDesc;
-
-    BYTE *pVBData = 0;
-    UINT  uiStride;
-
     // retrieve stream data
-#ifdef UNPATCH_STREAMSOURCE
-	pActiveVB = XTL::CxbxUpdateVertexBuffer(XTL::Xbox_g_Stream[0].pVertexBuffer);
-	pActiveVB->AddRef(); // Avoid memory-curruption when this is Release()ed later
-	uiStride = XTL::Xbox_g_Stream[0].Stride;
-#else
-	g_pD3DDevice8->GetStreamSource(0, &pActiveVB, &uiStride);
-#endif
-
     char szFileName[128];
     sprintf(szFileName, "D:\\_cxbx\\mesh\\CxbxMesh-0x%.08X.x", pIndexData);
     FILE *dbgVertices = fopen(szFileName, "wt");
 
-    // retrieve stream desc
-    pActiveVB->GetDesc(&VBDesc);
-
-    // unlock just in case
-    pActiveVB->Unlock();
-
-    // grab ptr
-    pActiveVB->Lock(0, 0, &pVBData, D3DLOCK_READONLY);
+    BYTE *pVBData = (BYTE *)XTL::GetDataFromXboxResource(XTL::Xbox_g_Stream[0].pVertexBuffer);
+    UINT  uiStride = XTL::Xbox_g_Stream[0].Stride;
 
     // print out stream data
     {
@@ -624,21 +602,23 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
             if(x > maxIndex)
                 maxIndex = x;
         }
-
+#if 0
         if(maxIndex > ((VBDesc.Size/uiStride) - 1))
             maxIndex = (VBDesc.Size / uiStride) - 1;
-
+#endif
         fprintf(dbgVertices, "xof 0303txt 0032\n");
         fprintf(dbgVertices, "\n");
         fprintf(dbgVertices, "//\n");
-        fprintf(dbgVertices, "//  Vertex Stream Data (0x%.08X)...\n", pActiveVB);
+        fprintf(dbgVertices, "//  Vertex Stream Data (0x%.08X)...\n", pVBData);
         fprintf(dbgVertices, "//\n");
-        fprintf(dbgVertices, "//  Format : %d\n", VBDesc.Format);
+#if 0
+		fprintf(dbgVertices, "//  Format : %d\n", VBDesc.Format);
         fprintf(dbgVertices, "//  Size   : %d bytes\n", VBDesc.Size);
         fprintf(dbgVertices, "//  FVF    : 0x%.08X\n", VBDesc.FVF);
+#endif
         fprintf(dbgVertices, "//  iCount : %d\n", dwCount/2);
         fprintf(dbgVertices, "//\n");
-        fprintf(dbgVertices, "\n");
+		fprintf(dbgVertices, "\n");
         fprintf(dbgVertices, "Frame SCENE_ROOT {\n");
         fprintf(dbgVertices, "\n");
         fprintf(dbgVertices, "  FrameTransformMatrix {\n");
@@ -702,11 +682,6 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
 
         fclose(dbgVertices);
     }
-
-    // release ptr
-    pActiveVB->Unlock();
-
-	pActiveVB->Release(); // Was absent (thus leaked memory)
 }
 
 void XTL::DbgDumpPushBuffer( DWORD* PBData, DWORD dwSize )

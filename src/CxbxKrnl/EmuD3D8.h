@@ -76,6 +76,8 @@ extern X_D3DBaseTexture **EmuD3DTextureStages; // TODO : Rename to Xbox_D3DDevic
 extern X_D3DBaseTexture *EmuD3DTextureStages[X_D3DTSS_STAGECOUNT];
 #endif
 
+extern void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource);
+
 XTL::IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, const DWORD *pPalette);
 XTL::IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer *pXboxVertexBuffer);
 
