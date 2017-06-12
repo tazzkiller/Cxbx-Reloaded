@@ -8414,19 +8414,34 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 		LOG_FUNC_END;
 
 	CxbxUpdateNativeD3DResources();
-	CxbxUpdateActiveIndexBuffer((INDEX16*)pIndexData, VertexCount);
+	
+	// CxbxUpdateActiveIndexBuffer() not needed (all draw calls below use pIndexData)
 
     #ifdef _DEBUG_TRACK_VB
     if(!g_bVBSkipStream)
     #endif
 	if (IsValidCurrentShader())
 	{
-		if (PrimitiveType == X_D3DPT_QUADLIST)
+		VertexPatchDesc VPDesc;
+
+		VPDesc.XboxPrimitiveType = PrimitiveType;
+		VPDesc.dwVertexCount = VertexCount;
+		VPDesc.dwPrimitiveCount = 0;
+		VPDesc.dwOffset = 0;
+		VPDesc.pVertexStreamZeroData = pVertexStreamZeroData;
+		VPDesc.uiVertexStreamZeroStride = VertexStreamZeroStride;
+		VPDesc.hVertexShader = g_CurrentVertexShader;
+
+		VertexPatcher VertPatch;
+
+		VertPatch.Apply(&VPDesc);
+
+		if (VPDesc.XboxPrimitiveType == X_D3DPT_QUADLIST)
 		{
 			// Indexed quadlist can be drawn using unpatched indexes via multiple draws of 2 'strip' triangles :
-			// 4 vertices are just enough for two triangles (a fan starts with 3 vertices for 1 triangle,
+			// Those 4 vertices are just enough for two triangles (a fan starts with 3 vertices for 1 triangle,
 			// and adds 1 triangle via 1 additional vertex)
-			// This is slower (because of call-overhead) but doesn't require any index buffer patching at all!
+			// This is slower (because of call-overhead) but doesn't require any index buffer patching
 
 			// Draw 1 quad as a 2 triangles in a fan (which both have the same winding order) :
 			LOG_TEST_CASE("X_D3DPT_QUADLIST"); // Possible test-case : XDK Samples (Billboard, BumpLens, DebugKeyboard, Gamepad, Lensflare, PerfTest?VolumeLight, PointSprites, Tiling, VolumeFog, VolumeSprites, etc)
@@ -8443,8 +8458,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 					/* primCount = */TRIANGLES_PER_QUAD, // Draw 2 triangles with that
 					pWalkIndexData,
 					D3DFMT_INDEX16,
-					pVertexStreamZeroData,
-					VertexStreamZeroStride
+					VPDesc.pVertexStreamZeroData,
+					VPDesc.uiVertexStreamZeroStride
 				);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP(X_D3DPT_QUADLIST)");
 
@@ -8457,20 +8472,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 		else
 		{
 			// Test cases : XDK Samples (FastLoad, Trees)
-			VertexPatchDesc VPDesc;
-
-			VPDesc.XboxPrimitiveType = PrimitiveType;
-			VPDesc.dwVertexCount = VertexCount;
-			VPDesc.dwPrimitiveCount = 0;
-			VPDesc.dwOffset = 0;
-			VPDesc.pVertexStreamZeroData = pVertexStreamZeroData;
-			VPDesc.uiVertexStreamZeroStride = VertexStreamZeroStride;
-			VPDesc.hVertexShader = g_CurrentVertexShader;
-
-			VertexPatcher VertPatch;
-
-			VertPatch.Apply(&VPDesc);
-
 			HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
 			(
 				EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
@@ -8512,9 +8513,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 
 				g_dwPrimPerFrame++;
 			}
-
-		    VertPatch.Restore();
 		}
+
+	    VertPatch.Restore();
 	}
 
 	// Execute callback procedure
