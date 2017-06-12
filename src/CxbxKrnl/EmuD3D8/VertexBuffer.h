@@ -47,7 +47,7 @@ typedef struct _VertexPatchDesc
     IN     DWORD                 dwOffset;
     // Data if Draw...UP call
     IN OUT PVOID                 pVertexStreamZeroData;
-    IN     UINT                  uiVertexStreamZeroStride; // TODO : OUT ?
+    IN OUT UINT                  uiVertexStreamZeroStride;
     // The current vertex shader, used to identify the streams
     IN     DWORD                 hVertexShader;
 }
@@ -57,7 +57,7 @@ typedef struct _PATCHEDSTREAM
 {
 	void                   *pXboxVertexData;
     UINT                    uiOrigStride;
-    IDirect3DVertexBuffer8 *pPatchedStream;
+    IDirect3DVertexBuffer8 *pHostVertexBuffer;
     UINT                    uiNewStride;
     bool                    bUsedCached;
 } PATCHEDSTREAM;
@@ -66,14 +66,14 @@ typedef struct _CACHEDSTREAM
 {
     uint32_t       uiHash;
     uint32         uiCheckFrequency;
+    uint32         uiCheckCount;        // XXHash32::hash() check count
     uint32         uiCacheHit;
+    long           lLastUsed;           // For cache removal purposes
     bool           bIsUP;
     PATCHEDSTREAM  Stream;
     void          *pStreamUP;           // Draw..UP (instead of pOriginalStream)
     uint32         uiLength;            // The length of the stream
-    uint32         uiCheckCount;        // XXHash32::hash() check count
 	VertexPatchDesc Copy;
-    long           lLastUsed;           // For cache removal purposes
 } CACHEDSTREAM;
 
 class VertexPatcher
@@ -117,9 +117,6 @@ class VertexPatcher
 
         // Convert the contents of the stream
         void ConvertStream(VertexPatchDesc *pPatchDesc, UINT uiStream);
-
-        // Patches the primitive of the stream
-        void PatchPrimitive(VertexPatchDesc *pPatchDesc);
 };
 
 // inline vertex buffer emulation

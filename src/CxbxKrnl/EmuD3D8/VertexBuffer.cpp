@@ -96,8 +96,7 @@ void XTL::VertexPatcher::DumpCache(void)
 void XTL::VertexPatcher::CacheStream(VertexPatchDesc *pPatchDesc,
                                      UINT             uiStream)
 {
-    //UINT                       uiInputStride;
-    void                      *pCalculateData = nullptr;
+    void                      *pXboxVertexData = NULL;
     uint32                     uiKey;
     UINT                       uiLength;
     CACHEDSTREAM              *pCachedStream = (CACHEDSTREAM *)calloc(1, sizeof(CACHEDSTREAM));
@@ -105,26 +104,27 @@ void XTL::VertexPatcher::CacheStream(VertexPatchDesc *pPatchDesc,
     // Check if the cache is full, if so, throw away the least used stream
     if(g_PatchedStreamsCache.get_count() > VERTEX_BUFFER_CACHE_SIZE)
     {
-        uint32 uiKey = 0;
+        uint32 uiKey = NULL;
         uint32 uiMinHit = 0xFFFFFFFF;
-
+		clock_t ctExpiryTime = (clock() - MAX_STREAM_NOT_USED_TIME); // Was addition, seems wrong
         RTNode *pNode = g_PatchedStreamsCache.getHead();
         while(pNode != nullptr)
         {
-            if(pNode->pResource != nullptr)
+			CACHEDSTREAM *pNodeStream = (CACHEDSTREAM *)pNode->pResource;
+            if(pNodeStream != nullptr)
             {
                 // First, check if there is an "expired" stream in the cache (not recently used)
-                if(((CACHEDSTREAM *)pNode->pResource)->lLastUsed < (clock() + MAX_STREAM_NOT_USED_TIME))
+                if(pNodeStream->lLastUsed < ctExpiryTime)
                 {
-                    printf("!!!Found an old stream, %2.2f\n", ((FLOAT)((clock() + MAX_STREAM_NOT_USED_TIME) - ((CACHEDSTREAM *)pNode->pResource)->lLastUsed)) / (FLOAT)CLOCKS_PER_SEC);
+                    printf("!!!Found an old stream, %2.2f\n", ((FLOAT)(ctExpiryTime - pNodeStream->lLastUsed)) / (FLOAT)CLOCKS_PER_SEC);
                     uiKey = pNode->uiKey;
                     break;
                 }
 
                 // Find the least used cached stream
-                if((uint32)((CACHEDSTREAM *)pNode->pResource)->uiCacheHit < uiMinHit)
+                if(uiMinHit > pNodeStream->uiCacheHit)
                 {
-                    uiMinHit = ((CACHEDSTREAM *)pNode->pResource)->uiCacheHit;
+                    uiMinHit = pNodeStream->uiCacheHit;
                     uiKey = pNode->uiKey;
                 }
             }
@@ -132,7 +132,7 @@ void XTL::VertexPatcher::CacheStream(VertexPatchDesc *pPatchDesc,
             pNode = pNode->pNext;
         }
 
-        if(uiKey != 0)
+        if(uiKey != NULL)
         {
             printf("!!!Removing stream\n\n");
             FreeCachedStream((void*)uiKey);
@@ -147,35 +147,35 @@ void XTL::VertexPatcher::CacheStream(VertexPatchDesc *pPatchDesc,
             CxbxKrnlCleanup("Trying to patch a Draw..UP with more than stream zero!");
 
 		//uiInputStride  = pPatchDesc->uiVertexStreamZeroStride;
-        pCalculateData = (uint08 *)pPatchDesc->pVertexStreamZeroData;
+        pXboxVertexData = (uint08 *)pPatchDesc->pVertexStreamZeroData;
         // TODO: This is sometimes the number of indices, which isn't too good
         uiLength = pPatchDesc->dwVertexCount * pPatchDesc->uiVertexStreamZeroStride;
         pCachedStream->bIsUP = true;
-        pCachedStream->pStreamUP = pCalculateData;
-        uiKey = (uint32)pCalculateData;
+        pCachedStream->pStreamUP = pXboxVertexData;
+        uiKey = (uint32)pXboxVertexData;
     }
 	else
 	{
-		if (pCachedStream->Stream.pPatchedStream != nullptr)
-			m_pStreams[uiStream].pPatchedStream->AddRef();
+		if (pCachedStream->Stream.pHostVertexBuffer != nullptr)
+			m_pStreams[uiStream].pHostVertexBuffer->AddRef();
 
-		pCalculateData = m_pStreams[uiStream].pXboxVertexData;
-		uiLength = g_MemoryManager.QueryAllocationSize(pCalculateData);
-		uiKey = (uint32)pCalculateData;
+		pXboxVertexData = m_pStreams[uiStream].pXboxVertexData;
+		uiLength = g_MemoryManager.QueryAllocationSize(pXboxVertexData);
+		uiKey = (uint32)pXboxVertexData;
 
 		pCachedStream->bIsUP = false;
 	}
 
-    uint32_t uiHash = XXHash32::hash((void *)pCalculateData, uiLength, HASH_SEED);
+    uint32_t uiHash = XXHash32::hash((void *)pXboxVertexData, uiLength, HASH_SEED);
 
     pCachedStream->uiHash = uiHash;
-    pCachedStream->Stream = m_pStreams[uiStream];
     pCachedStream->uiCheckFrequency = 1; // Start with checking every 1th Draw..
     pCachedStream->uiCheckCount = 0;
-    pCachedStream->uiLength = uiLength;
     pCachedStream->uiCacheHit = 0;
-    pCachedStream->Copy = *pPatchDesc;
     pCachedStream->lLastUsed = clock();
+    pCachedStream->Stream = m_pStreams[uiStream];
+    pCachedStream->uiLength = uiLength;
+    pCachedStream->Copy = *pPatchDesc;
 
     g_PatchedStreamsCache.insert(uiKey, pCachedStream);
 }
@@ -192,9 +192,9 @@ void XTL::VertexPatcher::FreeCachedStream(void *pStream)
 			pCachedStream->pStreamUP = nullptr;
 		}
 
-		if (pCachedStream->Stream.pPatchedStream != nullptr) {
-			pCachedStream->Stream.pPatchedStream->Release();
-			pCachedStream->Stream.pPatchedStream = nullptr;
+		if (pCachedStream->Stream.pHostVertexBuffer != nullptr) {
+			pCachedStream->Stream.pHostVertexBuffer->Release();
+			pCachedStream->Stream.pHostVertexBuffer = nullptr;
 		}
 
 		free(pCachedStream);
@@ -204,37 +204,36 @@ void XTL::VertexPatcher::FreeCachedStream(void *pStream)
     g_PatchedStreamsCache.remove(pStream);
 }
 
-bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
-                                           UINT             uiStream,
-										   bool			   *pbFatalError)
+bool XTL::VertexPatcher::ApplyCachedStream
+(
+	VertexPatchDesc *pPatchDesc,
+    UINT             uiStream,
+	bool			*pbFatalError
+)
 {
+	void                      *pXboxVertexData = NULL;
     UINT                       uiStride;
-	void                      *pOrigData = NULL;
-	void                      *pCalculateData = nullptr;
     UINT                       uiLength;
     bool                       bApplied = false;
     uint32                     uiKey;
     //CACHEDSTREAM              *pCachedStream = (CACHEDSTREAM *)malloc(sizeof(CACHEDSTREAM));
 
-    if(pPatchDesc->pVertexStreamZeroData != NULL)
-	{
+    if(pPatchDesc->pVertexStreamZeroData != NULL) {
 		// There should only be one stream (stream zero) in this case
 		if (uiStream != 0)
 			CxbxKrnlCleanup("Trying to find a cached Draw..UP with more than stream zero!");
 
+		pXboxVertexData = (uint08 *)pPatchDesc->pVertexStreamZeroData;
 		uiStride = pPatchDesc->uiVertexStreamZeroStride;
-		pCalculateData = (uint08 *)pPatchDesc->pVertexStreamZeroData;
 		// TODO: This is sometimes the number of indices, which isn't too good
 		uiLength = pPatchDesc->dwVertexCount * pPatchDesc->uiVertexStreamZeroStride;
-		uiKey = (uint32)pCalculateData;
+		uiKey = (uint32)pXboxVertexData;
 		//pCachedStream->bIsUP = true;
-		//pCachedStream->pStreamUP = pCalculateData;
+		//pCachedStream->pStreamUP = pXboxVertexData;
 	}
-	else
-	{
-		pCalculateData = GetDataFromXboxResource(Xbox_g_Stream[uiStream].pVertexBuffer);
-		if (pCalculateData == NULL)
-		{
+	else {
+		pXboxVertexData = GetDataFromXboxResource(Xbox_g_Stream[uiStream].pVertexBuffer);
+		if (pXboxVertexData == NULL) {
 			if (pbFatalError)
 				*pbFatalError = true;
 
@@ -242,9 +241,8 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
 		}
 
 		uiStride = Xbox_g_Stream[uiStream].Stride;
-		uiLength = g_MemoryManager.QueryAllocationSize(pCalculateData);
-		uiKey = (uint32)pCalculateData;
-
+		uiLength = g_MemoryManager.QueryAllocationSize(pXboxVertexData);
+		uiKey = (uint32)pXboxVertexData;
 		//pCachedStream->bIsUP = false;
     }
 
@@ -256,20 +254,17 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
         pCachedStream->lLastUsed = clock();
         pCachedStream->uiCacheHit++;
         bool bMismatch = false;
-        if(pCachedStream->uiCheckCount == (pCachedStream->uiCheckFrequency - 1))
-        {
+        if(pCachedStream->uiCheckCount == (pCachedStream->uiCheckFrequency - 1)) {
             // Use the cached stream length (which is a must for the UP stream)
-            uint32_t uiHash = XXHash32::hash((void *)pCalculateData, pCachedStream->uiLength, HASH_SEED);
-            if(uiHash == pCachedStream->uiHash)
-            {
+            uint32_t uiHash = XXHash32::hash((void *)pXboxVertexData, pCachedStream->uiLength, HASH_SEED);
+            if(uiHash == pCachedStream->uiHash) {
                 // Take a while longer to check
                 if(pCachedStream->uiCheckFrequency < 32*1024)
                     pCachedStream->uiCheckFrequency *= 2;
 
 				pCachedStream->uiCheckCount = 0;
             }
-            else
-            {
+            else {
                 // TODO: Do something about this
                 if(pCachedStream->bIsUP) {
                     FreeCachedStream(pCachedStream->pStreamUP);
@@ -280,28 +275,24 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
                 bMismatch = true;
             }
 		}
-        else
-        {
+        else {
             pCachedStream->uiCheckCount++;
         }
 
-        if(!bMismatch)
-        {
-            if(pCachedStream->bIsUP)
-            {
+        if(!bMismatch) {
+            if(pCachedStream->bIsUP) {
                 pPatchDesc->pVertexStreamZeroData = pCachedStream->pStreamUP;
                 pPatchDesc->uiVertexStreamZeroStride = pCachedStream->Stream.uiNewStride;
             }
-            else
-            {
-                g_pD3DDevice8->SetStreamSource(uiStream, pCachedStream->Stream.pPatchedStream, pCachedStream->Stream.uiNewStride);
-				if (pCachedStream->Stream.pPatchedStream != nullptr) {
-					pCachedStream->Stream.pPatchedStream->AddRef();
+            else {
+                g_pD3DDevice8->SetStreamSource(uiStream, pCachedStream->Stream.pHostVertexBuffer, pCachedStream->Stream.uiNewStride);
+				if (pCachedStream->Stream.pHostVertexBuffer != nullptr) {
+					pCachedStream->Stream.pHostVertexBuffer->AddRef();
 				}
 
                 m_pStreams[uiStream].uiOrigStride = uiStride;
                 m_pStreams[uiStream].uiNewStride = pCachedStream->Stream.uiNewStride;
-				m_pStreams[uiStream].pPatchedStream = pCachedStream->Stream.pPatchedStream;
+				m_pStreams[uiStream].pHostVertexBuffer = pCachedStream->Stream.pHostVertexBuffer;
             }
 
             // The primitives were patched, draw with the correct number of primimtives from the cache
@@ -343,12 +334,12 @@ void XTL::VertexPatcher::ConvertStream
 )
 {
 	UINT                       uiVertexCount = 0;
-    uint08                    *pInputData = nullptr;
+    uint08                    *pXboxVertexInputData = NULL;
 	UINT                       uiInputStride = 0;
     uint08                    *pOutputData = nullptr;
 	UINT                       uiOutputStride = 0;
     DWORD					   dwOutputSize = 0;
-    IDirect3DVertexBuffer8    *pOutputVertexBuffer = nullptr;
+    IDirect3DVertexBuffer8    *pHostVertexBuffer = nullptr;
 
     PATCHEDSTREAM             *pStream = &m_pStreams[uiStream];
     STREAM_DYNAMIC_PATCH      *pStreamPatch = (m_pDynamicPatch != nullptr) ? (&m_pDynamicPatch->pStreamPatches[uiStream]) : nullptr;
@@ -396,7 +387,7 @@ void XTL::VertexPatcher::ConvertStream
         if(uiStream != 0)
             CxbxKrnlCleanup("Trying to patch a Draw..UP with more than stream zero!");
 
-		pInputData = (uint08 *)pPatchDesc->pVertexStreamZeroData;
+		pXboxVertexInputData = (uint08 *)pPatchDesc->pVertexStreamZeroData;
 		uiInputStride  = pPatchDesc->uiVertexStreamZeroStride;
 		uiOutputStride = (pStreamPatch != nullptr) ? max(pStreamPatch->ConvertedStride, uiInputStride) : uiInputStride;
         // TODO: This is sometimes the number of indices, which isn't too good
@@ -415,15 +406,15 @@ void XTL::VertexPatcher::ConvertStream
 			}
 		}
 		else {
-			pOutputData = pInputData;
+			pOutputData = pXboxVertexInputData;
 		}
 	}
 	else
 	{
-		pInputData = (uint08*)GetDataFromXboxResource(Xbox_g_Stream[uiStream].pVertexBuffer);
+		pXboxVertexInputData = (uint08*)GetDataFromXboxResource(Xbox_g_Stream[uiStream].pVertexBuffer);
 		uiInputStride = Xbox_g_Stream[uiStream].Stride;
 		// Set a new (exact) vertex count
-		uiVertexCount = g_MemoryManager.QueryAllocationSize(pInputData) / uiInputStride;
+		uiVertexCount = g_MemoryManager.QueryAllocationSize(pXboxVertexInputData) / uiInputStride;
 
 		// Dxbx addition : Don't update pPatchDesc.dwVertexCount because an indexed draw
 		// can (and will) use less vertices than the supplied nr of indexes. Thix fixes
@@ -431,14 +422,14 @@ void XTL::VertexPatcher::ConvertStream
 		uiOutputStride = (pStreamPatch != nullptr) ? max(pStreamPatch->ConvertedStride, uiInputStride) : uiInputStride;
 		dwOutputSize = uiVertexCount * uiOutputStride;
 
-		g_pD3DDevice8->CreateVertexBuffer(dwOutputSize, 0, 0, XTL::D3DPOOL_MANAGED, &pOutputVertexBuffer);
-        if(FAILED(pOutputVertexBuffer->Lock(0, 0, &pOutputData, D3DLOCK_DISCARD)))
+		g_pD3DDevice8->CreateVertexBuffer(dwOutputSize, 0, 0, XTL::D3DPOOL_MANAGED, &pHostVertexBuffer);
+        if(FAILED(pHostVertexBuffer->Lock(0, 0, &pOutputData, D3DLOCK_DISCARD)))
             CxbxKrnlCleanup("Couldn't lock the new buffer");
         
 		bNeedStreamCopy = true;
 		if (!pStream->pXboxVertexData) {
 			// The stream was not previously patched, we'll need this when restoring
-			pStream->pXboxVertexData = pInputData;
+			pStream->pXboxVertexData = pXboxVertexInputData;
 		}
 
 		// We'll need this when restoring
@@ -447,7 +438,7 @@ void XTL::VertexPatcher::ConvertStream
 
 	if (bNeedVertexPatching) {
 		for (uint32 uiVertex = 0; uiVertex < uiVertexCount; uiVertex++) {
-			uint08 *pOrigVertex = &pInputData[uiVertex * uiInputStride];
+			uint08 *pOrigVertex = &pXboxVertexInputData[uiVertex * uiInputStride];
 			uint08 *pNewDataPos = &pOutputData[uiVertex * pStreamPatch->ConvertedStride];
 			for (UINT uiType = 0; uiType < pStreamPatch->NbrTypes; uiType++) {
 				// Dxbx note : The following code handles only the D3DVSDT enums that need conversion;
@@ -569,7 +560,7 @@ void XTL::VertexPatcher::ConvertStream
 		}
 	} else {
 		if (bNeedStreamCopy) {
-			memcpy(pOutputData, pInputData, dwOutputSize);
+			memcpy(pOutputData, pXboxVertexInputData, dwOutputSize);
 		}
 	}
 
@@ -617,24 +608,20 @@ void XTL::VertexPatcher::ConvertStream
 		}
 	}
 
-	if(pPatchDesc->pVertexStreamZeroData != NULL)
-    {
+	if(pPatchDesc->pVertexStreamZeroData != NULL) {
         pPatchDesc->pVertexStreamZeroData = pOutputData;
         pPatchDesc->uiVertexStreamZeroStride = pStreamPatch->ConvertedStride;
     }
-	else
-	{
-		if (pOutputVertexBuffer != nullptr) // Dxbx addition
-			pOutputVertexBuffer->Unlock();
-
-		if (FAILED(g_pD3DDevice8->SetStreamSource(uiStream, pOutputVertexBuffer, uiOutputStride)))
+	else {
+		pHostVertexBuffer->Unlock();
+		if (FAILED(g_pD3DDevice8->SetStreamSource(uiStream, pHostVertexBuffer, uiOutputStride)))
 			CxbxKrnlCleanup("Failed to set the type patched buffer as the new stream source!\n");
 
-		if (pStream->pPatchedStream != nullptr)
+		if (pStream->pHostVertexBuffer != nullptr)
 			// The stream was already primitive patched, release the previous vertex buffer to avoid memory leaks
-			pStream->pPatchedStream->Release();
+			pStream->pHostVertexBuffer->Release();
 
-		pStream->pPatchedStream = pOutputVertexBuffer;
+		pStream->pHostVertexBuffer = pHostVertexBuffer;
 	}
 
     pStream->uiOrigStride = uiInputStride;
@@ -642,38 +629,11 @@ void XTL::VertexPatcher::ConvertStream
     m_bPatched = true;
 }
 
-void XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc)
-{
-    if((pPatchDesc->XboxPrimitiveType < X_D3DPT_POINTLIST) || (pPatchDesc->XboxPrimitiveType > X_D3DPT_POLYGON))
-        CxbxKrnlCleanup("Unknown primitive type: 0x%.02X\n", pPatchDesc->XboxPrimitiveType);
-
-    switch(pPatchDesc->XboxPrimitiveType)
-    {
-		case X_D3DPT_QUADSTRIP:
-			// Quad strip is just like a triangle strip, but requires two vertices per primitive.
-			// A quadstrip starts with 4 vertices and adds 2 vertices per additional quad.
-			// This is much like a trianglestrip, which starts with 3 vertices and adds
-			// 1 vertex per additional triangle, so we use that instead. The planar nature
-			// of the quads 'survives' through this change. There's a catch though :
-			// In a trianglestrip, every 2nd triangle has an opposing winding order,
-			// which would cause backface culling - but this seems to be intelligently
-			// handled by d3d :
-			// Test-case : XDK Samples (FocusBlur, MotionBlur, Trees, PaintEffect, PlayField)
-            pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLESTRIP;
-            break;
-
-        case X_D3DPT_POLYGON:
-	        // Convex polygon is the same as a triangle fan.
-            // No need to set : pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLEFAN;
-			LOG_TEST_CASE("X_D3DPT_POLYGON");
-			break;
-    }
-
-    pPatchDesc->dwPrimitiveCount = EmuD3DVertex2PrimitiveCount(pPatchDesc->XboxPrimitiveType, pPatchDesc->dwVertexCount);
-}
-
 bool XTL::VertexPatcher::Apply(VertexPatchDesc *pPatchDesc)
 {
+	if ((pPatchDesc->XboxPrimitiveType < X_D3DPT_POINTLIST) || (pPatchDesc->XboxPrimitiveType > X_D3DPT_POLYGON))
+		CxbxKrnlCleanup("Unknown primitive type: 0x%.02X\n", pPatchDesc->XboxPrimitiveType);
+
 	bool bFatalError = false;
 
     m_uiNbrStreams = GetNbrStreams(pPatchDesc);
@@ -699,7 +659,27 @@ bool XTL::VertexPatcher::Apply(VertexPatchDesc *pPatchDesc)
 
     }
         
-	PatchPrimitive(pPatchDesc);
+	// Update the primitive of the stream
+	if (pPatchDesc->XboxPrimitiveType == X_D3DPT_QUADSTRIP) {
+		// Quad strip is just like a triangle strip, but requires two vertices per primitive.
+		// A quadstrip starts with 4 vertices and adds 2 vertices per additional quad.
+		// This is much like a trianglestrip, which starts with 3 vertices and adds
+		// 1 vertex per additional triangle, so we use that instead. The planar nature
+		// of the quads 'survives' through this change. There's a catch though :
+		// In a trianglestrip, every 2nd triangle has an opposing winding order,
+		// which would cause backface culling - but this seems to be intelligently
+		// handled by d3d :
+		// Test-case : XDK Samples (FocusBlur, MotionBlur, Trees, PaintEffect, PlayField)
+		pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLESTRIP;
+	}
+
+	if (pPatchDesc->XboxPrimitiveType == X_D3DPT_POLYGON) {
+		// Convex polygon is the same as a triangle fan.
+		// No need to set : pPatchDesc->XboxPrimitiveType = X_D3DPT_TRIANGLEFAN;
+		LOG_TEST_CASE("X_D3DPT_POLYGON");
+	}
+
+	pPatchDesc->dwPrimitiveCount = EmuD3DVertex2PrimitiveCount(pPatchDesc->XboxPrimitiveType, pPatchDesc->dwVertexCount);
 
 	return bFatalError;
 }
@@ -712,7 +692,7 @@ void XTL::VertexPatcher::Restore()
     for(UINT uiStream = 0; uiStream < m_uiNbrStreams; uiStream++)
     {
 #if 0 // TODO : Restore previous stream?
-		if(m_pStreams[uiStream].pOriginalStream != nullptr && m_pStreams[uiStream].pPatchedStream != nullptr)
+		if(m_pStreams[uiStream].pOriginalStream != nullptr && m_pStreams[uiStream].pHostVertexBuffer != nullptr)
         {
             g_pD3DDevice8->SetStreamSource(0, m_pStreams[uiStream].pOriginalStream, m_pStreams[uiStream].uiOrigStride);
         }
@@ -726,19 +706,18 @@ void XTL::VertexPatcher::Restore()
                 m_pStreams[uiStream].pOriginalStream = nullptr;*/
         }
 #endif
-        if(m_pStreams[uiStream].pPatchedStream != nullptr)
+        if(m_pStreams[uiStream].pHostVertexBuffer != nullptr)
         {
-            UINT b = m_pStreams[uiStream].pPatchedStream->Release();
+            UINT b = m_pStreams[uiStream].pHostVertexBuffer->Release();
 			/* TODO : Although correct, this currently leads to a null-pointer exception :
 			if (b == 0)
-                m_pStreams[uiStream].pPatchedStream = nullptr;*/
+                m_pStreams[uiStream].pHostVertexBuffer = nullptr;*/
         }
 
 		if (m_pStreams[uiStream].bUsedCached) {
 			m_pStreams[uiStream].bUsedCached = false;
 		} else {
-            if(this->m_bAllocatedStreamZeroData)
-            {
+            if(this->m_bAllocatedStreamZeroData) {
                 free(m_pNewVertexStreamZeroData);
 				// Cleanup, just to be sure :
 				m_pNewVertexStreamZeroData = nullptr;
