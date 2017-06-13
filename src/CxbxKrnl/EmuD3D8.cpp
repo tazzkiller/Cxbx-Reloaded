@@ -9596,6 +9596,29 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawRectPatch)
 	return hRet;
 }
 
+HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawTriPatch)
+(
+	UINT					Handle,
+	CONST FLOAT				*pNumSegs,
+	CONST X_D3DTRIPATCH_INFO* pTriPatchInfo
+)
+{
+	FUNC_EXPORTS
+
+		LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(Handle)
+		LOG_FUNC_ARG(pNumSegs)
+		LOG_FUNC_ARG(pTriPatchInfo)
+		LOG_FUNC_END;
+
+	CxbxUpdateNativeD3DResources();
+
+	HRESULT hRet = g_pD3DDevice8->DrawTriPatch(Handle, pNumSegs, pTriPatchInfo);
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawTriPatch");
+
+	return hRet;
+}
+
 #pragma warning(disable:4244)
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetProjectionViewportMatrix)
 (

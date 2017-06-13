@@ -78,6 +78,7 @@ const DWORD
 #define X_D3DXMATRIX D3DXMATRIX // Same as on Windows Direct3D
 #define X_D3DPOOL D3DPOOL // Same as on Windows Direct3D
 #define X_D3DRECTPATCH_INFO D3DRECTPATCH_INFO // Same as on Windows Direct3D
+#define X_D3DTRIPATCH_INFO D3DTRIPATCH_INFO // Same as on Windows Direct3D
 
 // End of Host Direct3D related declarations
 #pragma endregion
