@@ -2016,7 +2016,7 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_DrawRectPatch
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_DrawRectPatch, 4627, 8)
+OOVPA_NO_XREF(D3DDevice_DrawRectPatch, 4627, 8) // obsolete, replaced by generic 3911 version
 
         { 0x1E, 0x6C },
         { 0x3E, 0x3C },
@@ -2899,7 +2899,7 @@ OOVPATable D3D8_4627[] = {
 	REGISTER_OOVPA(D3DDevice_DrawVerticesUP, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawIndexedVertices, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawIndexedVerticesUP, 4627, PATCH),
-	REGISTER_OOVPA(D3DDevice_DrawRectPatch, 4627, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawRectPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetLight, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetLight, 4134, PATCH),
