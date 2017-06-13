@@ -1896,6 +1896,7 @@ OOVPATable D3D8_4134[] = {
 	REGISTER_OOVPA(D3DDevice_SetRenderState_ShadowFunc, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_YuvEnable, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawIndexedVerticesUP, 4134, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawRectPatch, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetPixelShaderConstant, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_DeletePixelShader, 3925, PATCH),

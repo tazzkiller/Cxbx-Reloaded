@@ -713,6 +713,7 @@ OOVPATable D3D8_5233[] = {
 	REGISTER_OOVPA(D3DTexture_GetSurfaceLevel2, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShader, 5028, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawVertices, 5028, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawRectPatch, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetViewportOffsetAndScale, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_DeleteVertexShader, 3925, PATCH),
