@@ -356,6 +356,8 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
 		DWORD dwTexN = (pDrawContext->hVertexShader & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
 		// Check for active linear textures.
 		for (uint i = 0; i < X_D3DTSS_STAGECOUNT; i++) {
+			// Only normalize coordinates used by the FVF shader :
+			pActivePixelContainer[i].bTexIsLinear = false;
 			if (i + 1 <= dwTexN) {
 				XTL::X_D3DBaseTexture *pXboxBaseTexture = XTL::EmuD3DTextureStages[i];
 				if (pXboxBaseTexture != NULL) {
@@ -371,10 +373,6 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
 						pActivePixelContainer[i].Height = ((pXboxBaseTexture->Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
 					}
 				}
-			}
-			else {
-				// Don't normalize coordinates not used by the FVF shader :
-				pActivePixelContainer[i].bTexIsLinear = false;
 			}
 		}
 	}
@@ -610,7 +608,7 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
 
 	if(pDrawContext->pVertexStreamZeroData != NULL) {
         pDrawContext->pVertexStreamZeroData = pOutputData;
-        pDrawContext->uiVertexStreamZeroStride = pStreamPatch->ConvertedStride;
+        pDrawContext->uiVertexStreamZeroStride = uiOutputStride;
     }
 	else {
 		pHostVertexBuffer->Unlock();
@@ -643,20 +641,22 @@ bool XTL::CxbxVertexBufferConverter::Apply(CxbxDrawContext *pDrawContext)
     }
 
     for(UINT uiStream = 0; uiStream < m_uiNbrStreams; uiStream++) {
-        if(ApplyCachedStream(pDrawContext, uiStream, &bFatalError)) {
+#if 0
+		if(ApplyCachedStream(pDrawContext, uiStream, &bFatalError)) {
             m_pStreams[uiStream].bUsedCached = true;
             continue;
         }
-
+#endif
 		ConvertStream(pDrawContext, uiStream);
 
+#if 0
 		//if(pDrawContext->pVertexStreamZeroData == NULL)
 		{
 			// Insert the patched stream in the cache
 			CacheStream(pDrawContext, uiStream);
 			m_pStreams[uiStream].bUsedCached = true;
 		}
-
+#endif
     }
         
 	// Update the primitive of the stream
