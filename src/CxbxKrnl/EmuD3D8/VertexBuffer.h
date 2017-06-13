@@ -39,7 +39,7 @@
 
 #define MAX_NBR_STREAMS 16
 
-typedef struct _VertexPatchDesc
+typedef struct _CxbxDrawContext
 {
     IN OUT X_D3DPRIMITIVETYPE    XboxPrimitiveType;
     IN     DWORD                 dwVertexCount;
@@ -50,19 +50,18 @@ typedef struct _VertexPatchDesc
     IN OUT UINT                  uiVertexStreamZeroStride;
     // The current vertex shader, used to identify the streams
     IN     DWORD                 hVertexShader;
-}
-VertexPatchDesc;
+} CxbxDrawContext;
 
-typedef struct _PATCHEDSTREAM
+typedef struct _CxbxPatchedStream
 {
 	void                   *pXboxVertexData;
     UINT                    uiOrigStride;
     IDirect3DVertexBuffer8 *pHostVertexBuffer;
     UINT                    uiNewStride;
     bool                    bUsedCached;
-} PATCHEDSTREAM;
+} CxbxPatchedStream;
 
-typedef struct _CACHEDSTREAM
+typedef struct _CxbxCachedStream
 {
     uint32_t       uiHash;
     uint32         uiCheckFrequency;
@@ -70,19 +69,19 @@ typedef struct _CACHEDSTREAM
     uint32         uiCacheHit;
     long           lLastUsed;           // For cache removal purposes
     bool           bIsUP;
-    PATCHEDSTREAM  Stream;
+    CxbxPatchedStream  Stream;
     void          *pStreamUP;           // Draw..UP (instead of pOriginalStream)
     uint32         uiLength;            // The length of the stream
-	VertexPatchDesc Copy;
-} CACHEDSTREAM;
+	CxbxDrawContext Copy;
+} CxbxCachedStream;
 
-class VertexPatcher
+class CxbxVertexBufferConverter
 {
     public:
-        VertexPatcher();
-       ~VertexPatcher();
+        CxbxVertexBufferConverter();
+       ~CxbxVertexBufferConverter();
 
-        bool Apply(VertexPatchDesc *pPatchDesc);
+        bool Apply(CxbxDrawContext *pDrawContext);
         void Restore();
 
         // Dumps the cache to the console
@@ -91,32 +90,32 @@ class VertexPatcher
     private:
 
         UINT m_uiNbrStreams;
-        PATCHEDSTREAM m_pStreams[MAX_NBR_STREAMS];
+        CxbxPatchedStream m_pStreams[MAX_NBR_STREAMS];
 
         PVOID m_pNewVertexStreamZeroData;
 
         bool m_bPatched;
         bool m_bAllocatedStreamZeroData;
 
-        VERTEX_DYNAMIC_PATCH *m_pDynamicPatch;
+        CxbxVertexDynamicPatch *m_pDynamicPatch;
 
         // Returns the number of streams of a patch
-        UINT GetNbrStreams(VertexPatchDesc *pPatchDesc);
+        UINT GetNbrStreams(CxbxDrawContext *pDrawContext);
 
         // Caches a patched stream
-        void CacheStream(VertexPatchDesc *pPatchDesc,
+        void CacheStream(CxbxDrawContext *pDrawContext,
                          UINT             uiStream);
 
         // Frees a cached, patched stream
         void FreeCachedStream(void *pStream);
 
         // Tries to apply a previously patched stream from the cache
-        bool ApplyCachedStream(VertexPatchDesc *pPatchDesc,
+        bool ApplyCachedStream(CxbxDrawContext *pDrawContext,
                                UINT             uiStream,
 							   bool			   *pbFatalError);
 
         // Convert the contents of the stream
-        void ConvertStream(VertexPatchDesc *pPatchDesc, UINT uiStream);
+        void ConvertStream(CxbxDrawContext *pDrawContext, UINT uiStream);
 };
 
 // inline vertex buffer emulation

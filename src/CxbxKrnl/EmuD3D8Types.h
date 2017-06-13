@@ -1459,7 +1459,7 @@ typedef DWORD NV2AMETHOD;
 
 #define X_PIXELSHADER_FAKE_HANDLE 0xDEADBEEF
 
-typedef struct _PixelShader_
+typedef struct _CxbxPixelShader
 {
 	//IDirect3DPixelShader9* pShader;
 	//ID3DXConstantTable *pConstantTable;
@@ -1482,9 +1482,9 @@ typedef struct _PixelShader_
 	DWORD dwStageMap[4]; // = X_D3DTSS_STAGECOUNT
 
 }
-PIXEL_SHADER;
+CxbxPixelShader;
 
-typedef struct _STREAM_DYNAMIC_PATCH_
+typedef struct _CxbxStreamDynamicPatch
 {
 	BOOL  NeedPatch;       // This is to know whether is data which must be patched
 	DWORD ConvertedStride;
@@ -1492,16 +1492,16 @@ typedef struct _STREAM_DYNAMIC_PATCH_
 	UINT  *pTypes;         // The stream data types (xbox)
 	UINT  *pSizes;         // The stream data sizes (pc)
 }
-STREAM_DYNAMIC_PATCH;
+CxbxStreamDynamicPatch;
 
-typedef struct _VERTEX_DYNAMIC_PATCH_
+typedef struct _CxbxVertexDynamicPatch
 {
 	UINT                         NbrStreams; // The number of streams the vertex shader uses
-	STREAM_DYNAMIC_PATCH        *pStreamPatches;
+	CxbxStreamDynamicPatch      *pStreamPatches;
 }
-VERTEX_DYNAMIC_PATCH;
+CxbxVertexDynamicPatch;
 
-typedef struct _VERTEX_SHADER
+typedef struct _CxbxVertexShader
 {
 	DWORD Handle;
 
@@ -1516,9 +1516,9 @@ typedef struct _VERTEX_SHADER
 	DWORD                 Status;
 
 	// Needed for dynamic stream patching
-	VERTEX_DYNAMIC_PATCH  VertexDynamicPatch;
+	CxbxVertexDynamicPatch  VertexDynamicPatch;
 }
-VERTEX_SHADER;
+CxbxVertexShader;
 
 // End of Cxbx Direct3D declarations
 #pragma endregion

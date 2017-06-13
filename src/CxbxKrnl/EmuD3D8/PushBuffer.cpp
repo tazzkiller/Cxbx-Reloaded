@@ -311,17 +311,17 @@ extern void XTL::EmuExecutePushBufferRaw
             {
                 UINT VertexCount = (dwCount * sizeof(DWORD)) / dwStride;
 
-                VertexPatchDesc VPDesc;
+                CxbxDrawContext DrawContext;
 
-                VPDesc.XboxPrimitiveType = XboxPrimitiveType;
-                VPDesc.dwVertexCount = VertexCount;
-                VPDesc.dwPrimitiveCount = 0;
-                VPDesc.dwStartVertex = 0;
-                VPDesc.pVertexStreamZeroData = pVertexData;
-                VPDesc.uiVertexStreamZeroStride = dwStride;
-                VPDesc.hVertexShader = dwVertexShader;
+                DrawContext.XboxPrimitiveType = XboxPrimitiveType;
+                DrawContext.dwVertexCount = VertexCount;
+                DrawContext.dwPrimitiveCount = 0;
+                DrawContext.dwStartVertex = 0;
+                DrawContext.pVertexStreamZeroData = pVertexData;
+                DrawContext.uiVertexStreamZeroStride = dwStride;
+                DrawContext.hVertexShader = dwVertexShader;
 
-				CxbxDrawPrimitiveUP(VPDesc);
+				CxbxDrawPrimitiveUP(DrawContext);
             }
 
             pdwPushData--;
@@ -392,20 +392,20 @@ extern void XTL::EmuExecutePushBufferRaw
                     {
                         if(IsValidCurrentShader())
                         {
-							VertexPatchDesc VPDesc;
+							CxbxDrawContext DrawContext;
 
-							VPDesc.XboxPrimitiveType = XboxPrimitiveType;
-							VPDesc.dwVertexCount = EmuD3DIndexCountToVertexCount(XboxPrimitiveType, uiIndexCount);
-							VPDesc.dwPrimitiveCount = 0;
-							VPDesc.dwStartVertex = 0;
-							VPDesc.pVertexStreamZeroData = NULL;
-							VPDesc.uiVertexStreamZeroStride = 0;
+							DrawContext.XboxPrimitiveType = XboxPrimitiveType;
+							DrawContext.dwVertexCount = EmuD3DIndexCountToVertexCount(XboxPrimitiveType, uiIndexCount);
+							DrawContext.dwPrimitiveCount = 0;
+							DrawContext.dwStartVertex = 0;
+							DrawContext.pVertexStreamZeroData = NULL;
+							DrawContext.uiVertexStreamZeroStride = 0;
 							// TODO: Set the current shader and let the patcher handle it..
-							VPDesc.hVertexShader = g_CurrentVertexShader;
+							DrawContext.hVertexShader = g_CurrentVertexShader;
 
 							g_pD3DDevice8->SetIndices(pIndexBuffer, 0);
 
-							CxbxDrawIndexed(VPDesc);
+							CxbxDrawIndexed(DrawContext);
 
 		                    g_pD3DDevice8->SetIndices(nullptr, 0);
                         }
@@ -527,20 +527,20 @@ extern void XTL::EmuExecutePushBufferRaw
 					{
 						if (IsValidCurrentShader())
 						{
-							VertexPatchDesc VPDesc;
+							CxbxDrawContext DrawContext;
 
-							VPDesc.XboxPrimitiveType = XboxPrimitiveType;
-							VPDesc.dwVertexCount = EmuD3DIndexCountToVertexCount(XboxPrimitiveType, dwIndexCount);
-							VPDesc.dwPrimitiveCount = 0;
-							VPDesc.dwStartVertex = 0;
-							VPDesc.pVertexStreamZeroData = NULL;
-							VPDesc.uiVertexStreamZeroStride = 0;
+							DrawContext.XboxPrimitiveType = XboxPrimitiveType;
+							DrawContext.dwVertexCount = EmuD3DIndexCountToVertexCount(XboxPrimitiveType, dwIndexCount);
+							DrawContext.dwPrimitiveCount = 0;
+							DrawContext.dwStartVertex = 0;
+							DrawContext.pVertexStreamZeroData = NULL;
+							DrawContext.uiVertexStreamZeroStride = 0;
 							// TODO: Set the current shader and let the patcher handle it..
-							VPDesc.hVertexShader = g_CurrentVertexShader;
+							DrawContext.hVertexShader = g_CurrentVertexShader;
 
 							g_pD3DDevice8->SetIndices(pIndexBuffer, 0);
 
-							CxbxDrawIndexed(VPDesc);
+							CxbxDrawIndexed(DrawContext);
 
 							g_pD3DDevice8->SetIndices(nullptr, 0);
 						}
