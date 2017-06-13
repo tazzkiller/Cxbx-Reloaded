@@ -1070,6 +1070,7 @@ OOVPATable D3D8_5344[] = {
 	REGISTER_OOVPA(D3DDevice_GetVisibilityTestResult, 5344, PATCH),
 	REGISTER_OOVPA(D3DDevice_PersistDisplay, 5344, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawIndexedVerticesUP, 5344, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetPixelShaderProgram, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetPixelShader, 5028, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexData2s, 4361, PATCH),

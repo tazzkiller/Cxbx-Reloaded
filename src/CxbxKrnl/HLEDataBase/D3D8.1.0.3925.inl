@@ -4042,6 +4042,7 @@ OOVPATable D3D8_3925[] = {
 	REGISTER_OOVPA(D3DDevice_DrawVerticesUP, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawIndexedVerticesUP, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawVertices, 3925, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDisplayMode, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTextureState_BumpEnv, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTextureState_ColorKeyColor, 3925, PATCH),
