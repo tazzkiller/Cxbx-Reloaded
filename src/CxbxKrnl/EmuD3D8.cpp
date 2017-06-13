@@ -8481,7 +8481,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 			// This is slower (because of call-overhead) but doesn't require any index buffer patching
 
 			// Draw 1 quad as a 2 triangles in a fan (which both have the same winding order) :
-			LOG_TEST_CASE("X_D3DPT_QUADLIST"); // Possible test-case : XDK Samples (Billboard, BumpLens, DebugKeyboard, Gamepad, Lensflare, PerfTest?VolumeLight, PointSprites, Tiling, VolumeFog, VolumeSprites, etc)
+			LOG_TEST_CASE("X_D3DPT_QUADLIST"); // Test-case : Buffy: The Vampire Slayer, possibly XDK Samples (Billboard, BumpLens, DebugKeyboard, Gamepad, Lensflare, PerfTest?VolumeLight, PointSprites, Tiling, VolumeFog, VolumeSprites, etc)
 
 			INDEX16* pWalkIndexData = (INDEX16*)pIndexData;
 			int iNumVertices = (int)VertexCount;
