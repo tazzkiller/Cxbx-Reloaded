@@ -860,6 +860,7 @@ VOID XTL::EmuFlushIVB()
         {
             *pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord1.x;
             *pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord1.y;
+			//*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord1.z;
 
             DbgPrintf("IVB TexCoord1 := {%f, %f}\n", g_InlineVertexBuffer_Table[v].TexCoord1.x, g_InlineVertexBuffer_Table[v].TexCoord1.y);
 
@@ -867,6 +868,7 @@ VOID XTL::EmuFlushIVB()
 			{
 				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord2.x;
 				*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord2.y;
+				//*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord2.z;
 
 				DbgPrintf("IVB TexCoord2 := {%f, %f}\n", g_InlineVertexBuffer_Table[v].TexCoord2.x, g_InlineVertexBuffer_Table[v].TexCoord2.y);
 
@@ -874,6 +876,7 @@ VOID XTL::EmuFlushIVB()
 				{
 					*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord3.x;
 					*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord3.y;
+					//*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord3.z;
 
 					DbgPrintf("IVB TexCoord3 := {%f, %f}\n", g_InlineVertexBuffer_Table[v].TexCoord3.x, g_InlineVertexBuffer_Table[v].TexCoord3.y);
 
@@ -881,6 +884,7 @@ VOID XTL::EmuFlushIVB()
 					{
 						*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord4.x;
 						*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord4.y;
+						//*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].TexCoord4.z;
 
 						DbgPrintf("IVB TexCoord4 := {%f, %f}\n", g_InlineVertexBuffer_Table[v].TexCoord4.x, g_InlineVertexBuffer_Table[v].TexCoord4.y);
 					}

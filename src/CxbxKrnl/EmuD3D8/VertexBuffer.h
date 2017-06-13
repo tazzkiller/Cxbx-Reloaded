@@ -137,10 +137,10 @@ extern struct _D3DIVB
 	XTL::D3DCOLOR    Specular;
     XTL::D3DCOLOR    Diffuse;
     XTL::D3DXVECTOR3 Normal;
-    XTL::D3DXVECTOR2 TexCoord1;
-    XTL::D3DXVECTOR2 TexCoord2;
-    XTL::D3DXVECTOR2 TexCoord3;
-    XTL::D3DXVECTOR2 TexCoord4;
+    XTL::D3DXVECTOR3 TexCoord1;
+    XTL::D3DXVECTOR3 TexCoord2;
+    XTL::D3DXVECTOR3 TexCoord3;
+    XTL::D3DXVECTOR3 TexCoord4;
 }
 *g_InlineVertexBuffer_Table;
 

@@ -5063,6 +5063,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
         {
             g_InlineVertexBuffer_Table[o].TexCoord1.x = a;
             g_InlineVertexBuffer_Table[o].TexCoord1.y = b;
+			g_InlineVertexBuffer_Table[o].TexCoord1.z = c;
 
             if( (g_InlineVertexBuffer_FVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX1)
             {
@@ -5079,6 +5080,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
         {
             g_InlineVertexBuffer_Table[o].TexCoord2.x = a;
             g_InlineVertexBuffer_Table[o].TexCoord2.y = b;
+			g_InlineVertexBuffer_Table[o].TexCoord2.z = c;
 
             if( (g_InlineVertexBuffer_FVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX2)
             {
@@ -5093,6 +5095,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
         {
             g_InlineVertexBuffer_Table[o].TexCoord3.x = a;
             g_InlineVertexBuffer_Table[o].TexCoord3.y = b;
+			g_InlineVertexBuffer_Table[o].TexCoord3.z = c;
 
             if( (g_InlineVertexBuffer_FVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX3)
             {
@@ -5107,6 +5110,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
         {
             g_InlineVertexBuffer_Table[o].TexCoord4.x = a;
             g_InlineVertexBuffer_Table[o].TexCoord4.y = b;
+			g_InlineVertexBuffer_Table[o].TexCoord4.z = c;
 
             if( (g_InlineVertexBuffer_FVF & D3DFVF_TEXCOUNT_MASK) < D3DFVF_TEX4)
             {
