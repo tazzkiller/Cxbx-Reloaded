@@ -8019,14 +8019,16 @@ void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-		VertexPatcher VertPatch;
+	assert(VPDesc.dwStartVertex == 0);
+
+	VertexPatcher VertPatch;
 	bool FatalError = VertPatch.Apply(&VPDesc);
 
 	if (IsValidCurrentShader() && !FatalError)
 	{
 		if (VPDesc.XboxPrimitiveType == X_D3DPT_QUADLIST)
 		{
-			UINT uiStartIndex = VPDesc.dwOffset;
+			UINT uiStartIndex = 0;
 			int iNumVertices = (int)VPDesc.dwVertexCount;
 
 			// Indexed quadlist can be drawn using unpatched indexes via multiple draws of 2 'strip' triangles :
@@ -8064,8 +8066,8 @@ void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 				EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
 				/* MinVertexIndex = */0,
 				/* NumVertices = */VPDesc.dwVertexCount, // TODO : g_EmuD3DActiveStreamSizes[0], // Note : ATI drivers are especially picky about this -
-														 // NumVertices should be the span of covered vertices in the active vertex buffer (TODO : Is stream 0 correct?)
-				VPDesc.dwOffset, // startIndex
+				// NumVertices should be the span of covered vertices in the active vertex buffer (TODO : Is stream 0 correct?)
+				VPDesc.dwStartVertex,
 				VPDesc.dwPrimitiveCount);
 			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitive");
 
@@ -8114,7 +8116,7 @@ void XTL::CxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-		assert(VPDesc.dwOffset == 0);
+	assert(VPDesc.dwStartVertex == 0);
 	assert(VPDesc.pVertexStreamZeroData != NULL);
 	assert(VPDesc.uiVertexStreamZeroStride > 0);
 
@@ -8146,9 +8148,6 @@ void XTL::CxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 	}
 	else
 	{
-		assert(VPDesc.dwOffset == 0);
-		assert(VPDesc.pVertexStreamZeroData != NULL);
-
 		// Primitives other than X_D3DPT_QUADLIST can be drawn using one DrawPrimitiveUP call :
 		HRESULT hRet = g_pD3DDevice8->DrawPrimitiveUP
 		(
@@ -8211,26 +8210,26 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 
 	CxbxUpdateNativeD3DResources();
 
-	VertexPatchDesc VPDesc;
-
-    VPDesc.XboxPrimitiveType = PrimitiveType;
-    VPDesc.dwVertexCount = VertexCount;
-	VPDesc.dwPrimitiveCount = 0;
-    VPDesc.dwOffset = StartVertex;
-    VPDesc.pVertexStreamZeroData = NULL;
-    VPDesc.uiVertexStreamZeroStride = 0;
-    VPDesc.hVertexShader = g_CurrentVertexShader;
-
-	if (StartVertex > 0) {
-		// LOG_TEST_CASE("StartVertex > 0"); // Test case : XDK Sample (PlayField)
-		VPDesc.dwOffset = StartVertex; // Breakpoint location for testing. 
-	}
-
     #ifdef _DEBUG_TRACK_VB
     if(!g_bVBSkipStream)
     #endif
     if(IsValidCurrentShader())
     {
+		VertexPatchDesc VPDesc;
+
+		VPDesc.XboxPrimitiveType = PrimitiveType;
+		VPDesc.dwVertexCount = VertexCount;
+		VPDesc.dwPrimitiveCount = 0;
+		VPDesc.dwStartVertex = StartVertex;
+		VPDesc.pVertexStreamZeroData = NULL;
+		VPDesc.uiVertexStreamZeroStride = 0;
+		VPDesc.hVertexShader = g_CurrentVertexShader;
+
+		if (StartVertex > 0) {
+			// LOG_TEST_CASE("StartVertex > 0"); // Test case : XDK Sample (PlayField)
+			VPDesc.dwStartVertex = StartVertex; // Breakpoint location for testing. 
+		}
+
 		VertexPatcher VertPatch;
 
 		VertPatch.Apply(&VPDesc);
@@ -8244,7 +8243,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 
 			// Convert quad vertex-count & start to triangle vertex count & start :
 			UINT NumVertices = QuadToTriangleVertexCount(VPDesc.dwVertexCount);
-			UINT startVertex = QuadToTriangleVertexCount(VPDesc.dwOffset);
+			UINT startVertex = QuadToTriangleVertexCount(VPDesc.dwStartVertex);
 			UINT primCount = VPDesc.dwPrimitiveCount * TRIANGLES_PER_QUAD;
 
 			HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitive
@@ -8265,7 +8264,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 			HRESULT hRet = g_pD3DDevice8->DrawPrimitive
 			(
 				EmuXB2PC_D3DPrimitiveType(VPDesc.XboxPrimitiveType),
-				VPDesc.dwOffset,
+				VPDesc.dwStartVertex,
 				VPDesc.dwPrimitiveCount
 			);
 			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawPrimitive");
@@ -8286,7 +8285,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 				*/
 
 				// Close line-loops using a final single line, drawn from the end to the start vertex :
-				CxbxDrawIndexedClosingLine((INDEX16)(VPDesc.dwOffset + VPDesc.dwPrimitiveCount), (INDEX16)VPDesc.dwOffset);
+				// TODO : Is dwPrimitiveCount the correct ending offset?
+				CxbxDrawIndexedClosingLine((INDEX16)(VPDesc.dwStartVertex + VPDesc.dwPrimitiveCount), (INDEX16)VPDesc.dwStartVertex);
 
 				/* TODO : Is this necessary?
 				hRet = g_pD3DDevice8->SetIndices(CurrentIndexBuffer, uiCurrentBaseVertexIndex);
@@ -8330,24 +8330,22 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
 
 	CxbxUpdateNativeD3DResources();
 
-    VertexPatchDesc VPDesc;
-
-    VPDesc.XboxPrimitiveType = PrimitiveType;
-    VPDesc.dwVertexCount = VertexCount;
-	VPDesc.dwPrimitiveCount = 0;
-    VPDesc.dwOffset = 0;
-    VPDesc.pVertexStreamZeroData = pVertexStreamZeroData;
-    VPDesc.uiVertexStreamZeroStride = VertexStreamZeroStride;
-    VPDesc.hVertexShader = g_CurrentVertexShader;
-
+    #ifdef _DEBUG_TRACK_VB
+    if(!g_bVBSkipStream)
+    #endif
     if (IsValidCurrentShader())
     {
-        #ifdef _DEBUG_TRACK_VB
-        if(!g_bVBSkipStream)
-        #endif
-        {
-			CxbxDrawPrimitiveUP(VPDesc);
-        }
+		VertexPatchDesc VPDesc;
+
+		VPDesc.XboxPrimitiveType = PrimitiveType;
+		VPDesc.dwVertexCount = VertexCount;
+		VPDesc.dwPrimitiveCount = 0;
+		VPDesc.dwStartVertex = 0;
+		VPDesc.pVertexStreamZeroData = pVertexStreamZeroData;
+		VPDesc.uiVertexStreamZeroStride = VertexStreamZeroStride;
+		VPDesc.hVertexShader = g_CurrentVertexShader;
+
+		CxbxDrawPrimitiveUP(VPDesc);
     }
 
 	// Execute callback procedure

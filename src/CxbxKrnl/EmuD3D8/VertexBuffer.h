@@ -44,7 +44,7 @@ typedef struct _VertexPatchDesc
     IN OUT X_D3DPRIMITIVETYPE    XboxPrimitiveType;
     IN     DWORD                 dwVertexCount;
     OUT    DWORD                 dwPrimitiveCount;
-    IN     DWORD                 dwOffset;
+    IN     DWORD                 dwStartVertex; // Only D3DDevice_DrawVertices sets this (potentially higher than default 0)
     // Data if Draw...UP call
     IN OUT PVOID                 pVertexStreamZeroData;
     IN OUT UINT                  uiVertexStreamZeroStride;

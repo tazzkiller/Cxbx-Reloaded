@@ -902,7 +902,7 @@ VOID XTL::EmuFlushIVB()
     VPDesc.XboxPrimitiveType = g_InlineVertexBuffer_PrimitiveType;
     VPDesc.dwVertexCount = g_InlineVertexBuffer_TableOffset;
 	VPDesc.dwPrimitiveCount = 0;
-	VPDesc.dwOffset = 0;
+	VPDesc.dwStartVertex = 0;
     VPDesc.pVertexStreamZeroData = g_InlineVertexBuffer_pData;
     VPDesc.uiVertexStreamZeroStride = uiStride;
     VPDesc.hVertexShader = g_CurrentVertexShader;

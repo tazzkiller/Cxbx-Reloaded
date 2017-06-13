@@ -316,7 +316,7 @@ extern void XTL::EmuExecutePushBufferRaw
                 VPDesc.XboxPrimitiveType = XboxPrimitiveType;
                 VPDesc.dwVertexCount = VertexCount;
                 VPDesc.dwPrimitiveCount = 0;
-                VPDesc.dwOffset = 0;
+                VPDesc.dwStartVertex = 0;
                 VPDesc.pVertexStreamZeroData = pVertexData;
                 VPDesc.uiVertexStreamZeroStride = dwStride;
                 VPDesc.hVertexShader = dwVertexShader;
@@ -397,7 +397,7 @@ extern void XTL::EmuExecutePushBufferRaw
 							VPDesc.XboxPrimitiveType = XboxPrimitiveType;
 							VPDesc.dwVertexCount = EmuD3DIndexCountToVertexCount(XboxPrimitiveType, uiIndexCount);
 							VPDesc.dwPrimitiveCount = 0;
-							VPDesc.dwOffset = 0;
+							VPDesc.dwStartVertex = 0;
 							VPDesc.pVertexStreamZeroData = NULL;
 							VPDesc.uiVertexStreamZeroStride = 0;
 							// TODO: Set the current shader and let the patcher handle it..
@@ -532,7 +532,7 @@ extern void XTL::EmuExecutePushBufferRaw
 							VPDesc.XboxPrimitiveType = XboxPrimitiveType;
 							VPDesc.dwVertexCount = EmuD3DIndexCountToVertexCount(XboxPrimitiveType, dwIndexCount);
 							VPDesc.dwPrimitiveCount = 0;
-							VPDesc.dwOffset = 0;
+							VPDesc.dwStartVertex = 0;
 							VPDesc.pVertexStreamZeroData = NULL;
 							VPDesc.uiVertexStreamZeroStride = 0;
 							// TODO: Set the current shader and let the patcher handle it..
