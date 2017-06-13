@@ -7865,7 +7865,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
 #define VERTICES_PER_TRIANGLE 3
 #define TRIANGLES_PER_QUAD 2
 
-UINT QuadToTriangleVertexCount(UINT NrOfQuadVertices)
+constexpr UINT QuadToTriangleVertexCount(UINT NrOfQuadVertices)
 {
 	return (NrOfQuadVertices * VERTICES_PER_TRIANGLE * TRIANGLES_PER_QUAD) / VERTICES_PER_QUAD;
 }
@@ -7877,16 +7877,19 @@ XTL::INDEX16 *QuadToTriangleIndexBuffer = nullptr;
 UINT QuadToTriangleD3DIndexBuffer_Size = 0; // = NrOfQuadVertices
 XTL::IDirect3DIndexBuffer8 *QuadToTriangleD3DIndexBuffer = nullptr;
 
+constexpr uint IndicesPerPage = PAGE_SIZE / sizeof(XTL::INDEX16);
+constexpr uint InputQuadsPerPage = ((IndicesPerPage * VERTICES_PER_QUAD) / VERTICES_PER_TRIANGLE) / TRIANGLES_PER_QUAD;
+
 XTL::INDEX16 *CxbxAssureQuadListIndexBuffer(UINT NrOfQuadVertices)
 {
 	if (QuadToTriangleIndexBuffer_Size < NrOfQuadVertices)
 	{
-		QuadToTriangleIndexBuffer_Size = RoundUp(NrOfQuadVertices, 1000);
+		QuadToTriangleIndexBuffer_Size = RoundUp(NrOfQuadVertices, InputQuadsPerPage);
 
-		int NrOfTriangleVertices = QuadToTriangleVertexCount(QuadToTriangleIndexBuffer_Size);
+		UINT NrOfTriangleVertices = QuadToTriangleVertexCount(QuadToTriangleIndexBuffer_Size);
 		QuadToTriangleIndexBuffer = (XTL::INDEX16 *)realloc(QuadToTriangleIndexBuffer, sizeof(XTL::INDEX16) * NrOfTriangleVertices);
 
-		int i = 0;
+		UINT i = 0;
 		XTL::INDEX16 j = 0;
 		while (i < NrOfTriangleVertices)
 		{
@@ -7930,17 +7933,19 @@ void CxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-		HRESULT hRet;
+	HRESULT hRet;
 
 	if (QuadToTriangleD3DIndexBuffer_Size < NrOfQuadVertices)
 	{
-		QuadToTriangleD3DIndexBuffer_Size = RoundUp(NrOfQuadVertices, 2048);
+		// Round the number of indices up so we'll allocate whole pages
+		QuadToTriangleD3DIndexBuffer_Size = RoundUp(NrOfQuadVertices, InputQuadsPerPage);
+		UINT NrOfTriangleVertices = QuadToTriangleVertexCount(QuadToTriangleD3DIndexBuffer_Size); // 4 > 6
+		UINT uiIndexBufferSize = sizeof(XTL::INDEX16) * NrOfTriangleVertices;
+
+		// Create a new native index buffer of the above determined size :
 		if (QuadToTriangleD3DIndexBuffer != nullptr)
 			QuadToTriangleD3DIndexBuffer->Release();
 
-		// Create a new native index buffer of the above determined size :
-		UINT NrOfTriangleVertices = QuadToTriangleVertexCount(QuadToTriangleD3DIndexBuffer_Size);
-		UINT uiIndexBufferSize = sizeof(XTL::INDEX16) * NrOfTriangleVertices;
 		hRet = g_pD3DDevice8->CreateIndexBuffer(
 			uiIndexBufferSize,
 			D3DUSAGE_WRITEONLY,
@@ -8250,7 +8255,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 
 		if (DrawContext.XboxPrimitiveType == X_D3DPT_QUADLIST)
 		{
-			// LOG_TEST_CASE("X_D3DPT_QUADLIST"); // X-Marbles and XDK Sample PlayField hits this case
+			// LOG_TEST_CASE("X_D3DPT_QUADLIST"); // ?X-Marbles and XDK Sample (Cartoon, ?maybe PlayField?) hits this case
 			// Draw quadlists using a single 'quad-to-triangle mapping' index buffer :
 			// Assure & activate that special index buffer :
 			CxbxAssureQuadListD3DIndexBuffer(/*NrOfQuadVertices=*/DrawContext.dwVertexCount);
