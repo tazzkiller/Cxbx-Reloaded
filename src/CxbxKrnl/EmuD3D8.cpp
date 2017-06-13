@@ -7973,7 +7973,7 @@ void CxbxDrawIndexedClosingLine(XTL::INDEX16 FromIndex, XTL::INDEX16 ToIndex)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-		HRESULT hRet;
+	HRESULT hRet;
 
 	static XTL::IDirect3DIndexBuffer8 *pClosingLineLoopIndexBuffer = nullptr;
 	const UINT uiIndexBufferSize = sizeof(XTL::INDEX16) * 2; // 4 bytes needed for 2 indices
@@ -8043,7 +8043,7 @@ void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 				HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitive
 				(
 					D3DPT_TRIANGLEFAN, // Draw a triangle-fan instead of a quad
-									   //{ $IFDEF DXBX_USE_D3D9 } {BaseVertexIndex = }0, { $ENDIF }
+//{ $IFDEF DXBX_USE_D3D9 } {BaseVertexIndex = }0, { $ENDIF }
 					/* MinVertexIndex = */0,
 					/* NumVertices = */VERTICES_PER_QUAD, // Use all 4 vertices of 1 quad
 					uiStartIndex,
@@ -8078,26 +8078,35 @@ void XTL::CxbxDrawIndexed(VertexPatchDesc &VPDesc)
 				// Close line-loops using a final single line, drawn from the end to the start vertex
 				LOG_TEST_CASE("X_D3DPT_LINELOOP");
 
+				// Before we start, remember the currently active index buffer
 				IDirect3DIndexBuffer8 *pCurrentIndexBuffer = nullptr;
 				UINT uiCurrentBaseVertexIndex = 0;
 
 				hRet = g_pD3DDevice8->GetIndices(&pCurrentIndexBuffer, &uiCurrentBaseVertexIndex);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetIndices");
 
+				// Close line-loops using a final single line, drawn from the end to the start vertex :
 				INDEX16 *pCurrentIndexBufferData = nullptr;
-				hRet = pCurrentIndexBuffer->Lock(sizeof(INDEX16) * VPDesc.dwOffset, 0, (BYTE **)(&pCurrentIndexBufferData), D3DLOCK_DISCARD);
+				INDEX16 CxbxClosingLineIndices[2];
+
+				hRet = pCurrentIndexBuffer->Lock(0, sizeof(INDEX16), (BYTE **)(&pCurrentIndexBufferData), D3DLOCK_DISCARD);
 				DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Lock");
 
-				// Close line-loops using a final single line, drawn from the end to the start vertex :
-				INDEX16 CxbxClosingLineIndices[2];
 				CxbxClosingLineIndices[0] = pCurrentIndexBufferData[0];
-				CxbxClosingLineIndices[1] = pCurrentIndexBufferData[VPDesc.dwPrimitiveCount]; // TODO : Is this the correct ending offset?
+				hRet = pCurrentIndexBuffer->Unlock();
+				DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Unlock");
 
+				// TODO : Is dwPrimitiveCount the correct ending offset?
+				hRet = pCurrentIndexBuffer->Lock(sizeof(INDEX16) * VPDesc.dwPrimitiveCount, sizeof(INDEX16), (BYTE **)(&pCurrentIndexBufferData), D3DLOCK_DISCARD);
+				DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Lock");
+
+				CxbxClosingLineIndices[1] = pCurrentIndexBufferData[0];
 				hRet = pCurrentIndexBuffer->Unlock();
 				DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Unlock");
 
 				pCurrentIndexBuffer->Release();
 
+				// Draw the closing line using a helper function (which will SetIndices)
 				CxbxDrawIndexedClosingLine(CxbxClosingLineIndices[0], CxbxClosingLineIndices[1]);
 
 				// Restore previously active index buffer :
@@ -8170,8 +8179,9 @@ void XTL::CxbxDrawPrimitiveUP(VertexPatchDesc &VPDesc)
 			memcpy(/*dest=*/&(DxbxClosingLineVertices[0]),
 				/*src=*/VPDesc.pVertexStreamZeroData,
 				VPDesc.uiVertexStreamZeroStride);
+			// TODO : Is dwPrimitiveCount the correct ending offset?
 			memcpy(/*dest=*/&(DxbxClosingLineVertices[VPDesc.uiVertexStreamZeroStride]),
-				/*src =*/((BYTE*)VPDesc.pVertexStreamZeroData) + (VPDesc.uiVertexStreamZeroStride * (VPDesc.dwVertexCount - 1)),
+				/*src =*/((BYTE*)VPDesc.pVertexStreamZeroData) + (VPDesc.uiVertexStreamZeroStride * (VPDesc.dwPrimitiveCount)),
 				VPDesc.uiVertexStreamZeroStride);
 
 			void *pVertexStreamZeroData = &DxbxClosingLineVertices[0]; // Needed for D3D9
@@ -8277,10 +8287,11 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 				LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Text-cases needed
 
 				/* TODO : Is this necessary?
-				IDirect3DIndexBuffer8 *CurrentIndexBuffer;
-				UINT uiCurrentBaseVertexIndex;
+				// Before we start, remember the currently active index buffer
+				IDirect3DIndexBuffer8 *pCurrentIndexBuffer = nullptr;
+				UINT uiCurrentBaseVertexIndex = 0;
 
-				hRet = g_pD3DDevice8->GetIndices(&CurrentIndexBuffer, &uiCurrentBaseVertexIndex);
+				hRet = g_pD3DDevice8->GetIndices(&pCurrentIndexBuffer, &uiCurrentBaseVertexIndex);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetIndices");
 				*/
 
@@ -8289,8 +8300,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 				CxbxDrawIndexedClosingLine((INDEX16)(VPDesc.dwStartVertex + VPDesc.dwPrimitiveCount), (INDEX16)VPDesc.dwStartVertex);
 
 				/* TODO : Is this necessary?
-				hRet = g_pD3DDevice8->SetIndices(CurrentIndexBuffer, uiCurrentBaseVertexIndex);
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetIndices");
+				// Restore previously active index buffer :
+				hRet = g_pD3DDevice8->SetIndices(pCurrentIndexBuffer, uiCurrentBaseVertexIndex);
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetIndices(Restore)");
 				*/
 			}
 		}
@@ -8384,19 +8396,25 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 	CxbxUpdateNativeD3DResources();
 	CxbxUpdateActiveIndexBuffer((INDEX16*)pIndexData, VertexCount);
 
-    VertexPatchDesc VPDesc;
+    #ifdef _DEBUG_TRACK_VB
+    if(!g_bVBSkipStream)
+    #endif
+    if (IsValidCurrentShader())
+    {
+		VertexPatchDesc VPDesc;
 
-    VPDesc.XboxPrimitiveType = PrimitiveType;
-    VPDesc.dwVertexCount = VertexCount;
-	VPDesc.dwPrimitiveCount = 0;
-    VPDesc.dwOffset = 0;
-    VPDesc.pVertexStreamZeroData = NULL;
-    VPDesc.uiVertexStreamZeroStride = 0;
-    VPDesc.hVertexShader = g_CurrentVertexShader;
+		VPDesc.XboxPrimitiveType = PrimitiveType;
+		VPDesc.dwVertexCount = VertexCount;
+		VPDesc.dwPrimitiveCount = 0;
+		VPDesc.dwStartVertex = 0;
+		VPDesc.pVertexStreamZeroData = NULL;
+		VPDesc.uiVertexStreamZeroStride = 0;
+		VPDesc.hVertexShader = g_CurrentVertexShader;
 
-	CxbxDrawIndexed(VPDesc);
+		CxbxDrawIndexed(VPDesc);
 
-	g_pD3DDevice8->SetIndices(nullptr, 0);
+		g_pD3DDevice8->SetIndices(nullptr, 0); // TODO : Is this necessary? Or reset previously active?
+	}
 
 	// Execute callback procedure
 	if (g_CallbackType == X_D3DCALLBACK_WRITE)
@@ -8442,7 +8460,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 		VPDesc.XboxPrimitiveType = PrimitiveType;
 		VPDesc.dwVertexCount = VertexCount;
 		VPDesc.dwPrimitiveCount = 0;
-		VPDesc.dwOffset = 0;
+		VPDesc.dwStartVertex = 0;
 		VPDesc.pVertexStreamZeroData = pVertexStreamZeroData;
 		VPDesc.uiVertexStreamZeroStride = VertexStreamZeroStride;
 		VPDesc.hVertexShader = g_CurrentVertexShader;
@@ -8511,6 +8529,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 
 				// Close line-loops using a final single line, drawn from the end to the start vertex :
 				DxbxClosingLineIndices[0] = ((INDEX16*)pIndexData)[0];
+				// TODO : Is dwPrimitiveCount the correct ending offset?
 				DxbxClosingLineIndices[1] = ((INDEX16*)pIndexData)[VPDesc.dwPrimitiveCount];
 
 				hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
