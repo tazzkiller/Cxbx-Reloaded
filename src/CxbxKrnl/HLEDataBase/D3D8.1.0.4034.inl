@@ -1331,6 +1331,7 @@ OOVPATable D3D8_4034[] = {
 	REGISTER_OOVPA(D3DDevice_DrawVertices, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawVerticesUP, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawIndexedVertices, 4034, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawIndexedVerticesUP, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_BeginVisibilityTest, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_EndVisibilityTest, 4034, PATCH),
