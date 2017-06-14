@@ -2290,18 +2290,3 @@ boolean XTL::VshHandleIsValidShader(DWORD Handle)
     }
     return TRUE;
 }
-
-extern XTL::CxbxVertexDynamicPatch *XTL::VshGetVertexDynamicPatch(DWORD Handle)
-{
-    X_D3DVertexShader *pD3DVertexShader = VshHandleGetVertexShader(Handle);
-    CxbxVertexShader *pVertexShader = (CxbxVertexShader *)pD3DVertexShader->Handle;
-
-    for (uint32 i = 0; i < pVertexShader->VertexDynamicPatch.NbrStreams; i++)
-    {
-        if (pVertexShader->VertexDynamicPatch.pStreamPatches[i].NeedPatch)
-        {
-            return &pVertexShader->VertexDynamicPatch;
-        }
-    }
-    return NULL;
-}

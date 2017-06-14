@@ -99,9 +99,6 @@ class CxbxVertexBufferConverter
 
         CxbxVertexDynamicPatch *m_pDynamicPatch;
 
-        // Returns the number of streams of a patch
-        UINT GetNbrStreams(CxbxDrawContext *pDrawContext);
-
         // Caches a patched stream
         void CacheStream(CxbxDrawContext *pDrawContext,
                          UINT             uiStream);

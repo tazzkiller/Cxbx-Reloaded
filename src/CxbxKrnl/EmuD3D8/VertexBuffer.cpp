@@ -310,23 +310,6 @@ bool XTL::CxbxVertexBufferConverter::ApplyCachedStream
     return bApplied;
 }
 
-UINT XTL::CxbxVertexBufferConverter::GetNbrStreams(CxbxDrawContext *pDrawContext)
-{
-    if(VshHandleIsVertexShader(pDrawContext->hVertexShader))
-    {
-        CxbxVertexDynamicPatch *pDynamicPatch = VshGetVertexDynamicPatch(pDrawContext->hVertexShader);
-        if(pDynamicPatch)
-            return pDynamicPatch->NbrStreams;
-
-		return 1; // Could be more, but it doesn't matter as we're not going to patch the types
-    }
-
-	if(pDrawContext->hVertexShader)
-		return 1;
-
-	return 0;
-}
-
 void XTL::CxbxVertexBufferConverter::ConvertStream
 (
 	CxbxDrawContext *pDrawContext,
@@ -437,7 +420,7 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
 	if (bNeedVertexPatching) {
 		for (uint32 uiVertex = 0; uiVertex < uiVertexCount; uiVertex++) {
 			uint08 *pOrigVertex = &pXboxVertexInputData[uiVertex * uiInputStride];
-			uint08 *pNewDataPos = &pOutputData[uiVertex * pStreamPatch->ConvertedStride];
+			uint08 *pNewDataPos = &pOutputData[uiVertex * uiOutputStride];
 			for (UINT uiType = 0; uiType < pStreamPatch->NbrTypes; uiType++) {
 				// Dxbx note : The following code handles only the D3DVSDT enums that need conversion;
 				// All other cases are catched by the memcpy in the default-block.
@@ -634,11 +617,25 @@ bool XTL::CxbxVertexBufferConverter::Apply(CxbxDrawContext *pDrawContext)
 
 	bool bFatalError = false;
 
-    m_uiNbrStreams = GetNbrStreams(pDrawContext);
-
-	if(VshHandleIsVertexShader(pDrawContext->hVertexShader)) {
-        m_pDynamicPatch = &((CxbxVertexShader *)VshHandleGetVertexShader(pDrawContext->hVertexShader)->Handle)->VertexDynamicPatch;
-    }
+	// Determine the number of streams of a patch (was GetNbrStreams)
+	m_uiNbrStreams = 0;
+	if (pDrawContext->hVertexShader > 0)
+	{
+		m_uiNbrStreams = 1; // Could be more, but it doesn't matter as long as we're not going to patch the types
+		if (VshHandleIsVertexShader(pDrawContext->hVertexShader)) {
+			// VshGetVertexDynamicPatch
+			X_D3DVertexShader *pD3DVertexShader = VshHandleGetVertexShader(pDrawContext->hVertexShader);
+			CxbxVertexShader *pVertexShader = (CxbxVertexShader *)pD3DVertexShader->Handle;
+			CxbxVertexDynamicPatch *pDynamicPatch = &(pVertexShader->VertexDynamicPatch);
+			for (uint32 i = 0; i < pDynamicPatch->NbrStreams; i++) {
+				if (pDynamicPatch->pStreamPatches[i].NeedPatch) {
+					m_pDynamicPatch = pDynamicPatch;
+					m_uiNbrStreams = pDynamicPatch->NbrStreams;
+					break;
+				}
+			}
+		}
+	}
 
     for(UINT uiStream = 0; uiStream < m_uiNbrStreams; uiStream++) {
 #if 0
