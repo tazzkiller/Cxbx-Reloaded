@@ -8534,12 +8534,11 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 				// Close line-loops using a final single line, drawn from the end to the start vertex
 				LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Which titles reach this case?
 
-				INDEX16 DxbxClosingLineIndices[2];
+				INDEX16 CxbxClosingLineIndices[2];
 
 				// Close line-loops using a final single line, drawn from the end to the start vertex :
-				DxbxClosingLineIndices[0] = ((INDEX16*)pIndexData)[0];
-				// TODO : Is dwPrimitiveCount the correct ending offset?
-				DxbxClosingLineIndices[1] = ((INDEX16*)pIndexData)[DrawContext.dwPrimitiveCount];
+				CxbxClosingLineIndices[0] = ((INDEX16*)pIndexData)[0];
+				CxbxClosingLineIndices[1] = ((INDEX16*)pIndexData)[DrawContext.dwPrimitiveCount];
 
 				hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
 				(
@@ -8547,7 +8546,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 					0, // MinVertexIndex
 					2, // NumVertexIndices,
 					1, // PrimitiveCount,
-					DxbxClosingLineIndices, // pIndexData
+					CxbxClosingLineIndices, // pIndexData
 					D3DFMT_INDEX16, // IndexDataFormat
 					DrawContext.pVertexStreamZeroData,
 					DrawContext.uiVertexStreamZeroStride
