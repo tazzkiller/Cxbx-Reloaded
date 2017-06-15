@@ -8162,7 +8162,7 @@ void XTL::CxbxDrawPrimitiveUP(CxbxDrawContext &DrawContext)
 			DrawContext.pVertexStreamZeroData,
 			DrawContext.uiVertexStreamZeroStride
 		);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitive(X_D3DPT_QUADLIST)");
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP(X_D3DPT_QUADLIST)");
 	}
 	else
 	{
@@ -8267,7 +8267,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 
 			HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitive
 			(
-				D3DPT_TRIANGLELIST,
+				D3DPT_TRIANGLELIST, // Draw indexed triangles instead of quads
 #ifdef DXBX_USE_D3D9 
 				0, // BaseVertexIndex
 #endif
