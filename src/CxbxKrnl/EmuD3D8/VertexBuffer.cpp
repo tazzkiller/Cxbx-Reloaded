@@ -342,7 +342,7 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
 			// Only normalize coordinates used by the FVF shader :
 			pActivePixelContainer[i].bTexIsLinear = false;
 			if (i + 1 <= dwTexN) {
-				XTL::X_D3DBaseTexture *pXboxBaseTexture = XTL::EmuD3DTextureStages[i];
+				XTL::X_D3DBaseTexture *pXboxBaseTexture = XTL::GetXboxBaseTexture(i);
 				if (pXboxBaseTexture != NULL) {
 					// TODO : Use GetXboxPixelContainerFormat
 					XTL::X_D3DFORMAT XBFormat = (XTL::X_D3DFORMAT)((pXboxBaseTexture->Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT);

@@ -179,11 +179,11 @@ static XTL::X_D3DSHADERCONSTANTMODE g_VertexShaderConstantMode = XTL::X_D3DSCM_1
 // cached Direct3D tiles
 XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 
-#ifdef UNPATCH_TEXTURES
-XTL::X_D3DBaseTexture **XTL::EmuD3DTextureStages = NULL;
-#else
+#ifdef PATCH_TEXTURES
 // cached active texture
 XTL::X_D3DBaseTexture *XTL::EmuD3DTextureStages[X_D3DTSS_STAGECOUNT] = { NULL, NULL, NULL, NULL };
+#else
+XTL::X_D3DBaseTexture **XTL::Xbox_D3DDevice_m_Textures = NULL;
 #endif
 
 void CxbxClearGlobals()
@@ -266,8 +266,9 @@ void CxbxClearGlobals()
 	// g_pTexturePaletteStages = { nullptr, nullptr, nullptr, nullptr };
 	g_VertexShaderConstantMode = XTL::X_D3DSCM_192CONSTANTS;
 	//XTL::EmuD3DTileCache = { 0 };
+#ifdef PATCH_TEXTURES
 	//XTL::EmuD3DTextureStages = { 0 };
-
+#endif
 	// KEEP g_EmuCDPD = { 0 };
 }
 
@@ -1496,7 +1497,7 @@ void CxbxUpdateTextureStages()
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	for (int Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++) {
-		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = CxbxUpdateTexture(XTL::EmuD3DTextureStages[Stage], g_pTexturePaletteStages[Stage]);
+		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = CxbxUpdateTexture(XTL::GetXboxBaseTexture(Stage), g_pTexturePaletteStages[Stage]);
 
 		HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, (g_iWireframe == 0) ? pHostBaseTexture : nullptr);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTexture");
@@ -4705,7 +4706,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetIndices)
 
 #endif
 
-#ifndef UNPATCH_TEXTURES
+#ifdef PATCH_TEXTURES
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 (
     DWORD           Stage,
@@ -4797,7 +4798,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 }
 #endif
 
-// TODO : #ifndef UNPATCH_TEXTURES D3DDevice_SwitchTexture too?
+// TODO : #ifdef PATCH_TEXTURES D3DDevice_SwitchTexture too?
 VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 (
     DWORD           Method,
@@ -4826,21 +4827,34 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
     }
     else
     {
-        //
-        // WARNING: TODO: Correct reference counting has not been completely verified for this code
-        //
-
 		X_D3DTexture *pTexture = NULL;
 		IDirect3DBaseTexture8 *pHostBaseTexture = nullptr;
 
 		if (Data != NULL)
 		{
 			pTexture = (X_D3DTexture *)g_DataToTexture.get(Data);
-			if (pTexture != NULL)
+			if (pTexture != NULL) {
+				pTexture->Common++; // AddRef
 				pHostBaseTexture = GetHostBaseTexture(pTexture);
+			}
 		}
 
-        DbgPrintf("Switching Data 0x%.08X Texture 0x%.08X (0x%.08X) @ Stage %d\n", Data, pTexture, pHostBaseTexture, Stage);
+		X_D3DBaseTexture *pOldTexture = GetXboxBaseTexture(Stage);
+
+#ifdef PATCH_TEXTURES
+		EmuD3DTextureStages[Stage] = pTexture;
+#else
+		Xbox_D3DDevice_m_Textures[Stage] = pTexture;
+#endif
+
+		if (pOldTexture != NULL) {
+			if (pOldTexture->Common-- < 1) {
+				// TODO : Call unpatched Release to prevent memory leak
+				LOG_TEST_CASE("Leaked a replaced texture");
+			}
+		}
+
+		DbgPrintf("Switching Data 0x%.08X Texture 0x%.08X (0x%.08X) @ Stage %d\n", Data, pTexture, pHostBaseTexture, Stage);
 
         HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, pHostBaseTexture);
 
@@ -9701,7 +9715,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_KickPushBuffer)()
 
 }
 
-#ifndef UNPATCH_TEXTURES
+#ifdef PATCH_TEXTURES
 XTL::X_D3DResource* WINAPI XTL::EMUPATCH(D3DDevice_GetTexture2)
 (
 	DWORD Stage
@@ -9712,7 +9726,7 @@ XTL::X_D3DResource* WINAPI XTL::EMUPATCH(D3DDevice_GetTexture2)
 	LOG_FUNC_ONE_ARG(Stage);
 	
 	// Get the active texture from this stage
-	X_D3DBaseTexture* pRet = EmuD3DTextureStages[Stage];
+	X_D3DBaseTexture* pRet = GetXboxBaseTexture(Stage);
 	if (pRet != NULL)
 		pRet->Common++; // EMUPATCH(D3DResource_AddRef)(pRet) would give too much overhead (and needless logging)
 
