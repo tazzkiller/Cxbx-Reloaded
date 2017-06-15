@@ -785,6 +785,7 @@ OOVPATable D3D8_5028[] = {
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 4627, DISABLED),
 
 	REGISTER_OOVPA(Direct3D_CreateDevice, 5028, PATCH),
+	REGISTER_OOVPA(MakeRequestedSpace, 4361, PATCH), // NOT VERIFIED
 	REGISTER_OOVPA(D3D_CheckDeviceFormat, 4134, DISABLED),
 	REGISTER_OOVPA(D3DDevice_BeginVisibilityTest, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetCreationParameters, 4034, PATCH),

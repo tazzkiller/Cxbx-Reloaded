@@ -32,6 +32,42 @@
 // *
 // ******************************************************************
 
+OOVPA_XREF(MakeRequestedSpace, 5344, 28,
+
+	XREF_MakeRequestedSpace,
+	XRefZero)
+
+		{ 0x00, 0x83 },
+		{ 0x01, 0xEC },
+		{ 0x02, 0x08 },
+		{ 0x03, 0x56 },
+		{ 0x04, 0x8B },
+		{ 0x05, 0x35 },
+
+		{ 0x0A, 0xF6 },
+		{ 0x0B, 0x46 },
+		{ 0x0C, 0x08 },
+		{ 0x0D, 0x04 },
+		{ 0x0E, 0x8B },
+		{ 0x0F, 0x0E },
+		{ 0x10, 0x57 },
+		{ 0x11, 0x74 },
+		{ 0x12, 0x26 },
+		{ 0x13, 0x8B },
+		{ 0x14, 0x86 },
+		{ 0x15, 0x4C },
+		{ 0x16, 0x03 },
+		{ 0x17, 0x00 },
+		{ 0x18, 0x00 },
+		{ 0x19, 0x8B },
+		{ 0x1A, 0x78 },
+		{ 0x1B, 0x04 },
+		{ 0x1C, 0x8B },
+		{ 0x1D, 0x96 },
+		{ 0x1E, 0x50 },
+		{ 0x1F, 0x03 },
+OOVPA_END;
+
 // ******************************************************************
 // * D3DDevice_SetRenderState_Dxt1NoiseEnable
 // ******************************************************************
@@ -927,6 +963,7 @@ OOVPA_END;
 OOVPATable D3D8_5344[] = {
 
 	REGISTER_OOVPA(Direct3D_CreateDevice, 5233, PATCH),
+	REGISTER_OOVPA(MakeRequestedSpace, 5344, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDisplayFieldStatus, 5233, PATCH),
 	REGISTER_OOVPA(D3D_CheckDeviceFormat, 4134, DISABLED),
 	REGISTER_OOVPA(D3D_KickOffAndWaitForIdle, 5028, PATCH),
