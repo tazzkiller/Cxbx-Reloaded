@@ -329,6 +329,7 @@ extern void XTL::EmuExecutePushBufferRaw
         }
         else if(dwMethod == 0x1808) // NVPB_FixLoop
         {
+			// Test case : Turok menu's
             #ifdef _DEBUG_TRACK_PB
             if(bShowPB)
             {
@@ -418,6 +419,7 @@ extern void XTL::EmuExecutePushBufferRaw
         }
         else if(dwMethod == 0x1800) // NVPB_InlineIndexArray
         {
+			// Test case : Turok menu's
             BOOL bInc = *pdwPushData & 0x40000000;
 
             if(bInc)
