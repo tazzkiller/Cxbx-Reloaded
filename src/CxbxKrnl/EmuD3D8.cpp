@@ -2690,7 +2690,7 @@ typedef struct {
 XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 (
 	PWORD         pIndexBufferData,
-	UINT          IndexCount
+	UINT          uiIndexCount
 )
 {
 	static std::map<PWORD, ConvertedIndexBuffer> g_ConvertedIndexBuffers;
@@ -2700,10 +2700,10 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 	if (pIndexBufferData == NULL)
 		return nullptr;
 
-	if (IndexCount == 0)
+	if (uiIndexCount == 0)
 		return nullptr;
 
-	uint uiIndexBufferSize = sizeof(XTL::INDEX16) * IndexCount;
+	uint uiIndexBufferSize = sizeof(XTL::INDEX16) * uiIndexCount;
 
 	// TODO : Don't hash every time (peek at how the vertex buffer cache avoids this)
 	uint32_t uiHash = 0; // TODO : seed with characteristics
@@ -2715,25 +2715,25 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 	ConvertedIndexBuffer& convertedIndexBuffer = g_ConvertedIndexBuffers[pIndexBufferData];
 
 	// Check if the data needs an updated conversion or not
-	XTL::IDirect3DIndexBuffer8 *result = convertedIndexBuffer.pConvertedHostIndexBuffer;
-	if (result != nullptr)
+	XTL::IDirect3DIndexBuffer8 *pHostIndexBuffer = convertedIndexBuffer.pConvertedHostIndexBuffer;
+	if (pHostIndexBuffer != nullptr)
 	{
 		// Only re-use if the size hasn't changed (we can't use larger buffers,
 		// since those will have have different hashes from smaller buffers)
-		if (IndexCount == convertedIndexBuffer.uiIndexCount)
+		if (uiIndexCount == convertedIndexBuffer.uiIndexCount)
 		{
 			if (uiHash == convertedIndexBuffer.Hash)
 			{
 				// Hash is still the same - assume the converted resource doesn't require updating
 				// TODO : Maybe, if the converted resource gets too old, an update might still be wise
 				// to cater for differences that didn't cause a hash-difference (slight chance, but still).
-				return result;
+				return pHostIndexBuffer;
 			}
 		}
 
 		convertedIndexBuffer = {};
-		result->Release();
-		result = nullptr;
+		pHostIndexBuffer->Release();
+		pHostIndexBuffer = nullptr;
 	}
 
 	// Create a new native index buffer of the above determined size :
@@ -2742,7 +2742,7 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 		D3DUSAGE_WRITEONLY,
 		XTL::D3DFMT_INDEX16,
 		XTL::D3DPOOL_MANAGED,
-		&result);
+		&pHostIndexBuffer);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateIndexBuffer");
 
 	if (FAILED(hRet))
@@ -2750,51 +2750,51 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 
 	// Update the host index buffer
 	BYTE* pData = nullptr;
-	hRet = result->Lock(0, 0, &pData, D3DLOCK_DISCARD);
+	hRet = pHostIndexBuffer->Lock(0, 0, &pData, D3DLOCK_DISCARD);
 	DEBUG_D3DRESULT(hRet, "result->Lock");
 
 	if (pData == nullptr)
 		CxbxKrnlCleanup("CxbxUpdateIndexBuffer: Could not lock index buffer!");
 
 	memcpy(pData, pIndexBufferData, uiIndexBufferSize);
-	hRet = result->Unlock();
+	hRet = pHostIndexBuffer->Unlock();
 	DEBUG_D3DRESULT(hRet, "result->Unlock");
 
 	// Update the Index Count and the hash
 	convertedIndexBuffer.Hash = uiHash;
-	convertedIndexBuffer.uiIndexCount = IndexCount;
-	convertedIndexBuffer.pConvertedHostIndexBuffer = result;
+	convertedIndexBuffer.uiIndexCount = uiIndexCount;
+	convertedIndexBuffer.pConvertedHostIndexBuffer = pHostIndexBuffer;
 
-	DbgPrintf("Copied %d indices (D3DFMT_INDEX16)\n", IndexCount);
+	DbgPrintf("Copied %d indices (D3DFMT_INDEX16)\n", uiIndexCount);
 
-	return result;
+	return pHostIndexBuffer;
 }
 
 void CxbxUpdateActiveIndexBuffer
 (
 	XTL::INDEX16* pIndexBufferData,
-	UINT IndexCount
+	UINT uiIndexCount
 )
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-	XTL::IDirect3DIndexBuffer8 *result = CxbxUpdateIndexBuffer(pIndexBufferData, IndexCount);
+	XTL::IDirect3DIndexBuffer8 *pHostIndexBuffer = CxbxUpdateIndexBuffer(pIndexBufferData, uiIndexCount);
 
 	// Determine active the vertex index
 	// This reads from g_pDevice->m_IndexBase in Xbox D3D
 	// TODO: Move this into a global symbol, similar to RenderState/Texture State
 	static DWORD *pdwXboxD3D_IndexBase = &XTL::g_XboxD3DDevice[7];
 
-	DWORD indexBase = 0;
+	UINT uiIndexBase = 0;
 
 	if (*pdwXboxD3D_IndexBase > 0) {
 		// TODO : Research if (or when) using *pdwXboxD3D_IndexBase is needed
-		// indexBase = *pdwXboxD3D_IndexBase;
+		// uiIndexBase = *pdwXboxD3D_IndexBase;
 		LOG_TEST_CASE("*pdwXboxD3D_IndexBase > 0");
 	}
 
 	// Activate the new native index buffer :
-	HRESULT hRet = g_pD3DDevice8->SetIndices(result, indexBase);
+	HRESULT hRet = g_pD3DDevice8->SetIndices(pHostIndexBuffer, uiIndexBase);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetIndices");
 
 	if (FAILED(hRet))
@@ -7880,7 +7880,7 @@ UINT QuadToTriangleIndexBuffer_Size = 0; // = NrOfQuadVertices
 XTL::INDEX16 *QuadToTriangleIndexBuffer = nullptr;
 
 UINT QuadToTriangleD3DIndexBuffer_Size = 0; // = NrOfQuadVertices
-XTL::IDirect3DIndexBuffer8 *QuadToTriangleD3DIndexBuffer = nullptr;
+XTL::IDirect3DIndexBuffer8 *pQuadToTriangleD3DIndexBuffer = nullptr;
 
 constexpr uint IndicesPerPage = PAGE_SIZE / sizeof(XTL::INDEX16);
 constexpr uint InputQuadsPerPage = ((IndicesPerPage * VERTICES_PER_QUAD) / VERTICES_PER_TRIANGLE) / TRIANGLES_PER_QUAD;
@@ -7948,15 +7948,15 @@ void CxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
 		UINT uiIndexBufferSize = sizeof(XTL::INDEX16) * NrOfTriangleVertices;
 
 		// Create a new native index buffer of the above determined size :
-		if (QuadToTriangleD3DIndexBuffer != nullptr)
-			QuadToTriangleD3DIndexBuffer->Release();
+		if (pQuadToTriangleD3DIndexBuffer != nullptr)
+			pQuadToTriangleD3DIndexBuffer->Release();
 
 		hRet = g_pD3DDevice8->CreateIndexBuffer(
 			uiIndexBufferSize,
 			D3DUSAGE_WRITEONLY,
 			XTL::D3DFMT_INDEX16,
 			XTL::D3DPOOL_MANAGED,
-			&QuadToTriangleD3DIndexBuffer);
+			&pQuadToTriangleD3DIndexBuffer);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateIndexBuffer");
 
 		if (FAILED(hRet))
@@ -7964,7 +7964,7 @@ void CxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
 
 		// Put quadlist-to-triangle-list index mappings into this buffer :
 		XTL::INDEX16* pIndexBufferData = nullptr;
-		hRet = QuadToTriangleD3DIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE **)&pIndexBufferData, D3DLOCK_DISCARD);
+		hRet = pQuadToTriangleD3DIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE **)&pIndexBufferData, D3DLOCK_DISCARD);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateIndexBuffer");
 
 		if (pIndexBufferData == nullptr)
@@ -7972,17 +7972,18 @@ void CxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
 
 		memcpy(pIndexBufferData, CxbxAssureQuadListIndexBuffer(NrOfQuadVertices), uiIndexBufferSize);
 
-		QuadToTriangleD3DIndexBuffer->Unlock();
+		pQuadToTriangleD3DIndexBuffer->Unlock();
 	}
 
 	// Activate the new native index buffer :
-	hRet = g_pD3DDevice8->SetIndices(QuadToTriangleD3DIndexBuffer, 0);
+	hRet = g_pD3DDevice8->SetIndices(pQuadToTriangleD3DIndexBuffer, 0);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateIndexBuffer");
 
 	if (FAILED(hRet))
 		CxbxKrnlCleanup("CxbxAssureQuadListD3DIndexBuffer : SetIndices Failed!"); // +DxbxD3DErrorString(hRet));
 }
 
+// Calls SetIndices with a separate index-buffer, that's populated with the supplied indices.
 void CxbxDrawIndexedClosingLine(XTL::INDEX16 FromIndex, XTL::INDEX16 ToIndex)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
@@ -8290,24 +8291,11 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 				// Close line-loops using a final single line, drawn from the end to the start vertex
 				LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Text-cases needed
 
-				/* TODO : Is this necessary?
-				// Before we start, remember the currently active index buffer
-				IDirect3DIndexBuffer8 *pCurrentIndexBuffer = nullptr;
-				UINT uiCurrentBaseVertexIndex = 0;
-
-				hRet = g_pD3DDevice8->GetIndices(&pCurrentIndexBuffer, &uiCurrentBaseVertexIndex);
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetIndices");
-				*/
-
 				INDEX16 FromIndex = (INDEX16)(DrawContext.dwStartVertex + DrawContext.dwPrimitiveCount);
 				INDEX16 ToIndex = (INDEX16)DrawContext.dwStartVertex;
+				// Draw the closing line using a helper function (which will SetIndices)
 				CxbxDrawIndexedClosingLine(FromIndex, ToIndex);
-
-				/* TODO : Is this necessary?
-				// Restore previously active index buffer :
-				hRet = g_pD3DDevice8->SetIndices(pCurrentIndexBuffer, uiCurrentBaseVertexIndex);
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetIndices(Restore)");
-				*/
+				// NOTE : We don't restore the previously active index buffer
 			}
 		}
 
@@ -8415,8 +8403,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 		DrawContext.hVertexShader = g_CurrentVertexShader;
 
 		CxbxDrawIndexed(DrawContext, (INDEX16*)pIndexData);
-
-		g_pD3DDevice8->SetIndices(nullptr, 0); // TODO : Is this necessary? Or reset previously active?
 	}
 
 	// Execute callback procedure
