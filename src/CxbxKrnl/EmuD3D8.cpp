@@ -8190,6 +8190,7 @@ void XTL::CxbxDrawPrimitiveUP(CxbxDrawContext &DrawContext)
 			CxbxClosingLineIndices[0] = 0;
 			CxbxClosingLineIndices[1] = (XTL::INDEX16)DrawContext.dwPrimitiveCount;
 
+			hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
 			(
 				D3DPT_LINELIST,
 				0, // MinVertexIndex
