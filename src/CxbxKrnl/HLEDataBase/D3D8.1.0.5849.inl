@@ -170,7 +170,7 @@ OOVPATable D3D8_5849[] = {
 
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 5849, DISABLED),
 
-	REGISTER_OOVPA(Direct3D_CreateDevice, 4627, PATCH),
+	REGISTER_OOVPA(Direct3D_CreateDevice, 3911, PATCH), // Was 4627
 	REGISTER_OOVPA(D3DDevice_BeginVisibilityTest, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_EndVisibilityTest, 5788, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetVisibilityTestResult, 5344, PATCH),

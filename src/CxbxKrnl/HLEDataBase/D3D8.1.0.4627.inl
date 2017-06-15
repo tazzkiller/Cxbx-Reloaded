@@ -32,6 +32,7 @@
 // *
 // ******************************************************************
 
+#if 0 // No longer used, replaced by generic 3911 version
 // ******************************************************************
 // * Direct3D_CreateDevice
 // ******************************************************************
@@ -53,6 +54,7 @@ OOVPA_NO_XREF(Direct3D_CreateDevice, 4627, 8)
         { 0x90, 0xC2 }, // (Offset,Value)-Pair #7
         { 0x91, 0x18 }, // (Offset,Value)-Pair #8
 OOVPA_END;
+#endif
 
 // ******************************************************************
 // * D3D_CreateDeviceX (From D3D8X)
@@ -2772,7 +2774,7 @@ OOVPATable D3D8_4627[] = {
 
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 4627, DISABLED),
 
-	REGISTER_OOVPA(Direct3D_CreateDevice, 4627, PATCH),
+	REGISTER_OOVPA(Direct3D_CreateDevice, 3911, PATCH), // Was 4627
 	REGISTER_OOVPA(D3D_CreateDeviceX, 4627, XREF), // If hitting a Breakpoint, redirect to Direct3D_CreateDevice.
 	REGISTER_OOVPA(D3D_CheckDeviceFormat, 4134, DISABLED),
 	REGISTER_OOVPA(D3DDevice_BeginVisibilityTest, 4627, PATCH),

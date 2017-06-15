@@ -35,6 +35,34 @@
 // ******************************************************************
 // * Direct3D_CreateDevice
 // ******************************************************************
+OOVPA_NO_XREF(Direct3D_CreateDevice, 3911, 18) // Also for 4361, 4627, 5558, 5659, 5788, 5849, 5933 (NOT 5344!)
+		{ 0x00, 0xA1 },
+
+		{ 0x05, 0x85 },
+		{ 0x06, 0xC0 },
+		{ 0x07, 0x75 },
+		{ 0x08, 0x0A },
+		{ 0x09, 0xC7 },
+		{ 0x0A, 0x05 },
+
+		{ 0x0F, 0x00 },
+		{ 0x10, 0x00 },
+		{ 0x11, 0x08 },
+		{ 0x12, 0x00 },
+		{ 0x13, 0xA1 },
+
+		{ 0x18, 0x85 },
+		{ 0x19, 0xC0 },
+		{ 0x1A, 0x75 },
+		{ 0x1B, 0x0A },
+		{ 0x1C, 0xC7 },
+		{ 0x1D, 0x05 },
+OOVPA_END;
+
+#if 0 // No longer used, replaced by generic 3911 version
+// ******************************************************************
+// * Direct3D_CreateDevice
+// ******************************************************************
 OOVPA_NO_XREF(Direct3D_CreateDevice, 3925, 8)
 	// Direct3D_CreateDevice+0x07 : jnz +0x0A
 	{ 0x07, 0x75 }, // (Offset,Value)-Pair #1
@@ -52,6 +80,7 @@ OOVPA_NO_XREF(Direct3D_CreateDevice, 3925, 8)
 	{ 0x90, 0xC2 }, // (Offset,Value)-Pair #7
 	{ 0x91, 0x18 }, // (Offset,Value)-Pair #8
 OOVPA_END;
+#endif
 
 // ******************************************************************
 // * D3DDevice_IsBusy
@@ -3976,7 +4005,7 @@ OOVPA_END;
 OOVPATable D3D8_3925[] = {
 
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 3911, DISABLED),
-	REGISTER_OOVPA(Direct3D_CreateDevice, 3925, PATCH),
+	REGISTER_OOVPA(Direct3D_CreateDevice, 3911, PATCH), // Was 3925
 	REGISTER_OOVPA(D3DDevice_IsBusy, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDeviceCaps, 3925, DISABLED),
 	REGISTER_OOVPA(D3DDevice_BeginVisibilityTest, 3925, PATCH),

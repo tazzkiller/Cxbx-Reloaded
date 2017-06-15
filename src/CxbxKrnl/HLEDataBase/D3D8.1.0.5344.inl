@@ -32,6 +32,38 @@
 // *
 // ******************************************************************
 
+// ******************************************************************
+// * Direct3D_CreateDevice
+// ******************************************************************
+OOVPA_NO_XREF(Direct3D_CreateDevice, 5344, 20) // ONLY for 5344, 5558 and later use generic 3911 version
+		{ 0x00, 0x55 },
+		{ 0x01, 0x8B },
+		{ 0x02, 0xEC },
+		{ 0x03, 0xA1 },
+
+		{ 0x08, 0x85 },
+		{ 0x09, 0xC0 },
+		{ 0x0A, 0x75 },
+		{ 0x0B, 0x0A },
+		{ 0x0C, 0xC7 },
+		{ 0x0D, 0x05 },
+
+		{ 0x12, 0x00 },
+		{ 0x13, 0x00 },
+		{ 0x14, 0x08 },
+		{ 0x15, 0x00 },
+		{ 0x16, 0xA1 },
+
+		{ 0x1B, 0x85 },
+		{ 0x1C, 0xC0 },
+		{ 0x1D, 0x75 },
+		{ 0x1E, 0x0A },
+		{ 0x1F, 0xC7 },
+OOVPA_END;
+
+// ******************************************************************
+// * MakeRequestedSpace
+// ******************************************************************
 OOVPA_XREF(MakeRequestedSpace, 5344, 28,
 
 	XREF_MakeRequestedSpace,
@@ -962,7 +994,7 @@ OOVPA_END;
 // ******************************************************************
 OOVPATable D3D8_5344[] = {
 
-	REGISTER_OOVPA(Direct3D_CreateDevice, 5233, PATCH),
+	REGISTER_OOVPA(Direct3D_CreateDevice, 5344, PATCH), // Was 5233
 	REGISTER_OOVPA(MakeRequestedSpace, 5344, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDisplayFieldStatus, 5233, PATCH),
 	REGISTER_OOVPA(D3D_CheckDeviceFormat, 4134, DISABLED),
