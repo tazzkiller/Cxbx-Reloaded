@@ -8022,6 +8022,28 @@ void CxbxDrawIndexedClosingLine(XTL::INDEX16 FromIndex, XTL::INDEX16 ToIndex)
 	g_dwPrimPerFrame++;
 }
 
+void CxbxDrawIndexedClosingLineUP(XTL::INDEX16 FromIndex, XTL::INDEX16 ToIndex, void *pVertexStreamZeroData, UINT uiVertexStreamZeroStride)
+{
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
+	XTL::INDEX16 CxbxClosingLineIndices[2] = { FromIndex, ToIndex };
+
+	HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
+	(
+		XTL::D3DPT_LINELIST,
+		0, // MinVertexIndex
+		2, // NumVertexIndices,
+		1, // PrimitiveCount,
+		CxbxClosingLineIndices, // pIndexData
+		XTL::D3DFMT_INDEX16, // IndexDataFormat
+		pVertexStreamZeroData,
+		uiVertexStreamZeroStride
+	);
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP(CxbxDrawIndexedClosingLineUP)");
+
+	g_dwPrimPerFrame++;
+}
+
 // Requires an active index buffer
 // Called by D3DDevice_DrawIndexedVertices and EmuExecutePushBufferRaw (twice)
 void XTL::CxbxDrawIndexed(CxbxDrawContext &DrawContext)
@@ -8087,36 +8109,38 @@ void XTL::CxbxDrawIndexed(CxbxDrawContext &DrawContext)
 				// Close line-loops using a final single line, drawn from the end to the start vertex
 				LOG_TEST_CASE("X_D3DPT_LINELOOP");
 
-				// Before we start, remember the currently active index buffer
+				INDEX16 FromIndex, ToIndex;
+
 				IDirect3DIndexBuffer8 *pCurrentIndexBuffer = nullptr;
 				UINT uiCurrentBaseVertexIndex = 0;
 
-				hRet = g_pD3DDevice8->GetIndices(&pCurrentIndexBuffer, &uiCurrentBaseVertexIndex);
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetIndices");
+				// Read the end and start index from the active index buffer 
+				{
+					hRet = g_pD3DDevice8->GetIndices(&pCurrentIndexBuffer, &uiCurrentBaseVertexIndex);
+					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetIndices");
 
-				// Close line-loops using a final single line, drawn from the end to the start vertex :
-				INDEX16 *pCurrentIndexBufferData = nullptr;
-				INDEX16 CxbxClosingLineIndices[2];
+					// Here we Lock twice, to avoid stressing the index buffer;
+					// TODO : Add pIndexData argument to CxbxDrawIndexed, and use that instead
+					INDEX16 *pCurrentIndexBufferData = nullptr;
+					hRet = pCurrentIndexBuffer->Lock(sizeof(INDEX16) * DrawContext.dwPrimitiveCount, sizeof(INDEX16), (BYTE **)(&pCurrentIndexBufferData), D3DLOCK_DISCARD);
+					DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Lock");
 
-				hRet = pCurrentIndexBuffer->Lock(0, sizeof(INDEX16), (BYTE **)(&pCurrentIndexBufferData), D3DLOCK_DISCARD);
-				DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Lock");
+					FromIndex = pCurrentIndexBufferData[0];
+					hRet = pCurrentIndexBuffer->Unlock();
+					DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Unlock");
 
-				CxbxClosingLineIndices[0] = pCurrentIndexBufferData[0];
-				hRet = pCurrentIndexBuffer->Unlock();
-				DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Unlock");
+					hRet = pCurrentIndexBuffer->Lock(0, sizeof(INDEX16), (BYTE **)(&pCurrentIndexBufferData), D3DLOCK_DISCARD);
+					DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Lock");
 
-				// TODO : Is dwPrimitiveCount the correct ending offset?
-				hRet = pCurrentIndexBuffer->Lock(sizeof(INDEX16) * DrawContext.dwPrimitiveCount, sizeof(INDEX16), (BYTE **)(&pCurrentIndexBufferData), D3DLOCK_DISCARD);
-				DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Lock");
+					ToIndex = pCurrentIndexBufferData[0];
+					hRet = pCurrentIndexBuffer->Unlock();
+					DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Unlock");
 
-				CxbxClosingLineIndices[1] = pCurrentIndexBufferData[0];
-				hRet = pCurrentIndexBuffer->Unlock();
-				DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Unlock");
-
-				pCurrentIndexBuffer->Release();
+					pCurrentIndexBuffer->Release();
+				}
 
 				// Draw the closing line using a helper function (which will SetIndices)
-				CxbxDrawIndexedClosingLine(CxbxClosingLineIndices[0], CxbxClosingLineIndices[1]);
+				CxbxDrawIndexedClosingLine(FromIndex, ToIndex);
 
 				// Restore previously active index buffer :
 				hRet = g_pD3DDevice8->SetIndices(pCurrentIndexBuffer, uiCurrentBaseVertexIndex);
@@ -8184,26 +8208,14 @@ void XTL::CxbxDrawPrimitiveUP(CxbxDrawContext &DrawContext)
 			// Since we can use pVertexStreamZeroData here, we can close the line simpler than
 			// via CxbxDrawIndexedClosingLine, by drawing two indices via DrawIndexedPrimitiveUP.
 			// (This avoids a dependancy on the size of uiVertexStreamZeroStride.)
-			INDEX16 CxbxClosingLineIndices[2];
 
 			// Close line-loops using a final single line, drawn from the end to the start vertex :
-			CxbxClosingLineIndices[0] = 0;
-			CxbxClosingLineIndices[1] = (XTL::INDEX16)DrawContext.dwPrimitiveCount;
-
-			hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
-			(
-				D3DPT_LINELIST,
-				0, // MinVertexIndex
-				2, // NumVertexIndices,
-				1, // PrimitiveCount,
-				CxbxClosingLineIndices, // pIndexData
-				D3DFMT_INDEX16, // IndexDataFormat
+			CxbxDrawIndexedClosingLineUP(
+				(INDEX16)0, // FromIndex,
+				(INDEX16)DrawContext.dwPrimitiveCount, //  ToIndex
 				DrawContext.pVertexStreamZeroData,
 				DrawContext.uiVertexStreamZeroStride
 			);
-			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP(X_D3DPT_LINELOOP)");
-
-			g_dwPrimPerFrame++;
 		}
 	}
 
@@ -8304,9 +8316,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetIndices");
 				*/
 
-				// Close line-loops using a final single line, drawn from the end to the start vertex :
-				// TODO : Is dwPrimitiveCount the correct ending offset?
-				CxbxDrawIndexedClosingLine((INDEX16)(DrawContext.dwStartVertex + DrawContext.dwPrimitiveCount), (INDEX16)DrawContext.dwStartVertex);
+				INDEX16 FromIndex = (INDEX16)(DrawContext.dwStartVertex + DrawContext.dwPrimitiveCount);
+				INDEX16 ToIndex = (INDEX16)DrawContext.dwStartVertex;
+				CxbxDrawIndexedClosingLine(FromIndex, ToIndex);
 
 				/* TODO : Is this necessary?
 				// Restore previously active index buffer :
@@ -8534,26 +8546,12 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 				// Close line-loops using a final single line, drawn from the end to the start vertex
 				LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Which titles reach this case?
 
-				INDEX16 CxbxClosingLineIndices[2];
-
-				// Close line-loops using a final single line, drawn from the end to the start vertex :
-				CxbxClosingLineIndices[0] = ((INDEX16*)pIndexData)[0];
-				CxbxClosingLineIndices[1] = ((INDEX16*)pIndexData)[DrawContext.dwPrimitiveCount];
-
-				hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
-				(
-					D3DPT_LINELIST,
-					0, // MinVertexIndex
-					2, // NumVertexIndices,
-					1, // PrimitiveCount,
-					CxbxClosingLineIndices, // pIndexData
-					D3DFMT_INDEX16, // IndexDataFormat
+				CxbxDrawIndexedClosingLineUP(
+					((INDEX16*)pIndexData)[0], // FromIndex
+					((INDEX16*)pIndexData)[DrawContext.dwPrimitiveCount], // ToIndex
 					DrawContext.pVertexStreamZeroData,
 					DrawContext.uiVertexStreamZeroStride
 				);
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP");
-
-				g_dwPrimPerFrame++;
 			}
 		}
 
