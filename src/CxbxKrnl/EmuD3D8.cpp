@@ -8153,7 +8153,7 @@ void XTL::CxbxDrawPrimitiveUP(CxbxDrawContext &DrawContext)
 
 		HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
 		(
-			D3DPT_TRIANGLEFAN, // Draw a triangle-fan instead of a quad
+			D3DPT_TRIANGLELIST, // Draw indexed triangles instead of quads
 			0, // MinVertexIndex
 			NumVertexIndices,
 			PrimitiveCount,
