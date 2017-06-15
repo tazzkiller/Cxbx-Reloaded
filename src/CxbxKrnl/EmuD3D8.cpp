@@ -8171,6 +8171,8 @@ void XTL::CxbxDrawPrimitiveUP(CxbxDrawContext &DrawContext)
 			DrawContext.uiVertexStreamZeroStride
 		);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP(X_D3DPT_QUADLIST)");
+
+		g_dwPrimPerFrame += PrimitiveCount;
 	}
 	else
 	{
