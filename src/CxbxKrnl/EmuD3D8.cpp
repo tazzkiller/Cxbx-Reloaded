@@ -8181,27 +8181,26 @@ void XTL::CxbxDrawPrimitiveUP(CxbxDrawContext &DrawContext)
 		if (DrawContext.XboxPrimitiveType == X_D3DPT_LINELOOP)
 		{
 			// Note : XDK samples reaching this case : DebugKeyboard, Gamepad, Tiling, ShadowBuffer
-
-			/*static?*/ BYTE DxbxClosingLineVertices[256];
+			// Since we can use pVertexStreamZeroData here, we can close the line simpler than
+			// via CxbxDrawIndexedClosingLine, by drawing two indices via DrawIndexedPrimitiveUP.
+			// (This avoids a dependancy on the size of uiVertexStreamZeroStride.)
+			INDEX16 CxbxClosingLineIndices[2];
 
 			// Close line-loops using a final single line, drawn from the end to the start vertex :
-			memcpy(/*dest=*/&(DxbxClosingLineVertices[0]),
-				/*src=*/DrawContext.pVertexStreamZeroData,
-				DrawContext.uiVertexStreamZeroStride);
-			// TODO : Is dwPrimitiveCount the correct ending offset?
-			memcpy(/*dest=*/&(DxbxClosingLineVertices[DrawContext.uiVertexStreamZeroStride]),
-				/*src =*/((BYTE*)DrawContext.pVertexStreamZeroData) + (DrawContext.uiVertexStreamZeroStride * (DrawContext.dwPrimitiveCount)),
-				DrawContext.uiVertexStreamZeroStride);
+			CxbxClosingLineIndices[0] = 0;
+			CxbxClosingLineIndices[1] = (XTL::INDEX16)DrawContext.dwPrimitiveCount;
 
-			void *pVertexStreamZeroData = &DxbxClosingLineVertices[0]; // Needed for D3D9
-			hRet = g_pD3DDevice8->DrawPrimitiveUP
 			(
 				D3DPT_LINELIST,
-				/*PrimitiveCount =*/1,
-				pVertexStreamZeroData,
+				0, // MinVertexIndex
+				2, // NumVertexIndices,
+				1, // PrimitiveCount,
+				CxbxClosingLineIndices, // pIndexData
+				D3DFMT_INDEX16, // IndexDataFormat
+				DrawContext.pVertexStreamZeroData,
 				DrawContext.uiVertexStreamZeroStride
 			);
-			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawPrimitiveUP(X_D3DPT_LINELOOP)");
+			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitiveUP(X_D3DPT_LINELOOP)");
 
 			g_dwPrimPerFrame++;
 		}
