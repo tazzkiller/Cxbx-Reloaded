@@ -153,7 +153,7 @@ extern void XTL::EmuExecutePushBufferRaw
 
     DWORD *pdwOrigPushData = pdwPushData;
 
-    PVOID pIndexData = 0;
+    INDEX16 *pIndexData = 0;
     PVOID pVertexData = 0;
 
     DWORD dwVertexShader = -1;
@@ -184,9 +184,6 @@ extern void XTL::EmuExecutePushBufferRaw
         bShowPB = true;
     }
     #endif
-
-    static IDirect3DIndexBuffer8 *pIndexBuffer = nullptr;
-    static uint uiIndexBufferMaxSize = 0;
 
     while(true)
     {
@@ -361,29 +358,6 @@ extern void XTL::EmuExecutePushBufferRaw
             if(pIBMem[0] != 0xFFFF)
             {
 				UINT uiIndexCount = dwCount + 2;
-				UINT uiIndexBufferSize = sizeof(INDEX16) * uiIndexCount;
-
-                // TODO: depreciate uiIndexBufferMaxSize after N milliseconds..then N milliseconds later drop down to new highest
-                if(uiIndexBufferMaxSize < uiIndexBufferSize)
-                {
-                    if(pIndexBuffer != nullptr)
-                        pIndexBuffer->Release();
-
-					HRESULT hRet = g_pD3DDevice8->CreateIndexBuffer(uiIndexBufferSize, 0/*D3DUSAGE_DYNAMIC?*/, D3DFMT_INDEX16, D3DPOOL_MANAGED, &pIndexBuffer);
-					if(FAILED(hRet))
-						CxbxKrnlCleanup("Unable to create index buffer for PushBuffer emulation (0x1808, dwCount : %d)", dwCount);
-
-                    uiIndexBufferMaxSize = uiIndexBufferSize;
-                }
-
-                // copy index data
-                {
-					INDEX16* pIndexBufferData = nullptr;
-
-                    pIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE**)(&pIndexBufferData), D3DLOCK_DISCARD);
-					memcpy(pIndexBufferData, pIBMem, uiIndexBufferSize); // TODO : This doesn't look right - pIBMem is only 4 elements long!!
-                    pIndexBuffer->Unlock();
-                }
 
                 #ifdef _DEBUG_TRACK_PB
                 if(!g_PBTrackDisable.exists(pdwOrigPushData))
@@ -405,11 +379,7 @@ extern void XTL::EmuExecutePushBufferRaw
 							// TODO: Set the current shader and let the patcher handle it..
 							DrawContext.hVertexShader = g_CurrentVertexShader;
 
-							g_pD3DDevice8->SetIndices(pIndexBuffer, 0);
-
-							CxbxDrawIndexed(DrawContext);
-
-		                    g_pD3DDevice8->SetIndices(nullptr, 0);
+							CxbxDrawIndexed(DrawContext, pIBMem);
                         }
                     }
                 }
@@ -427,7 +397,7 @@ extern void XTL::EmuExecutePushBufferRaw
                 dwCount = ((*pdwPushData - (0x40000000 | 0x00001818)) >> 18)*2 + 2;
             }
 
-            pIndexData = ++pdwPushData;
+            pIndexData = (INDEX16*)++pdwPushData;
 
             #ifdef _DEBUG_TRACK_PB
             if(bShowPB)
@@ -436,7 +406,7 @@ extern void XTL::EmuExecutePushBufferRaw
                 printf("\n");
                 printf("  Index Array Data...\n");
 
-                INDEX16 *pIndices = (INDEX16*)pIndexData;
+                INDEX16 *pIndices = pIndexData;
 
                 for(uint s=0;s<dwCount;s++)
                 {
@@ -476,7 +446,7 @@ extern void XTL::EmuExecutePushBufferRaw
 				pActiveVB->Release(); // Was absent (thus leaked memory)
 #endif
 
-                DbgDumpMesh((INDEX16*)pIndexData, dwCount);
+                DbgDumpMesh(pIndexData, dwCount);
             }
             #endif
 
@@ -485,40 +455,19 @@ extern void XTL::EmuExecutePushBufferRaw
             // perform rendering
             {
 				UINT dwIndexCount = dwCount;
-				UINT uiIndexBufferSize = sizeof(INDEX16) * dwIndexCount;
 
-                // TODO: depreciate uiIndexBufferMaxSize after N milliseconds..then N milliseconds later drop down to new highest
-                if(uiIndexBufferMaxSize < uiIndexBufferSize)
+				// copy index data
                 {
-                    if(pIndexBuffer != nullptr)
-                        pIndexBuffer->Release();
-
-					HRESULT hRet = g_pD3DDevice8->CreateIndexBuffer(uiIndexBufferSize, 0, D3DFMT_INDEX16, D3DPOOL_MANAGED, &pIndexBuffer);
-					if(FAILED(hRet))
-						CxbxKrnlCleanup("Unable to create index buffer for PushBuffer emulation (0x1800, dwCount : %d)", dwCount);
-
-                    uiIndexBufferMaxSize = uiIndexBufferSize;
-                }
-
-                // copy index data
-                {
-					INDEX16 *pIndexBufferData = nullptr;
-
-                    pIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE **)(&pIndexBufferData), D3DLOCK_DISCARD);
-                    memcpy(pIndexBufferData, pIndexData, uiIndexBufferSize);
-
                     // remember last 2 indices
                     if(dwCount >= 2) // TODO : Is 2 indices enough for all primitive types?
                     {
-                        pIBMem[0] = pIndexBufferData[dwCount - 2];
-                        pIBMem[1] = pIndexBufferData[dwCount - 1];
+                        pIBMem[0] = pIndexData[dwCount - 2];
+                        pIBMem[1] = pIndexData[dwCount - 1];
                     }
                     else
                     {
                         pIBMem[0] = 0xFFFF;
                     }
-
-                    pIndexBuffer->Unlock();
                 }
 
                 #ifdef _DEBUG_TRACK_PB
@@ -541,11 +490,7 @@ extern void XTL::EmuExecutePushBufferRaw
 							// TODO: Set the current shader and let the patcher handle it..
 							DrawContext.hVertexShader = g_CurrentVertexShader;
 
-							g_pD3DDevice8->SetIndices(pIndexBuffer, 0);
-
-							CxbxDrawIndexed(DrawContext);
-
-							g_pD3DDevice8->SetIndices(nullptr, 0);
+							CxbxDrawIndexed(DrawContext, pIndexData);
 						}
 					}
                 }

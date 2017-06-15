@@ -2786,7 +2786,12 @@ void CxbxUpdateActiveIndexBuffer
 	static DWORD *pdwXboxD3D_IndexBase = &XTL::g_XboxD3DDevice[7];
 
 	DWORD indexBase = 0;
-	indexBase = *pdwXboxD3D_IndexBase;
+
+	if (*pdwXboxD3D_IndexBase > 0) {
+		// TODO : Research if (or when) using *pdwXboxD3D_IndexBase is needed
+		// indexBase = *pdwXboxD3D_IndexBase;
+		LOG_TEST_CASE("*pdwXboxD3D_IndexBase > 0");
+	}
 
 	// Activate the new native index buffer :
 	HRESULT hRet = g_pD3DDevice8->SetIndices(result, indexBase);
@@ -8044,13 +8049,17 @@ void CxbxDrawIndexedClosingLineUP(XTL::INDEX16 FromIndex, XTL::INDEX16 ToIndex, 
 	g_dwPrimPerFrame++;
 }
 
-// Requires an active index buffer
+// Requires assigned pIndexData
 // Called by D3DDevice_DrawIndexedVertices and EmuExecutePushBufferRaw (twice)
-void XTL::CxbxDrawIndexed(CxbxDrawContext &DrawContext)
+void XTL::CxbxDrawIndexed(CxbxDrawContext &DrawContext, INDEX16 *pIndexData)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	assert(DrawContext.dwStartVertex == 0);
+
+	assert(pIndexData != nullptr);
+
+	CxbxUpdateActiveIndexBuffer(pIndexData, DrawContext.dwVertexCount);
 
 	CxbxVertexBufferConverter VertexBufferConverter;
 	bool FatalError = VertexBufferConverter.Apply(&DrawContext);
@@ -8111,40 +8120,14 @@ void XTL::CxbxDrawIndexed(CxbxDrawContext &DrawContext)
 
 				INDEX16 FromIndex, ToIndex;
 
-				IDirect3DIndexBuffer8 *pCurrentIndexBuffer = nullptr;
-				UINT uiCurrentBaseVertexIndex = 0;
-
-				// Read the end and start index from the active index buffer 
-				{
-					hRet = g_pD3DDevice8->GetIndices(&pCurrentIndexBuffer, &uiCurrentBaseVertexIndex);
-					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetIndices");
-
-					// Here we Lock twice, to avoid stressing the index buffer;
-					// TODO : Add pIndexData argument to CxbxDrawIndexed, and use that instead
-					INDEX16 *pCurrentIndexBufferData = nullptr;
-					hRet = pCurrentIndexBuffer->Lock(sizeof(INDEX16) * DrawContext.dwPrimitiveCount, sizeof(INDEX16), (BYTE **)(&pCurrentIndexBufferData), D3DLOCK_DISCARD);
-					DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Lock");
-
-					FromIndex = pCurrentIndexBufferData[0];
-					hRet = pCurrentIndexBuffer->Unlock();
-					DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Unlock");
-
-					hRet = pCurrentIndexBuffer->Lock(0, sizeof(INDEX16), (BYTE **)(&pCurrentIndexBufferData), D3DLOCK_DISCARD);
-					DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Lock");
-
-					ToIndex = pCurrentIndexBufferData[0];
-					hRet = pCurrentIndexBuffer->Unlock();
-					DEBUG_D3DRESULT(hRet, "pCurrentIndexBuffer->Unlock");
-
-					pCurrentIndexBuffer->Release();
-				}
+				// Read the end and start index from the supplied index data
+				FromIndex = pIndexData[0];
+				ToIndex = pIndexData[DrawContext.dwPrimitiveCount];
 
 				// Draw the closing line using a helper function (which will SetIndices)
 				CxbxDrawIndexedClosingLine(FromIndex, ToIndex);
 
-				// Restore previously active index buffer :
-				hRet = g_pD3DDevice8->SetIndices(pCurrentIndexBuffer, uiCurrentBaseVertexIndex);
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetIndices(Restore)");
+				// NOTE : We don't restore the previously active index buffer
 			}
 		}
 	}
@@ -8415,7 +8398,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 		LOG_FUNC_END;
 
 	CxbxUpdateNativeD3DResources();
-	CxbxUpdateActiveIndexBuffer((INDEX16*)pIndexData, VertexCount);
 
     #ifdef _DEBUG_TRACK_VB
     if(!g_bVBSkipStream)
@@ -8432,7 +8414,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 		DrawContext.uiVertexStreamZeroStride = 0;
 		DrawContext.hVertexShader = g_CurrentVertexShader;
 
-		CxbxDrawIndexed(DrawContext);
+		CxbxDrawIndexed(DrawContext, (INDEX16*)pIndexData);
 
 		g_pD3DDevice8->SetIndices(nullptr, 0); // TODO : Is this necessary? Or reset previously active?
 	}

@@ -38,7 +38,7 @@ extern int DxbxFVF_GetTextureSize(DWORD dwFVF, int aTextureIndex);
 
 extern UINT DxbxFVFToVertexSizeInBytes(DWORD dwFVF, BOOL bIncludeTextures);
 
-extern void CxbxDrawIndexed(CxbxDrawContext &DrawContext);
+extern void CxbxDrawIndexed(CxbxDrawContext &DrawContext, INDEX16 *pIndexData);
 extern void CxbxDrawPrimitiveUP(CxbxDrawContext &DrawContext);
 
 extern void EmuExecutePushBuffer
