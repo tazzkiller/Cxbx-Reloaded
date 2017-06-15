@@ -142,6 +142,7 @@ extern void XTL::EmuExecutePushBufferRaw
     DWORD                 *pdwPushData
 )
 {
+	// Test case : XDK Sample BeginPush
     if(g_bSkipPush)
         return;
 
