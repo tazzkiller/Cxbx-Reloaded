@@ -709,9 +709,8 @@ void XTL::CxbxVertexBufferConverter::Restore()
         if(m_pStreams[uiStream].pHostVertexBuffer != nullptr)
         {
             UINT b = m_pStreams[uiStream].pHostVertexBuffer->Release();
-			/* TODO : Although correct, this currently leads to a null-pointer exception :
 			if (b == 0)
-                m_pStreams[uiStream].pHostVertexBuffer = nullptr;*/
+                m_pStreams[uiStream].pHostVertexBuffer = nullptr;
         }
 
 		if (m_pStreams[uiStream].bUsedCached) {
