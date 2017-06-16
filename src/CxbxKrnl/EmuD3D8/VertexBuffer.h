@@ -120,7 +120,8 @@ extern PVOID                   g_InlineVertexBuffer_pData;
 extern X_D3DPRIMITIVETYPE      g_InlineVertexBuffer_PrimitiveType;
 extern DWORD                   g_InlineVertexBuffer_FVF;
 
-#define INLINE_VERTEX_BUFFER_SIZE 2047 // Max nr of DWORD for D3DPUSH_ENCODE
+#define MAX_PUSHBUFFER_DWORDS 2047 // Max nr of DWORD for D3DPUSH_ENCODE
+#define INLINE_VERTEX_BUFFER_SIZE 2 * MAX_PUSHBUFFER_DWORDS // stay on the safe side
 
 extern struct _D3DIVB
 {

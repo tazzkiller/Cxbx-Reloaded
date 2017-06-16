@@ -883,7 +883,7 @@ VOID XTL::EmuFlushIVB()
         }
 
 		uint VertexBufferUsage = (uintptr_t)pVertexBufferData - (uintptr_t)g_InlineVertexBuffer_pData;
-		if (VertexBufferUsage >= (sizeof(_D3DIVB) * INLINE_VERTEX_BUFFER_SIZE))
+		if (VertexBufferUsage >= (sizeof(DWORD) * INLINE_VERTEX_BUFFER_SIZE))
 			CxbxKrnlCleanup("Overflow g_InlineVertexBuffer_pData  : %d", v);
 	}
 
