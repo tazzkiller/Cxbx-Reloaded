@@ -5068,14 +5068,48 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
             g_InlineVertexBuffer_FVF |= D3DFVF_SPECULAR;
 			break;
         }
+#if 0
+		case X_D3DVSDE_FOG:
+		{
+			LOG_TEST_CASE("X_D3DVSDE_FOG");
 
+			DWORD ca = FtoDW(d) << 24;
+			DWORD cr = FtoDW(a) << 16;
+			DWORD cg = FtoDW(b) << 8;
+			DWORD cb = FtoDW(c) << 0;
+
+			g_InlineVertexBuffer_Table[o].Fog = ca | cr | cg | cb;
+		}
+#endif
 		case X_D3DVSDE_BACKDIFFUSE:
 		{
+			LOG_TEST_CASE("X_D3DVSDE_BACKDIFFUSE");
+#if 0
+			DWORD ca = FtoDW(d) << 24;
+			DWORD cr = FtoDW(a) << 16;
+			DWORD cg = FtoDW(b) << 8;
+			DWORD cb = FtoDW(c) << 0;
+
+			g_InlineVertexBuffer_Table[o].BackDiffuse = ca | cr | cg | cb;
+
+			g_InlineVertexBuffer_FVF |= D3DFVF_DIFFUSE; // TODO : There's no D3DFVF_BACKDIFFUSE - how to handel?
+#endif
 			// TODO : Support backside rendering ...
 			break;
 		}
 		case X_D3DVSDE_BACKSPECULAR:
 		{
+			LOG_TEST_CASE("X_D3DVSDE_BACKSPECULAR");
+#if 0
+			DWORD ca = FtoDW(d) << 24;
+			DWORD cr = FtoDW(a) << 16;
+			DWORD cg = FtoDW(b) << 8;
+			DWORD cb = FtoDW(c) << 0;
+
+			g_InlineVertexBuffer_Table[o].BackSpecular = ca | cr | cg | cb;
+
+			g_InlineVertexBuffer_FVF |= D3DFVF_SPECULAR; // TODO : There's no D3DFVF_BACKSPECULAR - how to handel?
+#endif
 			// TODO : Support backside rendering ...
 			break;
 		}
