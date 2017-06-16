@@ -493,7 +493,7 @@ const RenderStateInfo DxbxRenderStateInfo[] = {
 	{ "X_D3DRS_POINTOFFSETENABLE"           /*=  79*/, 3424, xtBOOL,                NV2A_POLYGON_OFFSET_POINT_ENABLE },
 	{ "X_D3DRS_WIREFRAMEOFFSETENABLE"       /*=  80*/, 3424, xtBOOL,                NV2A_POLYGON_OFFSET_LINE_ENABLE },
 	{ "X_D3DRS_SOLIDOFFSETENABLE"           /*=  81*/, 3424, xtBOOL,                NV2A_POLYGON_OFFSET_FILL_ENABLE },
-	{ "X_D3DRS_DEPTHCLIPCONTROL"            /*=  82*/, 4627, xtD3DDCC,              NV2A_DEPTHCLIPCONTROL },
+	{ "X_D3DRS_DEPTHCLIPCONTROL"            /*=  82*/, 4432, xtD3DDCC,              NV2A_DEPTHCLIPCONTROL },
 	{ "X_D3DRS_STIPPLEENABLE"               /*=  83*/, 4627, xtBOOL,                NV2A_POLYGON_STIPPLE_ENABLE },
 	{ "X_D3DRS_SIMPLE_UNUSED8"              /*=  84*/, 4627, xtDWORD,               0 },
 	{ "X_D3DRS_SIMPLE_UNUSED7"              /*=  85*/, 4627, xtDWORD,               0 },
@@ -540,8 +540,8 @@ const RenderStateInfo DxbxRenderStateInfo[] = {
 	{ "X_D3DRS_PATCHEDGESTYLE"              /*= 124*/, 3424, xtDWORD,               0, D3DRS_PATCHEDGESTYLE }, // D3DPATCHEDGESTYLE
 	{ "X_D3DRS_PATCHSEGMENTS"               /*= 125*/, 3424, xtDWORD,               0, D3DRS_PATCHSEGMENTS }, // DWORD number of segments per edge when drawing patches
 	// TODO -oDxbx : Is X_D3DRS_SWAPFILTER really a xtD3DMULTISAMPLE_TYPE?
-	{ "X_D3DRS_SWAPFILTER"                  /*= 126*/, 4361, xtD3DMULTISAMPLE_TYPE, 0, D3DRS_NONE, "D3DTEXF_LINEAR etc. filter to use for Swap" }, // nsp.
-	{ "X_D3DRS_PRESENTATIONINTERVAL"        /*= 127*/, 4627, xtDWORD,               0 }, // nsp.
+	{ "X_D3DRS_SWAPFILTER"                  /*= 126*/, 4039, xtD3DMULTISAMPLE_TYPE, 0, D3DRS_NONE, "D3DTEXF_LINEAR etc. filter to use for Swap" }, // nsp.
+	{ "X_D3DRS_PRESENTATIONINTERVAL"        /*= 127*/, 4627, xtDWORD,               0 }, // nsp. TODO : Use 4361?
 	{ "X_D3DRS_DEFERRED_UNUSED8"            /*= 128*/, 4627, xtDWORD,               0 },
 	{ "X_D3DRS_DEFERRED_UNUSED7"            /*= 129*/, 4627, xtDWORD,               0 },
 	{ "X_D3DRS_DEFERRED_UNUSED6"            /*= 130*/, 4627, xtDWORD,               0 },
@@ -577,13 +577,13 @@ const RenderStateInfo DxbxRenderStateInfo[] = {
 #endif
 	{ "X_D3DRS_MULTISAMPLEANTIALIAS"        /*= 152*/, 3424, xtBOOL,                NV2A_MULTISAMPLE_CONTROL, D3DRS_MULTISAMPLEANTIALIAS },
 	{ "X_D3DRS_MULTISAMPLEMASK"             /*= 153*/, 3424, xtDWORD,               NV2A_MULTISAMPLE_CONTROL, D3DRS_MULTISAMPLEMASK },
-// For D3DRS_MULTISAMPLETYPE, see DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4361
-//  { "X_D3DRS_MULTISAMPLETYPE"             /*= 154*/, 3424, xtD3DMULTISAMPLE_TYPE, 0 }, // [-3911] \_ aliasses  D3DMULTISAMPLE_TYPE - 
-	{ "X_D3DRS_MULTISAMPLEMODE"             /*= 154*/, 4361, xtD3DMULTISAMPLEMODE,  0 }, // [4361+] /            D3DMULTISAMPLEMODE for the backbuffer
-	{ "X_D3DRS_MULTISAMPLERENDERTARGETMODE" /*= 155*/, 4242, xtD3DMULTISAMPLEMODE,  NV2A_RT_FORMAT },
+// For D3DRS_MULTISAMPLETYPE, see DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4039
+//  { "X_D3DRS_MULTISAMPLETYPE"             /*= 154*/, 3424, xtD3DMULTISAMPLE_TYPE, 0 }, // [-4039> \_ aliasses  D3DMULTISAMPLE_TYPE - 
+	{ "X_D3DRS_MULTISAMPLEMODE"             /*= 154*/, 4039, xtD3DMULTISAMPLEMODE,  0 }, // [4039+] /            D3DMULTISAMPLEMODE for the backbuffer
+	{ "X_D3DRS_MULTISAMPLERENDERTARGETMODE" /*= 155*/, 4039, xtD3DMULTISAMPLEMODE,  NV2A_RT_FORMAT },
 	{ "X_D3DRS_SHADOWFUNC"                  /*= 156*/, 3424, xtD3DCMPFUNC,          NV2A_TX_RCOMP },
 	{ "X_D3DRS_LINEWIDTH"                   /*= 157*/, 3424, xtFloat,               NV2A_LINE_WIDTH },
-	{ "X_D3DRS_SAMPLEALPHA"                 /*= 158*/, 4627, xtD3DSAMPLEALPHA,      0 }, // TODO : Later than 3424, but earlier then 4627?
+	{ "X_D3DRS_SAMPLEALPHA"                 /*= 158*/, 4627, xtD3DSAMPLEALPHA,      0 }, // TODO : Not in 4531, but earlier then 4627?
 	{ "X_D3DRS_DXT1NOISEENABLE"             /*= 159*/, 3424, xtBOOL,                NV2A_CLEAR_DEPTH_VALUE },
 	{ "X_D3DRS_YUVENABLE"                   /*= 160*/, 3911, xtBOOL,                NV2A_CONTROL0 },
 	{ "X_D3DRS_OCCLUSIONCULLENABLE"         /*= 161*/, 3911, xtBOOL,                NV2A_OCCLUDE_ZSTENCIL_EN },
@@ -593,14 +593,14 @@ const RenderStateInfo DxbxRenderStateInfo[] = {
 	{ "X_D3DRS_DONOTCULLUNCOMPRESSED"       /*= 165*/, 3911, xtBOOL,                0 }
 };
 
-const RenderStateInfo DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4361 =
+const RenderStateInfo DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4039 =
 	{ "X_D3DRS_MULTISAMPLETYPE"             /*= 154*/, 3424, xtD3DMULTISAMPLE_TYPE, 0 }; // [-3911] \_ aliasses  D3DMULTISAMPLE_TYPE
 
 const RenderStateInfo &GetDxbxRenderStateInfo(int State)
 {
 	if (State == X_D3DRS_MULTISAMPLETYPE)
-		if (g_BuildVersion < 4361)
-			return DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4361;
+		if (g_BuildVersion < 4039)
+			return DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4039;
 
 	return DxbxRenderStateInfo[State];
 }
