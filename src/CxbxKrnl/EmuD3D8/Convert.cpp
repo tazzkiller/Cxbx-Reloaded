@@ -1102,8 +1102,12 @@ D3DCMPFUNC EmuXB2PC_D3DCMPFUNC(X_D3DCMPFUNC Value)
 	case X_D3DCMP_ALWAYS:
 		return D3DCMP_ALWAYS;
 	default:
-		CxbxKrnlCleanup("Unknown X_D3DCMPFUNC (0x%.08X)", (DWORD)Value);
-		return (D3DCMPFUNC)Value; // Never reached
+		if (Value == 0)
+			EmuWarning("X_D3DCMPFUNC 0 is unsupported");
+		else
+			CxbxKrnlCleanup("Unknown X_D3DCMPFUNC (0x%.08X)", (DWORD)Value);
+
+		return (D3DCMPFUNC)Value;
 	}
 }
 
@@ -1119,8 +1123,12 @@ D3DFILLMODE EmuXB2PC_D3DFILLMODE(X_D3DFILLMODE Value)
 	case X_D3DFILL_SOLID:
 		return D3DFILL_SOLID;
 	default:
-		CxbxKrnlCleanup("Unknown X_D3DFILLMODE (0x%.08X)", (DWORD)Value);
-		return (D3DFILLMODE)Value; // Never reached
+		if (Value == 0)
+			EmuWarning("X_D3DFILLMODE 0 is unsupported");
+		else
+			CxbxKrnlCleanup("Unknown X_D3DFILLMODE (0x%.08X)", (DWORD)Value);
+
+		return (D3DFILLMODE)Value;
 	}
 }
 
@@ -1134,8 +1142,12 @@ D3DSHADEMODE EmuXB2PC_D3DSHADEMODE(X_D3DSHADEMODE Value)
 	case X_D3DSHADE_GOURAUD:
 		return D3DSHADE_GOURAUD;
 	default:
-		CxbxKrnlCleanup("Unknown X_D3DSHADEMODE (0x%.08X)", (DWORD)Value);
-		return (D3DSHADEMODE)Value; // Never reached
+		if (Value == 0)
+			EmuWarning("X_D3DSHADEMODE 0 is unsupported");
+		else
+			CxbxKrnlCleanup("Unknown X_D3DSHADEMODE (0x%.08X)", (DWORD)Value);
+
+		return (D3DSHADEMODE)Value;
 	}
 }
 
@@ -1181,8 +1193,12 @@ DWORD EmuXB2PC_D3DTEXTUREADDRESS(DWORD Value)
 		EmuWarning("Unsupported X_D3DTEXTUREADDRESS : X_D3DTADDRESS_CLAMPTOEDGE. Using D3DTADDRESS_BORDER approximation.");
 		return D3DTADDRESS_BORDER; // Note : D3DTADDRESS_CLAMP is not a good approximation
 	default:
-		CxbxKrnlCleanup("Unknown X_D3DTEXTUREADDRESS (0x%.08X)", (DWORD)Value);
-		return (DWORD)Value; // Never reached
+		if (Value == 0)
+			EmuWarning("X_D3DTEXTUREADDRESS 0 is unsupported");
+		else
+			CxbxKrnlCleanup("Unknown X_D3DTEXTUREADDRESS (0x%.08X)", (DWORD)Value);
+
+		return (DWORD)Value;
 	}
 }
 
