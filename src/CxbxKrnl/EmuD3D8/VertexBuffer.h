@@ -41,7 +41,7 @@
 
 typedef struct _CxbxDrawContext
 {
-    IN OUT X_D3DPRIMITIVETYPE    XboxPrimitiveType;
+    IN     X_D3DPRIMITIVETYPE    XboxPrimitiveType;
     IN     DWORD                 dwVertexCount;
     OUT    DWORD                 dwPrimitiveCount;
     IN     DWORD                 dwStartVertex; // Only D3DDevice_DrawVertices sets this (potentially higher than default 0)

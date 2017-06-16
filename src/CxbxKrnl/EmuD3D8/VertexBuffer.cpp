@@ -659,7 +659,6 @@ bool XTL::CxbxVertexBufferConverter::Apply(CxbxDrawContext *pDrawContext)
 #endif
     }
         
-	// Update the primitive of the stream
 	if (pDrawContext->XboxPrimitiveType == X_D3DPT_QUADSTRIP) {
 		// Quad strip is just like a triangle strip, but requires two vertices per primitive.
 		// A quadstrip starts with 4 vertices and adds 2 vertices per additional quad.
@@ -670,7 +669,10 @@ bool XTL::CxbxVertexBufferConverter::Apply(CxbxDrawContext *pDrawContext)
 		// which would cause backface culling - but this seems to be intelligently
 		// handled by d3d :
 		// Test-case : XDK Samples (FocusBlur, MotionBlur, Trees, PaintEffect, PlayField)
-		pDrawContext->XboxPrimitiveType = X_D3DPT_TRIANGLESTRIP;
+		// No need to set : pDrawContext->XboxPrimitiveType = X_D3DPT_TRIANGLESTRIP;
+		pDrawContext->dwHostPrimitiveCount = EmuD3DVertex2PrimitiveCount(X_D3DPT_TRIANGLESTRIP, pDrawContext->dwVertexCount);
+	} else {
+		pDrawContext->dwHostPrimitiveCount = EmuD3DVertex2PrimitiveCount(pDrawContext->XboxPrimitiveType, pDrawContext->dwVertexCount);
 	}
 
 	if (pDrawContext->XboxPrimitiveType == X_D3DPT_POLYGON) {
@@ -678,8 +680,6 @@ bool XTL::CxbxVertexBufferConverter::Apply(CxbxDrawContext *pDrawContext)
 		// No need to set : pDrawContext->XboxPrimitiveType = X_D3DPT_TRIANGLEFAN;
 		LOG_TEST_CASE("X_D3DPT_POLYGON");
 	}
-
-	pDrawContext->dwPrimitiveCount = EmuD3DVertex2PrimitiveCount(pDrawContext->XboxPrimitiveType, pDrawContext->dwVertexCount);
 
 	return bFatalError;
 }
