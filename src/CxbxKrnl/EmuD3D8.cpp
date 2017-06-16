@@ -7942,7 +7942,11 @@ XTL::INDEX16 *CxbxAssureQuadListIndexBuffer(UINT NrOfQuadVertices)
 		QuadToTriangleIndexBuffer_Size = RoundUp(NrOfQuadVertices, InputQuadsPerPage);
 
 		UINT NrOfTriangleVertices = QuadToTriangleVertexCount(QuadToTriangleIndexBuffer_Size);
-		QuadToTriangleIndexBuffer = (XTL::INDEX16 *)realloc(QuadToTriangleIndexBuffer, sizeof(XTL::INDEX16) * NrOfTriangleVertices);
+
+		if (QuadToTriangleIndexBuffer != nullptr)
+			free(QuadToTriangleIndexBuffer);
+
+		QuadToTriangleIndexBuffer = (XTL::INDEX16 *)malloc(sizeof(XTL::INDEX16) * NrOfTriangleVertices);
 
 		UINT i = 0;
 		XTL::INDEX16 j = 0;
