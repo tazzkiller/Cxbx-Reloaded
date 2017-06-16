@@ -4850,7 +4850,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 #endif
 
 		if (pOldTexture != NULL) {
-			if (pOldTexture->Common-- < 1) {
+			if (pOldTexture->Common-- <= 1) {
 				// TODO : Call unpatched Release to prevent memory leak
 				LOG_TEST_CASE("Leaked a replaced texture");
 			}
