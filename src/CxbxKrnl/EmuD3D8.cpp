@@ -8545,7 +8545,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 		}
 		else
 		{
-			LOG_TEST_CASE("DrawIndexedPrimitiveUP"); // TODO : Which titles reach this case?
+			LOG_TEST_CASE("DrawIndexedPrimitiveUP"); // Test-case : Burnout
 
 			HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
 			(
