@@ -4920,23 +4920,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Begin)
 	LOG_FUNC_ONE_ARG(PrimitiveType);
 
     g_InlineVertexBuffer_PrimitiveType = PrimitiveType;
-
-    if (g_InlineVertexBuffer_Table == nullptr) {
-        g_InlineVertexBuffer_Table = (struct XTL::_D3DIVB*)g_MemoryManager.AllocateZeroed(INLINE_VERTEX_BUFFER_SIZE, sizeof(_D3DIVB));
-    }
-	else {
-		if (g_InlineVertexBuffer_TableOffset > 0) {
-			memset(g_InlineVertexBuffer_Table, 0, sizeof(_D3DIVB) * g_InlineVertexBuffer_TableOffset);
-		}
-	}
-
-    // default values
     g_InlineVertexBuffer_TableOffset = 0;
     g_InlineVertexBuffer_FVF = 0;
-
-    if(g_InlineVertexBuffer_pData == nullptr) {
-		g_InlineVertexBuffer_pData = g_MemoryManager.Allocate(sizeof(DWORD) * INLINE_VERTEX_BUFFER_SIZE);
-    }
 
     return D3D_OK;
 }
@@ -4995,39 +4980,49 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 
     HRESULT hRet = D3D_OK;
 
-	int o = g_InlineVertexBuffer_TableOffset;
 
-	if (o >= INLINE_VERTEX_BUFFER_SIZE) {
-		CxbxKrnlCleanup("Overflow g_InlineVertexBuffer_TableOffset : %d", o);
+	// Grow g_InlineVertexBuffer_Table to contain at least current, and a potentially next vertex
+	if (g_InlineVertexBuffer_TableLength <= g_InlineVertexBuffer_TableOffset + 1) {
+		if (g_InlineVertexBuffer_TableLength == 0) {
+			g_InlineVertexBuffer_TableLength = PAGE_SIZE / sizeof(struct _D3DIVB);
+		} else {
+			g_InlineVertexBuffer_TableLength *= 2;
+		}
+
+		g_InlineVertexBuffer_Table = (struct _D3DIVB*)realloc(g_InlineVertexBuffer_Table, sizeof(struct _D3DIVB) * g_InlineVertexBuffer_TableLength);
+		DbgPrintf("Reallocated g_InlineVertexBuffer_Table to %d entries\n", g_InlineVertexBuffer_TableLength);
 	}
 
-    switch(Register)
-    {
-        // TODO: Blend weight.
+	// Is this the initial call after D3DDevice_Begin() ?
+	if (g_InlineVertexBuffer_FVF == 0) {
+		// Set first vertex to zero (preventing leaks from prior Begin/End calls)
+		g_InlineVertexBuffer_Table[0] = {};
+	}
 
-        case X_D3DVSDE_POSITION:
+	int o = g_InlineVertexBuffer_TableOffset;
+
+	switch(Register)
+    {
+		case X_D3DVSDE_VERTEX:
+		case X_D3DVSDE_POSITION:
         {
             g_InlineVertexBuffer_Table[o].Position.x = a;
             g_InlineVertexBuffer_Table[o].Position.y = b;
             g_InlineVertexBuffer_Table[o].Position.z = c;
             g_InlineVertexBuffer_Table[o].Rhw = d; // Was : 1.0f; // Dxbx note : Why set Rhw to 1.0? And why ignore d?
 
-            g_InlineVertexBuffer_TableOffset++;
-
-            g_InlineVertexBuffer_FVF |= D3DFVF_XYZRHW;
+			g_InlineVertexBuffer_FVF |= D3DFVF_XYZRHW;
 	        break;
         }
 
 		case X_D3DVSDE_BLENDWEIGHT:
 		{
-            g_InlineVertexBuffer_Table[o].Position.x = a;
-            g_InlineVertexBuffer_Table[o].Position.y = b;
-            g_InlineVertexBuffer_Table[o].Position.z = c;
-			g_InlineVertexBuffer_Table[o].Blend1 = d;
+			g_InlineVertexBuffer_Table[o].Blend1 = a;
+			g_InlineVertexBuffer_Table[o].Blend2 = b;
+			g_InlineVertexBuffer_Table[o].Blend3 = c;
+			g_InlineVertexBuffer_Table[o].Blend4 = d;
 
-            g_InlineVertexBuffer_TableOffset++;
-
-            g_InlineVertexBuffer_FVF |= D3DFVF_XYZB1;
+			g_InlineVertexBuffer_FVF |= D3DFVF_XYZB1; // TODO : Detect D3DFVF_XYZB2, D3DFVF_XYZB3 or D3DFVF_XYZB4
 		    break;
         }
 
@@ -5036,8 +5031,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
             g_InlineVertexBuffer_Table[o].Normal.x = a;
             g_InlineVertexBuffer_Table[o].Normal.y = b;
             g_InlineVertexBuffer_Table[o].Normal.z = c;
-
-            g_InlineVertexBuffer_TableOffset++;
 
             g_InlineVertexBuffer_FVF |= D3DFVF_NORMAL;
 			break;
@@ -5176,29 +5169,23 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 	        break;
         }
 
-        case X_D3DVSDE_VERTEX:
-        {
-            g_InlineVertexBuffer_Table[o].Position.x = a;
-            g_InlineVertexBuffer_Table[o].Position.y = b;
-            g_InlineVertexBuffer_Table[o].Position.z = c;
-            g_InlineVertexBuffer_Table[o].Rhw = d;
-
-            // Copy current color to next vertex
-            g_InlineVertexBuffer_Table[o+1].Diffuse  = g_InlineVertexBuffer_Table[o].Diffuse;
-            g_InlineVertexBuffer_Table[o+1].Specular = g_InlineVertexBuffer_Table[o].Specular;
-			// Dxbx note : Must we copy Blend1 (blendweight) too?
-            g_InlineVertexBuffer_TableOffset++;
-
-            g_InlineVertexBuffer_FVF |= D3DFVF_XYZRHW;
-
-			break;
-        }
-
         default:
             CxbxKrnlCleanup("Unknown IVB Register : %d", Register);
     }   
 
-    return hRet;
+	// Is this a write to D3DVSDE_VERTEX?
+	if (Register == X_D3DVSDE_VERTEX) {
+		// Start a new vertex
+		g_InlineVertexBuffer_TableOffset++;
+		// Copy all attributes of the previous vertex (if any) to the new vertex
+		static UINT uiPreviousOffset = ~0; // Can't use 0, as that may be copied too
+		if (uiPreviousOffset != ~0) {
+			g_InlineVertexBuffer_Table[g_InlineVertexBuffer_TableOffset] = g_InlineVertexBuffer_Table[uiPreviousOffset];
+		}
+		uiPreviousOffset = g_InlineVertexBuffer_TableOffset;
+	}
+
+	return hRet;
 }
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4ub)

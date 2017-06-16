@@ -116,7 +116,6 @@ class CxbxVertexBufferConverter
 };
 
 // inline vertex buffer emulation
-extern PVOID                   g_InlineVertexBuffer_pData;
 extern X_D3DPRIMITIVETYPE      g_InlineVertexBuffer_PrimitiveType;
 extern DWORD                   g_InlineVertexBuffer_FVF;
 
@@ -147,6 +146,7 @@ extern struct _D3DIVB
 }
 *g_InlineVertexBuffer_Table;
 
+extern UINT g_InlineVertexBuffer_TableLength;
 extern UINT g_InlineVertexBuffer_TableOffset;
 
 extern VOID EmuFlushIVB();

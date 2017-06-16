@@ -52,11 +52,14 @@
 #define MAX_STREAM_NOT_USED_TIME (2 * CLOCKS_PER_SEC) // TODO: Trim the not used time
 
 // Inline vertex buffer emulation
-PVOID                        XTL::g_InlineVertexBuffer_pData = nullptr;
-XTL::X_D3DPRIMITIVETYPE      XTL::g_InlineVertexBuffer_PrimitiveType = XTL::X_D3DPT_INVALID;
-UINT                         XTL::g_InlineVertexBuffer_TableOffset = 0;
-struct XTL::_D3DIVB         *XTL::g_InlineVertexBuffer_Table = nullptr;
-extern DWORD                 XTL::g_InlineVertexBuffer_FVF = 0;
+extern XTL::X_D3DPRIMITIVETYPE XTL::g_InlineVertexBuffer_PrimitiveType = XTL::X_D3DPT_INVALID;
+extern DWORD                   XTL::g_InlineVertexBuffer_FVF = 0;
+extern struct XTL::_D3DIVB    *XTL::g_InlineVertexBuffer_Table = nullptr;
+extern UINT                    XTL::g_InlineVertexBuffer_TableLength = 0;
+extern UINT                    XTL::g_InlineVertexBuffer_TableOffset = 0;
+
+FLOAT *g_InlineVertexBuffer_pData = nullptr;
+UINT   g_InlineVertexBuffer_DataSize = 0;
 
 XTL::CxbxVertexBufferConverter::CxbxVertexBufferConverter()
 {
@@ -730,8 +733,6 @@ VOID XTL::EmuFlushIVB()
 {
     XTL::DxbxUpdateDeferredStates();
 
-    FLOAT *pVertexBufferData = (FLOAT*)g_InlineVertexBuffer_pData;
-
     // Parse IVB table with current FVF shader if possible.
     boolean bFVF = VshHandleIsFVF(g_CurrentVertexShader);
     DWORD dwCurFVF;
@@ -757,9 +758,22 @@ VOID XTL::EmuFlushIVB()
     DWORD dwPos = dwCurFVF & D3DFVF_POSITION_MASK;
 	DWORD dwTexN = (dwCurFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
 
+	// Use a tooling function to determine the vertex stride :
+	UINT uiStride = DxbxFVFToVertexSizeInBytes(dwCurFVF, /*bIncludeTextures=*/true);
+
+	// Make sure the output buffer is big enough 
+	UINT NeededSize = uiStride * g_InlineVertexBuffer_TableOffset;
+	if (g_InlineVertexBuffer_DataSize < NeededSize) {
+		g_InlineVertexBuffer_DataSize = NeededSize;
+		if (g_InlineVertexBuffer_pData != nullptr)
+			free(g_InlineVertexBuffer_pData);
+		g_InlineVertexBuffer_pData = (FLOAT*)malloc(g_InlineVertexBuffer_DataSize);
+	}
+
+	FLOAT *pVertexBufferData = g_InlineVertexBuffer_pData;
 	for(uint v=0;v<g_InlineVertexBuffer_TableOffset;v++)
     {
-        *pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.x;
+		*pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.x;
         *pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.y;
         *pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Position.z;
 
@@ -882,14 +896,12 @@ VOID XTL::EmuFlushIVB()
 			}
         }
 
-		uint VertexBufferUsage = (uintptr_t)pVertexBufferData - (uintptr_t)g_InlineVertexBuffer_pData;
-		if (VertexBufferUsage >= (sizeof(DWORD) * INLINE_VERTEX_BUFFER_SIZE))
-			CxbxKrnlCleanup("Overflow g_InlineVertexBuffer_pData  : %d", v);
+		if (v == 0) {
+			uint VertexBufferUsage = (uintptr_t)pVertexBufferData - (uintptr_t)g_InlineVertexBuffer_pData;
+			if (VertexBufferUsage != uiStride)
+				CxbxKrnlCleanup("EmuFlushIVB uses wrong stride!");
+		}
 	}
-
-	// Dxbx note : Instead of calculating this above (when v=0),
-	// we use a tooling function to determine the vertex stride :
-	UINT uiStride = DxbxFVFToVertexSizeInBytes(dwCurFVF, /*bIncludeTextures=*/true);
 
     CxbxDrawContext DrawContext;
 
@@ -916,12 +928,6 @@ VOID XTL::EmuFlushIVB()
 
     if(bFVF)
         g_pD3DDevice8->SetVertexShader(g_CurrentVertexShader);
-
-	// Clear the portion that was in use previously (as only that part was written to) :
-	if (g_InlineVertexBuffer_TableOffset > 0) {
-		memset(g_InlineVertexBuffer_Table, 0, sizeof(_D3DIVB) * g_InlineVertexBuffer_TableOffset);
-		g_InlineVertexBuffer_TableOffset = 0;
-	}
 
     return;
 }
