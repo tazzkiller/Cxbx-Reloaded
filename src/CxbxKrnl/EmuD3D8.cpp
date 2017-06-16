@@ -1245,6 +1245,7 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 
 					// Since this cannot longer be created as a DepthStencil, reset the usage flag :
 					aUsage &= ~X_D3DUSAGE_DEPTHSTENCIL; // TODO : This asks for a testcase!
+					LOG_TEST_CASE("fallback to D3DFMT_R5G6B5");
 				}
 			}
 			else
@@ -1266,6 +1267,7 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 			Result = D3DFMT_A8R8G8B8;
 			// Since this cannot longer be created as a DepthStencil, reset the usage flag :
 			aUsage &= ~X_D3DUSAGE_DEPTHSTENCIL; // TODO : This asks for a testcase!
+			LOG_TEST_CASE("fallback to D3DFMT_A8R8G8B8");
 			break;
 		}
 		}
@@ -8482,7 +8484,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 			// This is slower (because of call-overhead) but doesn't require any index buffer patching
 
 			// Draw 1 quad as a 2 triangles in a fan (which both have the same winding order) :
-			LOG_TEST_CASE("X_D3DPT_QUADLIST"); // Test-case : Buffy: The Vampire Slayer, possibly XDK Samples (Billboard, BumpLens, DebugKeyboard, Gamepad, Lensflare, PerfTest?VolumeLight, PointSprites, Tiling, VolumeFog, VolumeSprites, etc)
+			LOG_TEST_CASE("X_D3DPT_QUADLIST"); // Test-case : Buffy: The Vampire Slayer, FastLoad XDK Sample
 
 			INDEX16* pWalkIndexData = (INDEX16*)pIndexData;
 			int iNumVertices = (int)VertexCount;
@@ -8509,7 +8511,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 		}
 		else
 		{
-			// Test cases : XDK Samples (FastLoad, Trees)
+			LOG_TEST_CASE("DrawIndexedPrimitiveUP"); // TODO : Which titles reach this case?
+
 			HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP
 			(
 				EmuXB2PC_D3DPrimitiveType(DrawContext.XboxPrimitiveType),
