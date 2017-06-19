@@ -301,7 +301,7 @@ namespace XTL
 {
 
 // lookup table for converting vertex count to primitive count
-UINT EmuD3DVertexToPrimitive[X_D3DPT_POLYGON + 1][2] =
+int EmuD3DVertexToPrimitive[X_D3DPT_POLYGON + 1][2] =
 {
 	{ 0, 0 }, // NULL
 	{ 1, 0 }, // X_D3DPT_POINTLIST
