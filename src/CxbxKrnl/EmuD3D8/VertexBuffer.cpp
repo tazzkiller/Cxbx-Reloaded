@@ -86,7 +86,7 @@ void XTL::CxbxVertexBufferConverter::DumpCache(void)
         {
             // TODO: Write nicer dump presentation
             printf("Key: 0x%.08X Cache Hits: %d IsUP: %s OrigStride: %d NewStride: %d HashCount: %d HashFreq: %d Length: %d Hash: 0x%.08X\n",
-                   pNode->uiKey, pCachedStream->uiCacheHit, pCachedStream->bIsUP ? "YES" : "NO",
+                   pNode->pKey, pCachedStream->uiCacheHit, pCachedStream->bIsUP ? "YES" : "NO",
                    pCachedStream->Stream.uiOrigStride, pCachedStream->Stream.uiNewStride,
                    pCachedStream->uiCheckCount, pCachedStream->uiCheckFrequency,
                    pCachedStream->uiLength, pCachedStream->uiHash);
@@ -100,14 +100,13 @@ void XTL::CxbxVertexBufferConverter::CacheStream(CxbxDrawContext *pDrawContext,
                                      UINT             uiStream)
 {
     void                      *pXboxVertexData = NULL;
-    uint32                     uiKey;
     UINT                       uiLength;
     CxbxCachedStream          *pCachedStream = (CxbxCachedStream *)calloc(1, sizeof(CxbxCachedStream));
 
     // Check if the cache is full, if so, throw away the least used stream
     if(g_PatchedStreamsCache.get_count() > VERTEX_BUFFER_CACHE_SIZE)
     {
-        uint32 uiKey = NULL;
+        void *pKey = NULL;
         uint32 uiMinHit = 0xFFFFFFFF;
 		clock_t ctExpiryTime = (clock() - MAX_STREAM_NOT_USED_TIME); // Was addition, seems wrong
         RTNode *pNode = g_PatchedStreamsCache.getHead();
@@ -120,7 +119,7 @@ void XTL::CxbxVertexBufferConverter::CacheStream(CxbxDrawContext *pDrawContext,
                 if(pNodeStream->lLastUsed < ctExpiryTime)
                 {
                     printf("!!!Found an old stream, %2.2f\n", ((FLOAT)(ctExpiryTime - pNodeStream->lLastUsed)) / (FLOAT)CLOCKS_PER_SEC);
-                    uiKey = pNode->uiKey;
+                    pKey = pNode->pKey;
                     break;
                 }
 
@@ -128,34 +127,33 @@ void XTL::CxbxVertexBufferConverter::CacheStream(CxbxDrawContext *pDrawContext,
                 if(uiMinHit > pNodeStream->uiCacheHit)
                 {
                     uiMinHit = pNodeStream->uiCacheHit;
-                    uiKey = pNode->uiKey;
+                    pKey = pNode->pKey;
                 }
             }
 
             pNode = pNode->pNext;
         }
 
-        if(uiKey != NULL)
+        if(pKey != NULL)
         {
             printf("!!!Removing stream\n\n");
-            FreeCachedStream((void*)uiKey);
+            FreeCachedStream(pKey);
         }
     }
 
     // Start the actual stream caching
-    if(pDrawContext->pVertexStreamZeroData != NULL)
+	pCachedStream->bIsUP = (pDrawContext->pXboxVertexStreamZeroData != NULL);
+    if (pCachedStream->bIsUP)
     {
         // There should only be one stream (stream zero) in this case
         if(uiStream != 0)
             CxbxKrnlCleanup("Trying to patch a Draw..UP with more than stream zero!");
 
-		//uiInputStride  = pDrawContext->uiVertexStreamZeroStride;
-        pXboxVertexData = (uint08 *)pDrawContext->pVertexStreamZeroData;
-        // TODO: This is sometimes the number of indices, which isn't too good
-        uiLength = pDrawContext->dwVertexCount * pDrawContext->uiVertexStreamZeroStride;
-        pCachedStream->bIsUP = true;
-        pCachedStream->pStreamUP = pXboxVertexData;
-        uiKey = (uint32)pXboxVertexData;
+        pCachedStream->pStreamUP = (uint08 *)pDrawContext->pHostVertexStreamZeroData;
+        pXboxVertexData = (uint08 *)pDrawContext->pXboxVertexStreamZeroData;
+        // TODO : When called from D3DDevice_DrawIndexedVerticesUP, dwVertexCount
+		// is actually the number of indices, which isn't too good. FIXME
+        uiLength = pDrawContext->dwVertexCount * pDrawContext->uiXboxVertexStreamZeroStride;
     }
 	else
 	{
@@ -164,12 +162,9 @@ void XTL::CxbxVertexBufferConverter::CacheStream(CxbxDrawContext *pDrawContext,
 
 		pXboxVertexData = m_pStreams[uiStream].pXboxVertexData;
 		uiLength = g_MemoryManager.QueryAllocationSize(pXboxVertexData);
-		uiKey = (uint32)pXboxVertexData;
-
-		pCachedStream->bIsUP = false;
 	}
 
-    uint32_t uiHash = XXHash32::hash((void *)pXboxVertexData, uiLength, HASH_SEED);
+    uint32_t uiHash = XXHash32::hash(pXboxVertexData, uiLength, HASH_SEED);
 
     pCachedStream->uiHash = uiHash;
     pCachedStream->uiCheckFrequency = 1; // Start with checking every 1th Draw..
@@ -179,18 +174,16 @@ void XTL::CxbxVertexBufferConverter::CacheStream(CxbxDrawContext *pDrawContext,
     pCachedStream->Stream = m_pStreams[uiStream];
     pCachedStream->uiLength = uiLength;
     pCachedStream->Copy = *pDrawContext;
-
-    g_PatchedStreamsCache.insert(uiKey, pCachedStream);
+    g_PatchedStreamsCache.insert(pXboxVertexData, pCachedStream);
 }
 
-void XTL::CxbxVertexBufferConverter::FreeCachedStream(void *pStream)
+void XTL::CxbxVertexBufferConverter::FreeCachedStream(void *pKey)
 {
     g_PatchedStreamsCache.Lock();
-
-	CxbxCachedStream *pCachedStream = (CxbxCachedStream *)g_PatchedStreamsCache.get(pStream);
-    if(pCachedStream != nullptr)
-    {
-		if (pCachedStream->bIsUP && (pCachedStream->pStreamUP != nullptr)) {
+	CxbxCachedStream *pCachedStream = (CxbxCachedStream *)g_PatchedStreamsCache.get(pKey);
+	g_PatchedStreamsCache.remove(pKey);
+    if (pCachedStream != nullptr) {
+		if (pCachedStream->pStreamUP != nullptr) {
 			free(pCachedStream->pStreamUP);
 			pCachedStream->pStreamUP = nullptr;
 		}
@@ -204,7 +197,6 @@ void XTL::CxbxVertexBufferConverter::FreeCachedStream(void *pStream)
     }
 
     g_PatchedStreamsCache.Unlock();
-    g_PatchedStreamsCache.remove(pStream);
 }
 
 bool XTL::CxbxVertexBufferConverter::ApplyCachedStream
@@ -218,21 +210,17 @@ bool XTL::CxbxVertexBufferConverter::ApplyCachedStream
     UINT                       uiStride;
     UINT                       uiLength;
     bool                       bApplied = false;
-    uint32                     uiKey;
-    //CxbxCachedStream          *pCachedStream = (CxbxCachedStream *)malloc(sizeof(CxbxCachedStream));
 
-    if(pDrawContext->pVertexStreamZeroData != NULL) {
+    if(pDrawContext->pXboxVertexStreamZeroData != NULL) {
 		// There should only be one stream (stream zero) in this case
 		if (uiStream != 0)
 			CxbxKrnlCleanup("Trying to find a cached Draw..UP with more than stream zero!");
 
-		pXboxVertexData = (uint08 *)pDrawContext->pVertexStreamZeroData;
-		uiStride = pDrawContext->uiVertexStreamZeroStride;
-		// TODO: This is sometimes the number of indices, which isn't too good
-		uiLength = pDrawContext->dwVertexCount * pDrawContext->uiVertexStreamZeroStride;
-		uiKey = (uint32)pXboxVertexData;
-		//pCachedStream->bIsUP = true;
-		//pCachedStream->pStreamUP = pXboxVertexData;
+		pXboxVertexData = (uint08 *)pDrawContext->pXboxVertexStreamZeroData;
+		// TODO : When called from D3DDevice_DrawIndexedVerticesUP, dwVertexCount
+		// is actually the number of indices, which isn't too good. FIXME
+		uiLength = pDrawContext->dwVertexCount * pDrawContext->uiXboxVertexStreamZeroStride;
+		uiStride = pDrawContext->uiXboxVertexStreamZeroStride;
 	}
 	else {
 		pXboxVertexData = GetDataFromXboxResource(Xbox_g_Stream[uiStream].pVertexBuffer);
@@ -243,15 +231,13 @@ bool XTL::CxbxVertexBufferConverter::ApplyCachedStream
 			return false;
 		}
 
-		uiStride = Xbox_g_Stream[uiStream].Stride;
 		uiLength = g_MemoryManager.QueryAllocationSize(pXboxVertexData);
-		uiKey = (uint32)pXboxVertexData;
-		//pCachedStream->bIsUP = false;
+		uiStride = Xbox_g_Stream[uiStream].Stride;
     }
 
     g_PatchedStreamsCache.Lock();
 
-    CxbxCachedStream *pCachedStream = (CxbxCachedStream *)g_PatchedStreamsCache.get(uiKey);
+    CxbxCachedStream *pCachedStream = (CxbxCachedStream *)g_PatchedStreamsCache.get(pXboxVertexData);
     if(pCachedStream != nullptr)
     {
         pCachedStream->lLastUsed = clock();
@@ -268,12 +254,8 @@ bool XTL::CxbxVertexBufferConverter::ApplyCachedStream
 				pCachedStream->uiCheckCount = 0;
             }
             else {
-                // TODO: Do something about this
-                if(pCachedStream->bIsUP) {
-                    FreeCachedStream(pCachedStream->pStreamUP);
-					pCachedStream->pStreamUP = nullptr;
-                }
-
+				// Free pCachedStream via it's key
+				FreeCachedStream(pXboxVertexData);
                 pCachedStream = nullptr;
                 bMismatch = true;
             }
@@ -284,8 +266,8 @@ bool XTL::CxbxVertexBufferConverter::ApplyCachedStream
 
         if(!bMismatch) {
             if(pCachedStream->bIsUP) {
-                pDrawContext->pVertexStreamZeroData = pCachedStream->pStreamUP;
-                pDrawContext->uiVertexStreamZeroStride = pCachedStream->Stream.uiNewStride;
+                pDrawContext->pHostVertexStreamZeroData = pCachedStream->pStreamUP;
+                pDrawContext->uiHostVertexStreamZeroStride = pCachedStream->Stream.uiNewStride;
             }
             else {
                 g_pD3DDevice8->SetStreamSource(uiStream, pCachedStream->Stream.pHostVertexBuffer, pCachedStream->Stream.uiNewStride);
@@ -300,7 +282,7 @@ bool XTL::CxbxVertexBufferConverter::ApplyCachedStream
 
             // The primitives were patched, draw with the correct number of primimtives from the cache
 			pDrawContext->XboxPrimitiveType = pCachedStream->Copy.XboxPrimitiveType;
-			pDrawContext->dwPrimitiveCount = pCachedStream->Copy.dwPrimitiveCount;
+			pDrawContext->dwHostPrimitiveCount = pCachedStream->Copy.dwHostPrimitiveCount;
 			pDrawContext->dwVertexCount = pCachedStream->Copy.dwVertexCount;
 
             bApplied = true;
@@ -365,16 +347,16 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
 
 	bNeedStreamCopy = bNeedVertexPatching || bNeedTextureNormalization || bNeedRHWReset;
 
-    if(pDrawContext->pVertexStreamZeroData != NULL)
-    {
+    if (pDrawContext->pXboxVertexStreamZeroData != NULL) {
         // There should only be one stream (stream zero) in this case
         if(uiStream != 0)
             CxbxKrnlCleanup("Trying to patch a Draw..UP with more than stream zero!");
 
-		pXboxVertexInputData = (uint08 *)pDrawContext->pVertexStreamZeroData;
-		uiInputStride  = pDrawContext->uiVertexStreamZeroStride;
+		pXboxVertexInputData = (uint08 *)pDrawContext->pXboxVertexStreamZeroData;
+		uiInputStride  = pDrawContext->uiXboxVertexStreamZeroStride;
 		uiOutputStride = (pStreamPatch != nullptr) ? max(pStreamPatch->ConvertedStride, uiInputStride) : uiInputStride;
-        // TODO: This is sometimes the number of indices, which isn't too good
+		// TODO : When called from D3DDevice_DrawIndexedVerticesUP, dwVertexCount
+		// is actually the number of indices, which isn't too good. FIXME
 		uiVertexCount = pDrawContext->dwVertexCount;
         dwOutputSize = uiVertexCount * uiOutputStride;
 		if (bNeedStreamCopy) {
@@ -383,29 +365,26 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
 				CxbxKrnlCleanup("Couldn't allocate the new stream zero buffer");
 			}
 
-			if (!m_bAllocatedStreamZeroData) {
-				// The stream was not previously patched. We'll need this when restoring
-				m_bAllocatedStreamZeroData = true;
-				m_pNewVertexStreamZeroData = pOutputData;
-			}
+			//assert(!m_bAllocatedStreamZeroData);
+
+			// The stream was not previously patched. We'll need this when restoring
+			m_bAllocatedStreamZeroData = true;
+			m_pNewVertexStreamZeroData = pOutputData;
 		}
 		else {
 			pOutputData = pXboxVertexInputData;
 		}
-	}
-	else
-	{
+	} 
+	else {
 		pXboxVertexInputData = (uint08*)GetDataFromXboxResource(Xbox_g_Stream[uiStream].pVertexBuffer);
 		uiInputStride = Xbox_g_Stream[uiStream].Stride;
-		// Set a new (exact) vertex count
+		// Derive the vertex count
 		uiVertexCount = g_MemoryManager.QueryAllocationSize(pXboxVertexInputData) / uiInputStride;
-
-		// Dxbx addition : Don't update pDrawContext.dwVertexCount because an indexed draw
+		// Dxbx note : Don't overwrite pDrawContext.dwVertexCount with uiVertexCount, because an indexed draw
 		// can (and will) use less vertices than the supplied nr of indexes. Thix fixes
 		// the missing parts in the CompressedVertices sample (in Vertex shader mode).
 		uiOutputStride = (pStreamPatch != nullptr) ? max(pStreamPatch->ConvertedStride, uiInputStride) : uiInputStride;
 		dwOutputSize = uiVertexCount * uiOutputStride;
-
 		g_pD3DDevice8->CreateVertexBuffer(dwOutputSize, 0, 0, XTL::D3DPOOL_MANAGED, &pHostVertexBuffer);
         if(FAILED(pHostVertexBuffer->Lock(0, 0, &pOutputData, D3DLOCK_DISCARD)))
             CxbxKrnlCleanup("Couldn't lock the new buffer");
@@ -421,6 +400,7 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
     }
 
 	if (bNeedVertexPatching) {
+		// assert(bNeedStreamCopy || "bNeedVertexPatching implies bNeedStreamCopy (but copies via conversions");
 		for (uint32 uiVertex = 0; uiVertex < uiVertexCount; uiVertex++) {
 			uint08 *pOrigVertex = &pXboxVertexInputData[uiVertex * uiInputStride];
 			uint08 *pNewDataPos = &pOutputData[uiVertex * uiOutputStride];
@@ -562,7 +542,7 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
 		}
 
 		for (uint32 uiVertex = 0; uiVertex < uiVertexCount; uiVertex++) {
-			FLOAT *pVertexDataAsFloat = (FLOAT*)(&pOutputData[uiOutputStride * uiVertex]);
+			FLOAT *pVertexDataAsFloat = (FLOAT*)(&pOutputData[uiVertex * uiOutputStride]);
 
 			// Handle pre-transformed vertices (which bypass the vertex shader pipeline)
 			if (bNeedRHWReset) {
@@ -580,7 +560,7 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
 			}
 
 			// Normalize texture coordinates in FVF stream if needed
-			if (bNeedTextureNormalization) {
+			if (uiUVOffset > 0) { // uiUVOffset > 0 implies bNeedTextureNormalization (using one is more efficient than both)
 				FLOAT *pVertexUVData = (FLOAT*)((uintptr_t)pVertexDataAsFloat + uiUVOffset);
 				for (uint i = 0; i < X_D3DTSS_STAGECOUNT; i++) {
 					if (pActivePixelContainer[i].bTexIsLinear) {
@@ -592,9 +572,9 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
 		}
 	}
 
-	if(pDrawContext->pVertexStreamZeroData != NULL) {
-        pDrawContext->pVertexStreamZeroData = pOutputData;
-        pDrawContext->uiVertexStreamZeroStride = uiOutputStride;
+	if(pDrawContext->pXboxVertexStreamZeroData != NULL) {
+        pDrawContext->pHostVertexStreamZeroData = pOutputData;
+        pDrawContext->uiHostVertexStreamZeroStride = uiOutputStride;
     }
 	else {
 		pHostVertexBuffer->Unlock();
@@ -761,11 +741,12 @@ VOID XTL::EmuFlushIVB()
 	UINT uiStride = DxbxFVFToVertexSizeInBytes(dwCurFVF, /*bIncludeTextures=*/true);
 
 	// Make sure the output buffer is big enough 
-	UINT NeededSize = uiStride * g_InlineVertexBuffer_TableOffset;
+	UINT NeededSize = g_InlineVertexBuffer_TableOffset * uiStride;
 	if (g_InlineVertexBuffer_DataSize < NeededSize) {
 		g_InlineVertexBuffer_DataSize = NeededSize;
 		if (g_InlineVertexBuffer_pData != nullptr)
 			free(g_InlineVertexBuffer_pData);
+
 		g_InlineVertexBuffer_pData = (FLOAT*)malloc(g_InlineVertexBuffer_DataSize);
 	}
 
@@ -902,14 +883,12 @@ VOID XTL::EmuFlushIVB()
 		}
 	}
 
-    CxbxDrawContext DrawContext;
+	CxbxDrawContext DrawContext = {};
 
     DrawContext.XboxPrimitiveType = g_InlineVertexBuffer_PrimitiveType;
     DrawContext.dwVertexCount = g_InlineVertexBuffer_TableOffset;
-	DrawContext.dwPrimitiveCount = 0;
-	DrawContext.dwStartVertex = 0;
-    DrawContext.pVertexStreamZeroData = g_InlineVertexBuffer_pData;
-    DrawContext.uiVertexStreamZeroStride = uiStride;
+    DrawContext.pXboxVertexStreamZeroData = g_InlineVertexBuffer_pData;
+    DrawContext.uiXboxVertexStreamZeroStride = uiStride;
     DrawContext.hVertexShader = g_CurrentVertexShader;
 
     // Disable this 'fix', as it doesn't really help; On ATI, it isn't needed (and causes missing

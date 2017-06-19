@@ -43,13 +43,16 @@ typedef struct _CxbxDrawContext
 {
     IN     X_D3DPRIMITIVETYPE    XboxPrimitiveType;
     IN     DWORD                 dwVertexCount;
-    OUT    DWORD                 dwPrimitiveCount;
     IN     DWORD                 dwStartVertex; // Only D3DDevice_DrawVertices sets this (potentially higher than default 0)
-    // Data if Draw...UP call
-    IN OUT PVOID                 pVertexStreamZeroData;
-    IN OUT UINT                  uiVertexStreamZeroStride;
     // The current vertex shader, used to identify the streams
     IN     DWORD                 hVertexShader;
+    // Data if Draw...UP call
+    IN PVOID                     pXboxVertexStreamZeroData;
+    IN UINT                      uiXboxVertexStreamZeroStride;
+	// Values to be used on host
+	OUT PVOID                    pHostVertexStreamZeroData;
+	OUT UINT                     uiHostVertexStreamZeroStride;
+    OUT DWORD                    dwHostPrimitiveCount;
 } CxbxDrawContext;
 
 typedef struct _CxbxPatchedStream

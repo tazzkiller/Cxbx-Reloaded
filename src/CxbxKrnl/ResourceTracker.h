@@ -43,7 +43,7 @@ extern bool g_bPBSkipPusher;
 extern class ResourceTracker : public Mutex
 {
     public:
-        ResourceTracker() : m_head(0), m_tail(0) {};
+        ResourceTracker() : m_head(nullptr), m_tail(nullptr) {};
        ~ResourceTracker();
 
         // clear the tracker
@@ -53,25 +53,16 @@ extern class ResourceTracker : public Mutex
         void insert(void *pResource);
 
         // insert a ptr using an explicit key
-        void insert(uint32 uiKey, void *pResource);
-
-        // remove a ptr using the pResource pointer as key
-        void remove(void *pResource);
+        void insert(void *pKey, void *pResource);
 
         // remove a ptr using an explicit key
-        void remove(uint32 uiKey);
-
-        // check for existance of ptr using the pResource pointer as key
-        bool exists(void *pResource);
+        void remove(void *pKey);
 
         // check for existance of an explicit key
-        bool exists(uint32 uiKey);
-
-        // retrieves aresource using the resource ointer as key, explicit locking needed
-        void *get(void *pResource);
+        bool exists(void *pKey);
 
         // retrieves a resource using an explicit key, explicit locking needed
-        void *get(uint32 uiKey);
+        void *get(void *pKey);
 
         // retrieves the number of entries in the tracker
         uint32 get_count(void);
@@ -84,13 +75,19 @@ extern class ResourceTracker : public Mutex
         struct RTNode *m_head;
         struct RTNode *m_tail;
 }
-g_VBTrackTotal, g_VBTrackDisable,
-g_PBTrackTotal, g_PBTrackDisable, g_PBTrackShowOnce,
-g_PatchedStreamsCache, g_DataToTexture, g_AlignCache;
+g_VBTrackTotal, 
+g_VBTrackDisable,
+g_PBTrackTotal, 
+g_PBTrackDisable, 
+g_PBTrackShowOnce,
+g_PatchedStreamsCache, 
+g_DataToTexture
+//, g_AlignCache
+;
 
 struct RTNode
 {
-    uint32   uiKey;
+    void    *pKey;
     void    *pResource;
     RTNode  *pNext;
 };

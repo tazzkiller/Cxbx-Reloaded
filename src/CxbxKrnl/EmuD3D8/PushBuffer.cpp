@@ -309,14 +309,12 @@ extern void XTL::EmuExecutePushBufferRaw
             {
                 UINT VertexCount = (dwCount * sizeof(DWORD)) / dwStride;
 
-                CxbxDrawContext DrawContext;
+				CxbxDrawContext DrawContext = {};
 
                 DrawContext.XboxPrimitiveType = XboxPrimitiveType;
                 DrawContext.dwVertexCount = VertexCount;
-                DrawContext.dwPrimitiveCount = 0;
-                DrawContext.dwStartVertex = 0;
-                DrawContext.pVertexStreamZeroData = pVertexData;
-                DrawContext.uiVertexStreamZeroStride = dwStride;
+                DrawContext.pXboxVertexStreamZeroData = pVertexData;
+                DrawContext.uiXboxVertexStreamZeroStride = dwStride;
                 DrawContext.hVertexShader = dwVertexShader;
 
 				CxbxDrawPrimitiveUP(DrawContext);
@@ -368,15 +366,10 @@ extern void XTL::EmuExecutePushBufferRaw
                     {
                         if(IsValidCurrentShader())
                         {
-							CxbxDrawContext DrawContext;
+							CxbxDrawContext DrawContext = {};
 
 							DrawContext.XboxPrimitiveType = XboxPrimitiveType;
 							DrawContext.dwVertexCount = EmuD3DIndexCountToVertexCount(XboxPrimitiveType, uiIndexCount);
-							DrawContext.dwPrimitiveCount = 0;
-							DrawContext.dwStartVertex = 0;
-							DrawContext.pVertexStreamZeroData = NULL;
-							DrawContext.uiVertexStreamZeroStride = 0;
-							// TODO: Set the current shader and let the patcher handle it..
 							DrawContext.hVertexShader = g_CurrentVertexShader;
 
 							CxbxDrawIndexed(DrawContext, pIBMem);
@@ -479,15 +472,10 @@ extern void XTL::EmuExecutePushBufferRaw
 					{
 						if (IsValidCurrentShader())
 						{
-							CxbxDrawContext DrawContext;
+							CxbxDrawContext DrawContext = {};
 
 							DrawContext.XboxPrimitiveType = XboxPrimitiveType;
 							DrawContext.dwVertexCount = EmuD3DIndexCountToVertexCount(XboxPrimitiveType, dwIndexCount);
-							DrawContext.dwPrimitiveCount = 0;
-							DrawContext.dwStartVertex = 0;
-							DrawContext.pVertexStreamZeroData = NULL;
-							DrawContext.uiVertexStreamZeroStride = 0;
-							// TODO: Set the current shader and let the patcher handle it..
 							DrawContext.hVertexShader = g_CurrentVertexShader;
 
 							CxbxDrawIndexed(DrawContext, pIndexData);

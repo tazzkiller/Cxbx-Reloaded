@@ -578,7 +578,7 @@ VOID WINAPI EMUPATCH(D3DDevice_SetTexture)
 VOID __fastcall EMUPATCH(D3DDevice_SwitchTexture)
 (
     DWORD           Method,
-    DWORD           Data,
+    PVOID           Data,
     DWORD           Format
 );
 
