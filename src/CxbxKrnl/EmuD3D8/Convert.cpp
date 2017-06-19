@@ -372,7 +372,7 @@ const XBTypeInfo DxbxXBTypeInfo[] = {
 	/*xtD3DSWATH=*/
     {"D3DSWATH",                 &DxbxXB2PC_NOP,                &X_D3DSWATH2String,             true},
 	/*xtD3DTA = */
-	{"D3DTA",                    &DxbxXB2PC_NOP,                &X_D3DTA2String}
+	{"D3DTA",                    &DxbxXB2PC_NOP,                &X_D3DTA2String},
 	/*xtD3DTEXTUREADDRESS=*/ // Used for TextureStageState X_D3DTSS_ADDRESSU, X_D3DTSS_ADDRESSV and X_D3DTSS_ADDRESSW
     {"D3DTEXTUREADDRESS",        &EmuXB2PC_D3DTEXTUREADDRESS,   &X_D3DTEXTUREADDRESS2String},
 	/*xtD3DTEXTUREFILTERTYPE=*/ // Used for TextureStageState X_D3DTSS_MAGFILTER, X_D3DTSS_MINFILTER and X_D3DTSS_MIPFILTER
