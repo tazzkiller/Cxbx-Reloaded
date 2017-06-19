@@ -8038,7 +8038,7 @@ void CxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
 }
 
 // Calls SetIndices with a separate index-buffer, that's populated with the supplied indices.
-void CxbxDrawIndexedClosingLine(XTL::INDEX16 FromIndex, XTL::INDEX16 ToIndex)
+void CxbxDrawIndexedClosingLine(XTL::INDEX16 LowIndex, XTL::INDEX16 HighIndex)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
@@ -8055,8 +8055,8 @@ void CxbxDrawIndexedClosingLine(XTL::INDEX16 FromIndex, XTL::INDEX16 ToIndex)
 	hRet = pClosingLineLoopIndexBuffer->Lock(0, uiIndexBufferSize, (BYTE **)(&pCxbxClosingLineLoopIndexBufferData), D3DLOCK_DISCARD);
 	DEBUG_D3DRESULT(hRet, "pClosingLineLoopIndexBuffer->Lock");
 
-	pCxbxClosingLineLoopIndexBufferData[0] = FromIndex;
-	pCxbxClosingLineLoopIndexBufferData[1] = ToIndex;
+	pCxbxClosingLineLoopIndexBufferData[0] = LowIndex;
+	pCxbxClosingLineLoopIndexBufferData[1] = HighIndex;
 
 	hRet = pClosingLineLoopIndexBuffer->Unlock();
 	DEBUG_D3DRESULT(hRet, "pClosingLineLoopIndexBuffer->Unlock");
@@ -8067,8 +8067,8 @@ void CxbxDrawIndexedClosingLine(XTL::INDEX16 FromIndex, XTL::INDEX16 ToIndex)
 	hRet = g_pD3DDevice8->DrawIndexedPrimitive
 	(
 		XTL::D3DPT_LINELIST,
-		0, // minIndex
-		2, // NumVertexIndices
+		LowIndex, // minIndex
+		HighIndex - LowIndex + 1, // NumVertexIndices
 		0, // startIndex
 		1 // primCount
 	);
@@ -8077,16 +8077,16 @@ void CxbxDrawIndexedClosingLine(XTL::INDEX16 FromIndex, XTL::INDEX16 ToIndex)
 	g_dwPrimPerFrame++;
 }
 
-void CxbxDrawIndexedClosingLineUP(XTL::INDEX16 FromIndex, XTL::INDEX16 ToIndex, void *pHostVertexStreamZeroData, UINT uiHostVertexStreamZeroStride)
+void CxbxDrawIndexedClosingLineUP(XTL::INDEX16 LowIndex, XTL::INDEX16 HighIndex, void *pHostVertexStreamZeroData, UINT uiHostVertexStreamZeroStride)
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-	XTL::INDEX16 CxbxClosingLineIndices[2] = { FromIndex, ToIndex };
+	XTL::INDEX16 CxbxClosingLineIndices[2] = { LowIndex, HighIndex };
 
 	HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP(
 		XTL::D3DPT_LINELIST,
-		0, // MinVertexIndex
-		2, // NumVertexIndices,
+		LowIndex, // MinVertexIndex
+		HighIndex - LowIndex + 1, // NumVertexIndices,
 		1, // PrimitiveCount,
 		CxbxClosingLineIndices, // pIndexData
 		XTL::D3DFMT_INDEX16, // IndexDataFormat
@@ -8111,7 +8111,6 @@ void XTL::CxbxDrawIndexed(CxbxDrawContext &DrawContext, INDEX16 *pIndexData)
 		return;
 
 	CxbxUpdateActiveIndexBuffer(pIndexData, DrawContext.dwVertexCount);
-
 	CxbxVertexBufferConverter VertexBufferConverter;
 	VertexBufferConverter.Apply(&DrawContext);
 	if (DrawContext.XboxPrimitiveType == X_D3DPT_QUADLIST) {
@@ -8155,12 +8154,18 @@ void XTL::CxbxDrawIndexed(CxbxDrawContext &DrawContext, INDEX16 *pIndexData)
 		if (DrawContext.XboxPrimitiveType == X_D3DPT_LINELOOP) {
 			// Close line-loops using a final single line, drawn from the end to the start vertex
 			LOG_TEST_CASE("X_D3DPT_LINELOOP");
-			INDEX16 FromIndex, ToIndex;
 			// Read the end and start index from the supplied index data
-			FromIndex = pIndexData[0];
-			ToIndex = pIndexData[DrawContext.dwHostPrimitiveCount];
+			INDEX16 LowIndex = pIndexData[0];
+			INDEX16 HighIndex = pIndexData[DrawContext.dwHostPrimitiveCount];
+			// If needed, swap so highest index is higher than lowest (duh)
+			if (HighIndex < LowIndex) {
+				HighIndex ^= LowIndex;
+				LowIndex ^= HighIndex;
+				HighIndex ^= LowIndex;
+			}
+
 			// Draw the closing line using a helper function (which will SetIndices)
-			CxbxDrawIndexedClosingLine(FromIndex, ToIndex);
+			CxbxDrawIndexedClosingLine(LowIndex, HighIndex);
 			// NOTE : We don't restore the previously active index buffer
 		}
 	}
@@ -8219,8 +8224,8 @@ void XTL::CxbxDrawPrimitiveUP(CxbxDrawContext &DrawContext)
 			// (This is simpler because we use just indices and don't need to copy the vertices.)
 			// Close line-loops using a final single line, drawn from the end to the start vertex :
 			CxbxDrawIndexedClosingLineUP(
-				(INDEX16)0, // FromIndex,
-				(INDEX16)DrawContext.dwHostPrimitiveCount, //  ToIndex
+				(INDEX16)0, // LowIndex
+				(INDEX16)DrawContext.dwHostPrimitiveCount, // HighIndex,
 				DrawContext.pHostVertexStreamZeroData,
 				DrawContext.uiHostVertexStreamZeroStride
 			);
@@ -8305,10 +8310,10 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 			if (DrawContext.XboxPrimitiveType == X_D3DPT_LINELOOP) {
 				// Close line-loops using a final single line, drawn from the end to the start vertex
 				LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Text-cases needed
-				INDEX16 FromIndex = (INDEX16)(DrawContext.dwStartVertex + DrawContext.dwHostPrimitiveCount);
-				INDEX16 ToIndex = (INDEX16)DrawContext.dwStartVertex;
+				INDEX16 LowIndex = (INDEX16)DrawContext.dwStartVertex;
+				INDEX16 HighIndex = (INDEX16)(DrawContext.dwStartVertex + DrawContext.dwHostPrimitiveCount);
 				// Draw the closing line using a helper function (which will SetIndices)
-				CxbxDrawIndexedClosingLine(FromIndex, ToIndex);
+				CxbxDrawIndexedClosingLine(LowIndex, HighIndex);
 				// NOTE : We don't restore the previously active index buffer
 			}
 		}
@@ -8442,9 +8447,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 	}
 
 	CxbxUpdateNativeD3DResources();
-	
 	// CxbxUpdateActiveIndexBuffer() not needed (all draw calls below use pIndexData)
-
     #ifdef _DEBUG_TRACK_VB
     if(!g_bVBSkipStream)
     #endif
@@ -8505,9 +8508,20 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 			if (DrawContext.XboxPrimitiveType == X_D3DPT_LINELOOP) {
 				// Close line-loops using a final single line, drawn from the end to the start vertex
 				LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Which titles reach this case?
+				// Read the end and start index from the supplied index data
+				INDEX16 LowIndex = ((INDEX16*)pIndexData)[0];
+				INDEX16 HighIndex = ((INDEX16*)pIndexData)[DrawContext.dwHostPrimitiveCount];
+				// If needed, swap so highest index is higher than lowest (duh)
+				if (HighIndex < LowIndex) {
+					HighIndex ^= LowIndex;
+					LowIndex ^= HighIndex;
+					HighIndex ^= LowIndex;
+				}
+
+				// Close line-loops using a final single line, drawn from the end to the start vertex :
 				CxbxDrawIndexedClosingLineUP(
-					((INDEX16*)pIndexData)[0], // FromIndex
-					((INDEX16*)pIndexData)[DrawContext.dwHostPrimitiveCount], // ToIndex
+					LowIndex,
+					HighIndex,
 					DrawContext.pHostVertexStreamZeroData,
 					DrawContext.uiHostVertexStreamZeroStride
 				);
