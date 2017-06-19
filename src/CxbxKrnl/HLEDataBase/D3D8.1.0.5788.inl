@@ -608,7 +608,7 @@ OOVPA_END;
 // ******************************************************************
 // * D3D::MakeRequestedSpace
 // ******************************************************************
-OOVPA_NO_XREF(MakeRequestedSpace, 5788, 28, // Also for 5849, 5933
+OOVPA_XREF(MakeRequestedSpace, 5788, 28, // Also for 5849, 5933
 
 	XREF_MakeRequestedSpace,
 	XRefZero)
