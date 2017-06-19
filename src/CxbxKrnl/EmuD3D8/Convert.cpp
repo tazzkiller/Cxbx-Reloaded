@@ -693,8 +693,8 @@ const TextureStageStateInfo DxbxTextureStageStateInfo[] = {
     // End of "deferred" texture states, continuing with the rest :
     {"X_D3DTSS_BUMPENVMAT00"          /*=22*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT00},
     {"X_D3DTSS_BUMPENVMAT01"          /*=23*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT01},
-    {"X_D3DTSS_BUMPENVMAT11"          /*=24*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT10},
-    {"X_D3DTSS_BUMPENVMAT10"          /*=25*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT11},
+    {"X_D3DTSS_BUMPENVMAT11"          /*=24*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT11},
+    {"X_D3DTSS_BUMPENVMAT10"          /*=25*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT10},
     {"X_D3DTSS_BUMPENVLSCALE"         /*=26*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVLSCALE},
     {"X_D3DTSS_BUMPENVLOFFSET"        /*=27*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVLOFFSET},
     {"X_D3DTSS_TEXCOORDINDEX"         /*=28*/, xtD3DTSS_TCI,                 (D3DSAMPLERSTATETYPE)D3DTSS_TEXCOORDINDEX},
