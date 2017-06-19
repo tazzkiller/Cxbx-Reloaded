@@ -111,6 +111,7 @@ ForwardTYPE2STRToString(X_D3DRESOURCETYPE)
 #define X_D3DSHADEMODE2String DxbxXBDefaultToString
 #define X_D3DSTENCILOP2String DxbxXBDefaultToString
 #define X_D3DSWATH2String DxbxXBDefaultToString
+#define X_D3DTA2String DxbxXBDefaultToString
 #define X_D3DTEXTUREADDRESS2String DxbxXBDefaultToString
 #define X_D3DTEXTURECOORDINDEX2String DxbxXBDefaultToString
 #define X_D3DTEXTUREOP2String DxbxXBDefaultToString
@@ -1704,6 +1705,7 @@ typedef enum _TXBType {
 	xtD3DSHADEMODE,
 	xtD3DSTENCILOP,
 	xtD3DSWATH,
+	xtD3DTA,
 	xtD3DTEXTUREADDRESS, // Used for TextureStageState X_D3DTSS_ADDRESSU, X_D3DTSS_ADDRESSV and X_D3DTSS_ADDRESSW
 	xtD3DTEXTUREFILTERTYPE, // Used for TextureStageState X_D3DTSS_MAGFILTER, X_D3DTSS_MINFILTER and X_D3DTSS_MIPFILTER
 	xtD3DTEXTUREOP, // Used for TextureStageState X_D3DTSS_COLOROP and X_D3DTSS_ALPHAOP
