@@ -8488,7 +8488,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 			g_dwPrimPerFrame += VertexCount / VERTICES_PER_QUAD * TRIANGLES_PER_QUAD;
 		}
 		else {
-			LOG_TEST_CASE("DrawIndexedPrimitiveUP"); // Test-case : Burnout
+			LOG_TEST_CASE("DrawIndexedPrimitiveUP"); // Test-case : Burnout, Namco Museum 50th Anniversary
 			HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP(
 				EmuXB2PC_D3DPrimitiveType(DrawContext.XboxPrimitiveType),
 				0,
