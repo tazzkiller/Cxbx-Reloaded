@@ -56,7 +56,7 @@ extern DWORD EmuRecompileVshDeclaration
     DWORD               **ppRecompiledDeclaration,
     DWORD                *pDeclarationSize,
     boolean               IsFixedFunction,
-    CxbxVertexDynamicPatch *pVertexDynamicPatch
+    CxbxVertexShaderDynamicPatch *pVertexDynamicPatch
 );
 
 // recompile xbox vertex shader function

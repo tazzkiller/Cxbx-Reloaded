@@ -57,11 +57,15 @@ typedef struct _CxbxDrawContext
 
 typedef struct _CxbxPatchedStream
 {
-	void                   *pXboxVertexData;
-    UINT                    uiOrigStride;
-    IDirect3DVertexBuffer8 *pHostVertexBuffer;
-    UINT                    uiNewStride;
-    bool                    bUsedCached;
+	void                   *pCachedXboxVertexData;
+    UINT                    uiCachedXboxVertexStride;
+    uint32                  uiCachedXboxVertexDataSize;
+    UINT                    uiCachedHostVertexStride;
+    bool                    bCacheIsStreamZeroDrawUP;
+    void                   *pCachedHostVertexStreamZeroData;
+	bool                    bCachedHostVertexStreamZeroDataIsAllocated;
+    IDirect3DVertexBuffer8 *pCachedHostVertexBuffer;
+    bool                    bCacheIsUsed;
 } CxbxPatchedStream;
 
 typedef struct _CxbxCachedStream
@@ -69,13 +73,9 @@ typedef struct _CxbxCachedStream
     uint32_t       uiHash;
     uint32         uiCheckFrequency;
     uint32         uiCheckCount;        // XXHash32::hash() check count
-    uint32         uiCacheHit;
+    uint32         uiCacheHitCount;
     long           lLastUsed;           // For cache removal purposes
-    bool           bIsUP;
     CxbxPatchedStream  Stream;
-    void          *pStreamUP;           // Draw..UP (instead of pOriginalStream)
-    uint32         uiLength;            // The length of the stream
-	CxbxDrawContext Copy;
 } CxbxCachedStream;
 
 class CxbxVertexBufferConverter
@@ -84,7 +84,7 @@ class CxbxVertexBufferConverter
         CxbxVertexBufferConverter();
        ~CxbxVertexBufferConverter();
 
-        bool Apply(CxbxDrawContext *pDrawContext);
+        void Apply(CxbxDrawContext *pDrawContext);
         void Restore();
 
         // Dumps the cache to the console
@@ -93,18 +93,12 @@ class CxbxVertexBufferConverter
     private:
 
         UINT m_uiNbrStreams;
-        CxbxPatchedStream m_pStreams[MAX_NBR_STREAMS];
+        CxbxPatchedStream m_PatchedStreams[MAX_NBR_STREAMS];
 
-        PVOID m_pNewVertexStreamZeroData;
-
-        bool m_bPatched;
-        bool m_bAllocatedStreamZeroData;
-
-        CxbxVertexDynamicPatch *m_pDynamicPatch;
+        CxbxVertexShaderDynamicPatch *m_pVertexShaderDynamicPatch;
 
         // Caches a patched stream
-        void CacheStream(CxbxDrawContext *pDrawContext,
-                         UINT             uiStream);
+        void CacheStream(CxbxPatchedStream *pPatchedStream);
 
         // Frees a cached, patched stream
         void FreeCachedStream(void *pStream);
@@ -115,7 +109,7 @@ class CxbxVertexBufferConverter
 							   bool			   *pbFatalError);
 
         // Convert the contents of the stream
-        void ConvertStream(CxbxDrawContext *pDrawContext, UINT uiStream);
+        bool ConvertStream(CxbxDrawContext *pDrawContext, UINT uiStream);
 };
 
 // inline vertex buffer emulation

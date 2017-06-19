@@ -1499,7 +1499,7 @@ typedef struct _CxbxVertexDynamicPatch
 	UINT                         NbrStreams; // The number of streams the vertex shader uses
 	CxbxStreamDynamicPatch      *pStreamPatches;
 }
-CxbxVertexDynamicPatch;
+CxbxVertexShaderDynamicPatch;
 
 typedef struct _CxbxVertexShader
 {
@@ -1516,7 +1516,7 @@ typedef struct _CxbxVertexShader
 	DWORD                 Status;
 
 	// Needed for dynamic stream patching
-	CxbxVertexDynamicPatch  VertexDynamicPatch;
+	CxbxVertexShaderDynamicPatch  VertexShaderDynamicPatch;
 }
 CxbxVertexShader;
 

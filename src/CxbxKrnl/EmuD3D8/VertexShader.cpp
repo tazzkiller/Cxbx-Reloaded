@@ -2078,7 +2078,7 @@ DWORD XTL::EmuRecompileVshDeclaration
     DWORD               **ppRecompiledDeclaration,
     DWORD                *pDeclarationSize,
     boolean               IsFixedFunction,
-    CxbxVertexDynamicPatch *pVertexDynamicPatch
+    CxbxVertexShaderDynamicPatch *pVertexDynamicPatch
 )
 {
     // First of all some info:
@@ -2243,17 +2243,17 @@ extern HRESULT XTL::EmuRecompileVshFunction
 
 extern void XTL::FreeVertexDynamicPatch(CxbxVertexShader *pVertexShader)
 {
-    for (DWORD i = 0; i < pVertexShader->VertexDynamicPatch.NbrStreams; i++)
+    for (DWORD i = 0; i < pVertexShader->VertexShaderDynamicPatch.NbrStreams; i++)
     {
-        free(pVertexShader->VertexDynamicPatch.pStreamPatches[i].pTypes);
-		pVertexShader->VertexDynamicPatch.pStreamPatches[i].pTypes = nullptr;
-		free(pVertexShader->VertexDynamicPatch.pStreamPatches[i].pSizes);
-		pVertexShader->VertexDynamicPatch.pStreamPatches[i].pSizes = nullptr;
+        free(pVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].pTypes);
+		pVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].pTypes = nullptr;
+		free(pVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].pSizes);
+		pVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].pSizes = nullptr;
     }
 
-    free(pVertexShader->VertexDynamicPatch.pStreamPatches);
-    pVertexShader->VertexDynamicPatch.pStreamPatches = NULL;
-    pVertexShader->VertexDynamicPatch.NbrStreams = 0;
+    free(pVertexShader->VertexShaderDynamicPatch.pStreamPatches);
+    pVertexShader->VertexShaderDynamicPatch.pStreamPatches = NULL;
+    pVertexShader->VertexShaderDynamicPatch.NbrStreams = 0;
 }
 
 extern boolean XTL::IsValidCurrentShader(void)
@@ -2277,9 +2277,9 @@ boolean XTL::VshHandleIsValidShader(DWORD Handle)
             return FALSE;
         }
         /*
-        for (uint32 i = 0; i < pVertexShader->VertexDynamicPatch.NbrStreams; i++)
+        for (uint32 i = 0; i < pVertexShader->VertexShaderDynamicPatch.NbrStreams; i++)
         {
-            if (pVertexShader->VertexDynamicPatch.pStreamPatches[i].NeedPatch)
+            if (pVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].NeedPatch)
             {
                 // Just for caching purposes
                 pVertexShader->Status = 0x80000001;
