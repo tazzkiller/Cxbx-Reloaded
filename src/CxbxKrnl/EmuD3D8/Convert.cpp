@@ -381,6 +381,8 @@ const XBTypeInfo DxbxXBTypeInfo[] = {
     {"D3DTEXTUREOP",             &EmuXB2PC_D3DTEXTUREOP,        &X_D3DTEXTUREOP2String},
 	/*xtD3DTEXTURESTAGESTATETYPE = */
     {"D3DTEXTURESTAGESTATETYPE", &EmuXB2PC_D3DTSS,              &X_D3DTEXTURESTAGESTATETYPE2String},
+	/*xtD3DTEXTURETRANSFORMFLAGS = */
+	{"D3DTEXTURETRANSFORMFLAGS", &DxbxXB2PC_NOP,                &X_D3DTEXTURETRANSFORMFLAGS2String},
 	/*xtD3DTRANSFORMSTATETYPE = */
     {"D3DTRANSFORMSTATETYPE",    &EmuXB2PC_D3DTS,               &X_D3DTRANSFORMSTATETYPE2String},
 	/*xtD3DTSS_TCI = */
@@ -664,7 +666,6 @@ Direct3D9 states unused :
 #define xtD3DTEXTURECOLORKEYOP xt_Unknown
 #define xtD3DTSIGN xt_Unknown
 #define xtD3DTEXTUREALPHAKILL xt_Unknown
-#define xtD3DTEXTURETRANSFORMFLAGS xt_Unknown
 
 const TextureStageStateInfo DxbxTextureStageStateInfo[] = {
 //:array[X_D3DTSS_FIRST..X_D3DTSS_UNSUPPORTED] of TextureStageStateInfo = (
