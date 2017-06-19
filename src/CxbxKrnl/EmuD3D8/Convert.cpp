@@ -319,12 +319,12 @@ UINT EmuD3DVertexToPrimitive[X_D3DPT_POLYGON + 1][2] =
 // Table of Xbox-to-PC and Value-to-String converters for all registered types :
 const XBTypeInfo DxbxXBTypeInfo[] = {
 	/*xt_Unknown=*/
-    {"Unknown",                  &DxbxXB2PC_NOP},
+    {"Unknown",                  &EmuXB2PC_Copy},
 
     /*xtBOOL=*/
-	{"BOOL",                     &DxbxXB2PC_NOP,                &BOOL2String},                  // Xbox = PC
+	{"BOOL",                     &EmuXB2PC_Copy,                &BOOL2String},                  // Xbox = PC
 	/*xtBYTE=*/
-	{"BYTE",                     &DxbxXB2PC_NOP},                                               // Xbox = PC
+	{"BYTE",                     &EmuXB2PC_Copy},                                               // Xbox = PC
 	/*xtD3DBLEND=*/
     {"D3DBLEND",                 &EmuXB2PC_D3DBLEND,            &X_D3DBLEND2String},
 	/*xtD3DBLENDOP=*/
@@ -334,45 +334,45 @@ const XBTypeInfo DxbxXBTypeInfo[] = {
 	/*xtD3DCMPFUNC=*/
     {"D3DCMPFUNC",               &EmuXB2PC_D3DCMPFUNC,          &X_D3DCMPFUNC2String},
 	/*xtD3DCOLOR=*/
-    {"D3DCOLOR",                 &DxbxXB2PC_NOP},                                               // Xbox = PC
+    {"D3DCOLOR",                 &EmuXB2PC_Copy},                                               // Xbox = PC
 	/*xtD3DCOLORWRITEENABLE=*/
     {"D3DCOLORWRITEENABLE",      &EmuXB2PC_D3DCOLORWRITEENABLE, &X_D3DCOLORWRITEENABLE2String},
 	/*xtD3DCUBEMAP_FACES=*/
-    {"D3DCUBEMAP_FACES",         &DxbxXB2PC_NOP,                &X_D3DCUBEMAP_FACES2String},
+    {"D3DCUBEMAP_FACES",         &EmuXB2PC_Copy,                &X_D3DCUBEMAP_FACES2String},
 	/*xtD3DCULL=*/
     {"D3DCULL",                  &EmuXB2PC_D3DCULL,             &X_D3DCULL2String},
 	/*xtD3DDCC=*/
-    {"D3DDCC",                   &DxbxXB2PC_NOP,                &X_D3DDCC2String,               true},
+    {"D3DDCC",                   &EmuXB2PC_Copy,                &X_D3DDCC2String,               true},
     /*xtD3DFILLMODE=*/
 	{"D3DFILLMODE",              &EmuXB2PC_D3DFILLMODE,         &X_D3DFILLMODE2String},
     /*xtD3DFOGMODE=*/
-	{"D3DFOGMODE",               &DxbxXB2PC_NOP,                &X_D3DFOGMODE2String},          // Xbox = PC
+	{"D3DFOGMODE",               &EmuXB2PC_Copy,                &X_D3DFOGMODE2String},          // Xbox = PC
 	/*xtD3DFORMAT=*/
     {"D3DFORMAT",                &EmuXB2PC_D3DFormat,           &X_D3DFORMAT2String},
 	/*xtD3DFRONT=*/
-    {"D3DFRONT",                 &DxbxXB2PC_NOP,                &X_D3DFRONT2String,             true},
+    {"D3DFRONT",                 &EmuXB2PC_Copy,                &X_D3DFRONT2String,             true},
 	/*xtD3DLOGICOP=*/
-    {"D3DLOGICOP",               &DxbxXB2PC_NOP,                &X_D3DLOGICOP2String,           true},
+    {"D3DLOGICOP",               &EmuXB2PC_Copy,                &X_D3DLOGICOP2String,           true},
 	/*xtD3DMCS=*/
-    {"D3DMCS",                   &DxbxXB2PC_NOP,                &X_D3DMCS2String},              // Xbox = PC
+    {"D3DMCS",                   &EmuXB2PC_Copy,                &X_D3DMCS2String},              // Xbox = PC
 	/*xtD3DMULTISAMPLE_TYPE=*/
     {"D3DMULTISAMPLE_TYPE",      &EmuXB2PC_D3DMULTISAMPLE_TYPE, &X_D3DMULTISAMPLE_TYPE2String},
 	/*xtD3DMULTISAMPLEMODE=*/
-    {"D3DMULTISAMPLEMODE",       &DxbxXB2PC_NOP,                &X_D3DMULTISAMPLEMODE2String,   true},
+    {"D3DMULTISAMPLEMODE",       &EmuXB2PC_Copy,                &X_D3DMULTISAMPLEMODE2String,   true},
 	/*xtD3DPRIMITIVETYPE=*/
     {"D3DPRIMITIVETYPE",         &EmuXB2PC_D3DPrimitiveType,    &X_D3DPRIMITIVETYPE2String},
 	/*xtD3DRESOURCETYPE=*/
-    {"D3DRESOURCETYPE",          &DxbxXB2PC_NOP,                &X_D3DRESOURCETYPE2String},
+    {"D3DRESOURCETYPE",          &EmuXB2PC_Copy,                &X_D3DRESOURCETYPE2String},
 	/*xtD3DSAMPLEALPHA=*/
-    {"D3DSAMPLEALPHA",           &DxbxXB2PC_NOP,                &X_D3DSAMPLEALPHA2String,       true},
+    {"D3DSAMPLEALPHA",           &EmuXB2PC_Copy,                &X_D3DSAMPLEALPHA2String,       true},
 	/*xtD3DSHADEMODE=*/
     {"D3DSHADEMODE",             &EmuXB2PC_D3DSHADEMODE,        &X_D3DSHADEMODE2String},
 	/*xtD3DSTENCILOP=*/
     {"D3DSTENCILOP",             &EmuXB2PC_D3DSTENCILOP,        &X_D3DSTENCILOP2String},
 	/*xtD3DSWATH=*/
-    {"D3DSWATH",                 &DxbxXB2PC_NOP,                &X_D3DSWATH2String,             true},
+    {"D3DSWATH",                 &EmuXB2PC_Copy,                &X_D3DSWATH2String,             true},
 	/*xtD3DTA = */
-	{"D3DTA",                    &DxbxXB2PC_NOP,                &X_D3DTA2String},
+	{"D3DTA",                    &EmuXB2PC_Copy,                &X_D3DTA2String},
 	/*xtD3DTEXTUREADDRESS=*/ // Used for TextureStageState X_D3DTSS_ADDRESSU, X_D3DTSS_ADDRESSV and X_D3DTSS_ADDRESSW
     {"D3DTEXTUREADDRESS",        &EmuXB2PC_D3DTEXTUREADDRESS,   &X_D3DTEXTUREADDRESS2String},
 	/*xtD3DTEXTUREFILTERTYPE=*/ // Used for TextureStageState X_D3DTSS_MAGFILTER, X_D3DTSS_MINFILTER and X_D3DTSS_MIPFILTER
@@ -382,7 +382,7 @@ const XBTypeInfo DxbxXBTypeInfo[] = {
 	/*xtD3DTEXTURESTAGESTATETYPE = */
     {"D3DTEXTURESTAGESTATETYPE", &EmuXB2PC_D3DTSS,              &X_D3DTEXTURESTAGESTATETYPE2String},
 	/*xtD3DTEXTURETRANSFORMFLAGS = */
-	{"D3DTEXTURETRANSFORMFLAGS", &DxbxXB2PC_NOP,                &X_D3DTEXTURETRANSFORMFLAGS2String},
+	{"D3DTEXTURETRANSFORMFLAGS", &EmuXB2PC_Copy,                &X_D3DTEXTURETRANSFORMFLAGS2String},
 	/*xtD3DTRANSFORMSTATETYPE = */
     {"D3DTRANSFORMSTATETYPE",    &EmuXB2PC_D3DTS,               &X_D3DTRANSFORMSTATETYPE2String},
 	/*xtD3DTSS_TCI = */
@@ -390,15 +390,15 @@ const XBTypeInfo DxbxXBTypeInfo[] = {
 	/*xtD3DVERTEXBLENDFLAGS = */
     {"D3DVERTEXBLENDFLAGS",      &EmuXB2PC_D3DVERTEXBLENDFLAGS, &X_D3DVERTEXBLENDFLAGS2String},
 	/*xtD3DVSDE = */
-    {"D3DVSDE",                  &DxbxXB2PC_NOP,                &X_D3DVSDE2String},
+    {"D3DVSDE",                  &EmuXB2PC_Copy,                &X_D3DVSDE2String},
 	/*xtD3DWRAP = */
     {"D3DWRAP",                  &EmuXB2PC_D3DWRAP,             &X_D3DWRAP2String},
 	/*xtDWORD = */
-    {"DWORD",                    &DxbxXB2PC_NOP},                                               // Xbox = PC
+    {"DWORD",                    &EmuXB2PC_Copy},                                               // Xbox = PC
 	/*xtFloat = */
-    {"Float",                    &DxbxXB2PC_NOP,                &DWFloat2String},               // Xbox = PC
+    {"Float",                    &EmuXB2PC_Copy,                &DWFloat2String},               // Xbox = PC
 	/*xtLONG = */
-    {"LONG",                     &DxbxXB2PC_NOP},                                               // Xbox = PC
+    {"LONG",                     &EmuXB2PC_Copy},                                               // Xbox = PC
 };
 
 #define D3DRS_NONE ((D3DRENDERSTATETYPE)0) // Marks unsupported renderstate on host 
@@ -765,7 +765,7 @@ std::string DWFloat2String(DWORD Value)
 	return std::to_string(*((FLOAT*)&Value)); // TODO : Speed this up by avoiding Single>Extended cast & generic render code.
 }
 
-DWORD DxbxXB2PC_NOP(DWORD Value)
+DWORD EmuXB2PC_Copy(DWORD Value)
 {
 	return Value;
 }

@@ -129,7 +129,7 @@ extern std::string DWFloat2String(DWORD Value);
 
 //// Xbox-to-host conversion functions
 
-extern DWORD DxbxXB2PC_NOP(DWORD Value);
+extern DWORD EmuXB2PC_Copy(DWORD Value);
 
 // convert from pc to xbox color formats
 extern X_D3DFORMAT EmuPC2XB_D3DFormat(D3DFORMAT Format);
