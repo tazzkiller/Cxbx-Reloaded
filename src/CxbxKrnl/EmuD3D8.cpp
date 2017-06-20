@@ -1684,8 +1684,6 @@ VOID XTL::EmuD3DInit()
 
 	// create Direct3D8 and retrieve caps
     {
-        using namespace XTL;
-
         // xbox Direct3DCreate8 returns "1" always, so we need our own ptr
         g_pD3D8 = Direct3DCreate8(D3D_SDK_VERSION);
 
@@ -2231,10 +2229,11 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 			if (g_EmuCDPD.bCreate) {
 				// only one device should be created at once
 				// TODO: ensure all surfaces are somehow cleaned up?
-				if (g_pD3DDevice8 != nullptr)
-				{
-					DbgPrintf("EmuD3D8: CreateDevice proxy thread releasing old Device.\n");
-
+				if (g_pD3DDevice8 == nullptr) {
+					DbgPrintf("EmuD3D8: CreateDevice proxy thread creating new Device.\n");
+				}
+				else{
+					DbgPrintf("EmuD3D8: CreateDevice proxy thread re-creating Device (releasing old first).\n");
 					g_pD3DDevice8->EndScene();
 
 					// Address DirectX Debug Runtime reported error in _DEBUG builds
@@ -2262,7 +2261,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					// g_EmuCDPD.CreationParameters.BehaviorFlags := ?;
 
 					// Make sure we're working with an empty structure
-					g_EmuCDPD.NativePresentationParameters = { 0 };
+					g_EmuCDPD.NativePresentationParameters = {};
 
 					// retrieve resolution from configuration
 					g_EmuCDPD.NativePresentationParameters.BackBufferWidth = g_EmuCDPD.pPresentationParameters->BackBufferWidth;
@@ -2617,41 +2616,37 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
             }
             else { // !bCreate
                 // release direct3d
-                if(g_pD3DDevice8 != nullptr)
-                {
-                    DbgPrintf("EmuD3D8: CreateDevice proxy thread releasing old Device.\n");
-
+				if (g_pD3DDevice8 == nullptr) {
+					DbgPrintf("EmuD3D8: CreateDevice proxy thread release without Device.\n");
+				}
+				else {
+					DbgPrintf("EmuD3D8: CreateDevice proxy thread releasing old Device.\n");
                     g_pD3DDevice8->EndScene();
-
                     g_EmuCDPD.hRet = g_pD3DDevice8->Release();
                     if(g_EmuCDPD.hRet == 0)
                         g_pD3DDevice8 = nullptr;
                 }
 
 				// cleanup overlay clipper
-				if (g_pDDClipper != nullptr)
-				{
+				if (g_pDDClipper != nullptr) {
 					g_pDDClipper->Release();
 					g_pDDClipper = nullptr;
 				}
 
 				// cleanup overlay surface
-				if (g_pDDSOverlay7 != nullptr)
-				{
+				if (g_pDDSOverlay7 != nullptr) {
 					g_pDDSOverlay7->Release();
 					g_pDDSOverlay7 = nullptr;
 				}
 
 				// cleanup directdraw surface
-                if(g_pDDSPrimary7 != nullptr)
-                {
+                if (g_pDDSPrimary7 != nullptr) {
                     g_pDDSPrimary7->Release();
                     g_pDDSPrimary7 = nullptr;
                 }
 
                 // cleanup directdraw
-                if(g_pDD7 != nullptr)
-                {
+                if (g_pDD7 != nullptr) {
                     g_pDD7->Release();
                     g_pDD7 = nullptr;
                 }
@@ -2843,7 +2838,7 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 		LOG_FUNC_ARG(Adapter)
 		LOG_FUNC_ARG(DeviceType)
 		LOG_FUNC_ARG(hFocusWindow)
-		LOG_FUNC_ARG(BehaviorFlags)
+		LOG_FUNC_ARG(BehaviorFlags) // Xbox BehaviorFlags are ignored
 		LOG_FUNC_ARG(pPresentationParameters)
 		LOG_FUNC_ARG(ppReturnedDeviceInterface)
 		LOG_FUNC_END;
