@@ -633,13 +633,13 @@ inline bool IsYuvSurface(const XTL::X_D3DResource *pXboxResource)
 
 inline bool IsXboxResourceLocked(const XTL::X_D3DResource *pXboxResource)
 {
-	bool result = (pXboxResource->Common & X_D3DCOMMON_ISLOCKED) > 0;
+	bool result = !!(pXboxResource->Common & X_D3DCOMMON_ISLOCKED);
 	return result;
 }
 
 inline bool IsXboxResourceD3DCreated(const XTL::X_D3DResource *pXboxResource)
 {
-	bool result = (pXboxResource->Common & X_D3DCOMMON_D3DCREATED) > 0;
+	bool result = !!(pXboxResource->Common & X_D3DCOMMON_D3DCREATED);
 	return result;
 }
 
@@ -2235,7 +2235,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_CheckDeviceFormat)
 		LOG_FUNC_ARG(Adapter)
 		LOG_FUNC_ARG(DeviceType)
 		LOG_FUNC_ARG(AdapterFormat)
-		LOG_FUNC_ARG(Usage)
+		LOG_FUNC_ARG_TYPE(X_D3DUSAGE, Usage)
 		LOG_FUNC_ARG(RType)
 		LOG_FUNC_ARG(CheckFormat)
 		LOG_FUNC_END;
@@ -3160,7 +3160,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
 		LOG_FUNC_ARG(pDeclaration)
 		LOG_FUNC_ARG(pFunction)
 		LOG_FUNC_ARG(pHandle)
-		LOG_FUNC_ARG(Usage)
+		LOG_FUNC_ARG_TYPE(X_D3DUSAGE, Usage)
 		LOG_FUNC_END;
 
     // create emulated shader struct
@@ -3737,7 +3737,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture)
 		LOG_FUNC_ARG(Width)
 		LOG_FUNC_ARG(Height)
 		LOG_FUNC_ARG(Levels)
-		LOG_FUNC_ARG(Usage)
+		LOG_FUNC_ARG_TYPE(X_D3DUSAGE, Usage)
 		LOG_FUNC_ARG(Format)
 		LOG_FUNC_ARG(Pool)
 		LOG_FUNC_ARG(ppTexture)
@@ -3894,7 +3894,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVolumeTexture)
 		LOG_FUNC_ARG(Height)
 		LOG_FUNC_ARG(Depth)
 		LOG_FUNC_ARG(Levels)
-		LOG_FUNC_ARG(Usage)
+		LOG_FUNC_ARG_TYPE(X_D3DUSAGE, Usage)
 		LOG_FUNC_ARG(Format)
 		LOG_FUNC_ARG(Pool)
 		LOG_FUNC_ARG(ppVolumeTexture)
@@ -3984,7 +3984,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateCubeTexture)
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(EdgeLength)
 		LOG_FUNC_ARG(Levels)
-		LOG_FUNC_ARG(Usage)
+		LOG_FUNC_ARG_TYPE(X_D3DUSAGE, Usage)
 		LOG_FUNC_ARG(Format)
 		LOG_FUNC_ARG(Pool)
 		LOG_FUNC_ARG(ppCubeTexture)
@@ -4052,7 +4052,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer)
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Length)
-		LOG_FUNC_ARG(Usage)
+		LOG_FUNC_ARG_TYPE(X_D3DUSAGE, Usage)
 		LOG_FUNC_ARG(Format)
 		LOG_FUNC_ARG(Pool)
 		LOG_FUNC_ARG(ppIndexBuffer)
