@@ -2535,48 +2535,61 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				// Xbox-land - it would be (much) better if we could run Xbox CreateDevice unpatched!
 				{
 					// Init backbuffer
-					g_pInitialXboxBackBuffer = EmuNewD3DSurface();
-
 					hRet = g_pD3DDevice8->GetBackBuffer(0, XTL::D3DBACKBUFFER_TYPE_MONO, &g_pInitialHostBackBuffer);
 					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
 
-					ConvertHostSurfaceHeaderToXbox(g_pInitialHostBackBuffer, g_pInitialXboxBackBuffer);
+					if (SUCCEEDED(hRet)) {
+						g_pInitialXboxBackBuffer = EmuNewD3DSurface();
+						if (g_pInitialHostBackBuffer != nullptr) {
+							ConvertHostSurfaceHeaderToXbox(g_pInitialHostBackBuffer, g_pInitialXboxBackBuffer);
 
-					SetHostSurface(g_pInitialXboxBackBuffer, g_pInitialHostBackBuffer);
+							SetHostSurface(g_pInitialXboxBackBuffer, g_pInitialHostBackBuffer);
+							g_pInitialHostBackBuffer->Release();
+						}
+					}
+
 					g_pActiveXboxBackBuffer = g_pInitialXboxBackBuffer;
 
 					// update render target cache
-					g_pInitialXboxRenderTarget = EmuNewD3DSurface();
-
 					hRet = g_pD3DDevice8->GetRenderTarget(&g_pInitialHostRenderTarget);
 					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
 
-					ConvertHostSurfaceHeaderToXbox(g_pInitialHostRenderTarget, g_pInitialXboxRenderTarget);
+					if (SUCCEEDED(hRet)) {
+						g_pInitialXboxRenderTarget = EmuNewD3DSurface();
+						if (g_pInitialHostRenderTarget != nullptr) {
+							ConvertHostSurfaceHeaderToXbox(g_pInitialHostRenderTarget, g_pInitialXboxRenderTarget);
 
-					XTL::D3DLOCKED_RECT LockedRect;
-					g_pInitialHostRenderTarget->LockRect(&LockedRect, nullptr, 0);
-					g_pInitialXboxRenderTarget->Data = (DWORD)LockedRect.pBits;// Was CXBX_D3DRESOURCE_DATA_RENDER_TARGET;
+							XTL::D3DLOCKED_RECT LockedRect;
+							g_pInitialHostRenderTarget->LockRect(&LockedRect, nullptr, 0);
+							g_pInitialXboxRenderTarget->Data = (DWORD)LockedRect.pBits;// Was CXBX_D3DRESOURCE_DATA_RENDER_TARGET;
 
-					SetHostSurface(g_pInitialXboxRenderTarget, g_pInitialHostRenderTarget);
+							SetHostSurface(g_pInitialXboxRenderTarget, g_pInitialHostRenderTarget);
+							g_pInitialHostRenderTarget->Release();
+						}
+					}
+
 					g_pActiveXboxRenderTarget = g_pInitialXboxRenderTarget;
 
 					// update z-stencil surface cache
-					g_pInitialXboxDepthStencil = EmuNewD3DSurface();
 					hRet = g_pD3DDevice8->GetDepthStencilSurface(&g_pInitialHostDepthStencil);
 					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetDepthStencilSurface");
 
-					if (SUCCEEDED(hRet))
-					{
-						ConvertHostSurfaceHeaderToXbox(g_pInitialHostDepthStencil, g_pInitialXboxDepthStencil);
+					if (SUCCEEDED(hRet)) {
+						g_pInitialXboxDepthStencil = EmuNewD3DSurface();
+						if (g_pInitialXboxDepthStencil != nullptr) {
+							ConvertHostSurfaceHeaderToXbox(g_pInitialHostDepthStencil, g_pInitialXboxDepthStencil);
 
-						XTL::D3DLOCKED_RECT LockedRect;
-						g_pInitialHostDepthStencil->LockRect(&LockedRect, nullptr, 0);
-						g_pInitialXboxDepthStencil->Data = (DWORD)LockedRect.pBits; // Was CXBX_D3DRESOURCE_DATA_DEPTH_STENCIL;
+							XTL::D3DLOCKED_RECT LockedRect;
+							g_pInitialHostDepthStencil->LockRect(&LockedRect, nullptr, 0);
+							g_pInitialXboxDepthStencil->Data = (DWORD)LockedRect.pBits; // Was CXBX_D3DRESOURCE_DATA_DEPTH_STENCIL;
 
-						SetHostSurface(g_pInitialXboxDepthStencil, g_pInitialHostDepthStencil);
+							SetHostSurface(g_pInitialXboxDepthStencil, g_pInitialHostDepthStencil);
+							g_pInitialHostDepthStencil->Release();
+						}
 					}
 
 					g_pActiveXboxDepthStencil = g_pInitialXboxDepthStencil;
+
 					UpdateDepthStencilFlags(g_pActiveXboxDepthStencil);
 				}
 
