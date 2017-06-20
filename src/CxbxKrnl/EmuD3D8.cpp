@@ -8127,13 +8127,24 @@ void XTL::CxbxDrawIndexed(CxbxDrawContext &DrawContext, INDEX16 *pIndexData)
 		// Test-cases : XDK samples reaching this case are : DisplacementMap, Ripple
 		// Test-case : XDK Samples (Billboard, BumpLens, DebugKeyboard, Gamepad, Lensflare, PerfTest?VolumeLight, PointSprites, Tiling, VolumeFog, VolumeSprites, etc)
 		while (iNumVertices >= VERTICES_PER_QUAD) {
+			// Determine highest and lowest index in use :
+			INDEX16 LowIndex = pIndexData[uiStartIndex];
+			INDEX16 HighIndex = LowIndex;
+			for (int i = 1; i < VERTICES_PER_QUAD; i++) {
+				INDEX16 Index = pIndexData[i];
+				if (LowIndex > Index)
+					LowIndex = Index;
+				if (HighIndex < Index)
+					HighIndex = Index;
+			}
+			// Emulate a quad by drawing each as a fan of 2 triangles
 			HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitive(
-				D3DPT_TRIANGLEFAN, // Draw a triangle-fan instead of a quad
+				D3DPT_TRIANGLEFAN,
 //{ $IFDEF DXBX_USE_D3D9 } {BaseVertexIndex = }0, { $ENDIF }
-				/* MinVertexIndex = */0,
-				/* NumVertices = */VERTICES_PER_QUAD, // Use all 4 vertices of 1 quad
+				LowIndex, // minIndex
+				HighIndex - LowIndex + 1, // NumVertices
 				uiStartIndex,
-				/* primCount = */TRIANGLES_PER_QUAD // Draw 2 triangles with that
+				TRIANGLES_PER_QUAD // primCount = Draw 2 triangles
 			);
 			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitive(X_D3DPT_QUADLIST)");
 
@@ -8193,12 +8204,11 @@ void XTL::CxbxDrawPrimitiveUP(CxbxDrawContext &DrawContext)
 		// Draw quadlists using a single 'quad-to-triangle mapping' index buffer :
 		INDEX16 *pIndexData = CxbxAssureQuadListIndexBuffer(DrawContext.dwVertexCount);
 		// Convert quad vertex-count to triangle vertex count :
-		UINT NumVertexIndices = QuadToTriangleVertexCount(DrawContext.dwVertexCount);
 		UINT PrimitiveCount = DrawContext.dwHostPrimitiveCount * TRIANGLES_PER_QUAD;
 		HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP(
 			D3DPT_TRIANGLELIST, // Draw indexed triangles instead of quads
 			0, // MinVertexIndex
-			NumVertexIndices,
+			DrawContext.dwVertexCount, // NumVertexIndices
 			PrimitiveCount,
 			pIndexData,
 			D3DFMT_INDEX16,
@@ -8284,17 +8294,20 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 			// Assure & activate that special index buffer :
 			CxbxAssureQuadListD3DIndexBuffer(/*NrOfQuadVertices=*/DrawContext.dwVertexCount);
 			// Convert quad vertex-count & start to triangle vertex count & start :
-			UINT NumVertices = QuadToTriangleVertexCount(DrawContext.dwVertexCount);
-			UINT startVertex = QuadToTriangleVertexCount(DrawContext.dwStartVertex);
+			UINT startIndex = QuadToTriangleVertexCount(DrawContext.dwStartVertex);
 			UINT primCount = DrawContext.dwHostPrimitiveCount * TRIANGLES_PER_QUAD;
+			// Determine highest and lowest index in use :
+			INDEX16 LowIndex = pQuadToTriangleIndexBuffer[startIndex];
+			INDEX16 HighIndex = LowIndex + DrawContext.dwVertexCount - 1;
+			// Emulate a quad by drawing each as a fan of 2 triangles
 			HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitive(
 				D3DPT_TRIANGLELIST, // Draw indexed triangles instead of quads
 #ifdef DXBX_USE_D3D9 
 				0, // BaseVertexIndex
 #endif
-				0, // minIndex
-				NumVertices,
-				startVertex,
+				LowIndex, // minIndex
+				HighIndex - LowIndex + 1, // NumVertices,
+				startIndex,
 				primCount
 			);
 			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DrawIndexedPrimitive(X_D3DPT_QUADLIST)");
@@ -8475,11 +8488,22 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 			INDEX16* pWalkIndexData = (INDEX16*)pIndexData;
 			int iNumVertices = (int)VertexCount;
 			while (iNumVertices >= VERTICES_PER_QUAD) {
+				// Determine highest and lowest index in use :
+				INDEX16 LowIndex = pWalkIndexData[0];
+				INDEX16 HighIndex = LowIndex;
+				for (int i = 1; i < VERTICES_PER_QUAD; i++) {
+					INDEX16 Index = pWalkIndexData[i];
+					if (LowIndex > Index)
+						LowIndex = Index;
+					if (HighIndex < Index)
+						HighIndex = Index;
+				}
+				// Emulate a quad by drawing each as a fan of 2 triangles
 				HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP(
 					D3DPT_TRIANGLEFAN, // Draw a triangle-fan instead of a quad
-					0,
-					/* NumVertices = */VERTICES_PER_QUAD, // Use all 4 vertices of 1 quad
-					/* primCount = */TRIANGLES_PER_QUAD, // Draw 2 triangles with that
+					LowIndex, // MinVertexIndex
+					HighIndex - LowIndex + 1, // NumVertexIndices
+					TRIANGLES_PER_QUAD, // primCount = Draw 2 triangles
 					pWalkIndexData,
 					D3DFMT_INDEX16,
 					DrawContext.pHostVertexStreamZeroData,
@@ -8497,8 +8521,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 			LOG_TEST_CASE("DrawIndexedPrimitiveUP"); // Test-case : Burnout, Namco Museum 50th Anniversary
 			HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitiveUP(
 				EmuXB2PC_D3DPrimitiveType(DrawContext.XboxPrimitiveType),
-				0,
-				DrawContext.dwVertexCount,
+				0, // MinVertexIndex
+				DrawContext.dwVertexCount, // NumVertexIndices
 				DrawContext.dwHostPrimitiveCount,
 				pIndexData,
 				D3DFMT_INDEX16,
