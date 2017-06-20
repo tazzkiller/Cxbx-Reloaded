@@ -289,7 +289,7 @@ void DbgConsole::ParseCommand()
     }
     else if(_stricmp(szCmd, "dsc") == 0 || _stricmp(szCmd, "DumpStreamCache") == 0)
     {
-        XTL::VertexPatcher::DumpCache();
+        XTL::CxbxVertexBufferConverter::DumpCache();
     }
     #endif
     #ifdef _DEBUG_TRACK_PB

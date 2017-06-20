@@ -301,7 +301,7 @@ namespace XTL
 {
 
 // lookup table for converting vertex count to primitive count
-UINT EmuD3DVertexToPrimitive[X_D3DPT_POLYGON + 1][2] =
+int EmuD3DVertexToPrimitive[X_D3DPT_POLYGON + 1][2] =
 {
 	{ 0, 0 }, // NULL
 	{ 1, 0 }, // X_D3DPT_POINTLIST
@@ -319,12 +319,12 @@ UINT EmuD3DVertexToPrimitive[X_D3DPT_POLYGON + 1][2] =
 // Table of Xbox-to-PC and Value-to-String converters for all registered types :
 const XBTypeInfo DxbxXBTypeInfo[] = {
 	/*xt_Unknown=*/
-    {"Unknown",                  &DxbxXB2PC_NOP},
+    {"Unknown",                  &EmuXB2PC_Copy},
 
     /*xtBOOL=*/
-	{"BOOL",                     &DxbxXB2PC_NOP,                &BOOL2String},                  // Xbox = PC
+	{"BOOL",                     &EmuXB2PC_Copy,                &BOOL2String},                  // Xbox = PC
 	/*xtBYTE=*/
-	{"BYTE",                     &DxbxXB2PC_NOP},                                               // Xbox = PC
+	{"BYTE",                     &EmuXB2PC_Copy},                                               // Xbox = PC
 	/*xtD3DBLEND=*/
     {"D3DBLEND",                 &EmuXB2PC_D3DBLEND,            &X_D3DBLEND2String},
 	/*xtD3DBLENDOP=*/
@@ -334,43 +334,45 @@ const XBTypeInfo DxbxXBTypeInfo[] = {
 	/*xtD3DCMPFUNC=*/
     {"D3DCMPFUNC",               &EmuXB2PC_D3DCMPFUNC,          &X_D3DCMPFUNC2String},
 	/*xtD3DCOLOR=*/
-    {"D3DCOLOR",                 &DxbxXB2PC_NOP},                                               // Xbox = PC
+    {"D3DCOLOR",                 &EmuXB2PC_Copy},                                               // Xbox = PC
 	/*xtD3DCOLORWRITEENABLE=*/
     {"D3DCOLORWRITEENABLE",      &EmuXB2PC_D3DCOLORWRITEENABLE, &X_D3DCOLORWRITEENABLE2String},
 	/*xtD3DCUBEMAP_FACES=*/
-    {"D3DCUBEMAP_FACES",         &DxbxXB2PC_NOP,                &X_D3DCUBEMAP_FACES2String},
+    {"D3DCUBEMAP_FACES",         &EmuXB2PC_Copy,                &X_D3DCUBEMAP_FACES2String},
 	/*xtD3DCULL=*/
     {"D3DCULL",                  &EmuXB2PC_D3DCULL,             &X_D3DCULL2String},
 	/*xtD3DDCC=*/
-    {"D3DDCC",                   &DxbxXB2PC_NOP,                &X_D3DDCC2String,               true},
+    {"D3DDCC",                   &EmuXB2PC_Copy,                &X_D3DDCC2String,               true},
     /*xtD3DFILLMODE=*/
 	{"D3DFILLMODE",              &EmuXB2PC_D3DFILLMODE,         &X_D3DFILLMODE2String},
     /*xtD3DFOGMODE=*/
-	{"D3DFOGMODE",               &DxbxXB2PC_NOP,                &X_D3DFOGMODE2String},          // Xbox = PC
+	{"D3DFOGMODE",               &EmuXB2PC_Copy,                &X_D3DFOGMODE2String},          // Xbox = PC
 	/*xtD3DFORMAT=*/
     {"D3DFORMAT",                &EmuXB2PC_D3DFormat,           &X_D3DFORMAT2String},
 	/*xtD3DFRONT=*/
-    {"D3DFRONT",                 &DxbxXB2PC_NOP,                &X_D3DFRONT2String,             true},
+    {"D3DFRONT",                 &EmuXB2PC_Copy,                &X_D3DFRONT2String,             true},
 	/*xtD3DLOGICOP=*/
-    {"D3DLOGICOP",               &DxbxXB2PC_NOP,                &X_D3DLOGICOP2String,           true},
+    {"D3DLOGICOP",               &EmuXB2PC_Copy,                &X_D3DLOGICOP2String,           true},
 	/*xtD3DMCS=*/
-    {"D3DMCS",                   &DxbxXB2PC_NOP,                &X_D3DMCS2String},              // Xbox = PC
+    {"D3DMCS",                   &EmuXB2PC_Copy,                &X_D3DMCS2String},              // Xbox = PC
 	/*xtD3DMULTISAMPLE_TYPE=*/
     {"D3DMULTISAMPLE_TYPE",      &EmuXB2PC_D3DMULTISAMPLE_TYPE, &X_D3DMULTISAMPLE_TYPE2String},
 	/*xtD3DMULTISAMPLEMODE=*/
-    {"D3DMULTISAMPLEMODE",       &DxbxXB2PC_NOP,                &X_D3DMULTISAMPLEMODE2String,   true},
+    {"D3DMULTISAMPLEMODE",       &EmuXB2PC_Copy,                &X_D3DMULTISAMPLEMODE2String,   true},
 	/*xtD3DPRIMITIVETYPE=*/
     {"D3DPRIMITIVETYPE",         &EmuXB2PC_D3DPrimitiveType,    &X_D3DPRIMITIVETYPE2String},
 	/*xtD3DRESOURCETYPE=*/
-    {"D3DRESOURCETYPE",          &DxbxXB2PC_NOP,                &X_D3DRESOURCETYPE2String},
+    {"D3DRESOURCETYPE",          &EmuXB2PC_Copy,                &X_D3DRESOURCETYPE2String},
 	/*xtD3DSAMPLEALPHA=*/
-    {"D3DSAMPLEALPHA",           &DxbxXB2PC_NOP,                &X_D3DSAMPLEALPHA2String,       true},
+    {"D3DSAMPLEALPHA",           &EmuXB2PC_Copy,                &X_D3DSAMPLEALPHA2String,       true},
 	/*xtD3DSHADEMODE=*/
     {"D3DSHADEMODE",             &EmuXB2PC_D3DSHADEMODE,        &X_D3DSHADEMODE2String},
 	/*xtD3DSTENCILOP=*/
     {"D3DSTENCILOP",             &EmuXB2PC_D3DSTENCILOP,        &X_D3DSTENCILOP2String},
 	/*xtD3DSWATH=*/
-    {"D3DSWATH",                 &DxbxXB2PC_NOP,                &X_D3DSWATH2String,             true},
+    {"D3DSWATH",                 &EmuXB2PC_Copy,                &X_D3DSWATH2String,             true},
+	/*xtD3DTA = */
+	{"D3DTA",                    &EmuXB2PC_Copy,                &X_D3DTA2String},
 	/*xtD3DTEXTUREADDRESS=*/ // Used for TextureStageState X_D3DTSS_ADDRESSU, X_D3DTSS_ADDRESSV and X_D3DTSS_ADDRESSW
     {"D3DTEXTUREADDRESS",        &EmuXB2PC_D3DTEXTUREADDRESS,   &X_D3DTEXTUREADDRESS2String},
 	/*xtD3DTEXTUREFILTERTYPE=*/ // Used for TextureStageState X_D3DTSS_MAGFILTER, X_D3DTSS_MINFILTER and X_D3DTSS_MIPFILTER
@@ -379,6 +381,8 @@ const XBTypeInfo DxbxXBTypeInfo[] = {
     {"D3DTEXTUREOP",             &EmuXB2PC_D3DTEXTUREOP,        &X_D3DTEXTUREOP2String},
 	/*xtD3DTEXTURESTAGESTATETYPE = */
     {"D3DTEXTURESTAGESTATETYPE", &EmuXB2PC_D3DTSS,              &X_D3DTEXTURESTAGESTATETYPE2String},
+	/*xtD3DTEXTURETRANSFORMFLAGS = */
+	{"D3DTEXTURETRANSFORMFLAGS", &EmuXB2PC_Copy,                &X_D3DTEXTURETRANSFORMFLAGS2String},
 	/*xtD3DTRANSFORMSTATETYPE = */
     {"D3DTRANSFORMSTATETYPE",    &EmuXB2PC_D3DTS,               &X_D3DTRANSFORMSTATETYPE2String},
 	/*xtD3DTSS_TCI = */
@@ -386,15 +390,15 @@ const XBTypeInfo DxbxXBTypeInfo[] = {
 	/*xtD3DVERTEXBLENDFLAGS = */
     {"D3DVERTEXBLENDFLAGS",      &EmuXB2PC_D3DVERTEXBLENDFLAGS, &X_D3DVERTEXBLENDFLAGS2String},
 	/*xtD3DVSDE = */
-    {"D3DVSDE",                  &DxbxXB2PC_NOP,                &X_D3DVSDE2String},
+    {"D3DVSDE",                  &EmuXB2PC_Copy,                &X_D3DVSDE2String},
 	/*xtD3DWRAP = */
     {"D3DWRAP",                  &EmuXB2PC_D3DWRAP,             &X_D3DWRAP2String},
 	/*xtDWORD = */
-    {"DWORD",                    &DxbxXB2PC_NOP},                                               // Xbox = PC
+    {"DWORD",                    &EmuXB2PC_Copy},                                               // Xbox = PC
 	/*xtFloat = */
-    {"Float",                    &DxbxXB2PC_NOP,                &DWFloat2String},               // Xbox = PC
+    {"Float",                    &EmuXB2PC_Copy,                &DWFloat2String},               // Xbox = PC
 	/*xtLONG = */
-    {"LONG",                     &DxbxXB2PC_NOP},                                               // Xbox = PC
+    {"LONG",                     &EmuXB2PC_Copy},                                               // Xbox = PC
 };
 
 #define D3DRS_NONE ((D3DRENDERSTATETYPE)0) // Marks unsupported renderstate on host 
@@ -493,7 +497,7 @@ const RenderStateInfo DxbxRenderStateInfo[] = {
 	{ "X_D3DRS_POINTOFFSETENABLE"           /*=  79*/, 3424, xtBOOL,                NV2A_POLYGON_OFFSET_POINT_ENABLE },
 	{ "X_D3DRS_WIREFRAMEOFFSETENABLE"       /*=  80*/, 3424, xtBOOL,                NV2A_POLYGON_OFFSET_LINE_ENABLE },
 	{ "X_D3DRS_SOLIDOFFSETENABLE"           /*=  81*/, 3424, xtBOOL,                NV2A_POLYGON_OFFSET_FILL_ENABLE },
-	{ "X_D3DRS_DEPTHCLIPCONTROL"            /*=  82*/, 4627, xtD3DDCC,              NV2A_DEPTHCLIPCONTROL },
+	{ "X_D3DRS_DEPTHCLIPCONTROL"            /*=  82*/, 4432, xtD3DDCC,              NV2A_DEPTHCLIPCONTROL },
 	{ "X_D3DRS_STIPPLEENABLE"               /*=  83*/, 4627, xtBOOL,                NV2A_POLYGON_STIPPLE_ENABLE },
 	{ "X_D3DRS_SIMPLE_UNUSED8"              /*=  84*/, 4627, xtDWORD,               0 },
 	{ "X_D3DRS_SIMPLE_UNUSED7"              /*=  85*/, 4627, xtDWORD,               0 },
@@ -540,8 +544,8 @@ const RenderStateInfo DxbxRenderStateInfo[] = {
 	{ "X_D3DRS_PATCHEDGESTYLE"              /*= 124*/, 3424, xtDWORD,               0, D3DRS_PATCHEDGESTYLE }, // D3DPATCHEDGESTYLE
 	{ "X_D3DRS_PATCHSEGMENTS"               /*= 125*/, 3424, xtDWORD,               0, D3DRS_PATCHSEGMENTS }, // DWORD number of segments per edge when drawing patches
 	// TODO -oDxbx : Is X_D3DRS_SWAPFILTER really a xtD3DMULTISAMPLE_TYPE?
-	{ "X_D3DRS_SWAPFILTER"                  /*= 126*/, 4361, xtD3DMULTISAMPLE_TYPE, 0, D3DRS_NONE, "D3DTEXF_LINEAR etc. filter to use for Swap" }, // nsp.
-	{ "X_D3DRS_PRESENTATIONINTERVAL"        /*= 127*/, 4627, xtDWORD,               0 }, // nsp.
+	{ "X_D3DRS_SWAPFILTER"                  /*= 126*/, 4039, xtD3DMULTISAMPLE_TYPE, 0, D3DRS_NONE, "D3DTEXF_LINEAR etc. filter to use for Swap" }, // nsp.
+	{ "X_D3DRS_PRESENTATIONINTERVAL"        /*= 127*/, 4627, xtDWORD,               0 }, // nsp. TODO : Use 4361?
 	{ "X_D3DRS_DEFERRED_UNUSED8"            /*= 128*/, 4627, xtDWORD,               0 },
 	{ "X_D3DRS_DEFERRED_UNUSED7"            /*= 129*/, 4627, xtDWORD,               0 },
 	{ "X_D3DRS_DEFERRED_UNUSED6"            /*= 130*/, 4627, xtDWORD,               0 },
@@ -577,13 +581,13 @@ const RenderStateInfo DxbxRenderStateInfo[] = {
 #endif
 	{ "X_D3DRS_MULTISAMPLEANTIALIAS"        /*= 152*/, 3424, xtBOOL,                NV2A_MULTISAMPLE_CONTROL, D3DRS_MULTISAMPLEANTIALIAS },
 	{ "X_D3DRS_MULTISAMPLEMASK"             /*= 153*/, 3424, xtDWORD,               NV2A_MULTISAMPLE_CONTROL, D3DRS_MULTISAMPLEMASK },
-// For D3DRS_MULTISAMPLETYPE, see DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4361
-//  { "X_D3DRS_MULTISAMPLETYPE"             /*= 154*/, 3424, xtD3DMULTISAMPLE_TYPE, 0 }, // [-3911] \_ aliasses  D3DMULTISAMPLE_TYPE - 
-	{ "X_D3DRS_MULTISAMPLEMODE"             /*= 154*/, 4361, xtD3DMULTISAMPLEMODE,  0 }, // [4361+] /            D3DMULTISAMPLEMODE for the backbuffer
-	{ "X_D3DRS_MULTISAMPLERENDERTARGETMODE" /*= 155*/, 4242, xtD3DMULTISAMPLEMODE,  NV2A_RT_FORMAT },
+// For D3DRS_MULTISAMPLETYPE, see DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4039
+//  { "X_D3DRS_MULTISAMPLETYPE"             /*= 154*/, 3424, xtD3DMULTISAMPLE_TYPE, 0 }, // [-4039> \_ aliasses  D3DMULTISAMPLE_TYPE - 
+	{ "X_D3DRS_MULTISAMPLEMODE"             /*= 154*/, 4039, xtD3DMULTISAMPLEMODE,  0 }, // [4039+] /            D3DMULTISAMPLEMODE for the backbuffer
+	{ "X_D3DRS_MULTISAMPLERENDERTARGETMODE" /*= 155*/, 4039, xtD3DMULTISAMPLEMODE,  NV2A_RT_FORMAT },
 	{ "X_D3DRS_SHADOWFUNC"                  /*= 156*/, 3424, xtD3DCMPFUNC,          NV2A_TX_RCOMP },
 	{ "X_D3DRS_LINEWIDTH"                   /*= 157*/, 3424, xtFloat,               NV2A_LINE_WIDTH },
-	{ "X_D3DRS_SAMPLEALPHA"                 /*= 158*/, 4627, xtD3DSAMPLEALPHA,      0 }, // TODO : Later than 3424, but earlier then 4627?
+	{ "X_D3DRS_SAMPLEALPHA"                 /*= 158*/, 4627, xtD3DSAMPLEALPHA,      0 }, // TODO : Not in 4531, but earlier then 4627?
 	{ "X_D3DRS_DXT1NOISEENABLE"             /*= 159*/, 3424, xtBOOL,                NV2A_CLEAR_DEPTH_VALUE },
 	{ "X_D3DRS_YUVENABLE"                   /*= 160*/, 3911, xtBOOL,                NV2A_CONTROL0 },
 	{ "X_D3DRS_OCCLUSIONCULLENABLE"         /*= 161*/, 3911, xtBOOL,                NV2A_OCCLUDE_ZSTENCIL_EN },
@@ -593,14 +597,14 @@ const RenderStateInfo DxbxRenderStateInfo[] = {
 	{ "X_D3DRS_DONOTCULLUNCOMPRESSED"       /*= 165*/, 3911, xtBOOL,                0 }
 };
 
-const RenderStateInfo DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4361 =
+const RenderStateInfo DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4039 =
 	{ "X_D3DRS_MULTISAMPLETYPE"             /*= 154*/, 3424, xtD3DMULTISAMPLE_TYPE, 0 }; // [-3911] \_ aliasses  D3DMULTISAMPLE_TYPE
 
 const RenderStateInfo &GetDxbxRenderStateInfo(int State)
 {
 	if (State == X_D3DRS_MULTISAMPLETYPE)
-		if (g_BuildVersion < 4361)
-			return DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4361;
+		if (g_BuildVersion < 4039)
+			return DxbxRenderStateInfo_D3DRS_MULTISAMPLETYPE_below_4039;
 
 	return DxbxRenderStateInfo[State];
 }
@@ -662,8 +666,6 @@ Direct3D9 states unused :
 #define xtD3DTEXTURECOLORKEYOP xt_Unknown
 #define xtD3DTSIGN xt_Unknown
 #define xtD3DTEXTUREALPHAKILL xt_Unknown
-#define xtD3DTA xt_Unknown // Used 8 times
-#define xtD3DTEXTURETRANSFORMFLAGS xt_Unknown
 
 const TextureStageStateInfo DxbxTextureStageStateInfo[] = {
 //:array[X_D3DTSS_FIRST..X_D3DTSS_UNSUPPORTED] of TextureStageStateInfo = (
@@ -693,8 +695,8 @@ const TextureStageStateInfo DxbxTextureStageStateInfo[] = {
     // End of "deferred" texture states, continuing with the rest :
     {"X_D3DTSS_BUMPENVMAT00"          /*=22*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT00},
     {"X_D3DTSS_BUMPENVMAT01"          /*=23*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT01},
-    {"X_D3DTSS_BUMPENVMAT11"          /*=24*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT10},
-    {"X_D3DTSS_BUMPENVMAT10"          /*=25*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT11},
+    {"X_D3DTSS_BUMPENVMAT11"          /*=24*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT11},
+    {"X_D3DTSS_BUMPENVMAT10"          /*=25*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVMAT10},
     {"X_D3DTSS_BUMPENVLSCALE"         /*=26*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVLSCALE},
     {"X_D3DTSS_BUMPENVLOFFSET"        /*=27*/, xtFloat,                      (D3DSAMPLERSTATETYPE)D3DTSS_BUMPENVLOFFSET},
     {"X_D3DTSS_TEXCOORDINDEX"         /*=28*/, xtD3DTSS_TCI,                 (D3DSAMPLERSTATETYPE)D3DTSS_TEXCOORDINDEX},
@@ -763,7 +765,7 @@ std::string DWFloat2String(DWORD Value)
 	return std::to_string(*((FLOAT*)&Value)); // TODO : Speed this up by avoiding Single>Extended cast & generic render code.
 }
 
-DWORD DxbxXB2PC_NOP(DWORD Value)
+DWORD EmuXB2PC_Copy(DWORD Value)
 {
 	return Value;
 }
@@ -1102,8 +1104,12 @@ D3DCMPFUNC EmuXB2PC_D3DCMPFUNC(X_D3DCMPFUNC Value)
 	case X_D3DCMP_ALWAYS:
 		return D3DCMP_ALWAYS;
 	default:
-		CxbxKrnlCleanup("Unknown X_D3DCMPFUNC (0x%.08X)", (DWORD)Value);
-		return (D3DCMPFUNC)Value; // Never reached
+		if (Value == 0)
+			EmuWarning("X_D3DCMPFUNC 0 is unsupported");
+		else
+			CxbxKrnlCleanup("Unknown X_D3DCMPFUNC (0x%.08X)", (DWORD)Value);
+
+		return (D3DCMPFUNC)Value;
 	}
 }
 
@@ -1119,8 +1125,12 @@ D3DFILLMODE EmuXB2PC_D3DFILLMODE(X_D3DFILLMODE Value)
 	case X_D3DFILL_SOLID:
 		return D3DFILL_SOLID;
 	default:
-		CxbxKrnlCleanup("Unknown X_D3DFILLMODE (0x%.08X)", (DWORD)Value);
-		return (D3DFILLMODE)Value; // Never reached
+		if (Value == 0)
+			EmuWarning("X_D3DFILLMODE 0 is unsupported");
+		else
+			CxbxKrnlCleanup("Unknown X_D3DFILLMODE (0x%.08X)", (DWORD)Value);
+
+		return (D3DFILLMODE)Value;
 	}
 }
 
@@ -1134,8 +1144,12 @@ D3DSHADEMODE EmuXB2PC_D3DSHADEMODE(X_D3DSHADEMODE Value)
 	case X_D3DSHADE_GOURAUD:
 		return D3DSHADE_GOURAUD;
 	default:
-		CxbxKrnlCleanup("Unknown X_D3DSHADEMODE (0x%.08X)", (DWORD)Value);
-		return (D3DSHADEMODE)Value; // Never reached
+		if (Value == 0)
+			EmuWarning("X_D3DSHADEMODE 0 is unsupported");
+		else
+			CxbxKrnlCleanup("Unknown X_D3DSHADEMODE (0x%.08X)", (DWORD)Value);
+
+		return (D3DSHADEMODE)Value;
 	}
 }
 
@@ -1181,8 +1195,12 @@ DWORD EmuXB2PC_D3DTEXTUREADDRESS(DWORD Value)
 		EmuWarning("Unsupported X_D3DTEXTUREADDRESS : X_D3DTADDRESS_CLAMPTOEDGE. Using D3DTADDRESS_BORDER approximation.");
 		return D3DTADDRESS_BORDER; // Note : D3DTADDRESS_CLAMP is not a good approximation
 	default:
-		CxbxKrnlCleanup("Unknown X_D3DTEXTUREADDRESS (0x%.08X)", (DWORD)Value);
-		return (DWORD)Value; // Never reached
+		if (Value == 0)
+			EmuWarning("X_D3DTEXTUREADDRESS 0 is unsupported");
+		else
+			CxbxKrnlCleanup("Unknown X_D3DTEXTUREADDRESS (0x%.08X)", (DWORD)Value);
+
+		return (DWORD)Value;
 	}
 }
 

@@ -39,51 +39,53 @@
 
 #define MAX_NBR_STREAMS 16
 
-typedef struct _VertexPatchDesc
+typedef struct _CxbxDrawContext
 {
-    IN OUT X_D3DPRIMITIVETYPE    XboxPrimitiveType;
+    IN     X_D3DPRIMITIVETYPE    XboxPrimitiveType;
     IN     DWORD                 dwVertexCount;
-    OUT    DWORD                 dwPrimitiveCount;
-    IN     DWORD                 dwOffset;
-    // Data if Draw...UP call
-    IN OUT PVOID                 pVertexStreamZeroData;
-    IN     UINT                  uiVertexStreamZeroStride; // TODO : OUT ?
+    IN     DWORD                 dwStartVertex; // Only D3DDevice_DrawVertices sets this (potentially higher than default 0)
     // The current vertex shader, used to identify the streams
     IN     DWORD                 hVertexShader;
-}
-VertexPatchDesc;
+    // Data if Draw...UP call
+    IN PVOID                     pXboxVertexStreamZeroData;
+    IN UINT                      uiXboxVertexStreamZeroStride;
+	// Values to be used on host
+	OUT PVOID                    pHostVertexStreamZeroData;
+	OUT UINT                     uiHostVertexStreamZeroStride;
+    OUT DWORD                    dwHostPrimitiveCount;
+} CxbxDrawContext;
 
-typedef struct _PATCHEDSTREAM
+typedef struct _CxbxPatchedStream
 {
-    IDirect3DVertexBuffer8 *pOriginalStream;
-    IDirect3DVertexBuffer8 *pPatchedStream;
-    UINT                    uiOrigStride;
-    UINT                    uiNewStride;
-    bool                    bUsedCached;
-} PATCHEDSTREAM;
+	void                   *pCachedXboxVertexData;
+    UINT                    uiCachedXboxVertexStride;
+    uint32                  uiCachedXboxVertexDataSize;
+    UINT                    uiCachedHostVertexStride;
+    bool                    bCacheIsStreamZeroDrawUP;
+    void                   *pCachedHostVertexStreamZeroData;
+	bool                    bCachedHostVertexStreamZeroDataIsAllocated;
+    IDirect3DVertexBuffer8 *pCachedHostVertexBuffer;
+    bool                    bCacheIsUsed;
+} CxbxPatchedStream;
 
-typedef struct _CACHEDSTREAM
+typedef struct _CxbxCachedStream
 {
     uint32_t       uiHash;
     uint32         uiCheckFrequency;
-    uint32         uiCacheHit;
-    bool           bIsUP;
-    PATCHEDSTREAM  Stream;
-    void          *pStreamUP;           // Draw..UP (instead of pOriginalStream)
-    uint32         uiLength;            // The length of the stream
     uint32         uiCheckCount;        // XXHash32::hash() check count
-	VertexPatchDesc Copy;
+    uint32         uiCacheHitCount;
     long           lLastUsed;           // For cache removal purposes
-} CACHEDSTREAM;
+    CxbxPatchedStream  Stream;
+} CxbxCachedStream;
 
-class VertexPatcher
+class CxbxVertexBufferConverter
 {
     public:
-        VertexPatcher();
-       ~VertexPatcher();
+        CxbxVertexBufferConverter();
+       ~CxbxVertexBufferConverter();
 
-        bool Apply(VertexPatchDesc *pPatchDesc);
-        bool Restore();
+        void Apply(CxbxDrawContext *pDrawContext);
+        void Restore();
 
         // Dumps the cache to the console
         static void DumpCache(void);
@@ -91,49 +93,31 @@ class VertexPatcher
     private:
 
         UINT m_uiNbrStreams;
-        PATCHEDSTREAM m_pStreams[MAX_NBR_STREAMS];
+        CxbxPatchedStream m_PatchedStreams[MAX_NBR_STREAMS];
 
-        PVOID m_pNewVertexStreamZeroData;
-
-        bool m_bPatched;
-        bool m_bAllocatedStreamZeroData;
-
-        VERTEX_DYNAMIC_PATCH *m_pDynamicPatch;
-
-        // Returns the number of streams of a patch
-        UINT GetNbrStreams(VertexPatchDesc *pPatchDesc);
+        CxbxVertexShaderDynamicPatch *m_pVertexShaderDynamicPatch;
 
         // Caches a patched stream
-        void CacheStream(VertexPatchDesc *pPatchDesc,
-                         UINT             uiStream);
+        void CacheStream(CxbxPatchedStream *pPatchedStream);
 
         // Frees a cached, patched stream
         void FreeCachedStream(void *pStream);
 
         // Tries to apply a previously patched stream from the cache
-        bool ApplyCachedStream(VertexPatchDesc *pPatchDesc,
+        bool ApplyCachedStream(CxbxDrawContext *pDrawContext,
                                UINT             uiStream,
 							   bool			   *pbFatalError);
 
-        // Patches the types of the stream
-        bool PatchStream(VertexPatchDesc *pPatchDesc, UINT uiStream);
-
-        // Normalize texture coordinates in FVF stream if needed
-        bool NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT uiStream);
-
-        // Patches the primitive of the stream
-        void PatchPrimitive(VertexPatchDesc *pPatchDesc);
+        // Convert the contents of the stream
+        bool ConvertStream(CxbxDrawContext *pDrawContext, UINT uiStream);
 };
 
 // inline vertex buffer emulation
-extern DWORD                  *g_InlineVertexBuffer_pdwData;
 extern X_D3DPRIMITIVETYPE      g_InlineVertexBuffer_PrimitiveType;
 extern DWORD                   g_InlineVertexBuffer_FVF;
 
-#define INLINE_VERTEX_BUFFER_SIZE 2047 // Max nr of DWORD for D3DPUSH_ENCODE
-#define INLINE_VERTEX_BUFFER_TABLE_SIZE (sizeof(_D3DIVB) * INLINE_VERTEX_BUFFER_SIZE)
-// TODO : Enlarge INLINE_VERTEX_BUFFER_SIZE
-// TODO : Calculate INLINE_VERTEX_BUFFER_TABLE_SIZE using sizeof(DWORD)
+#define MAX_PUSHBUFFER_DWORDS 2047 // Max nr of DWORD for D3DPUSH_ENCODE
+#define INLINE_VERTEX_BUFFER_SIZE 2 * MAX_PUSHBUFFER_DWORDS // stay on the safe side
 
 extern struct _D3DIVB
 {
@@ -143,16 +127,23 @@ extern struct _D3DIVB
 	FLOAT			 Blend2;	 // Dxbx addition : for D3DFVF_XYZB2 TODO : Where should we set these?
 	FLOAT			 Blend3;	 // Dxbx addition : for D3DFVF_XYZB3
 	FLOAT			 Blend4;	 // Dxbx addition : for D3DFVF_XYZB4
-	XTL::D3DCOLOR    Specular;
-    XTL::D3DCOLOR    Diffuse;
     XTL::D3DXVECTOR3 Normal;
-    XTL::D3DXVECTOR2 TexCoord1;
-    XTL::D3DXVECTOR2 TexCoord2;
-    XTL::D3DXVECTOR2 TexCoord3;
-    XTL::D3DXVECTOR2 TexCoord4;
+	// FLOAT            PointSize; // TODO : Is this in here?
+	XTL::D3DCOLOR    Diffuse;
+	XTL::D3DCOLOR    Specular;
+#if 0
+	FLOAT            Fog; // TODO : Handle
+	XTL::D3DCOLOR    BackDiffuse; // TODO : Handle
+	XTL::D3DCOLOR    BackSpecular; // TODO  : Handle
+#endif
+    XTL::D3DXVECTOR3 TexCoord1;
+    XTL::D3DXVECTOR3 TexCoord2;
+    XTL::D3DXVECTOR3 TexCoord3;
+    XTL::D3DXVECTOR3 TexCoord4;
 }
 *g_InlineVertexBuffer_Table;
 
+extern UINT g_InlineVertexBuffer_TableLength;
 extern UINT g_InlineVertexBuffer_TableOffset;
 
 extern VOID EmuFlushIVB();

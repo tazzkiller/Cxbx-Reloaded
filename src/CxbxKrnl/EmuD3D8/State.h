@@ -50,7 +50,6 @@ inline DWORD CxbxGetRenderState(XTL::X_D3DRENDERSTATETYPE XboxRenderState)
 
 extern DWORD DxbxMapMostRecentToActiveVersion[X_D3DRS_LAST + 1];
 
-#ifdef UNPATCH_STREAMSOURCE
 struct X_Stream
 {
 	DWORD Stride;
@@ -59,7 +58,6 @@ struct X_Stream
 };
 
 extern X_Stream *Xbox_g_Stream; // The Xbox1 g_Stream[16] array
-#endif
 
 extern DWORD *Xbox_D3D__RenderState_Deferred;
 

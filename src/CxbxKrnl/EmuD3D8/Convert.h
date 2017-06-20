@@ -111,10 +111,12 @@ ForwardTYPE2STRToString(X_D3DRESOURCETYPE)
 #define X_D3DSHADEMODE2String DxbxXBDefaultToString
 #define X_D3DSTENCILOP2String DxbxXBDefaultToString
 #define X_D3DSWATH2String DxbxXBDefaultToString
+#define X_D3DTA2String DxbxXBDefaultToString
 #define X_D3DTEXTUREADDRESS2String DxbxXBDefaultToString
 #define X_D3DTEXTURECOORDINDEX2String DxbxXBDefaultToString
 #define X_D3DTEXTUREOP2String DxbxXBDefaultToString
 #define X_D3DTEXTURESTAGESTATETYPE2String DxbxXBDefaultToString
+#define X_D3DTEXTURETRANSFORMFLAGS2String DxbxXBDefaultToString
 #define X_D3DTRANSFORMSTATETYPE2String DxbxXBDefaultToString
 #define X_D3DVERTEXBLENDFLAGS2String DxbxXBDefaultToString
 #define X_D3DVSDE2String DxbxXBDefaultToString
@@ -127,7 +129,7 @@ extern std::string DWFloat2String(DWORD Value);
 
 //// Xbox-to-host conversion functions
 
-extern DWORD DxbxXB2PC_NOP(DWORD Value);
+extern DWORD EmuXB2PC_Copy(DWORD Value);
 
 // convert from pc to xbox color formats
 extern X_D3DFORMAT EmuPC2XB_D3DFormat(D3DFORMAT Format);
@@ -169,7 +171,18 @@ extern D3DVERTEXBLENDFLAGS EmuXB2PC_D3DVERTEXBLENDFLAGS(X_D3DVERTEXBLENDFLAGS Va
 extern DWORD EmuXB2PC_D3DWRAP(DWORD Value);
 
 // table used for vertex->primitive count conversion
-extern UINT EmuD3DVertexToPrimitive[X_D3DPT_POLYGON + 1][2];
+extern int EmuD3DVertexToPrimitive[X_D3DPT_POLYGON + 1][2];
+
+inline bool EmuD3DValidVertexCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int VertexCount)
+{
+	// Are there more vertices than required for setup?
+	if (VertexCount > EmuD3DVertexToPrimitive[XboxPrimitiveType][1])
+		// Are the additional vertices exact multiples of the required additional vertices per primitive?
+		if (0 == ((VertexCount - EmuD3DVertexToPrimitive[XboxPrimitiveType][1]) % EmuD3DVertexToPrimitive[XboxPrimitiveType][0]))
+			return true;
+
+	return false;
+}
 
 // convert from vertex count to primitive count (Xbox)
 inline int EmuD3DVertex2PrimitiveCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int VertexCount)
@@ -177,11 +190,13 @@ inline int EmuD3DVertex2PrimitiveCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int
     return (VertexCount - EmuD3DVertexToPrimitive[XboxPrimitiveType][1]) / EmuD3DVertexToPrimitive[XboxPrimitiveType][0];
 }
 
+#if 0 // unused
 // convert from primitive count to vertex count (Xbox)
 inline int EmuD3DPrimitive2VertexCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int PrimitiveCount)
 {
     return (PrimitiveCount * EmuD3DVertexToPrimitive[XboxPrimitiveType][0]) + EmuD3DVertexToPrimitive[XboxPrimitiveType][1];
 }
+#endif
 
 inline int EmuD3DIndexCountToVertexCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int IndexCount)
 {
@@ -1704,10 +1719,12 @@ typedef enum _TXBType {
 	xtD3DSHADEMODE,
 	xtD3DSTENCILOP,
 	xtD3DSWATH,
+	xtD3DTA,
 	xtD3DTEXTUREADDRESS, // Used for TextureStageState X_D3DTSS_ADDRESSU, X_D3DTSS_ADDRESSV and X_D3DTSS_ADDRESSW
 	xtD3DTEXTUREFILTERTYPE, // Used for TextureStageState X_D3DTSS_MAGFILTER, X_D3DTSS_MINFILTER and X_D3DTSS_MIPFILTER
 	xtD3DTEXTUREOP, // Used for TextureStageState X_D3DTSS_COLOROP and X_D3DTSS_ALPHAOP
 	xtD3DTEXTURESTAGESTATETYPE,
+	xtD3DTEXTURETRANSFORMFLAGS,
 	xtD3DTRANSFORMSTATETYPE,
 	xtD3DTSS_TCI,
 	xtD3DVERTEXBLENDFLAGS,

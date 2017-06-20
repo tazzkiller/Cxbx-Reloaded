@@ -35,7 +35,7 @@
 // ******************************************************************
 // * Direct3D_CreateDevice
 // ******************************************************************
-OOVPA_NO_XREF(Direct3D_CreateDevice, 5028, 8)
+OOVPA_NO_XREF(Direct3D_CreateDevice, 5028, 8) // TODO : Replace by generic 3911 version?
 
         // Direct3D_CreateDevice+0x0A : jnz +0x0A
         { 0x0A, 0x75 }, // (Offset,Value)-Pair #1
@@ -784,7 +784,8 @@ OOVPATable D3D8_5028[] = {
 
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 4627, DISABLED),
 
-	REGISTER_OOVPA(Direct3D_CreateDevice, 5028, PATCH),
+	REGISTER_OOVPA(Direct3D_CreateDevice, 5028, PATCH), // TODO : Use 3911 instead?
+	REGISTER_OOVPA(MakeRequestedSpace, 4361, PATCH), // NOT VERIFIED
 	REGISTER_OOVPA(D3D_CheckDeviceFormat, 4134, DISABLED),
 	REGISTER_OOVPA(D3DDevice_BeginVisibilityTest, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetCreationParameters, 4034, PATCH),
@@ -860,12 +861,15 @@ OOVPATable D3D8_5028[] = {
 	REGISTER_OOVPA(D3DDevice_GetTransform, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetStreamSource, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetStreamSource, 4034, PATCH),
-	REGISTER_OOVPA(D3DDevice_DrawVerticesUP, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShader, 5028, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawVertices, 5028, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawVerticesUP, 4627, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawIndexedVertices, 5028, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawIndexedVerticesUP, 4627, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawRectPatch, 3911, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetLight, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetLight, 5028, PATCH),
-	REGISTER_OOVPA(D3DDevice_DrawIndexedVertices, 5028, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetMaterial, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_LightEnable, 5028, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetLightEnable, 4627, PATCH),
@@ -914,7 +918,6 @@ OOVPATable D3D8_5028[] = {
 	REGISTER_OOVPA(D3DDevice_SetScreenSpaceOffset, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_CreateStateBlock, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_InsertCallback, 5028, PATCH),
-	REGISTER_OOVPA(D3DDevice_DrawRectPatch, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetProjectionViewportMatrix, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_BackFillMode, 4531, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDeviceCaps, 3925, DISABLED),
@@ -929,7 +932,6 @@ OOVPATable D3D8_5028[] = {
 	REGISTER_OOVPA(D3DDevice_GetTexture2, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetStateVB, 4627, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SetStateUP, 4627, DISABLED),
-	REGISTER_OOVPA(D3DDevice_DrawIndexedVerticesUP, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetStipple, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_RopZCmpAlwaysRead, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_RopZRead, 3925, PATCH),

@@ -823,23 +823,40 @@ OOVPA_END;
 // ******************************************************************
 // * D3D::MakeRequestedSpace
 // ******************************************************************
-OOVPA_NO_XREF(MakeRequestedSpace, 5558, 12)
+OOVPA_XREF(MakeRequestedSpace, 5558, 28, // Also for 5659
 
-	// D3D::MakeRequestedSpace+0x08: test byte ptr [esi+8], 4
-	{ 0x08, 0xF6 },
-	{ 0x09, 0x46 },
-	{ 0x0A, 0x08 },
-	{ 0x0B, 0x04 },
-	// D3D::MakeRequestedSpace+0x32: retn 8
-	{ 0x32, 0xC2 },
-	{ 0x33, 0x08 },
-	// D3D::MakeRequestedSpace+0x57: add ebp, 0x4000
-	{ 0x57, 0x81 },
-	{ 0x58, 0xC5 },
-	{ 0x59, 0x00 },
-	{ 0x5A, 0x40 },
-	{ 0x5B, 0x00 },
-	{ 0x5C, 0x00 },
+	XREF_MakeRequestedSpace,
+	XRefZero)
+
+		{ 0x00, 0x51 },
+		{ 0x01, 0x56 },
+		{ 0x02, 0x8B },
+		{ 0x03, 0x35 },
+
+		{ 0x08, 0xF6 },
+		{ 0x09, 0x46 },
+		{ 0x0A, 0x08 },
+		{ 0x0B, 0x04 },
+		{ 0x0C, 0x57 },
+		{ 0x0D, 0x74 },
+		{ 0x0E, 0x26 },
+		{ 0x0F, 0x8B },
+		{ 0x10, 0x86 },
+		{ 0x11, 0x60 },
+		{ 0x12, 0x07 },
+		{ 0x13, 0x00 },
+		{ 0x14, 0x00 },
+		{ 0x15, 0x8B },
+		{ 0x16, 0x78 },
+		{ 0x17, 0x04 },
+		{ 0x18, 0x8B },
+		{ 0x19, 0x0E },
+		{ 0x1A, 0x8B },
+		{ 0x1B, 0x96 },
+		{ 0x1C, 0x64 },
+		{ 0x1D, 0x07 },
+		{ 0x1E, 0x00 },
+		{ 0x1F, 0x00 },
 OOVPA_END;
 
 // ******************************************************************
@@ -1337,7 +1354,7 @@ OOVPATable D3D8_5558[] = {
 
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 5558, DISABLED),
 
-	REGISTER_OOVPA(Direct3D_CreateDevice, 4627, PATCH),
+	REGISTER_OOVPA(Direct3D_CreateDevice, 3911, PATCH), // Was 4627
 	REGISTER_OOVPA(D3DDevice_GetDisplayFieldStatus, 5233, PATCH),
 	REGISTER_OOVPA(D3DDevice_LazySetStateVB, 5558, XREF),
 	REGISTER_OOVPA(D3DDevice_BeginPush, 5558, PATCH),
@@ -1429,6 +1446,8 @@ OOVPATable D3D8_5558[] = {
 	REGISTER_OOVPA(D3DDevice_CreatePixelShader, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShaderConstant4, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawVerticesUP, 5558, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawRectPatch, 3911, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetTransform, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetTransform, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_CreateIndexBuffer2, 5558, DISABLED),

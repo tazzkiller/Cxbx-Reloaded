@@ -392,7 +392,7 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_DrawRectPatch
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_DrawRectPatch, 4034, 8)
+OOVPA_NO_XREF(D3DDevice_DrawRectPatch, 4034, 8) // obsolete, replaced by generic 3911 version
 
         { 0x1E, 0x6C },
         { 0x3E, 0x3C },
@@ -1266,7 +1266,7 @@ OOVPATable D3D8_4034[] = {
 
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 3911, DISABLED),
 
-	REGISTER_OOVPA(Direct3D_CreateDevice, 3925, PATCH),
+	REGISTER_OOVPA(Direct3D_CreateDevice, 3911, PATCH), // Was 3925
 	REGISTER_OOVPA(D3DDevice_Clear, 4034, PATCH),
 	REGISTER_OOVPA(D3DResource_Register, 3925, PATCH),
 
@@ -1329,7 +1329,11 @@ OOVPATable D3D8_4034[] = {
 	REGISTER_OOVPA(Lock2DSurface, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetGammaRamp, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawVertices, 4034, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawVerticesUP, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawIndexedVertices, 4034, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawIndexedVerticesUP, 3925, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawRectPatch, 3911, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_BeginVisibilityTest, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_EndVisibilityTest, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_CopyRects, 4034, PATCH),
@@ -1340,7 +1344,6 @@ OOVPATable D3D8_4034[] = {
 	REGISTER_OOVPA(D3DDevice_LoadVertexShader, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetVisibilityTestResult, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_DeleteVertexShader, 3925, PATCH),
-	REGISTER_OOVPA(D3DDevice_DrawRectPatch, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetIndices, 4034, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_EdgeAntiAlias, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_FillMode, 4034, PATCH),

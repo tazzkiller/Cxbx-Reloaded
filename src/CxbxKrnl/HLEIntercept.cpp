@@ -154,11 +154,9 @@ void SetGlobalSymbols()
 	/*ignore*/FindSymbolAddress("D3DDEVICE");
 	XTL::Xbox_D3D__RenderState_Deferred = (DWORD*)FindSymbolAddress("D3DDeferredRenderState");
 	XTL::Xbox_D3D_TextureState = (DWORD*)FindSymbolAddress("D3D__TextureState");
-#ifdef UNPATCH_STREAMSOURCE
 	XTL::Xbox_g_Stream = (XTL::X_Stream *)FindSymbolAddress("g_Stream", false); // Optional - aerox2 hits this case
-#endif
-#ifdef UNPATCH_TEXTURES
-	XTL::EmuD3DTextureStages = (XTL::X_D3DBaseTexture **)((byte *)XTL::g_XboxD3DDevice + (uint)FindSymbolAddress("offsetof(D3DDevice,m_Textures)"));
+#ifndef PATCH_TEXTURES
+	XTL::Xbox_D3DDevice_m_Textures = (XTL::X_D3DBaseTexture **)((byte *)XTL::g_XboxD3DDevice + (uint)FindSymbolAddress("offsetof(D3DDevice,m_Textures)"));
 #endif
 }
 
@@ -510,7 +508,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
                             }
                         }
 
-#ifdef UNPATCH_STREAMSOURCE
 						// Locate Xbox symbol "g_Stream" and store it's address
 						{
 							xbaddr pFunc = NULL;
@@ -541,7 +538,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								printf("HLE: Derived 0x%.08X -> g_Stream\n", Derived_g_Stream);
 							}
 						}
-#endif
 					}
                 }
 
@@ -572,7 +568,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 	printf("\n");
 
-#ifdef UNPATCH_TEXTURES
+#ifndef PATCH_TEXTURES
 	g_SymbolAddresses["offsetof(D3DDevice,m_Textures)"] = XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES];
 #endif
 
