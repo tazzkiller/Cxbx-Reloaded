@@ -2436,6 +2436,11 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				// cache device pointer
 				g_pD3DDevice8 = *g_EmuCDPD.ppReturnedDeviceInterface;
 
+				HRESULT hRet;
+
+				hRet = g_pD3DDevice8->BeginScene();
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
+
 				// Update Xbox PresentationParameters :
 				g_EmuCDPD.pPresentationParameters->BackBufferWidth = g_EmuCDPD.NativePresentationParameters.BackBufferWidth;
 				g_EmuCDPD.pPresentationParameters->BackBufferHeight = g_EmuCDPD.NativePresentationParameters.BackBufferHeight;
@@ -2444,8 +2449,6 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 
 				// default NULL guid
 				g_ddguid = { 0 };
-
-				HRESULT hRet;
 
                 // enumerate device guid for this monitor, for directdraw
 				hRet = XTL::DirectDrawEnumerateExA(EmuEnumDisplayDevices, nullptr, DDENUM_ATTACHEDSECONDARYDEVICES);
@@ -2594,9 +2597,6 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					hRet = g_pD3DDevice8->SetStreamSource(Streams, g_pDummyBuffer, 1);
 					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetStreamSource");
 				}
-
-				hRet = g_pD3DDevice8->BeginScene();
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
 
 				// initially, show a black screen
                 // Only clear depth buffer and stencil if present
