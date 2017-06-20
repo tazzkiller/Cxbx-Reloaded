@@ -5763,17 +5763,76 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	// create the happy little texture
 	DWORD dwCommonType = GetXboxCommonResourceType(pPixelContainer);
 	// TODO : Remove by splitting this over texture and surface variants
-	if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
+	if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE) // X_D3DRTYPE_SURFACE
 	{
-		hRet = g_pD3DDevice8->CreateImageSurface(PixelJar.dwWidth, PixelJar.dwHeight, PCFormat, &pNewHostSurface);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateImageSurface");
+		XTL::X_D3DBaseTexture *pSurfaceParent = ((X_D3DSurface*)pPixelContainer)->Parent;
+		// Retrieve the PC resource that represents the parent of this surface,
+		// including it's contents (updated if necessary) :
+		// Samples like CubeMap show that render target formats must be applied to both surface and texture:
+		IDirect3DBaseTexture8 *pHostParentTexture = CxbxUpdateTexture(pSurfaceParent, pPalette);
+		if (pHostParentTexture != nullptr) {
+			// Determine which face & mipmap level where used in the creation of this Xbox surface, using the Data pointer :
+			UINT Level;
+			D3DCUBEMAP_FACES FaceType;
+			DxbxDetermineSurFaceAndLevelByData(PixelJar, /*OUT*/Level, /*OUT*/FaceType);
+			switch (GetXboxD3DResourceType(pSurfaceParent)) {
+			case X_D3DRTYPE_TEXTURE: {
+				LOG_TEST_CASE("pSurfaceParent X_D3DRTYPE_TEXTURE");
+				hRet = ((IDirect3DTexture8*)pHostParentTexture)->GetSurfaceLevel(
+					Level,
+					&pNewHostSurface);
+				DEBUG_D3DRESULT(hRet, "pHostParentTexture->GetSurfaceLevel");
+				break;
+			}
+			case X_D3DRTYPE_CUBETEXTURE: {
+				LOG_TEST_CASE("pSurfaceParent X_D3DRTYPE_CUBETEXTURE");
+				hRet = ((IDirect3DCubeTexture8*)pHostParentTexture)->GetCubeMapSurface(
+					FaceType,
+					Level,
+					&pNewHostSurface);
+				DEBUG_D3DRESULT(hRet, "pHostParentTexture->GetCubeMapSurface");
+				// PS: It's probably needed to patch up the destruction of this surface too!
+				// PS2: We also need a mechanism to remove obsolete native resources,
+				// like the native CubeMap texture that's used for this surfaces' parent.
+				break;
+			}
+			default:
+				CxbxKrnlCleanup("pSurfaceParent Unhandled type");
+				;//DxbxD3DError("DxbxAssureNativeResource", "Unhandled D3DSurface.Parent type!", pPixelContainer);
+			}
+		}
+		else {
+			// Differentiate between images & depth buffers :
+			if (EmuXBFormatIsRenderTarget(X_Format)) {
+				LOG_TEST_CASE("pSurfaceParent IsRenderTarget");
+				hRet = g_pD3DDevice8->CreateImageSurface(PixelJar.dwWidth, PixelJar.dwHeight, PCFormat, &pNewHostSurface);
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateImageSurface");
 
-		if (FAILED(hRet))
-			CxbxKrnlCleanup("CreateImageSurface Failed!\n\nError: %s\nDesc: %s"/*,
-			DXGetErrorString8A(hRet), DXGetErrorDescription8A(hRet)*/);
+				if (FAILED(hRet))
+					CxbxKrnlCleanup("CreateImageSurface Failed!\n\nError: %s\nDesc: %s"/*,
+					DXGetErrorString8A(hRet), DXGetErrorDescription8A(hRet)*/);
+			}
+			else {
+				if (EmuXBFormatIsDepthBuffer(X_Format)) {
+					LOG_TEST_CASE("pSurfaceParent IsDepthBuffer");
+					hRet = g_pD3DDevice8->CreateDepthStencilSurface(
+						PixelJar.dwWidth, PixelJar.dwHeight,
+						PCFormat,
+						D3DMULTISAMPLE_NONE, // MultiSampleType; TODO : Determine real MultiSampleType
+						&pNewHostSurface);
+					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateDepthStencilSurface");
+
+					if (FAILED(hRet))
+						CxbxKrnlCleanup("CreateDepthStencilSurface Failed!\n\nError: %s\nDesc: %s"/*,
+						DXGetErrorString8A(hRet), DXGetErrorDescription8A(hRet)*/);
+				}
+				else
+					CxbxKrnlCleanup("pSurfaceParent Unhandled format");
+			}
+		}
 
 		SetHostSurface((XTL::X_D3DResource *)pPixelContainer, pNewHostSurface);
-		DbgPrintf("CxbxUpdateTexture : Successfully Created ImageSurface (0x%.08X, 0x%.08X)\n", pPixelContainer, pNewHostSurface);
+		DbgPrintf("CxbxUpdateTexture : Successfully created surface (0x%.08X, 0x%.08X)\n", pPixelContainer, pNewHostSurface);
 		DbgPrintf("CxbxUpdateTexture : Width : %d, Height : %d, Format : %d\n", PixelJar.dwWidth, PixelJar.dwHeight, PCFormat);
 
 		result = (IDirect3DBaseTexture8 *)pNewHostSurface;
