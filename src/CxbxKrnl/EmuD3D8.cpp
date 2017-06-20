@@ -1518,9 +1518,11 @@ void CxbxUpdateTextureStages()
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	for (int Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++) {
-		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = CxbxUpdateTexture(XTL::GetXboxBaseTexture(Stage), g_pTexturePaletteStages[Stage]);
+		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = (g_iWireframe == 0)
+			? CxbxUpdateTexture(XTL::GetXboxBaseTexture(Stage), g_pTexturePaletteStages[Stage])
+			: nullptr;
 
-		HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, (g_iWireframe == 0) ? pHostBaseTexture : nullptr);
+		HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, pHostBaseTexture);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTexture");
 	}
 }
@@ -4867,6 +4869,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 #else
 		Xbox_D3DDevice_m_Textures[Stage] = pTexture;
 #endif
+		// Note : The textures set above are read back via GetXboxBaseTexture()
 
 		if (pOldTexture != NULL) {
 			if (pOldTexture->Common-- <= 1) {
