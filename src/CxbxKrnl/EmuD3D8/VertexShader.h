@@ -69,26 +69,22 @@ extern HRESULT EmuRecompileVshFunction
 	boolean		 *pbUseDeclarationOnly
 );
 
-extern void FreeVertexDynamicPatch(CxbxVertexShader *pVertexShader);
+extern void FreeVertexDynamicPatch(CxbxVertexShader *pHostVertexShader);
 
 // Checks for failed vertex shaders, and shaders that would need patching
 extern boolean IsValidCurrentShader(void);
 extern boolean VshHandleIsValidShader(DWORD Handle);
 
-#if 0 // TODO : Test thouroughly, and switch over to this:
 // On Xbox, a vertex shader handle is either a FVF (Fixed Vertex Format),
 // or a shader object address (bit 1 set indicates non-FVF shader handles).
 // FVF combine D3DFVF_* flags, and use bit 16 up to 23 for texture sizes.
-inline boolean VshHandleIsFVF(DWORD Handle) { return (Handle > 0) && ((Handle & 1) == 0); }
-inline boolean VshHandleIsVertexShader(DWORD Handle) { return ((Handle & 1) == 1); }
-inline X_D3DVertexShader *VshHandleGetVertexShader(DWORD Handle) { return VshHandleIsVertexShader(Handle) ? (X_D3DVertexShader *)(Handle ^ 1) : nullptr; }
-#else
-// Dxbx note : On Xbox, a FVF is recognizable when the handle <= 0x0000FFFF
-// (as all values above are allocated VertexShader addresses).
-inline boolean VshHandleIsFVF(DWORD Handle) { return (Handle > NULL) && (Handle <= 0x0000FFFF); }
-inline boolean VshHandleIsVertexShader(DWORD Handle) { return (Handle > 0x0000FFFF) ? TRUE : FALSE; }
-inline X_D3DVertexShader *VshHandleGetVertexShader(DWORD Handle) { return VshHandleIsVertexShader(Handle) ? (X_D3DVertexShader *)Handle : nullptr; }
-#endif
+inline boolean VshHandleIsFVF(DWORD Handle) { return ((Handle & D3DFVF_RESERVED0) == 0); }
+inline boolean VshHandleIsVertexShader(DWORD Handle) { return ((Handle & D3DFVF_RESERVED0) > 0); }
+
+extern CxbxVertexShader *GetHostVertexShader(X_D3DVertexShader *pXboxVertexShader);
+extern CxbxVertexShader *VshHandleGetHostVertexShader(DWORD aHandle);
+extern X_D3DVertexShader *VshHandleGetXboxVertexShader(DWORD Handle);
+
 
 #ifdef _DEBUG_TRACK_VS
 #define DbgVshPrintf if(g_bPrintfOn) printf

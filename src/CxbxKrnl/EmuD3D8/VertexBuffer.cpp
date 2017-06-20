@@ -586,11 +586,10 @@ void XTL::CxbxVertexBufferConverter::Apply(CxbxDrawContext *pDrawContext)
 	if (pDrawContext->hVertexShader > 0)
 	{
 		m_uiNbrStreams = 1; // Could be more, but it doesn't matter as long as we're not going to patch the types
-		if (VshHandleIsVertexShader(pDrawContext->hVertexShader)) {
-			// VshGetVertexDynamicPatch
-			X_D3DVertexShader *pD3DVertexShader = VshHandleGetVertexShader(pDrawContext->hVertexShader);
-			CxbxVertexShader *pVertexShader = (CxbxVertexShader *)pD3DVertexShader->Handle;
-			CxbxVertexShaderDynamicPatch *pVertexShaderDynamicPatch = &(pVertexShader->VertexShaderDynamicPatch);
+		CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(pDrawContext->hVertexShader);
+		if (pHostVertexShader != nullptr) {
+			// TODO : Introduce VshGetVertexDynamicPatch(Handle) ?
+			CxbxVertexShaderDynamicPatch *pVertexShaderDynamicPatch = &(pHostVertexShader->VertexShaderDynamicPatch);
 			for (uint32 i = 0; i < pVertexShaderDynamicPatch->NbrStreams; i++) {
 				if (pVertexShaderDynamicPatch->pStreamPatches[i].NeedPatch) {
 					m_pVertexShaderDynamicPatch = pVertexShaderDynamicPatch;

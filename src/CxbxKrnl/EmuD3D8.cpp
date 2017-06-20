@@ -3109,14 +3109,14 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_LoadVertexShader)
 		LOG_FUNC_ARG(Address)
 		LOG_FUNC_END;
 
-    if(Address < 136 && VshHandleIsVertexShader(Handle))
-    {
-        CxbxVertexShader *pVertexShader = (CxbxVertexShader *)(VshHandleGetVertexShader(Handle))->Handle;
-        for (DWORD i = Address; i < pVertexShader->Size; i++)
-        {
-            // TODO: This seems very fishy
-            g_VertexShaderSlots[i] = Handle;
-        }
+    if (Address < 136) {
+		CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(Handle);
+		if (pHostVertexShader != nullptr) {
+			for (DWORD i = Address; i < pHostVertexShader->Size; i++) {
+				// TODO: This seems very fishy
+				g_VertexShaderSlots[i] = Handle;
+			}
+		}
     }
 
     return D3D_OK;
@@ -3137,41 +3137,33 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SelectVertexShader)
 
 	HRESULT hRet;
 
-    if(VshHandleIsVertexShader(Handle))
-    {
-        CxbxVertexShader *pVertexShader = (CxbxVertexShader *)(((X_D3DVertexShader *)(Handle & 0x7FFFFFFF))->Handle);
-        hRet = g_pD3DDevice8->SetVertexShader(pVertexShader->Handle);
+    if (VshHandleIsVertexShader(Handle)) {
+		CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(Handle);
+		hRet = g_pD3DDevice8->SetVertexShader(pHostVertexShader->Handle);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetVertexShader(VshHandleIsVertexShader)");
     }
-    else if(Handle == NULL)
-    {
+    else if (Handle == NULL) {
 		hRet = g_pD3DDevice8->SetVertexShader(D3DFVF_XYZ | D3DFVF_TEX0);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetVertexShader(D3DFVF_XYZ | D3DFVF_TEX0)");
 	}
-    else if(Address < 136)
-    {
-        X_D3DVertexShader *pVertexShader = (X_D3DVertexShader*)g_VertexShaderSlots[Address];
-
-        if(pVertexShader != NULL)
-        {
-			hRet = g_pD3DDevice8->SetVertexShader(((CxbxVertexShader *)((X_D3DVertexShader *)g_VertexShaderSlots[Address])->Handle)->Handle);
-			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetVertexShader(pVertexShader)");
+    else if (Address < 136) {
+		CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(g_VertexShaderSlots[Address]);
+        if (pHostVertexShader != nullptr) {
+			hRet = g_pD3DDevice8->SetVertexShader(pHostVertexShader->Handle);
+			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetVertexShader(pHostVertexShader)");
 		}
-        else
-        {
+        else {
             EmuWarning("g_VertexShaderSlots[%d] = 0", Address);
 			hRet = D3D_OK;
 		}
     }
 
-	if (FAILED(hRet))
-	{
+	if (FAILED(hRet)) {
 		EmuWarning("We're lying about setting a vertext shader!");
-
 		hRet = D3D_OK;
 	}
 
-    return hRet;
+    RETURN(hRet);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle)()
@@ -3780,54 +3772,45 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
 		LOG_FUNC_ARG_TYPE(X_D3DUSAGE, Usage)
 		LOG_FUNC_END;
 
-    // create emulated shader struct
-    X_D3DVertexShader *pD3DVertexShader = (X_D3DVertexShader*)g_MemoryManager.AllocateZeroed(1, sizeof(X_D3DVertexShader));
-    CxbxVertexShader     *pVertexShader = (CxbxVertexShader*)g_MemoryManager.AllocateZeroed(1, sizeof(CxbxVertexShader));
-
-    // TODO: Intelligently fill out these fields as necessary
-
     // HACK: TODO: support this situation
-    if(pDeclaration == NULL)
-    {
+    if(pDeclaration == NULL) {
         *pHandle = NULL;
-
-        
 
         return D3D_OK;
     }
+
+    // create emulated shader struct
+    X_D3DVertexShader *pXboxVertexShader = (X_D3DVertexShader*)g_MemoryManager.AllocateZeroed(1, sizeof(X_D3DVertexShader));
+    CxbxVertexShader *pHostVertexShader = (CxbxVertexShader*)g_MemoryManager.AllocateZeroed(1, sizeof(CxbxVertexShader));
+
+    // TODO: Intelligently fill out these fields as necessary
 
     LPD3DXBUFFER pRecompiledBuffer = nullptr;
     DWORD        *pRecompiledDeclaration = nullptr;
     DWORD        *pRecompiledFunction = nullptr;
     DWORD        VertexShaderSize = 0;
     DWORD        DeclarationSize = 0;
-    DWORD        Handle = 0;
+    DWORD        HostVertexHandle = 0;
 
     HRESULT hRet = XTL::EmuRecompileVshDeclaration((DWORD*)pDeclaration,
                                                    &pRecompiledDeclaration,
                                                    &DeclarationSize,
                                                    pFunction == NULL,
-                                                   &pVertexShader->VertexShaderDynamicPatch);
+                                                   &pHostVertexShader->VertexShaderDynamicPatch);
 
-    if(SUCCEEDED(hRet) && pFunction)
-    {
+    if (SUCCEEDED(hRet) && pFunction) {
 		boolean bUseDeclarationOnly = 0;
-
         hRet = XTL::EmuRecompileVshFunction((DWORD*)pFunction,
                                             &pRecompiledBuffer,
                                             &VertexShaderSize,
                                             g_VertexShaderConstantMode == X_D3DSCM_NORESERVEDCONSTANTS,
 											&bUseDeclarationOnly);
-        if(SUCCEEDED(hRet))
-        {
-			if(!bUseDeclarationOnly)
+        if (SUCCEEDED(hRet)) {
+			if (!bUseDeclarationOnly) {
 				pRecompiledFunction = (DWORD*)pRecompiledBuffer->GetBufferPointer();
-			else
-				pRecompiledFunction = nullptr;
+			}
         }
-        else
-        {
-            pRecompiledFunction = nullptr;
+        else {
             EmuWarning("Couldn't recompile vertex shader function.");
             hRet = D3D_OK; // Try using a fixed function vertex shader instead
         }
@@ -3835,26 +3818,22 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
 
     //DbgPrintf("MaxVertexShaderConst = %d\n", g_D3DCaps.MaxVertexShaderConst);
 
-    if(SUCCEEDED(hRet))
-    {
-        hRet = g_pD3DDevice8->CreateVertexShader
-        (
+    if (SUCCEEDED(hRet)) {
+        hRet = g_pD3DDevice8->CreateVertexShader(
             pRecompiledDeclaration,
             pRecompiledFunction,
-            &Handle,
+            &HostVertexHandle,
             g_dwVertexShaderUsage   // TODO: HACK: Xbox has extensions!
         );
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateVertexShader");
 
-        if(pRecompiledBuffer != nullptr)
-        {
+        if (pRecompiledBuffer != nullptr) {
             pRecompiledBuffer->Release();
             pRecompiledBuffer = nullptr;
         }
 
         //* Fallback to dummy shader.
-        if(FAILED(hRet))
-        {
+        if (FAILED(hRet)) {
             static const char dummy[] =
                 "vs.1.1\n"
                 "mov oPos, v0\n";
@@ -3868,80 +3847,68 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
                                       nullptr);
 			DEBUG_D3DRESULT(hRet, "D3DXAssembleShader");
 
-			hRet = g_pD3DDevice8->CreateVertexShader
-            (
+			hRet = g_pD3DDevice8->CreateVertexShader(
                 pRecompiledDeclaration,
                 (DWORD*)pRecompiledBuffer->GetBufferPointer(),
-                &Handle,
+                &HostVertexHandle,
                 g_dwVertexShaderUsage
             );
 			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateVertexShader(fallback)");
 		}
         //*/
     }
-    // Save the status, to remove things later
-    pVertexShader->Status = hRet;
 
     free(pRecompiledDeclaration);
 
-    pVertexShader->pDeclaration = (DWORD*)g_MemoryManager.Allocate(DeclarationSize);
-    memcpy(pVertexShader->pDeclaration, pDeclaration, DeclarationSize);
+    // Save the status, to remove things later
+    pHostVertexShader->Size = (VertexShaderSize - sizeof(VSH_SHADER_HEADER)) / VSH_INSTRUCTION_SIZE_BYTES;
+    pHostVertexShader->pDeclaration = (DWORD*)g_MemoryManager.Allocate(DeclarationSize);
+    memcpy(pHostVertexShader->pDeclaration, pDeclaration, DeclarationSize);
+    pHostVertexShader->DeclarationSize = DeclarationSize;
+    pHostVertexShader->pFunction = nullptr;
+    pHostVertexShader->FunctionSize = 0;
+    pHostVertexShader->Type = X_VST_NORMAL;
+    pHostVertexShader->Status = hRet;
 
-    pVertexShader->FunctionSize = 0;
-    pVertexShader->pFunction = NULL;
-    pVertexShader->Type = X_VST_NORMAL;
-    pVertexShader->Size = (VertexShaderSize - sizeof(VSH_SHADER_HEADER)) / VSH_INSTRUCTION_SIZE_BYTES;
-    pVertexShader->DeclarationSize = DeclarationSize;
+    if(SUCCEEDED(hRet)) {
+        if(pFunction != NULL) {
+            pHostVertexShader->pFunction = (DWORD*)g_MemoryManager.Allocate(VertexShaderSize);
+            memcpy(pHostVertexShader->pFunction, pFunction, VertexShaderSize);
+            pHostVertexShader->FunctionSize = VertexShaderSize;
+        }
 
-    if(SUCCEEDED(hRet))
-    {
-        if(pFunction != NULL)
-        {
-            pVertexShader->pFunction = (DWORD*)g_MemoryManager.Allocate(VertexShaderSize);
-            memcpy(pVertexShader->pFunction, pFunction, VertexShaderSize);
-            pVertexShader->FunctionSize = VertexShaderSize;
-        }
-        else
-        {
-            pVertexShader->pFunction = NULL;
-            pVertexShader->FunctionSize = 0;
-        }
-        pVertexShader->Handle = Handle;
+        pHostVertexShader->Handle = HostVertexHandle;
     }
-    else
-    {
-        pVertexShader->Handle = D3DFVF_XYZ | D3DFVF_TEX0;
+    else {
+        pHostVertexShader->Handle = D3DFVF_XYZ | D3DFVF_TEX0;
     }
 
-    pD3DVertexShader->Handle = (DWORD)pVertexShader;
+	// (Ab)use the Xbox Handle for storing the host vertex shader
+    pXboxVertexShader->Handle = (DWORD)pHostVertexShader;
+	// Make sure the Xbox recognizes this handle as a vertex shader (not a FVF)
+	*pHandle = (DWORD)pXboxVertexShader | D3DFVF_RESERVED0; // see VshHandleIsFVF and VshHandleIsVertexShader
 
-	*pHandle = (DWORD)pD3DVertexShader; // DON'T collide with MM_SYSTEM_PHYSICAL_MAP (see VshHandleIsFVF and VshHandleIsVertexShader)
-
-    if(FAILED(hRet))
-    {
+    if(FAILED(hRet)) {
 #ifdef _DEBUG_TRACK_VS
-        if (pFunction)
-        {
+        if (pFunction != NULL) {
             char pFileName[30];
             static int FailedShaderCount = 0;
             VSH_SHADER_HEADER *pHeader = (VSH_SHADER_HEADER*)pFunction;
             EmuWarning("Couldn't create vertex shader!");
             sprintf(pFileName, "failed%05d.xvu", FailedShaderCount);
             FILE *f = fopen(pFileName, "wb");
-            if(f)
-            {
+            if (f != nullptr) {
                 fwrite(pFunction, sizeof(VSH_SHADER_HEADER) + pHeader->NumInst * 16, 1, f);
                 fclose(f);
             }
+
             FailedShaderCount++;
         }
 #endif // _DEBUG_TRACK_VS
         //hRet = D3D_OK;
-    }
+    }    
 
-    
-
-    return hRet;
+    RETURN(hRet);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderConstant)
@@ -7949,8 +7916,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
 
     // Store viewport offset and scale in constant registers 58 (c-38) and
     // 59 (c-37) used for screen space transformation.
-    if(g_VertexShaderConstantMode != X_D3DSCM_NORESERVEDCONSTANTS)
-    {
+    if (g_VertexShaderConstantMode != X_D3DSCM_NORESERVEDCONSTANTS) {
         // TODO: Proper solution.
         static float vScale[] = { (2.0f / 640), (-2.0f / 480), 0.0f, 0.0f };
         static float vOffset[] = { -1.0f, 1.0f, 0.0f, 1.0f };
@@ -7959,30 +7925,31 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
         g_pD3DDevice8->SetVertexShaderConstant(59, vOffset, 1);
     }
 
-    DWORD RealHandle;
-    if(VshHandleIsVertexShader(Handle))
-    {
-        RealHandle = ((CxbxVertexShader *)(VshHandleGetVertexShader(Handle))->Handle)->Handle;
+    DWORD HostVertexHandle;
+
+	CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(Handle);
+	if (pHostVertexShader != nullptr) {
+		HostVertexHandle = pHostVertexShader->Handle;
     }
-    else
-    {
-        RealHandle = Handle;
-		RealHandle &= ~D3DFVF_XYZ;
-		RealHandle &= ~D3DFVF_XYZRHW;
-		RealHandle &= ~D3DFVF_XYZB1;
-		RealHandle &= ~D3DFVF_XYZB2;
-		RealHandle &= ~D3DFVF_XYZB3;
-		RealHandle &= ~D3DFVF_XYZB4;
-		RealHandle &= ~D3DFVF_DIFFUSE;
-		RealHandle &= ~D3DFVF_NORMAL;
-		RealHandle &= ~D3DFVF_SPECULAR;
-		RealHandle &= 0x00FF;
-		if( RealHandle != 0 )
-			EmuWarning("EmuD3DDevice_SetVertexShader Handle = 0x%.08X", RealHandle );
-		RealHandle = Handle;
+    else {
+        HostVertexHandle = Handle;
+		HostVertexHandle &= ~D3DFVF_XYZ;
+		HostVertexHandle &= ~D3DFVF_XYZRHW;
+		HostVertexHandle &= ~D3DFVF_XYZB1;
+		HostVertexHandle &= ~D3DFVF_XYZB2;
+		HostVertexHandle &= ~D3DFVF_XYZB3;
+		HostVertexHandle &= ~D3DFVF_XYZB4;
+		HostVertexHandle &= ~D3DFVF_DIFFUSE;
+		HostVertexHandle &= ~D3DFVF_NORMAL;
+		HostVertexHandle &= ~D3DFVF_SPECULAR;
+		HostVertexHandle &= 0x00FF;
+		if (HostVertexHandle != 0)
+			EmuWarning("EmuD3DDevice_SetVertexShader Handle = 0x%.08X", HostVertexHandle);
+
+		HostVertexHandle = Handle;
     }
 
-	hRet = g_pD3DDevice8->SetVertexShader(RealHandle);
+	hRet = g_pD3DDevice8->SetVertexShader(HostVertexHandle);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetVertexShader");    
 
     return hRet;
@@ -8920,16 +8887,15 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderSize)
 		LOG_FUNC_ARG(pSize)
 		LOG_FUNC_END;
 
-    if(pSize  && VshHandleIsVertexShader(Handle))
-    {
-        X_D3DVertexShader *pD3DVertexShader = (X_D3DVertexShader *)(Handle & 0x7FFFFFFF);
-        CxbxVertexShader *pVertexShader = (CxbxVertexShader *)pD3DVertexShader->Handle;
-        *pSize = pVertexShader->Size;
-    }
-    else if(pSize)
-    {
-        *pSize = 0;
-    }
+	if (pSize != NULL) {
+		CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(Handle);
+		if (pHostVertexShader != nullptr) {
+			*pSize = pHostVertexShader->Size;
+		}
+		else {
+			*pSize = 0;
+		}
+	}
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_DeleteVertexShader)
@@ -8941,28 +8907,28 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DeleteVertexShader)
 
 	LOG_FUNC_ONE_ARG(Handle);
 
-    DWORD RealHandle = 0;
+    DWORD HostVertexHandle = 0;
 
-    if(VshHandleIsVertexShader(Handle))
-    {
-        X_D3DVertexShader *pD3DVertexShader = (X_D3DVertexShader *)(Handle & 0x7FFFFFFF);
-        CxbxVertexShader *pVertexShader = (CxbxVertexShader *)pD3DVertexShader->Handle;
+    if (VshHandleIsVertexShader(Handle)) {
+		X_D3DVertexShader *pXboxVertexShader = VshHandleGetXboxVertexShader(Handle);
+		CxbxVertexShader *pHostVertexShader = GetHostVertexShader(pXboxVertexShader);
 
-        RealHandle = pVertexShader->Handle;
-        g_MemoryManager.Free(pVertexShader->pDeclaration);
+        HostVertexHandle = pHostVertexShader->Handle;
+		if (pHostVertexShader->pDeclaration != nullptr) {
+			g_MemoryManager.Free(pHostVertexShader->pDeclaration);
+		}
 
-        if(pVertexShader->pFunction)
-        {
-            g_MemoryManager.Free(pVertexShader->pFunction);
+        if (pHostVertexShader->pFunction != nullptr) {
+            g_MemoryManager.Free(pHostVertexShader->pFunction);
         }
 
-        FreeVertexDynamicPatch(pVertexShader);
+        FreeVertexDynamicPatch(pHostVertexShader);
 
-        g_MemoryManager.Free(pVertexShader);
-        g_MemoryManager.Free(pD3DVertexShader);
+        g_MemoryManager.Free(pHostVertexShader);
+        g_MemoryManager.Free(pXboxVertexShader);
     }
 
-    HRESULT hRet = g_pD3DDevice8->DeleteVertexShader(RealHandle);
+    HRESULT hRet = g_pD3DDevice8->DeleteVertexShader(HostVertexHandle);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DeleteVertexShader");    
 }
 
@@ -9151,9 +9117,11 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderType)
 		LOG_FUNC_ARG(pType)
 		LOG_FUNC_END;
 
-    if(pType && VshHandleIsVertexShader(Handle))
-    {
-        *pType = ((CxbxVertexShader *)(VshHandleGetVertexShader(Handle))->Handle)->Type;
+    if (pType != NULL) {
+		CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(Handle);
+		if (pHostVertexShader != nullptr) {
+			*pType = pHostVertexShader->Type;
+		}
     }
 }
 
@@ -9174,24 +9142,21 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderDeclaration)
 
     HRESULT hRet = D3DERR_INVALIDCALL;
 
-    if(pSizeOfData && VshHandleIsVertexShader(Handle))
-    {
-        CxbxVertexShader *pVertexShader = (CxbxVertexShader *)(VshHandleGetVertexShader(Handle))->Handle;
-        if(*pSizeOfData < pVertexShader->DeclarationSize || !pData)
-        {
-            *pSizeOfData = pVertexShader->DeclarationSize;
-
-            hRet = !pData ? D3D_OK : D3DERR_MOREDATA;
-        }
-        else
-        {
-            memcpy(pData, pVertexShader->pDeclaration, pVertexShader->DeclarationSize);
-            hRet = D3D_OK;
-        }
+    if (pSizeOfData != NULL) {
+		CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(Handle);
+		if (pHostVertexShader != nullptr) {
+			if (*pSizeOfData < pHostVertexShader->DeclarationSize || (pData == NULL)) {
+				*pSizeOfData = pHostVertexShader->DeclarationSize;
+				hRet = (pData == NULL) ? D3D_OK : D3DERR_MOREDATA;
+			}
+			else {
+				memcpy(pData, pHostVertexShader->pDeclaration, pHostVertexShader->DeclarationSize);
+				hRet = D3D_OK;
+			}
+		}
     }
 
-    
-    return hRet;
+    RETURN(hRet);
 }
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderFunction)
@@ -9211,24 +9176,21 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderFunction)
 
     HRESULT hRet = D3DERR_INVALIDCALL;
 
-    if(pSizeOfData && VshHandleIsVertexShader(Handle))
-    {
-        CxbxVertexShader *pVertexShader = (CxbxVertexShader *)(VshHandleGetVertexShader(Handle))->Handle;
-        if(*pSizeOfData < pVertexShader->FunctionSize || !pData)
-        {
-            *pSizeOfData = pVertexShader->FunctionSize;
-
-            hRet = !pData ? D3D_OK : D3DERR_MOREDATA;
-        }
-        else
-        {
-            memcpy(pData, pVertexShader->pFunction, pVertexShader->FunctionSize);
-            hRet = D3D_OK;
-        }
+    if (pSizeOfData != NULL) {
+		CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(Handle);
+		if (pHostVertexShader != nullptr) {
+			if (*pSizeOfData < pHostVertexShader->FunctionSize || pData == NULL) {
+				*pSizeOfData = pHostVertexShader->FunctionSize;
+				hRet = (pData == NULL) ? D3D_OK : D3DERR_MOREDATA;
+			}
+			else {
+				memcpy(pData, pHostVertexShader->pFunction, pHostVertexShader->FunctionSize);
+				hRet = D3D_OK;
+			}
+		}
     }
-
     
-    return hRet;
+    RETURN(hRet);
 }
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetDepthClipPlanes)

@@ -473,24 +473,36 @@ static const char* OReg_Name[] =
     "a0.x"
 };
 
-// Dxbx note : This tooling function is never used, but clearly illustrates the relation
-// between vertex shader's being passed around, and the actual handle value used on PC.
-DWORD VshHandleGetRealHandle(DWORD aHandle)
+XTL::X_D3DVertexShader *XTL::VshHandleGetXboxVertexShader(DWORD Handle)
 {
-	using namespace XTL;
-
-	if (VshHandleIsVertexShader(aHandle))
-	{
-		X_D3DVertexShader *pD3DVertexShader = VshHandleGetVertexShader(aHandle);
-		// assert(pD3DVertexShader);
-
-		CxbxVertexShader *pVertexShader = (CxbxVertexShader*)(pD3DVertexShader->Handle);
-		// assert(pVertexShader);
-
-		return pVertexShader->Handle;
+	if (VshHandleIsVertexShader(Handle)) {
+		return (X_D3DVertexShader *)(Handle ^ D3DFVF_RESERVED0);
 	}
-	else
-		return aHandle;
+
+	return nullptr;
+}
+
+XTL::CxbxVertexShader *XTL::GetHostVertexShader(X_D3DVertexShader *pXboxVertexShader)
+{
+	if (pXboxVertexShader != NULL) {
+		CxbxVertexShader *pHostVertexShader = (CxbxVertexShader*)(pXboxVertexShader->Handle);
+		// assert(pHostVertexShader);
+		return pHostVertexShader;
+	}
+
+	return nullptr;
+}
+
+// This tooling function clearly illustrates the relation
+// between vertex shader's being passed around, and the actual handle value used on PC.
+XTL::CxbxVertexShader *XTL::VshHandleGetHostVertexShader(DWORD aHandle)
+{
+	X_D3DVertexShader *pXboxVertexShader = VshHandleGetXboxVertexShader(aHandle);
+	if (pXboxVertexShader != NULL) {
+		return GetHostVertexShader(pXboxVertexShader);
+	}
+
+	return nullptr;
 }
 
 static inline int IsInUse(const boolean *pMask)
@@ -2241,22 +2253,22 @@ extern HRESULT XTL::EmuRecompileVshFunction
     return hRet;
 }
 
-extern void XTL::FreeVertexDynamicPatch(CxbxVertexShader *pVertexShader)
+void XTL::FreeVertexDynamicPatch(CxbxVertexShader *pHostVertexShader)
 {
-    for (DWORD i = 0; i < pVertexShader->VertexShaderDynamicPatch.NbrStreams; i++)
+    for (DWORD i = 0; i < pHostVertexShader->VertexShaderDynamicPatch.NbrStreams; i++)
     {
-        free(pVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].pTypes);
-		pVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].pTypes = nullptr;
-		free(pVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].pSizes);
-		pVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].pSizes = nullptr;
+        free(pHostVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].pTypes);
+		pHostVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].pTypes = nullptr;
+		free(pHostVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].pSizes);
+		pHostVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].pSizes = nullptr;
     }
 
-    free(pVertexShader->VertexShaderDynamicPatch.pStreamPatches);
-    pVertexShader->VertexShaderDynamicPatch.pStreamPatches = NULL;
-    pVertexShader->VertexShaderDynamicPatch.NbrStreams = 0;
+    free(pHostVertexShader->VertexShaderDynamicPatch.pStreamPatches);
+    pHostVertexShader->VertexShaderDynamicPatch.pStreamPatches = NULL;
+    pHostVertexShader->VertexShaderDynamicPatch.NbrStreams = 0;
 }
 
-extern boolean XTL::IsValidCurrentShader(void)
+boolean XTL::IsValidCurrentShader(void)
 {
 	// Dxbx addition : There's no need to call
 	// XTL::EmuIDirect3DDevice_GetVertexShader, just check g_CurrentVertexShader :
@@ -2268,21 +2280,21 @@ boolean XTL::VshHandleIsValidShader(DWORD Handle)
 {
 	//printf( "VS = 0x%.08X\n", Handle );
 
-    if (VshHandleIsVertexShader(Handle))
+	CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(Handle);
+
+    if (pHostVertexShader != nullptr)
     {
-        X_D3DVertexShader *pD3DVertexShader = VshHandleGetVertexShader(Handle);
-        CxbxVertexShader *pVertexShader = (CxbxVertexShader *)pD3DVertexShader->Handle;
-        if (pVertexShader->Status != 0)
+        if (pHostVertexShader->Status != 0)
         {
             return FALSE;
         }
         /*
-        for (uint32 i = 0; i < pVertexShader->VertexShaderDynamicPatch.NbrStreams; i++)
+        for (uint32 i = 0; i < pHostVertexShader->VertexShaderDynamicPatch.NbrStreams; i++)
         {
-            if (pVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].NeedPatch)
+            if (pHostVertexShader->VertexShaderDynamicPatch.pStreamPatches[i].NeedPatch)
             {
                 // Just for caching purposes
-                pVertexShader->Status = 0x80000001;
+                pHostVertexShader->Status = 0x80000001;
                 return FALSE;
             }
         }
