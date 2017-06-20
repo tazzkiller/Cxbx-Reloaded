@@ -710,6 +710,7 @@ void DecodeD3DSize(DWORD D3DSize, Decoded_D3DSize &decoded)
 }
 
 struct DecodedPixelContainer {
+	XTL::X_D3DPixelContainer *pPixelContainer;
 	XTL::X_D3DFORMAT X_Format; // D3DFORMAT - See X_D3DFMT_* 
 	DWORD dwBPP; // Bits per pixel, 8, 16 or 32 (and 4 for DXT1)
 	BOOL bIsSwizzled;
@@ -732,6 +733,7 @@ struct DecodedPixelContainer {
 
 void DumpDecodedPixelContainer(DecodedPixelContainer &decoded)
 {
+	DbgPrintf("pPixelContainer = 0x%.08X\n", decoded.pPixelContainer);
 	DbgPrintf("X_Format = 0x%.02X (%s)\n", decoded.X_Format, TYPE2PCHAR(X_D3DFORMAT)(decoded.X_Format));
 	DbgPrintf("dwBPP = %d\n", decoded.dwBPP);
 	DbgPrintf("bIsSwizzled = %d\n", decoded.bIsSwizzled);
@@ -748,8 +750,13 @@ void DumpDecodedPixelContainer(DecodedPixelContainer &decoded)
 	DbgPrintf("dwMinXYValue = %d\n", decoded.dwMinXYValue);
 }
 
-void DecodeD3DFormatAndSize(DWORD dwD3DFormat, DWORD dwD3DSize, OUT DecodedPixelContainer &decoded)
+void DecodeD3DFormatAndSize(XTL::X_D3DPixelContainer *pPixelContainer, OUT DecodedPixelContainer &decoded)
 {
+	decoded.pPixelContainer = pPixelContainer;
+
+	DWORD dwD3DFormat = pPixelContainer->Format;
+	DWORD dwD3DSize = pPixelContainer->Size;
+
 	Decoded_D3DFormat decodedFormat;
 	DecodeD3DFormat(dwD3DFormat, decodedFormat);
 
@@ -1188,34 +1195,32 @@ void *XTL::GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 	return (uint08*)pData;
 }
 
-#if 0 // TODO : Finish back-porting this
-void DxbxDetermineSurFaceAndLevelByData(const DecodedPixelContainer DxbxPixelJar, OUT int &Level, OUT D3DCUBEMAP_FACES &FaceType)
+void DxbxDetermineSurFaceAndLevelByData(const DecodedPixelContainer PixelJar, OUT UINT &Level, OUT XTL::D3DCUBEMAP_FACES &FaceType)
 {
-	UINT_PTR ParentData = (UINT_PTR)CxbxGetDataFromXboxResource(PX_D3DSurface(DxbxPixelJar.pPixelContainer).Parent);
-	UINT_PTR SurfaceData = (UINT_PTR)CxbxGetDataFromXboxResource(DxbxPixelJar.pPixelContainer);
+	UINT_PTR ParentData = (UINT_PTR)GetDataFromXboxResource(((XTL::X_D3DSurface*)(PixelJar.pPixelContainer)->Parent);
+	UINT_PTR SurfaceData = (UINT_PTR)GetDataFromXboxResource(PixelJar.pPixelContainer);
 
 	// Step to the correct face :
-	FaceType = D3DCUBEMAP_FACE_POSITIVE_X;
-	while (FaceType < D3DCUBEMAP_FACE_NEGATIVE_Z)
+	FaceType = XTL::D3DCUBEMAP_FACE_POSITIVE_X;
+	while (FaceType < XTL::D3DCUBEMAP_FACE_NEGATIVE_Z)
 	{
 		if (ParentData >= SurfaceData)
 			break;
 
-		ParentData += DxbxPixelJar.dwFacePitch;
-		FaceType++;
+		ParentData += PixelJar.dwFacePitch;
+		*((DWORD*)&FaceType)++; // enum can't be increased using FaceType++;
 	}
 
 	// Step to the correct mipmap level :
 	Level = 0;
 	while (Level < X_MAX_MIPMAPS)
 	{
-		if (ParentData + DxbxPixelJar.MipMapOffsets[Level] >= SurfaceData)
+		if (ParentData + PixelJar.MipMapOffsets[Level] >= SurfaceData)
 			break;
 
 		Level++;
 	}
 }
-#endif
 
 namespace XTL {
 D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceType, IN OUT DWORD &aUsage)
@@ -5646,7 +5651,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 	// Interpret Width/Height/BPP
 	DecodedPixelContainer PixelJar;
-	DecodeD3DFormatAndSize(pPixelContainer->Format, pPixelContainer->Size, OUT PixelJar);
+	DecodeD3DFormatAndSize(pPixelContainer, OUT PixelJar);
 
 #if 0 // TODO : Why was this?
 	if (PixelJar.bIsSwizzled || PixelJar.bIsCompressed)
@@ -6464,7 +6469,7 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
 		LOG_FUNC_END;
 
 	DecodedPixelContainer PixelJar;
-	DecodeD3DFormatAndSize(pPixelContainer->Format, pPixelContainer->Size, OUT PixelJar);
+	DecodeD3DFormatAndSize(pPixelContainer, OUT PixelJar);
 
 	// TODO : Check if IsYuvSurface(pPixelContainer) works too
 	pDesc->Format = PixelJar.X_Format;
