@@ -41,7 +41,6 @@
 #include <d3d8types.h>
 
 // TODO: fill out these enumeration tables for convienance
-typedef DWORD X_D3DFORMAT;
 typedef DWORD X_D3DBLENDOP;
 typedef DWORD X_D3DBLEND;
 typedef DWORD X_D3DCMPFUNC;
@@ -51,91 +50,140 @@ typedef DWORD X_D3DSTENCILOP;
 typedef DWORD X_D3DTEXTURESTAGESTATETYPE;
 typedef PVOID X_D3DCALLBACK;
 
-const int X_D3DFMT_L8 = 0x00;
-const int X_D3DFMT_AL8 = 0x01;
-const int X_D3DFMT_A1R5G5B5 = 0x02;
-const int X_D3DFMT_X1R5G5B5 = 0x03;
-const int X_D3DFMT_A4R4G4B4 = 0x04;
-const int X_D3DFMT_R5G6B5 = 0x05;
-const int X_D3DFMT_A8R8G8B8 = 0x06;
-const int X_D3DFMT_X8R8G8B8 = 0x07;
-const int X_D3DFMT_X8L8V8U8 = 0x07; // Alias
+typedef enum _X_D3DCULL
+{
+	X_D3DCULL_NONE = 0,
+	X_D3DCULL_CW = 0x900,
+	X_D3DCULL_CCW = 0x901,
+	X_D3DCULL_FORCE_DWORD = 0x7fffffff
+}
+X_D3DCULL;
 
-const int X_D3DFMT_P8 = 0x0b; // 8-bit Palletized
+typedef enum _X_D3DFORMAT
+{
+/*
+	Xbox1 D3DFORMAT notes
+	---------------------
 
-const int X_D3DFMT_A8 = 0x19;
-const int X_D3DFMT_A8L8 = 0x1a;
-const int X_D3DFMT_R6G5B5 = 0x27;
-const int X_D3DFMT_L6V5U5 = 0x27; // Alias
+	The Xbox1 D3DFORMAT type consists of 4 different format categories :
+	1. Swizzled (improves data locality, incompatible with native Direct3D)
+	2. Compressed (DXT compression, giving 4:1 reduction on 4x4 pixel blocks)
+	3. Linear (compatible with native Direct3D)
+	4. Depth (Fixed or Floating point, stored Linear or Swizzled)
 
-const int X_D3DFMT_G8B8 = 0x28;
-const int X_D3DFMT_V8U8 = 0x28; // Alias
+	Requirements\Format      Swizzled  Compressed  Linear  Depth   Notes
 
-const int X_D3DFMT_R8B8 = 0x29;
-const int X_D3DFMT_D24S8 = 0x2a;
-const int X_D3DFMT_F24S8 = 0x2b;
-const int X_D3DFMT_D16 = 0x2c;
-const int X_D3DFMT_D16_LOCKABLE = 0x2c; // Alias
+	Power-of-two required ?  YES       YES         NO      NO
+	Mipmap supported ?       YES       YES         NO      YES     Linear has MipmapLevels = 1
+	CubeMaps supported ?     YES       YES         NO      NO      Cubemaps have 6 faces
+	Supports volumes ?       YES       YES         NO      NO      Volumes have 3 dimensions, Textures have 2
+	Can be a rendertarget ?  YES       YES         YES     LINEAR  Depth buffers can only be rendered to if stored Linear
 
-const int X_D3DFMT_F16 = 0x2d;
-const int X_D3DFMT_L16 = 0x32;
-const int X_D3DFMT_V16U16 = 0x33;
-const int X_D3DFMT_R5G5B5A1 = 0x38;
-const int X_D3DFMT_R4G4B4A4 = 0x39;
-const int X_D3DFMT_A8B8G8R8 = 0x3A;
-const int X_D3DFMT_Q8W8V8U8 = 0x3A; // Alias
+	Implications :
+	- CubeMaps must be square
+	- Volumes cannot be cube mapped and vice versa
 
-const int X_D3DFMT_B8G8R8A8 = 0x3B;
-const int X_D3DFMT_R8G8B8A8 = 0x3C;
+	Maximum dimensions :
+	2D : 4096 x 4096 (12 mipmap levels)
+	3D : 512 x 512 x 512 (9 mipmap levels)
 
-// YUV Formats
+*/
 
-const int X_D3DFMT_YUY2 = 0x24;
-const int X_D3DFMT_UYVY = 0x25;
+	// Xbox D3DFORMAT types :
+	// See http://wiki.beyondunreal.com/Legacy:Texture_Format
 
-// Compressed Formats
+	// Swizzled Formats
 
-const int X_D3DFMT_DXT1 = 0x0C; // opaque/one-bit alpha
+	X_D3DFMT_L8 = 0x00,
+	X_D3DFMT_AL8 = 0x01,
+	X_D3DFMT_A1R5G5B5 = 0x02,
+	X_D3DFMT_X1R5G5B5 = 0x03,
+	X_D3DFMT_A4R4G4B4 = 0x04,
+	X_D3DFMT_R5G6B5 = 0x05,
+	X_D3DFMT_A8R8G8B8 = 0x06,
+	X_D3DFMT_X8R8G8B8 = 0x07,
+	X_D3DFMT_X8L8V8U8 = 0x07, // Alias
 
-const int X_D3DFMT_DXT2 = 0x0E;
-const int X_D3DFMT_DXT3 = 0x0E; // linear alpha
+	X_D3DFMT_P8 = 0x0b, // 8-bit Palletized
 
-const int X_D3DFMT_DXT4 = 0x0F;
-const int X_D3DFMT_DXT5 = 0x0F; // interpolated alpha
+	X_D3DFMT_A8 = 0x19,
+	X_D3DFMT_A8L8 = 0x1a,
+	X_D3DFMT_R6G5B5 = 0x27,
+	X_D3DFMT_L6V5U5 = 0x27, // Alias
 
-								// Linear Formats
+	X_D3DFMT_G8B8 = 0x28,
+	X_D3DFMT_V8U8 = 0x28, // Alias
 
-const int X_D3DFMT_LIN_A1R5G5B5 = 0x10;
-const int X_D3DFMT_LIN_R5G6B5 = 0x11;
-const int X_D3DFMT_LIN_A8R8G8B8 = 0x12;
-const int X_D3DFMT_LIN_L8 = 0x13;
-const int X_D3DFMT_LIN_R8B8 = 0x16;
-const int X_D3DFMT_LIN_G8B8 = 0x17;
-const int X_D3DFMT_LIN_V8U8 = 0x17; // Alias
+	X_D3DFMT_R8B8 = 0x29,
+	X_D3DFMT_D24S8 = 0x2a,
+	X_D3DFMT_F24S8 = 0x2b,
+	X_D3DFMT_D16 = 0x2c,
+	X_D3DFMT_D16_LOCKABLE = 0x2c, // Alias
 
-const int X_D3DFMT_LIN_AL8 = 0x1b;
-const int X_D3DFMT_LIN_X1R5G5B5 = 0x1c;
-const int X_D3DFMT_LIN_A4R4G4B4 = 0x1d;
-const int X_D3DFMT_LIN_X8R8G8B8 = 0x1e;
-const int X_D3DFMT_LIN_X8L8V8U8 = 0x1e; // Alias
+	X_D3DFMT_F16 = 0x2d,
+	X_D3DFMT_L16 = 0x32,
+	X_D3DFMT_V16U16 = 0x33,
+	X_D3DFMT_R5G5B5A1 = 0x38,
+	X_D3DFMT_R4G4B4A4 = 0x39,
+	X_D3DFMT_A8B8G8R8 = 0x3A,
+	X_D3DFMT_Q8W8V8U8 = 0x3A, // Alias
 
-const int X_D3DFMT_LIN_A8 = 0x1f;
-const int X_D3DFMT_LIN_A8L8 = 0x20;
-const int X_D3DFMT_LIN_D24S8 = 0x2E;
-const int X_D3DFMT_LIN_F24S8 = 0x2f;
-const int X_D3DFMT_LIN_D16 = 0x30;
-const int X_D3DFMT_LIN_F16 = 0x31;
-const int X_D3DFMT_LIN_L16 = 0x35;
-const int X_D3DFMT_LIN_V16U16 = 0x36;
-const int X_D3DFMT_LIN_R6G5B5 = 0x37;
-const int X_D3DFMT_LIN_L6V5U5 = 0x37; // Alias
+	X_D3DFMT_B8G8R8A8 = 0x3B,
+	X_D3DFMT_R8G8B8A8 = 0x3C,
 
-const int X_D3DFMT_LIN_R5G5B5A1 = 0x3D;
-const int X_D3DFMT_LIN_R4G4B4A4 = 0x3e;
-const int X_D3DFMT_LIN_A8B8G8R8 = 0x3f;
-const int X_D3DFMT_LIN_B8G8R8A8 = 0x40;
-const int X_D3DFMT_LIN_R8G8B8A8 = 0x41;
-const int X_D3DFMT_VERTEXDATA = 0x64;
+	// YUV Formats
+
+	X_D3DFMT_YUY2 = 0x24,
+	X_D3DFMT_UYVY = 0x25,
+
+	// Compressed Formats
+
+	X_D3DFMT_DXT1 = 0x0C, // opaque/one-bit alpha
+	X_D3DFMT_DXT2 = 0x0E, // Alias for X_D3DFMT_DXT3
+	X_D3DFMT_DXT3 = 0x0E, // linear alpha
+	X_D3DFMT_DXT4 = 0x0F, // Alias for X_D3DFMT_DXT5
+	X_D3DFMT_DXT5 = 0x0F, // interpolated alpha
+
+	// Linear Formats
+
+	X_D3DFMT_LIN_A1R5G5B5 = 0x10,
+	X_D3DFMT_LIN_R5G6B5 = 0x11,
+	X_D3DFMT_LIN_A8R8G8B8 = 0x12,
+	X_D3DFMT_LIN_L8 = 0x13,
+	X_D3DFMT_LIN_R8B8 = 0x16,
+	X_D3DFMT_LIN_G8B8 = 0x17,
+	X_D3DFMT_LIN_V8U8 = 0x17, // Alias
+
+	X_D3DFMT_LIN_AL8 = 0x1b,
+	X_D3DFMT_LIN_X1R5G5B5 = 0x1c,
+	X_D3DFMT_LIN_A4R4G4B4 = 0x1d,
+	X_D3DFMT_LIN_X8R8G8B8 = 0x1e,
+	X_D3DFMT_LIN_X8L8V8U8 = 0x1e, // Alias
+
+	X_D3DFMT_LIN_A8 = 0x1f,
+	X_D3DFMT_LIN_A8L8 = 0x20,
+	X_D3DFMT_LIN_D24S8 = 0x2E,
+	X_D3DFMT_LIN_F24S8 = 0x2f,
+	X_D3DFMT_LIN_D16 = 0x30,
+	X_D3DFMT_LIN_F16 = 0x31,
+	X_D3DFMT_LIN_L16 = 0x35,
+	X_D3DFMT_LIN_V16U16 = 0x36,
+	X_D3DFMT_LIN_R6G5B5 = 0x37,
+	X_D3DFMT_LIN_L6V5U5 = 0x37, // Alias
+
+	X_D3DFMT_LIN_R5G5B5A1 = 0x3D,
+	X_D3DFMT_LIN_R4G4B4A4 = 0x3e,
+	X_D3DFMT_LIN_A8B8G8R8 = 0x3f,
+	X_D3DFMT_LIN_B8G8R8A8 = 0x40,
+	X_D3DFMT_LIN_R8G8B8A8 = 0x41,
+
+	X_D3DFMT_VERTEXDATA = 0x64,
+
+	X_D3DFMT_INDEX16 = 101/*=D3DFMT_INDEX16*/, // Dxbx addition : Not an Xbox format, used internally
+
+	X_D3DFMT_UNKNOWN = 0xFFFFFFFF - 3,  // Unique declaration to make overloads possible
+}
+X_D3DFORMAT, *PX_D3DFORMAT;
 
 // Primitives supported by draw-primitive API
 typedef enum _X_D3DPRIMITIVETYPE
@@ -174,6 +222,29 @@ typedef enum _X_D3DRESOURCETYPE
 }
 X_D3DRESOURCETYPE;
 
+#define X_D3DUSAGE_RENDERTARGET           0x00000001
+#define X_D3DUSAGE_DEPTHSTENCIL           0x00000002
+#define X_D3DUSAGE_WRITEONLY              0x00000008
+#define X_D3DUSAGE_POINTS                 0x00000040
+#define X_D3DUSAGE_RTPATCHES              0x00000080
+#define X_D3DUSAGE_DYNAMIC                0x00000200
+#define X_D3DUSAGE_PERSISTENTDIFFUSE      0x00000400L   // Xbox-only
+#define X_D3DUSAGE_PERSISTENTSPECULAR     0x00000800L   // Xbox-only
+#define X_D3DUSAGE_PERSISTENTBACKDIFFUSE  0x00001000L   // Xbox-only
+#define X_D3DUSAGE_PERSISTENTBACKSPECULAR 0x00002000L   // Xbox-only
+#define X_D3DUSAGE_BORDERSOURCE_COLOR     0x00000000L   // Xbox-only
+#define X_D3DUSAGE_BORDERSOURCE_TEXTURE   0x00010000L   // Xbox-only
+
+#define X_D3D_RENDER_MEMORY_ALIGNMENT     64
+
+#define X_D3DSURFACE_ALIGNMENT            X_D3D_RENDER_MEMORY_ALIGNMENT
+#define X_D3DTEXTURE_ALIGNMENT            (2 * X_D3D_RENDER_MEMORY_ALIGNMENT)
+#define X_D3DTEXTURE_CUBEFACE_ALIGNMENT   (2 * X_D3D_RENDER_MEMORY_ALIGNMENT)
+#define X_D3DTEXTURE_PITCH_ALIGNMENT      X_D3D_RENDER_MEMORY_ALIGNMENT
+#define X_D3DTEXTURE_PITCH_MIN            X_D3DTEXTURE_PITCH_ALIGNMENT
+
+#define TEXTURE_STAGES 4 // X_D3DTS_STAGECOUNT
+
 typedef enum _X_D3DSET_DEPTH_CLIP_PLANES_FLAGS
 {
     X_D3DSDCP_SET_VERTEXPROGRAM_PLANES         = 1,
@@ -192,6 +263,20 @@ typedef struct _X_D3DDISPLAYMODE
     X_D3DFORMAT Format;
 }
 X_D3DDISPLAYMODE;
+
+typedef struct _X_D3DVERTEXBUFFER_DESC
+{
+	X_D3DFORMAT           Format;
+	X_D3DRESOURCETYPE     Type;
+}
+X_D3DVERTEXBUFFER_DESC;
+
+typedef struct _X_D3DINDEXBUFFER_DESC
+{
+	X_D3DFORMAT           Format;
+	X_D3DRESOURCETYPE     Type;
+}
+X_D3DINDEXBUFFER_DESC;
 
 typedef struct _X_D3DSURFACE_DESC
 {
@@ -268,7 +353,8 @@ typedef struct _X_D3DPIXELSHADERDEF	// <- blueshogun 10/1/07
    DWORD    PSC0Mapping;               // Mapping of c0 regs to D3D constants
    DWORD    PSC1Mapping;               // Mapping of c1 regs to D3D constants
    DWORD    PSFinalCombinerConstants;  // Final combiner constant mapping
-}X_D3DPIXELSHADERDEF;
+}
+X_D3DPIXELSHADERDEF;
 
 // These structures are used by Cxbx, not by the Xbox!!!
 typedef struct _PixelShader_ 
@@ -291,9 +377,10 @@ typedef struct _PixelShader_
 	DWORD dwStatus;
 	X_D3DPIXELSHADERDEF	PSDef;
 
-	DWORD dwStageMap[4];
+	DWORD dwStageMap[TEXTURE_STAGES];
 
-} PIXEL_SHADER;
+}
+PIXEL_SHADER;
 
 typedef struct _STREAM_DYNAMIC_PATCH_
 {
@@ -301,13 +388,16 @@ typedef struct _STREAM_DYNAMIC_PATCH_
     DWORD ConvertedStride;
     DWORD NbrTypes;        // Number of the stream data types
     UINT  *pTypes;         // The stream data types (xbox)
-} STREAM_DYNAMIC_PATCH;
+	UINT  *pSizes;         // The stream data sizes (pc)
+}
+STREAM_DYNAMIC_PATCH;
 
 typedef struct _VERTEX_DYNAMIC_PATCH_
 {
     UINT                         NbrStreams; // The number of streams the vertex shader uses
     STREAM_DYNAMIC_PATCH        *pStreamPatches;
-} VERTEX_DYNAMIC_PATCH;
+}
+VERTEX_DYNAMIC_PATCH;
 
 typedef struct _VERTEX_SHADER
 {
@@ -325,25 +415,14 @@ typedef struct _VERTEX_SHADER
 
     // Needed for dynamic stream patching
     VERTEX_DYNAMIC_PATCH  VertexDynamicPatch;
-} VERTEX_SHADER;
+}
+VERTEX_SHADER;
 
 struct X_D3DResource
 {
     DWORD Common;
-    DWORD Data;
-
-    union
-    {
-        DWORD                    Lock;
-        IDirect3DResource8      *EmuResource8;
-        IDirect3DBaseTexture8   *EmuBaseTexture8;
-        IDirect3DTexture8       *EmuTexture8;
-        IDirect3DVolumeTexture8 *EmuVolumeTexture8;
-        IDirect3DCubeTexture8   *EmuCubeTexture8;
-        IDirect3DSurface8       *EmuSurface8;
-        IDirect3DVertexBuffer8  *EmuVertexBuffer8;
-        IDirect3DIndexBuffer8   *EmuIndexBuffer8;
-    };
+	DWORD Data;
+	DWORD Lock;
 };
 
 // d3d resource "common" masks
@@ -364,31 +443,28 @@ struct X_D3DResource
 #define X_D3DCOMMON_UNUSED_MASK        0xFE000000
 #define X_D3DCOMMON_UNUSED_SHIFT       25
 
+// d3d palette common
+#define X_D3DPALETTE_COMMON_PALETTESIZE_MASK       0xC0000000
+#define X_D3DPALETTE_COMMON_PALETTESIZE_SHIFT      30
+
 // special resource data flags (must set _SPECIAL *AND* specific flag(s))
 #define X_D3DRESOURCE_DATA_FLAG_SPECIAL 0xFFFF0000
-#define X_D3DRESOURCE_DATA_FLAG_SURFACE 0x00000001 // Backbuffer surface, etc
-#define X_D3DRESOURCE_DATA_FLAG_YUVSURF 0x00000002 // YUV memory surface
-#define X_D3DRESOURCE_DATA_FLAG_D3DREND 0x00000004 // D3D Render Target
-#define X_D3DRESOURCE_DATA_FLAG_D3DSTEN 0x00000008 // D3D Stencil Surface
-#define X_D3DRESOURCE_DATA_FLAG_TEXCLON 0x00000010 // HACK: Cloned resource
-#define X_D3DRESOURCE_DATA_FLAG_8BITTEX 0x00000020 // Palettized texture (D3DFMT_P8)
+#define X_D3DRESOURCE_DATA_BACK_BUFFER (X_D3DRESOURCE_DATA_FLAG_SPECIAL | 0x00000001)
+#define X_D3DRESOURCE_DATA_YUV_SURFACE (X_D3DRESOURCE_DATA_FLAG_SPECIAL | 0x00000002)
+#define X_D3DRESOURCE_DATA_RENDER_TARGET (X_D3DRESOURCE_DATA_FLAG_SPECIAL | 0x00000004)
+#define X_D3DRESOURCE_DATA_DEPTH_STENCIL (X_D3DRESOURCE_DATA_FLAG_SPECIAL | 0x00000008)
+#define X_D3DRESOURCE_DATA_SURFACE_LEVEL (X_D3DRESOURCE_DATA_FLAG_SPECIAL | 0x00000020) // was 0xB00BBABE
 
-#define IsSpecialResource(x) ( ((DWORD)(x) & X_D3DRESOURCE_DATA_FLAG_SPECIAL) == X_D3DRESOURCE_DATA_FLAG_SPECIAL)
-
-/*
-#define X_D3DRESOURCE_DATA_FLAG_SURFACE 0xEFFFFFFF
-#define X_D3DRESOURCE_DATA_FLAG_YUVSURF 0xDFFFFFFF
-#define X_D3DRESOURCE_DATA_FLAG_D3DREND 0xCFFFFFFF
-#define X_D3DRESOURCE_DATA_FLAG_D3DSTEN 0xBFFFFFFF
-*/
 // special resource lock flags
 #define X_D3DRESOURCE_LOCK_FLAG_NOSIZE  0xEFFFFFFF
+#define X_D3DRESOURCE_LOCK_PALETTE 0x8000BEEF
 
 // Lock flags
 #define X_D3DLOCK_NOFLUSH               0x00000010 // Xbox extension
 #define X_D3DLOCK_NOOVERWRITE           0x00000020
 #define X_D3DLOCK_TILED                 0x00000040 // Xbox extension
 #define X_D3DLOCK_READONLY              0x00000080
+
 
 const int X_D3DMULTISAMPLE_NONE = 0x0011;
 const int X_D3DMULTISAMPLE_2_SAMPLES_MULTISAMPLE_LINEAR = 0x1021;
@@ -441,9 +517,18 @@ X_D3DPALETTESIZE;
 
 struct X_D3DPixelContainer : public X_D3DResource
 {
-    X_D3DFORMAT Format;
+    DWORD		Format;
     DWORD       Size;
 };
+
+// Clear flags
+#define X_D3DCLEAR_ZBUFFER  0x00000001
+#define X_D3DCLEAR_STENCIL  0x00000002
+#define X_D3DCLEAR_TARGET_R 0x00000010
+#define X_D3DCLEAR_TARGET_G 0x00000020
+#define X_D3DCLEAR_TARGET_B 0x00000040
+#define X_D3DCLEAR_TARGET_A 0x00000080
+#define X_D3DCLEAR_TARGET   (X_D3DCLEAR_TARGET_R | X_D3DCLEAR_TARGET_G | X_D3DCLEAR_TARGET_B | X_D3DCLEAR_TARGET_A)
 
 // pixel container "format" masks
 #define X_D3DFORMAT_RESERVED1_MASK        0x00000003      // Must be zero
@@ -472,6 +557,7 @@ struct X_D3DPixelContainer : public X_D3DResource
 #define X_D3DSIZE_PITCH_MASK              0xFF000000   // Pitch / 64 - 1
 #define X_D3DSIZE_PITCH_SHIFT             24
 
+
 struct X_D3DBaseTexture : public X_D3DPixelContainer
 {
 
@@ -494,7 +580,7 @@ struct X_D3DCubeTexture : public X_D3DBaseTexture
 
 struct X_D3DSurface : public X_D3DPixelContainer
 {
-
+	X_D3DBaseTexture *Parent;
 };
 
 struct X_D3DTILE
@@ -509,9 +595,10 @@ struct X_D3DTILE
 
 typedef enum _X_D3DCALLBACKTYPE	// blueshogun96 10/1/07
 {
-	X_D3DCALLBACK_READ		= 1,
-	X_D3DCALLBACK_WRITE		= 2
-}X_D3DCALLBACKTYPE;
+	X_D3DCALLBACK_READ		= 0, // Fixed PatrickvL 10/7/22
+	X_D3DCALLBACK_WRITE		= 1
+}
+X_D3DCALLBACKTYPE;
 
 typedef enum _X_D3DFIELDTYPE
 {
@@ -556,7 +643,8 @@ typedef void (__cdecl * D3DSWAPCALLBACK)(D3DSWAPDATA *pData);
 // D3DCALLBACK
 typedef void (__cdecl * D3DCALLBACK)(DWORD Context);
 
-// X_D3DTEXTUREOP values :
+// X_D3DTEXTUREOP values :
+
 #define X_D3DTOP_DISABLE 1
 #define X_D3DTOP_SELECTARG1 2
 #define X_D3DTOP_SELECTARG2 3
@@ -584,8 +672,213 @@ typedef void (__cdecl * D3DCALLBACK)(DWORD Context);
 #define X_D3DTOP_BUMPENVMAP  25
 #define X_D3DTOP_BUMPENVMAPLUMINANCE  26
 
-// deferred render state "unknown" flag
-#define X_D3DRS_UNK  0x7fffffff
+// X_D3DRENDERSTATETYPE values
+typedef enum _X_D3DRENDERSTATETYPE {
+
+	// Dxbx note : These declarations are from XDK version 5933, the most recent and complete version.
+	// Older versions are slightly different (some members are missing), so we use a mapping table to
+	// cater for the differences (see DxbxBuildRenderStateMappingTable). This enables to ignore these
+	// version-differences in the rest of our code (unless it matters somehow); We write via indirection :
+	//   *XTL::EmuMappedD3DRenderState[X_D3DRENDERSTATETYPE] = Value;
+	//
+	// And we read via the same mapping (do note, that missing elements all point to the same dummy) :
+	//   Result = *XTL::EmuMappedD3DRenderState[X_D3DRENDERSTATETYPE];
+
+	// Dxbx note : The PS* render states map 1-on-1 to the X_D3DPIXELSHADERDEF record,
+	// SetPixelShader actually pushes the definition into these render state slots.
+	// See DxbxUpdateActivePixelShader for how this is employed.
+
+	// The set starts out with "pixel-shader" render states (all Xbox extensions) :
+	X_D3DRS_PSALPHAINPUTS0 = 0,
+	X_D3DRS_PSALPHAINPUTS1 = 1,
+	X_D3DRS_PSALPHAINPUTS2 = 2,
+	X_D3DRS_PSALPHAINPUTS3 = 3,
+	X_D3DRS_PSALPHAINPUTS4 = 4,
+	X_D3DRS_PSALPHAINPUTS5 = 5,
+	X_D3DRS_PSALPHAINPUTS6 = 6,
+	X_D3DRS_PSALPHAINPUTS7 = 7,
+	X_D3DRS_PSFINALCOMBINERINPUTSABCD = 8,
+	X_D3DRS_PSFINALCOMBINERINPUTSEFG = 9,
+	X_D3DRS_PSCONSTANT0_0 = 10,
+	X_D3DRS_PSCONSTANT0_1 = 11,
+	X_D3DRS_PSCONSTANT0_2 = 12,
+	X_D3DRS_PSCONSTANT0_3 = 13,
+	X_D3DRS_PSCONSTANT0_4 = 14,
+	X_D3DRS_PSCONSTANT0_5 = 15,
+	X_D3DRS_PSCONSTANT0_6 = 16,
+	X_D3DRS_PSCONSTANT0_7 = 17,
+	X_D3DRS_PSCONSTANT1_0 = 18,
+	X_D3DRS_PSCONSTANT1_1 = 19,
+	X_D3DRS_PSCONSTANT1_2 = 20,
+	X_D3DRS_PSCONSTANT1_3 = 21,
+	X_D3DRS_PSCONSTANT1_4 = 22,
+	X_D3DRS_PSCONSTANT1_5 = 23,
+	X_D3DRS_PSCONSTANT1_6 = 24,
+	X_D3DRS_PSCONSTANT1_7 = 25,
+	X_D3DRS_PSALPHAOUTPUTS0 = 26,
+	X_D3DRS_PSALPHAOUTPUTS1 = 27,
+	X_D3DRS_PSALPHAOUTPUTS2 = 28,
+	X_D3DRS_PSALPHAOUTPUTS3 = 29,
+	X_D3DRS_PSALPHAOUTPUTS4 = 30,
+	X_D3DRS_PSALPHAOUTPUTS5 = 31,
+	X_D3DRS_PSALPHAOUTPUTS6 = 32,
+	X_D3DRS_PSALPHAOUTPUTS7 = 33,
+	X_D3DRS_PSRGBINPUTS0 = 34,
+	X_D3DRS_PSRGBINPUTS1 = 35,
+	X_D3DRS_PSRGBINPUTS2 = 36,
+	X_D3DRS_PSRGBINPUTS3 = 37,
+	X_D3DRS_PSRGBINPUTS4 = 38,
+	X_D3DRS_PSRGBINPUTS5 = 39,
+	X_D3DRS_PSRGBINPUTS6 = 40,
+	X_D3DRS_PSRGBINPUTS7 = 41,
+	X_D3DRS_PSCOMPAREMODE = 42,
+	X_D3DRS_PSFINALCOMBINERCONSTANT0 = 43,
+	X_D3DRS_PSFINALCOMBINERCONSTANT1 = 44,
+	X_D3DRS_PSRGBOUTPUTS0 = 45,
+	X_D3DRS_PSRGBOUTPUTS1 = 46,
+	X_D3DRS_PSRGBOUTPUTS2 = 47,
+	X_D3DRS_PSRGBOUTPUTS3 = 48,
+	X_D3DRS_PSRGBOUTPUTS4 = 49,
+	X_D3DRS_PSRGBOUTPUTS5 = 50,
+	X_D3DRS_PSRGBOUTPUTS6 = 51,
+	X_D3DRS_PSRGBOUTPUTS7 = 52,
+	X_D3DRS_PSCOMBINERCOUNT = 53,
+	X_D3DRS_PS_RESERVED = 54, // Dxbx note : This takes the slot of X_D3DPIXELSHADERDEF.PSTextureModes, set by D3DDevice_SetRenderState_LogicOp?
+	X_D3DRS_PSDOTMAPPING = 55,
+	X_D3DRS_PSINPUTTEXTURE = 56,
+	// End of "pixel-shader" render states, continuing with "simple" render states :
+	X_D3DRS_ZFUNC = 57, // D3DCMPFUNC
+	X_D3DRS_ALPHAFUNC = 58, // D3DCMPFUNC
+	X_D3DRS_ALPHABLENDENABLE = 59, // TRUE to enable alpha blending
+	X_D3DRS_ALPHATESTENABLE = 60, // TRUE to enable alpha tests
+	X_D3DRS_ALPHAREF = 61, // BYTE
+	X_D3DRS_SRCBLEND = 62, // D3DBLEND
+	X_D3DRS_DESTBLEND = 63, // D3DBLEND
+	X_D3DRS_ZWRITEENABLE = 64, // TRUE to enable Z writes
+	X_D3DRS_DITHERENABLE = 65, // TRUE to enable dithering
+	X_D3DRS_SHADEMODE = 66, // D3DSHADEMODE
+	X_D3DRS_COLORWRITEENABLE = 67, // D3DCOLORWRITEENABLE_ALPHA, etc. per-channel write enable
+	X_D3DRS_STENCILZFAIL = 68, // D3DSTENCILOP to do if stencil test passes and Z test fails
+	X_D3DRS_STENCILPASS = 69, // D3DSTENCILOP to do if both stencil and Z tests pass
+	X_D3DRS_STENCILFUNC = 70, // D3DCMPFUNC
+	X_D3DRS_STENCILREF = 71, // BYTE reference value used in stencil test
+	X_D3DRS_STENCILMASK = 72, // BYTE mask value used in stencil test
+	X_D3DRS_STENCILWRITEMASK = 73, // BYTE write mask applied to values written to stencil buffer
+	X_D3DRS_BLENDOP = 74, // D3DBLENDOP setting
+	X_D3DRS_BLENDCOLOR = 75, // D3DCOLOR for D3DBLEND_CONSTANTCOLOR (Xbox ext.)
+	X_D3DRS_SWATHWIDTH = 76, // D3DSWATHWIDTH (Xbox ext.)
+	X_D3DRS_POLYGONOFFSETZSLOPESCALE = 77, // float Z factor for shadow maps (Xbox ext.)
+	X_D3DRS_POLYGONOFFSETZOFFSET = 78, // Xbox ext.
+	X_D3DRS_POINTOFFSETENABLE = 79, // Xbox ext.
+	X_D3DRS_WIREFRAMEOFFSETENABLE = 80, // Xbox ext.
+	X_D3DRS_SOLIDOFFSETENABLE = 81, // Xbox ext.
+	X_D3DRS_DEPTHCLIPCONTROL = 82, // [4627+] Xbox ext.
+	X_D3DRS_STIPPLEENABLE = 83, // [4627+] Xbox ext.
+	X_D3DRS_SIMPLE_UNUSED8 = 84, // [4627+]
+	X_D3DRS_SIMPLE_UNUSED7 = 85, // [4627+]
+	X_D3DRS_SIMPLE_UNUSED6 = 86, // [4627+]
+	X_D3DRS_SIMPLE_UNUSED5 = 87, // [4627+]
+	X_D3DRS_SIMPLE_UNUSED4 = 88, // [4627+]
+	X_D3DRS_SIMPLE_UNUSED3 = 89, // [4627+]
+	X_D3DRS_SIMPLE_UNUSED2 = 90, // [4627+]
+	X_D3DRS_SIMPLE_UNUSED1 = 91, // [4627+]
+	// End of "simple" render states, continuing with "deferred" render states :
+	X_D3DRS_FOGENABLE = 92,
+	X_D3DRS_FOGTABLEMODE = 93,
+	X_D3DRS_FOGSTART = 94,
+	X_D3DRS_FOGEND = 95,
+	X_D3DRS_FOGDENSITY = 96,
+	X_D3DRS_RANGEFOGENABLE = 97,
+	X_D3DRS_WRAP0 = 98,
+	X_D3DRS_WRAP1 = 99,
+	X_D3DRS_WRAP2 = 100, // Dxbx addition
+	X_D3DRS_WRAP3 = 101, // Dxbx addition
+	X_D3DRS_LIGHTING = 102,
+	X_D3DRS_SPECULARENABLE = 103,
+	X_D3DRS_LOCALVIEWER = 104, // Dxbx addition
+	X_D3DRS_COLORVERTEX = 105,
+	X_D3DRS_BACKSPECULARMATERIALSOURCE = 106, // Xbox ext. nsp.
+	X_D3DRS_BACKDIFFUSEMATERIALSOURCE = 107, // Xbox ext. nsp.
+	X_D3DRS_BACKAMBIENTMATERIALSOURCE = 108, // Xbox ext. nsp.
+	X_D3DRS_BACKEMISSIVEMATERIALSOURCE = 109, // Xbox ext. nsp.
+	X_D3DRS_SPECULARMATERIALSOURCE = 110,
+	X_D3DRS_DIFFUSEMATERIALSOURCE = 111,
+	X_D3DRS_AMBIENTMATERIALSOURCE = 112,
+	X_D3DRS_EMISSIVEMATERIALSOURCE = 113,
+	X_D3DRS_BACKAMBIENT = 114, // Xbox ext. nsp.
+	X_D3DRS_AMBIENT = 115,
+	X_D3DRS_POINTSIZE = 116,
+	X_D3DRS_POINTSIZE_MIN = 117,
+	X_D3DRS_POINTSPRITEENABLE = 118,
+	X_D3DRS_POINTSCALEENABLE = 119,
+	X_D3DRS_POINTSCALE_A = 120,
+	X_D3DRS_POINTSCALE_B = 121,
+	X_D3DRS_POINTSCALE_C = 122,
+	X_D3DRS_POINTSIZE_MAX = 123,
+	X_D3DRS_PATCHEDGESTYLE = 124, // Dxbx addition
+	X_D3DRS_PATCHSEGMENTS = 125,
+	X_D3DRS_SWAPFILTER = 126, // [4361+] Xbox ext. nsp. D3DTEXF_LINEAR etc. filter to use for Swap
+	X_D3DRS_PRESENTATIONINTERVAL = 127, // [4627+] Xbox ext. nsp.
+	X_D3DRS_DEFERRED_UNUSED8 = 128, // [4627+]
+	X_D3DRS_DEFERRED_UNUSED7 = 129, // [4627+]
+	X_D3DRS_DEFERRED_UNUSED6 = 130, // [4627+]
+	X_D3DRS_DEFERRED_UNUSED5 = 131, // [4627+]
+	X_D3DRS_DEFERRED_UNUSED4 = 132, // [4627+]
+	X_D3DRS_DEFERRED_UNUSED3 = 133, // [4627+]
+	X_D3DRS_DEFERRED_UNUSED2 = 134, // [4627+]
+	X_D3DRS_DEFERRED_UNUSED1 = 135, // [4627+]
+	// End of "deferred" render states, continuing with "complex" render states :
+	X_D3DRS_PSTEXTUREMODES = 136, // Xbox ext.
+	X_D3DRS_VERTEXBLEND = 137,
+	X_D3DRS_FOGCOLOR = 138,
+	X_D3DRS_FILLMODE = 139,
+	X_D3DRS_BACKFILLMODE = 140, // Dxbx addition : Xbox ext. nsp.
+	X_D3DRS_TWOSIDEDLIGHTING = 141, // Dxbx addition : Xbox ext. nsp.
+	X_D3DRS_NORMALIZENORMALS = 142,
+	X_D3DRS_ZENABLE = 143,
+	X_D3DRS_STENCILENABLE = 144,
+	X_D3DRS_STENCILFAIL = 145,
+	X_D3DRS_FRONTFACE = 146, // Dxbx addition : Xbox ext. nsp.
+	X_D3DRS_CULLMODE = 147,
+	X_D3DRS_TEXTUREFACTOR = 148,
+	X_D3DRS_ZBIAS = 149,
+	X_D3DRS_LOGICOP = 150, // Xbox ext.
+	X_D3DRS_EDGEANTIALIAS = 151, // Dxbx note : No Xbox ext. (according to Direct3D8) !
+	X_D3DRS_MULTISAMPLEANTIALIAS = 152,
+	X_D3DRS_MULTISAMPLEMASK = 153,
+	X_D3DRS_MULTISAMPLETYPE = 154, // [-3911] Xbox ext. \_ aliasses  D3DMULTISAMPLE_TYPE
+	X_D3DRS_MULTISAMPLEMODE = 154, // [4361+] Xbox ext. /            D3DMULTISAMPLEMODE for the backbuffer
+	X_D3DRS_MULTISAMPLERENDERTARGETMODE = 155, // [4361+] Xbox ext.
+	X_D3DRS_SHADOWFUNC = 156, // D3DCMPFUNC (Xbox extension)
+	X_D3DRS_LINEWIDTH = 157, // Xbox ext.
+	X_D3DRS_SAMPLEALPHA = 158, // Xbox ext.
+	X_D3DRS_DXT1NOISEENABLE = 159, // Xbox ext.
+	X_D3DRS_YUVENABLE = 160, // [3911+] Xbox ext.
+	X_D3DRS_OCCLUSIONCULLENABLE = 161, // [3911+] Xbox ext.
+	X_D3DRS_STENCILCULLENABLE = 162, // [3911+] Xbox ext.
+	X_D3DRS_ROPZCMPALWAYSREAD = 163, // [3911+] Xbox ext.
+	X_D3DRS_ROPZREAD = 164, // [3911+] Xbox ext.
+	X_D3DRS_DONOTCULLUNCOMPRESSED = 165, // [3911+] Xbox ext.
+	// End of "complex" render states.
+	X_D3DRS_UNK = 0x7fffffff // deferred render state "unknown" flag
+} X_D3DRENDERSTATETYPE;
+
+// Render state boundaries :
+
+#define X_D3DRS_PS_FIRST X_D3DRS_PSALPHAINPUTS0
+#define X_D3DRS_PS_LAST X_D3DRS_PSINPUTTEXTURE
+
+#define X_D3DRS_SIMPLE_FIRST X_D3DRS_ZFUNC
+#define X_D3DRS_SIMPLE_LAST X_D3DRS_SIMPLE_UNUSED1
+
+#define X_D3DRS_DEFERRED_FIRST X_D3DRS_FOGENABLE
+#define X_D3DRS_DEFERRED_LAST X_D3DRS_DEFERRED_UNUSED1
+
+#define X_D3DRS_COMPLEX_FIRST X_D3DRS_PSTEXTUREMODES
+#define X_D3DRS_COMPLEX_LAST X_D3DRS_DONOTCULLUNCOMPRESSED
+
+#define X_D3DRS_FIRST X_D3DRS_PS_FIRST
+#define X_D3DRS_LAST X_D3DRS_COMPLEX_LAST
 
 // deferred texture stage state "unknown" flag
 #define X_D3DTSS_UNK 0x7fffffff
@@ -633,5 +926,88 @@ typedef struct _X_STREAMINPUT
     UINT                Stride;
     UINT                Offset;
 } X_STREAMINPUT;
+
+// vertex shader input registers for fixed function vertex shader
+
+//          Name                   Register number      D3DFVF
+const int X_D3DVSDE_POSITION     = 0; // Corresponds to D3DFVF_XYZ
+const int X_D3DVSDE_BLENDWEIGHT  = 1; // Corresponds to D3DFVF_XYZRHW
+const int X_D3DVSDE_NORMAL       = 2; // Corresponds to D3DFVF_NORMAL
+const int X_D3DVSDE_DIFFUSE      = 3; // Corresponds to D3DFVF_DIFFUSE
+const int X_D3DVSDE_SPECULAR     = 4; // Corresponds to D3DFVF_SPECULAR
+const int X_D3DVSDE_FOG          = 5; // Xbox extension
+const int X_D3DVSDE_POINTSIZE    = 6; // Dxbx addition
+const int X_D3DVSDE_BACKDIFFUSE  = 7; // Xbox extension
+const int X_D3DVSDE_BACKSPECULAR = 8; // Xbox extension
+const int X_D3DVSDE_TEXCOORD0    = 9; // "Corresponds to D3DFVF_TEX0" says the docs, but 0 means no textures, so probably D3DFVF_TEX1!
+const int X_D3DVSDE_TEXCOORD1    = 10; // Corresponds to D3DFVF_TEX{above}+1
+const int X_D3DVSDE_TEXCOORD2    = 11; // Corresponds to D3DFVF_TEX{above}+2
+const int X_D3DVSDE_TEXCOORD3    = 12; // Corresponds to D3DFVF_TEX{above}+3
+const int X_D3DVSDE_VERTEX       = 0xFFFFFFFF; // Xbox extension for Begin/End drawing (data is a D3DVSDT_FLOAT4)
+
+//typedef X_D3DVSDE = X_D3DVSDE_POSITION..High(DWORD)-2; // Unique declaration to make overloads possible;
+
+  // bit declarations for _Type fields
+const int X_D3DVSDT_FLOAT1      = 0x12; // 1D float expanded to (value, 0.0, 0.0, 1.0)
+const int X_D3DVSDT_FLOAT2      = 0x22; // 2D float expanded to (value, value, 0.0, 1.0)
+const int X_D3DVSDT_FLOAT3      = 0x32; // 3D float expanded to (value, value, value, 1.0) In double word format this is ARGB, or in byte ordering it would be B, G, R, A.
+const int X_D3DVSDT_FLOAT4      = 0x42; // 4D float
+const int X_D3DVSDT_D3DCOLOR    = 0x40; // 4D packed unsigned bytes mapped to 0.0 to 1.0 range
+//const int X_D3DVSDT_UBYTE4      = 0x05; // 4D unsigned byte   Dxbx note : Not supported on Xbox ?
+const int X_D3DVSDT_SHORT2      = 0x25; // 2D signed short expanded to (value, value, 0.0, 1.0)
+const int X_D3DVSDT_SHORT4      = 0x45; // 4D signed short
+
+  //  Xbox only declarations :
+const int X_D3DVSDT_NORMSHORT1  = 0x11; // xbox ext. 1D signed, normalized short expanded to (value, 0.0, 0.0, 1.0). Signed, normalized shorts map from -1.0 to 1.0.
+const int X_D3DVSDT_NORMSHORT2  = 0x21; // xbox ext. 2D signed, normalized short expanded to (value, value, 0.0, 1.0). Signed, normalized shorts map from -1.0 to 1.0.
+const int X_D3DVSDT_NORMSHORT3  = 0x31; // xbox ext. 3D signed, normalized short expanded to (value, value, value, 1.0). Signed, normalized shorts map from -1.0 to 1.0.
+const int X_D3DVSDT_NORMSHORT4  = 0x41; // xbox ext. 4D signed, normalized short expanded to (value, value, value, value). Signed, normalized shorts map from -1.0 to 1.0.
+const int X_D3DVSDT_NORMPACKED3 = 0x16; // xbox ext. Three signed, normalized components packed in 32-bits. (11,11,10). Each component ranges from -1.0 to 1.0. Expanded to (value, value, value, 1.0).
+const int X_D3DVSDT_SHORT1      = 0x15; // xbox ext. 1D signed short expanded to (value, 0., 0., 1). Signed shorts map to the range [-32768, 32767].
+const int X_D3DVSDT_SHORT3      = 0x35; // xbox ext. 3D signed short expanded to (value, value, value, 1). Signed shorts map to the range [-32768, 32767].
+const int X_D3DVSDT_PBYTE1      = 0x14; // xbox ext. 1D packed byte expanded to (value, 0., 0., 1). Packed bytes map to the range [0, 1].
+const int X_D3DVSDT_PBYTE2      = 0x24; // xbox ext. 2D packed byte expanded to (value, value, 0., 1). Packed bytes map to the range [0, 1].
+const int X_D3DVSDT_PBYTE3      = 0x34; // xbox ext. 3D packed byte expanded to (value, value, value, 1). Packed bytes map to the range [0, 1].
+const int X_D3DVSDT_PBYTE4      = 0x44; // xbox ext. 4D packed byte expanded to (value, value, value, value). Packed bytes map to the range [0, 1].
+const int X_D3DVSDT_FLOAT2H     = 0x72; // xbox ext. 3D float that expands to (value, value, 0.0, value). Useful for projective texture coordinates.
+const int X_D3DVSDT_NONE        = 0x02; // xbox ext. nsp
+
+const int MAX_NBR_STREAMS = 16;
+
+#define X_D3DVSD_TOKENTYPESHIFT   29
+#define X_D3DVSD_TOKENTYPEMASK    (7 << X_D3DVSD_TOKENTYPESHIFT)
+
+#define X_D3DVSD_STREAMNUMBERSHIFT 0
+#define X_D3DVSD_STREAMNUMBERMASK (0xF << X_D3DVSD_STREAMNUMBERSHIFT)
+
+#define X_D3DVSD_DATALOADTYPESHIFT 28
+#define X_D3DVSD_DATALOADTYPEMASK (0x1 << X_D3DVSD_DATALOADTYPESHIFT)
+
+#define X_D3DVSD_DATATYPESHIFT 16
+#define X_D3DVSD_DATATYPEMASK (0xFF << X_D3DVSD_DATATYPESHIFT)
+
+#define X_D3DVSD_SKIPCOUNTSHIFT 16
+#define X_D3DVSD_SKIPCOUNTMASK (0xF << X_D3DVSD_SKIPCOUNTSHIFT)
+
+#define X_D3DVSD_VERTEXREGSHIFT 0
+#define X_D3DVSD_VERTEXREGMASK (0x1F << X_D3DVSD_VERTEXREGSHIFT)
+
+#define X_D3DVSD_VERTEXREGINSHIFT 20
+#define X_D3DVSD_VERTEXREGINMASK (0xF << X_D3DVSD_VERTEXREGINSHIFT)
+
+#define X_D3DVSD_CONSTCOUNTSHIFT 25
+#define X_D3DVSD_CONSTCOUNTMASK (0xF << X_D3DVSD_CONSTCOUNTSHIFT)
+
+#define X_D3DVSD_CONSTADDRESSSHIFT 0
+#define X_D3DVSD_CONSTADDRESSMASK (0xFF << X_D3DVSD_CONSTADDRESSSHIFT)
+
+#define X_D3DVSD_CONSTRSSHIFT 16
+#define X_D3DVSD_CONSTRSMASK (0x1FFF << X_D3DVSD_CONSTRSSHIFT)
+
+#define X_D3DVSD_EXTCOUNTSHIFT 24
+#define X_D3DVSD_EXTCOUNTMASK (0x1F << X_D3DVSD_EXTCOUNTSHIFT)
+
+#define X_D3DVSD_EXTINFOSHIFT 0
+#define X_D3DVSD_EXTINFOMASK (0xFFFFFF << X_D3DVSD_EXTINFOSHIFT)
 
 #endif

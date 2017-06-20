@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -66,15 +68,10 @@ CRITICAL_SECTION dbgCritical;
 // Global Variable(s)
 HANDLE           g_hCurDir    = NULL;
 CHAR            *g_strCurDrive= NULL;
-HANDLE           g_hTDrive    = NULL;
-CHAR            *g_strTDrive  = NULL;
-HANDLE           g_hUDrive    = NULL;
-CHAR            *g_strUDrive  = NULL;
-HANDLE           g_hZDrive    = NULL;
-CHAR            *g_strZDrive  = NULL;
 volatile bool    g_bEmuException = false;
 volatile bool    g_bEmuSuspended = false;
 volatile bool    g_bPrintfOn = true;
+bool g_XInputEnabled = false;
 
 // Delta added to host SystemTime, used in xboxkrnl::KeQuerySystemTime and xboxkrnl::NtSetSystemTime
 LARGE_INTEGER	HostSystemTimeDelta = {};
@@ -82,37 +79,9 @@ LARGE_INTEGER	HostSystemTimeDelta = {};
 // Static Function(s)
 static int ExitException(LPEXCEPTION_POINTERS e);
 
-// Dll entry point, exit point, ...
-BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
-{
-    static HINSTANCE hInitInstance = NULL;
-
-    if(fdwReason == DLL_PROCESS_ATTACH)
-    {
-#ifdef _DEBUG
-        InitializeCriticalSection(&dbgCritical);
-#endif
-
-        EmuShared::Init();
-        hInitInstance = hinstDLL;
-    }
-
-    if(fdwReason == DLL_PROCESS_DETACH)
-    {
-        if(hInitInstance == hinstDLL)
-            EmuShared::Cleanup();
-
-#ifdef _DEBUG
-        DeleteCriticalSection(&dbgCritical);
-#endif
-    }
-
-    return TRUE;
-}
-
 // print out a warning message to the kernel debug log file
 #ifdef _DEBUG_WARNINGS
-extern "C" CXBXKRNL_API void NTAPI EmuWarning(const char *szWarningMessage, ...)
+void NTAPI EmuWarning(const char *szWarningMessage, ...)
 {
     if(szWarningMessage == NULL)
         return;
@@ -122,7 +91,7 @@ extern "C" CXBXKRNL_API void NTAPI EmuWarning(const char *szWarningMessage, ...)
 
     va_list argp;
 
-    sprintf(szBuffer1, "EmuWarn (0x%X): ", GetCurrentThreadId());
+    sprintf(szBuffer1, "[0x%X] EmuWarn: ", GetCurrentThreadId());
 
     va_start(argp, szWarningMessage);
 
@@ -143,152 +112,141 @@ extern "C" CXBXKRNL_API void NTAPI EmuWarning(const char *szWarningMessage, ...)
 }
 #endif
 
+std::string EIPToString(xbaddr EIP)
+{
+	int symbolOffset = 0;
+	std::string symbolName = GetDetectedSymbolName(EIP, &symbolOffset);
+
+	char buffer[256];
+	sprintf(buffer, "0x%.08X(=%s+0x%x)", EIP, symbolName.c_str(), symbolOffset);
+
+	std::string result = buffer;
+	return result;
+}
+
+void EmuExceptionPrintDebugInformation(LPEXCEPTION_POINTERS e, bool IsBreakpointException)
+{
+	// print debug information
+	{
+		if (IsBreakpointException)
+			printf("[0x%X] EmuMain: Received Breakpoint Exception (int 3)\n", GetCurrentThreadId());
+		else
+			printf("[0x%X] EmuMain: Received Exception (Code := 0x%.08X)\n", GetCurrentThreadId(), e->ExceptionRecord->ExceptionCode);
+
+		printf("\n"
+			" EIP := %s\n"
+			" EFL := 0x%.08X\n"
+			" EAX := 0x%.08X EBX := 0x%.08X ECX := 0x%.08X EDX := 0x%.08X\n"
+			" ESI := 0x%.08X EDI := 0x%.08X ESP := 0x%.08X EBP := 0x%.08X\n"
+			" CR2 := 0x%.08X\n"
+			"\n",
+			EIPToString(e->ContextRecord->Eip).c_str(),
+			e->ContextRecord->EFlags,
+			e->ContextRecord->Eax, e->ContextRecord->Ebx, e->ContextRecord->Ecx, e->ContextRecord->Edx,
+			e->ContextRecord->Esi, e->ContextRecord->Edi, e->ContextRecord->Esp, e->ContextRecord->Ebp,
+			e->ContextRecord->Dr2);
+
+#ifdef _DEBUG
+		CONTEXT Context = *(e->ContextRecord);
+		EmuPrintStackTrace(&Context);
+#endif
+	}
+
+	fflush(stdout);
+}
+
+void EmuExceptionExitProcess()
+{
+	printf("[0x%X] EmuMain: Aborting Emulation\n", GetCurrentThreadId());
+	fflush(stdout);
+
+	if (CxbxKrnl_hEmuParent != NULL)
+		SendMessage(CxbxKrnl_hEmuParent, WM_PARENTNOTIFY, WM_DESTROY, 0);
+
+	EmuShared::Cleanup();
+	ExitProcess(1);
+}
+
+bool EmuExceptionBreakpointAsk(LPEXCEPTION_POINTERS e)
+{
+	EmuExceptionPrintDebugInformation(e, /*IsBreakpointException=*/true);
+
+	char buffer[256];
+	sprintf(buffer,
+		"Received Breakpoint Exception (int 3) @ EIP := %s\n"
+		"\n"
+		"  Press Abort to terminate emulation.\n"
+		"  Press Retry to debug.\n"
+		"  Press Ignore to continue emulation.",
+		EIPToString(e->ContextRecord->Eip).c_str());
+
+	int ret = MessageBox(g_hEmuWindow, buffer, "Cxbx-Reloaded", MB_ICONSTOP | MB_ABORTRETRYIGNORE);
+	if (ret == IDABORT)
+	{
+		EmuExceptionExitProcess();
+	}
+	else if (ret == IDIGNORE)
+	{
+		printf("[0x%X] EmuMain: Ignored Breakpoint Exception\n", GetCurrentThreadId());
+		fflush(stdout);
+
+		e->ContextRecord->Eip += 1; // TODO : Skip actual instruction size bytes
+
+		return true;
+	}
+
+	return false;
+}
+
+void EmuExceptionNonBreakpointUnhandledShow(LPEXCEPTION_POINTERS e)
+{
+	EmuExceptionPrintDebugInformation(e, /*IsBreakpointException=*/false);
+
+	char buffer[256];
+	sprintf(buffer,
+		"Received Exception Code 0x%.08X @ EIP := %s\n"
+		"\n"
+		"  Press \"OK\" to terminate emulation.\n"
+		"  Press \"Cancel\" to debug.",
+		e->ExceptionRecord->ExceptionCode, EIPToString(e->ContextRecord->Eip).c_str());
+
+	if (MessageBox(g_hEmuWindow, buffer, "Cxbx-Reloaded", MB_ICONSTOP | MB_OKCANCEL) == IDOK)
+	{
+		EmuExceptionExitProcess();
+	}
+}
+
 // exception handler
 extern int EmuException(LPEXCEPTION_POINTERS e)
 {
     g_bEmuException = true;
+	if (e->ExceptionRecord->ExceptionCode == STATUS_BREAKPOINT)
+	{
+		// notify user
+		if (EmuExceptionBreakpointAsk(e))
+		{
+			// We're allowed to continue :
+			g_bEmuException = false;
+			return EXCEPTION_CONTINUE_EXECUTION;
+		}
+	}
+	else
+	{
+		// Pass the exception to our X86 implementation, to try and execute the failing instruction
+		if (EmuX86_DecodeException(e))
+		{
+			// We're allowed to continue :
+			g_bEmuException = false;
+			return EXCEPTION_CONTINUE_EXECUTION;
+		}
 
-    // notify user
-    {
-        char buffer[256];
+		// notify user
+		EmuExceptionNonBreakpointUnhandledShow(e);
+	}
 
-        if(e->ExceptionRecord->ExceptionCode == 0x80000003)
-        {
-			// print debug information
-			{
-				printf("EmuMain (0x%X): Recieved Breakpoint Exception (int 3)\n", GetCurrentThreadId());
-
-				printf("\n"
-					" EIP := 0x%.08X EFL := 0x%.08X\n"
-					" EAX := 0x%.08X EBX := 0x%.08X ECX := 0x%.08X EDX := 0x%.08X\n"
-					" ESI := 0x%.08X EDI := 0x%.08X ESP := 0x%.08X EBP := 0x%.08X\n"
-					" CR2 := 0x%.08X\n"
-					"\n",
-					e->ContextRecord->Eip, e->ContextRecord->EFlags,
-					e->ContextRecord->Eax, e->ContextRecord->Ebx, e->ContextRecord->Ecx, e->ContextRecord->Edx,
-					e->ContextRecord->Esi, e->ContextRecord->Edi, e->ContextRecord->Esp, e->ContextRecord->Ebp,
-					e->ContextRecord->Dr2);
-
-#ifdef _DEBUG
-				CONTEXT Context = *(e->ContextRecord);
-				EmuPrintStackTrace(&Context);
-#endif
-			}
-
-			fflush(stdout);
-
-            sprintf(buffer,
-                "Recieved Breakpoint Exception (int 3) @ EIP := 0x%.08X\n"
-                "\n"
-                "  Press Abort to terminate emulation.\n"
-                "  Press Retry to debug.\n"
-                "  Press Ignore to continue emulation.",
-                e->ContextRecord->Eip);
-
-            e->ContextRecord->Eip += 1;
-
-            int ret = MessageBox(g_hEmuWindow, buffer, "Cxbx-Reloaded", MB_ICONSTOP | MB_ABORTRETRYIGNORE);
-
-            if(ret == IDABORT)
-            {
-                printf("EmuMain (0x%X): Aborting Emulation\n", GetCurrentThreadId());
-                fflush(stdout);
-
-                if(CxbxKrnl_hEmuParent != NULL)
-                    SendMessage(CxbxKrnl_hEmuParent, WM_PARENTNOTIFY, WM_DESTROY, 0);
-
-                ExitProcess(1);
-            }
-            else if(ret == IDIGNORE)
-            {
-                printf("EmuMain (0x%X): Ignored Breakpoint Exception\n", GetCurrentThreadId());
-
-                g_bEmuException = false;
-
-                return EXCEPTION_CONTINUE_EXECUTION;
-            }
-        }
-        else
-        {
-			// Pass the exception to our X86 implementation, to try and execute the failing instruction
-			if (EmuX86_DecodeException(e))
-			{
-				g_bEmuException = false;
-				return EXCEPTION_CONTINUE_EXECUTION;
-			}
-
-
-			// print debug information
-			{
-				printf("EmuMain (0x%X): Recieved Exception (Code := 0x%.08X)\n", GetCurrentThreadId(), e->ExceptionRecord->ExceptionCode);
-
-				printf("\n"
-					" EIP := 0x%.08X EFL := 0x%.08X\n"
-					" EAX := 0x%.08X EBX := 0x%.08X ECX := 0x%.08X EDX := 0x%.08X\n"
-					" ESI := 0x%.08X EDI := 0x%.08X ESP := 0x%.08X EBP := 0x%.08X\n"
-					" CR2 := 0x%.08X\n"
-					"\n",
-					e->ContextRecord->Eip, e->ContextRecord->EFlags,
-					e->ContextRecord->Eax, e->ContextRecord->Ebx, e->ContextRecord->Ecx, e->ContextRecord->Edx,
-					e->ContextRecord->Esi, e->ContextRecord->Edi, e->ContextRecord->Esp, e->ContextRecord->Ebp,
-					e->ContextRecord->Dr2);
-
-#ifdef _DEBUG
-				CONTEXT Context = *(e->ContextRecord);
-				EmuPrintStackTrace(&Context);
-#endif
-			}
-
-			fflush(stdout);
-
-            sprintf(buffer,
-                "Recieved Exception Code 0x%.08X @ EIP := 0x%.08X\n"
-                "\n"
-                "  Press \"OK\" to terminate emulation.\n"
-                "  Press \"Cancel\" to debug.",
-                e->ExceptionRecord->ExceptionCode, e->ContextRecord->Eip);
-
-            if(MessageBox(g_hEmuWindow, buffer, "Cxbx-Reloaded", MB_ICONSTOP | MB_OKCANCEL) == IDOK)
-            {
-                printf("EmuMain (0x%X): Aborting Emulation\n", GetCurrentThreadId());
-                fflush(stdout);
-
-                if(CxbxKrnl_hEmuParent != NULL)
-                    SendMessage(CxbxKrnl_hEmuParent, WM_PARENTNOTIFY, WM_DESTROY, 0);
-
-                ExitProcess(1);
-            }
-        }
-    }
-
-    g_bEmuException = false;
-
+	// Unhandled exception :
+	g_bEmuException = false;
     return EXCEPTION_CONTINUE_SEARCH;
-}
-
-// check how many bytes were allocated for a structure
-extern int EmuCheckAllocationSize(LPVOID pBase, bool largeBound)
-{
-    MEMORY_BASIC_INFORMATION MemoryBasicInfo;
-
-    DWORD dwRet;
-#ifdef _DEBUG_ALLOC
-    dwRet = CxbxVirtualQueryDebug(pBase, &MemoryBasicInfo, sizeof(MemoryBasicInfo));
-    if (dwRet == -1)
-#endif
-    dwRet = VirtualQuery(pBase, &MemoryBasicInfo, sizeof(MemoryBasicInfo));
-
-    if(dwRet == 0)
-        return 0;
-
-    if(MemoryBasicInfo.State != MEM_COMMIT)
-        return 0;
-
-    // this is a hack in order to determine when pointers come from a large write-combined database
-    if(largeBound && MemoryBasicInfo.RegionSize > 5*1024*1024)
-        return -1;
-
-    return MemoryBasicInfo.RegionSize - ((DWORD)pBase - (DWORD)MemoryBasicInfo.BaseAddress);
 }
 
 // exception handle for that tough final exit :)
@@ -296,10 +254,10 @@ int ExitException(LPEXCEPTION_POINTERS e)
 {
     static int count = 0;
 
-    // debug information
-    printf("EmuMain (0x%X): * * * * * EXCEPTION * * * * *\n", GetCurrentThreadId());
-    printf("EmuMain (0x%X): Recieved Exception [0x%.08X]@0x%.08X\n", GetCurrentThreadId(), e->ExceptionRecord->ExceptionCode, e->ContextRecord->Eip);
-    printf("EmuMain (0x%X): * * * * * EXCEPTION * * * * *\n", GetCurrentThreadId());
+	// debug information
+    printf("[0x%X] EmuMain: * * * * * EXCEPTION * * * * *\n", GetCurrentThreadId());
+    printf("[0x%X] EmuMain: Received Exception [0x%.08X]@%s\n", GetCurrentThreadId(), e->ExceptionRecord->ExceptionCode, EIPToString(e->ContextRecord->Eip).c_str());
+    printf("[0x%X] EmuMain: * * * * * EXCEPTION * * * * *\n", GetCurrentThreadId());
 
     fflush(stdout);
 
@@ -328,12 +286,12 @@ void EmuPrintStackTrace(PCONTEXT ContextRecord)
     static int const STACK_MAX     = 16;
     static int const SYMBOL_MAXLEN = 64;
 
-    EnterCriticalSection(&dbgCritical);
+	// TODO: Figure out why this causes a loop of Exceptions until the process dies
+    //EnterCriticalSection(&dbgCritical);
 
     IMAGEHLP_MODULE64 module = { sizeof(IMAGEHLP_MODULE) };
 
-    BOOL fSymInitialized;
-    fSymInitialized = SymInitialize(GetCurrentProcess(), NULL, TRUE);
+    BOOL fSymInitialized = SymInitialize(g_CurrentProcessHandle, NULL, TRUE);
 
     STACKFRAME64 frame = { sizeof(STACKFRAME64) };
     frame.AddrPC.Offset    = ContextRecord->Eip;
@@ -347,7 +305,7 @@ void EmuPrintStackTrace(PCONTEXT ContextRecord)
     {
         if(!StackWalk64(
             IMAGE_FILE_MACHINE_I386,
-            GetCurrentProcess(),
+			g_CurrentProcessHandle,
             GetCurrentThread(),
             &frame,
             ContextRecord,
@@ -357,39 +315,48 @@ void EmuPrintStackTrace(PCONTEXT ContextRecord)
             NULL))
             break;
 
-        DWORD64 dwDisplacement = 0;
-        PSYMBOL_INFO pSymbol = 0;
-        BYTE symbol[sizeof(SYMBOL_INFO) + SYMBOL_MAXLEN];
-
-        SymGetModuleInfo64(GetCurrentProcess(), frame.AddrPC.Offset, &module);
-
-        if(fSymInitialized)
-        {
-            pSymbol = (PSYMBOL_INFO)symbol;
-            pSymbol->SizeOfStruct = sizeof(SYMBOL_INFO) + SYMBOL_MAXLEN - 1;
-            pSymbol->MaxNameLen = SYMBOL_MAXLEN;
-
-            if(!SymFromAddr(GetCurrentProcess(), frame.AddrPC.Offset, &dwDisplacement, pSymbol))
-                pSymbol = 0;
-        }
-
+        SymGetModuleInfo64(g_CurrentProcessHandle, frame.AddrPC.Offset, &module);
         if(module.ModuleName)
             printf(" %2d: %-8s 0x%.08X", i, module.ModuleName, frame.AddrPC.Offset);
         else
             printf(" %2d: %8c 0x%.08X", i, ' ', frame.AddrPC.Offset);
 
-        if(pSymbol)
+		BYTE symbol[sizeof(SYMBOL_INFO) + SYMBOL_MAXLEN] = { 0 };
+		std::string symbolName = "";
+        DWORD64 dwDisplacement = 0;
+
+        if(fSymInitialized)
         {
-            printf(" %s+0x%.04X\n", pSymbol->Name, dwDisplacement);
+			PSYMBOL_INFO pSymbol = (PSYMBOL_INFO)&symbol;
+            pSymbol->SizeOfStruct = sizeof(SYMBOL_INFO) + SYMBOL_MAXLEN - 1;
+            pSymbol->MaxNameLen = SYMBOL_MAXLEN;
+			if (SymFromAddr(g_CurrentProcessHandle, frame.AddrPC.Offset, &dwDisplacement, pSymbol))
+				symbolName = pSymbol->Name;
+			else
+			{
+				// Try getting a symbol name from the HLE cache :
+				int symbolOffset = 0;
+
+				symbolName = GetDetectedSymbolName((xbaddr)frame.AddrPC.Offset, &symbolOffset);
+
+				if (symbolOffset < 1000)
+					dwDisplacement = (DWORD64)symbolOffset;
+				else
+					symbolName = "";
+			}
         }
+
+        if(symbolName.length() > 0)
+            printf(" %s+0x%.04X\n", symbolName.c_str(), dwDisplacement);
         else
             printf("\n");
     }
+
     printf("\n");
 
     if(fSymInitialized)
-        SymCleanup(GetCurrentProcess());
+        SymCleanup(g_CurrentProcessHandle);
 
-    LeaveCriticalSection(&dbgCritical);
+    // LeaveCriticalSection(&dbgCritical);
 }
 #endif

@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -69,8 +71,6 @@ bool Wnd::ProcessMessages()
     // initialize window
     if(!m_initialized)
     {
-        HMODULE hCxbxDll = GetModuleHandle("CxbxKrnl.dll");
-
         m_initialized = true;
 
         WNDCLASS wnd_class;
@@ -79,7 +79,7 @@ bool Wnd::ProcessMessages()
         wnd_class.lpszClassName = m_classname;
         wnd_class.lpfnWndProc   = WndProcForward;
         wnd_class.style         = m_clsstyle;
-        wnd_class.hIcon         = LoadIcon(hCxbxDll, MAKEINTRESOURCE(IDI_CXBX));
+        wnd_class.hIcon         = 0; // TODO : LoadIcon(hmodule, ?)
         wnd_class.hCursor       = LoadCursor(NULL, IDC_ARROW);
         wnd_class.lpszMenuName  = NULL;
         wnd_class.cbClsExtra    = 0;
@@ -106,7 +106,7 @@ bool Wnd::ProcessMessages()
 
         if(m_hwnd == 0)
         {
-            SetError("Could not create window.", true);
+            SetFatalError("Could not create window.");
             UnregisterClass(m_classname, m_hInstance);
             goto cleanup;
         }

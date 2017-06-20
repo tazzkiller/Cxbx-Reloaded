@@ -35,15 +35,8 @@
 // ******************************************************************
 // * XGSwizzleBox
 // ******************************************************************
-SOOVPA<10> XGSwizzleBox_1_0_4627 =
-{
-    0,  // Large == 0
-    10, // Count == 10
+OOVPA_NO_XREF(XGSwizzleBox, 4627, 10)
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
         // XGSwizzleBox+0x60 : sub ecx, [eax]
         { 0x60, 0x2B }, // (Offset,Value)-Pair #1
         { 0x61, 0x08 }, // (Offset,Value)-Pair #2
@@ -61,21 +54,13 @@ SOOVPA<10> XGSwizzleBox_1_0_4627 =
         // XGSwizzleBox+0xE2 : test ebx, ebx
         { 0xE2, 0x85 }, // (Offset,Value)-Pair #9
         { 0xE3, 0xDB }, // (Offset,Value)-Pair #10
-    }
-};
+OOVPA_END;
 
 // ******************************************************************
 // * XGWriteSurfaceOrTextureToXPR
 // ******************************************************************
-SOOVPA<7> XGWriteSurfaceOrTextureToXPR_1_0_4627 = 
-{
-    0,  // Large == 0
-    7,  // Count == 7
+OOVPA_NO_XREF(XGWriteSurfaceOrTextureToXPR, 4627, 7)
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
         { 0x1E, 0x3D },
         { 0x3E, 0xE0 },
         { 0x5E, 0x75 },
@@ -83,90 +68,21 @@ SOOVPA<7> XGWriteSurfaceOrTextureToXPR_1_0_4627 =
         { 0x9E, 0xC2 },
         { 0xBE, 0xF0 },
         { 0xE2, 0x8B },
-    }
+OOVPA_END;
+
+// ******************************************************************
+// * XG_4627
+// ******************************************************************
+OOVPATable XG_4627[] = {
+
+	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, PATCH),
+	// REGISTER_OOVPA(XGSwizzleRect, 4361, DISABLED), // TODO : Uncomment
+	// REGISTER_OOVPA(XGUnswizzleRect, 3911, DISABLED), // TODO : Uncomment
+	REGISTER_OOVPA(XGSwizzleBox, 4627, PATCH),
+	REGISTER_OOVPA(XGWriteSurfaceOrTextureToXPR, 4627, PATCH),
 };
 
 // ******************************************************************
-// * XGUnswizzleRect
+// * XG_4627_SIZE
 // ******************************************************************
-SOOVPA<8> XGUnswizzleRect_1_0_4627 = 
-{
-    0,  // Large == 0
-    8,  // Count == 8
-
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
-        { 0x1E, 0x03 },
-        { 0x3E, 0x00 },
-        { 0x5E, 0xD2 },
-        { 0x7E, 0x75 },
-        { 0x9E, 0x70 },
-        { 0xC1, 0xE9 },
-        { 0xDE, 0x89 },
-        { 0xFE, 0x60 },
-    }
-};
-
-// ******************************************************************
-// * XG_1_0_4627
-// ******************************************************************
-OOVPATable XG_1_0_4627[] =
-{
-    // XGIsSwizzledFormat (* unchanged since 4361 *)
-    {
-        (OOVPA*)&XGIsSwizzledFormat_1_0_4361,
-
-        XTL::EmuXGIsSwizzledFormat,
-
-        #ifdef _DEBUG_TRACE
-        "XGIsSwizzledFormat"
-        #endif
-    },
-    // XGSwizzleRect (* unchanged since 4361 *)
-    {
-        (OOVPA*)&XGSwizzleRect_1_0_4361,
-
-        XTL::EmuXGSwizzleRect,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGSwizzleRect"
-        #endif
-    },
-	// XGUnswizzleRect 
-    {
-        (OOVPA*)&XGUnswizzleRect_1_0_4627,
-
-        XTL::EmuXGUnswizzleRect,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGUnswizzleRect"
-        #endif
-    },
-    // XGSwizzleBox
-    {
-        (OOVPA*)&XGSwizzleBox_1_0_4627,
-
-        XTL::EmuXGSwizzleBox,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGSwizzleBox"
-        #endif
-    },
-	// XGWriteSurfaceOrTextureToXPR
-    {
-        (OOVPA*)&XGWriteSurfaceOrTextureToXPR_1_0_4627,
-
-        XTL::EmuXGWriteSurfaceOrTextureToXPR,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGWriteSurfaceOrTextureToXPR"
-        #endif
-    },
-};
-
-// ******************************************************************
-// * XG_1_0_4627_SIZE
-// ******************************************************************
-uint32 XG_1_0_4627_SIZE = sizeof(XG_1_0_4627);
+uint32 XG_4627_SIZE = sizeof(XG_4627);

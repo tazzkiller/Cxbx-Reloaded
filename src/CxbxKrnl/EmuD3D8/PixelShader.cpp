@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -71,6 +73,7 @@
 #include "CxbxKrnl/EmuFS.h"
 #include "CxbxKrnl/EmuAlloc.h"
 #include "CxbxKrnl/EmuXTL.h"
+#include <CxbxKrnl/MemoryManager.h>
 
 #include <process.h>
 #include <locale.h>
@@ -732,13 +735,13 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 	// The Xbox sets r0 to the alpha channel of texture 0, so it can be read before written!
 	if(bR0WAccess)
 	{
-		char *szNewCodeBuffer = (char *)CxbxMalloc((strlen(szCode)+20)*sizeof(char));
+		char *szNewCodeBuffer = (char*)malloc((strlen(szCode)+20)*sizeof(char));
 		strncpy(szNewCodeBuffer, szCode, iPreRunLen);
 		strcat(szNewCodeBuffer, "mov r0, t0.a\n");
 		strcat(szNewCodeBuffer, &szCode[iPreRunLen]);
 		strcpy(szCode, szNewCodeBuffer);
 
-		CxbxFree(szNewCodeBuffer);
+		free(szNewCodeBuffer);
 	}
 	/*DbgPrintf("r1 case! ... ");
 	if(bR1WAccess || bR1AWAccess || bR1RGBWAccess)
@@ -802,7 +805,7 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 
 		if (FAILED(hRet))
 		{
-			EmuWarning("Couldn't assemble recompiled pixel shader\n");
+			EmuWarning("Couldn't assemble recompiled pixel shader");
 			if (pCompilationErrors)
 			{
 				EmuWarning((const char*)pCompilationErrors->GetBufferPointer());
@@ -811,7 +814,7 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 	}
 	__except(EXCEPTION_EXECUTE_HANDLER)
 	{
-		DbgPrintf("Pixel Shader : Exception while creating pixel shader 0x%.8X", pPSD);
+		DbgPrintf("Pixel Shader : Exception while creating pixel shader 0x%.8X\n", pPSD);
 	}
 	if (pCompilationErrors)
 	{
@@ -1424,7 +1427,7 @@ inline void HandleInputOutput
 
 			if (bEFProduct)
 			{
-				EmuWarning("EF Product and V1R0 register used at the same time!\n");
+				EmuWarning("EF Product and V1R0 register used at the same time!");
 			}
 			else
 			{
@@ -1945,7 +1948,7 @@ inline BOOL OptimizeOperation
 		{
 			if (szMod[0])
 			{
-				EmuWarning("Pixel Shader: Destination modifier present!\n");
+				EmuWarning("Pixel Shader: Destination modifier present!");
 			}
 			switch (eOpTypes[2])
 			{
@@ -2070,7 +2073,7 @@ inline BOOL OptimizeOperation
 					{
 						if (szOutputs[2][0] != 'r')
 						{
-							EmuWarning("Pixel Shader: Destination not temporary register!\n");
+							EmuWarning("Pixel Shader: Destination not temporary register!");
 						}
 						// ab input
 						iOffset += sprintf(szCommand + iOffset, "mul%s r1, %s, %s\n",
@@ -2402,7 +2405,7 @@ inline BOOL OptimizeOperation
 			}
 			if (!bHandled)
 			{
-				EmuWarning("Unhandled pixel shader instruction!\n");
+				EmuWarning("Unhandled pixel shader instruction!");
 			}
 // 			if (strcmp(szOps[2], "add") == 0)
 // 			{
@@ -2416,7 +2419,7 @@ inline BOOL OptimizeOperation
 // 				}
 // 				else
 // 				{
-// 					EmuWarning("Unhandled pixel shader instruction!\n");
+// 					EmuWarning("Unhandled pixel shader instruction!");
 // 				}
 // 			}
 // 			else if (strcmp(szOps[2], "cnd") == 0)
@@ -2431,12 +2434,12 @@ inline BOOL OptimizeOperation
 // 				}
 // 				else
 // 				{
-// 					EmuWarning("Unhandled pixel shader instruction!\n");
+// 					EmuWarning("Unhandled pixel shader instruction!");
 // 				}
 // 			}
 // 			else
 // 			{
-// 				EmuWarning("Unhandled pixel shader instruction!\n");
+// 				EmuWarning("Unhandled pixel shader instruction!");
 // 			}
 		}
 	}

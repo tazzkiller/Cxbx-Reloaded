@@ -38,42 +38,18 @@
 #include <dinput.h>
 
 // ******************************************************************
-// * func: EmuDInputInit
+// * patch: DInputInit
 // ******************************************************************
 extern bool EmuDInputInit();
 
 // ******************************************************************
-// * func: EmuDInputCleanup
+// * patch: DInputCleanup
 // ******************************************************************
 extern void EmuDInputCleanup();
 
 // ******************************************************************
-// * func: EmuDInputPoll
+// * patch: DInputPoll
 // ******************************************************************
 extern void EmuDInputPoll(PXINPUT_STATE Controller);
-
-// ******************************************************************
-// * offsets into analog button array
-// ******************************************************************
-#define XINPUT_GAMEPAD_A                0
-#define XINPUT_GAMEPAD_B                1
-#define XINPUT_GAMEPAD_X                2
-#define XINPUT_GAMEPAD_Y                3
-#define XINPUT_GAMEPAD_BLACK            4
-#define XINPUT_GAMEPAD_WHITE            5
-#define XINPUT_GAMEPAD_LEFT_TRIGGER     6
-#define XINPUT_GAMEPAD_RIGHT_TRIGGER    7
-
-// ******************************************************************
-// * masks for digital buttons
-// ******************************************************************
-#define XINPUT_GAMEPAD_DPAD_UP          0x00000001
-#define XINPUT_GAMEPAD_DPAD_DOWN        0x00000002
-#define XINPUT_GAMEPAD_DPAD_LEFT        0x00000004
-#define XINPUT_GAMEPAD_DPAD_RIGHT       0x00000008
-#define XINPUT_GAMEPAD_START            0x00000010
-#define XINPUT_GAMEPAD_BACK             0x00000020
-#define XINPUT_GAMEPAD_LEFT_THUMB       0x00000040
-#define XINPUT_GAMEPAD_RIGHT_THUMB      0x00000080
 
 #endif

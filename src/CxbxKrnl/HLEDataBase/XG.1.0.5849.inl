@@ -33,108 +33,17 @@
 // ******************************************************************
 
 // ******************************************************************
-// * XGSwizzleBox
+// * XG_5849
 // ******************************************************************
-SOOVPA<10> XGSwizzleBox_1_0_5849 =
-{
-    0,  // Large == 0
-    10, // Count == 10
+OOVPATable XG_5849[1] = {
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
-        // XGSwizzleBox+0x60 : sub ecx, [eax]
-        { 0x60, 0x2B }, // (Offset,Value)-Pair #1
-        { 0x61, 0x08 }, // (Offset,Value)-Pair #2
-
-        // XGSwizzleBox+0x8E : lea ecx, [ebp+0xD8]
-        { 0x8E, 0x8D }, // (Offset,Value)-Pair #3
-        { 0x8F, 0x4D }, // (Offset,Value)-Pair #4
-        { 0x90, 0xD8 }, // (Offset,Value)-Pair #5
-
-        // XGSwizzleBox+0xD5 : shl eax, 2
-        { 0xD5, 0xC1 }, // (Offset,Value)-Pair #6
-        { 0xD6, 0xE0 }, // (Offset,Value)-Pair #7
-        { 0xD7, 0x02 }, // (Offset,Value)-Pair #8
-
-        // XGSwizzleBox+0xE2 : test ebx, ebx
-        { 0xE2, 0x85 }, // (Offset,Value)-Pair #9
-        { 0xE3, 0xDB }, // (Offset,Value)-Pair #10
-    }
+	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, PATCH),
+    // REGISTER_OOVPA(XGSwizzleRect, 3911, DISABLED), // TODO : Uncomment
+	// REGISTER_OOVPA(XGUnswizzleRect, 3911, DISABLED), // TODO : Uncomment
+	// REGISTER_OOVPA(XFONT_OpenBitmapFontFromMemory, 5788, PATCH),
 };
 
 // ******************************************************************
-// * XFONT_OpenBitmapFontFromMemory
+// * XG_5849_SIZE
 // ******************************************************************
-SOOVPA<8> XFONT_OpenBitmapFontFromMemory_1_0_5849 = 
-{
-    0,  // Large == 0
-    8,  // Count == 8
-
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
-        { 0x0B, 0x75 },
-        { 0x1A, 0x8B },
-        { 0x28, 0x8B },
-        { 0x32, 0x08 },
-        { 0x3F, 0x8B },
-        { 0x4C, 0x8B },
-        { 0x59, 0x45 },
-        { 0x66, 0x0C },
-    }
-};
-
-// ******************************************************************
-// * XG_1_0_5849
-// ******************************************************************
-OOVPATable XG_1_0_5849[] =
-{
-    // XGIsSwizzledFormat (* unchanged since 4361 *)
-    {
-        (OOVPA*)&XGIsSwizzledFormat_1_0_4361,
-
-        XTL::EmuXGIsSwizzledFormat,
-
-        #ifdef _DEBUG_TRACE
-        "XGIsSwizzledFormat"
-        #endif
-    },
-    // XGSwizzleRect (* unchanged since 5558 *)
-    {
-        (OOVPA*)&XGSwizzleRect_1_0_5558,
-
-        XTL::EmuXGSwizzleRect,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGSwizzleRect"
-        #endif
-    },
-	// XGUnswizzleRect (* unchanged since 5558 *)
-    {
-        (OOVPA*)&XGUnswizzleRect_1_0_5558,
-
-        XTL::EmuXGUnswizzleRect,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGUnswizzleRect"
-        #endif
-    },
-	// XFONT_OpenBitmapFontFromMemory
-    /*{
-        (OOVPA*)&XFONT_OpenBitmapFontFromMemory_1_0_5849,
-
-        XTL::EmuXFONT_OpenBitmapFontFromMemory,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXFONT_OpenBitmapFontFromMemory"
-        #endif
-    },*/
-};
-
-// ******************************************************************
-// * XG_1_0_5849_SIZE
-// ******************************************************************
-uint32 XG_1_0_5849_SIZE = sizeof(XG_1_0_5849);
+uint32 XG_5849_SIZE = sizeof(XG_5849);

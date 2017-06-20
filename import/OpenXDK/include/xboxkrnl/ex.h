@@ -47,7 +47,7 @@ XBSYSAPI EXPORTNUM(15) PVOID NTAPI ExAllocatePoolWithTag
     IN ULONG Tag
 );
 
-XBSYSAPI EXPORTNUM(16) POBJECT_TYPE ExEventObjectType;
+XBSYSAPI EXPORTNUM(16) OBJECT_TYPE ExEventObjectType;
 
 // ******************************************************************
 // * ExFreePool
@@ -61,7 +61,10 @@ XBSYSAPI EXPORTNUM(17) VOID NTAPI ExFreePool
     IN PVOID P
 );
 
-XBSYSAPI EXPORTNUM(18) NTSTATUS NTAPI ExInitializeReadWriteLock
+// ******************************************************************
+// * 0x0012 - ExInitializeReadWriteLock()
+// ******************************************************************
+XBSYSAPI EXPORTNUM(18) VOID NTAPI ExInitializeReadWriteLock
 (
 	IN PERWLOCK ReadWriteLock
 );
@@ -90,7 +93,7 @@ XBSYSAPI EXPORTNUM(21) LONGLONG FASTCALL ExInterlockedCompareExchange64
 	IN PKSPIN_LOCK Lock
 );
 
-XBSYSAPI EXPORTNUM(22) POBJECT_TYPE ExMutantObjectType;
+XBSYSAPI EXPORTNUM(22) OBJECT_TYPE ExMutantObjectType;
 
 // ******************************************************************
 // * ExQueryPoolBlockSize
@@ -101,15 +104,15 @@ XBSYSAPI EXPORTNUM(23) ULONG NTAPI ExQueryPoolBlockSize
 );
 
 // ******************************************************************
-// * ExQueryNonVolatileSetting
+// * 0x0018 - ExQueryNonVolatileSetting()
 // ******************************************************************
 XBSYSAPI EXPORTNUM(24) NTSTATUS NTAPI ExQueryNonVolatileSetting
 (
-    IN  EEPROM_INDEX        ValueIndex,
-    OUT DWORD              *Type,
-    OUT PUCHAR              Value,
-    IN  SIZE_T              ValueLength,
-    OUT PSIZE_T             ResultLength OPTIONAL
+	IN  DWORD               ValueIndex,
+	OUT DWORD              *Type,
+	OUT PVOID               Value,
+	IN  SIZE_T              ValueLength,
+	OUT PSIZE_T             ResultLength OPTIONAL
 );
 
 // ******************************************************************
@@ -138,38 +141,44 @@ XBSYSAPI EXPORTNUM(28) NTSTATUS NTAPI ExReleaseReadWriteLock
 );
 
 // ******************************************************************
-// * ExSaveNonVolatileSetting
+// * 0x001D - ExSaveNonVolatileSetting()
 // ******************************************************************
 XBSYSAPI EXPORTNUM(29) NTSTATUS NTAPI ExSaveNonVolatileSetting
 (
-    IN  DWORD               ValueIndex,
-    OUT DWORD              *Type,
-    IN  PUCHAR              Value,
-    IN  SIZE_T              ValueLength
+	IN  DWORD               ValueIndex,
+	IN  DWORD               Type,
+	IN  PVOID               Value,
+	IN  SIZE_T              ValueLength
 );
 
-XBSYSAPI EXPORTNUM(30) POBJECT_TYPE ExSemaphoreObjectType;
+XBSYSAPI EXPORTNUM(30) OBJECT_TYPE ExSemaphoreObjectType;
 
-XBSYSAPI EXPORTNUM(31) POBJECT_TYPE ExTimerObjectType;
+XBSYSAPI EXPORTNUM(31) OBJECT_TYPE ExTimerObjectType;
 
+// ******************************************************************
+// * 0x0020 - ExfInterlockedInsertHeadList()
+// ******************************************************************
 XBSYSAPI EXPORTNUM(32) PLIST_ENTRY FASTCALL ExfInterlockedInsertHeadList
 (
 	IN PLIST_ENTRY ListHead,
-	IN PLIST_ENTRY ListEntry,
-	IN PKSPIN_LOCK Lock
+	IN PLIST_ENTRY ListEntry
 );
 
+// ******************************************************************
+// * 0x0021 - ExfInterlockedInsertTailList()
+// ******************************************************************
 XBSYSAPI EXPORTNUM(33) PLIST_ENTRY FASTCALL ExfInterlockedInsertTailList
 (
 	IN PLIST_ENTRY ListHead,
-	IN PLIST_ENTRY ListEntry,
-	IN PKSPIN_LOCK Lock
+	IN PLIST_ENTRY ListEntry
 );
 
+// ******************************************************************
+// * 0x0022 - ExfInterlockedRemoveHeadList()
+// ******************************************************************
 XBSYSAPI EXPORTNUM(34) PLIST_ENTRY FASTCALL ExfInterlockedRemoveHeadList
 (
-	IN PLIST_ENTRY ListHead,
-	IN PKSPIN_LOCK Lock
+	IN PLIST_ENTRY ListHead
 );
 
 XBSYSAPI EXPORTNUM(51) LONG FASTCALL KRNL(InterlockedCompareExchange)

@@ -33,33 +33,15 @@
 // ******************************************************************
 
 // ******************************************************************
-// * XG_1_0_5233
+// * XG_5233
 // ******************************************************************
-OOVPATable XG_1_0_5233[] =
-{
-    // XGIsSwizzledFormat (* unchanged since 4361 *)
-    {
-        (OOVPA*)&XGIsSwizzledFormat_1_0_4361,
+OOVPATable XG_5233[1] = {
 
-        XTL::EmuXGIsSwizzledFormat,
-
-        #ifdef _DEBUG_TRACE
-        "XGIsSwizzledFormat"
-        #endif
-    },
-    // XGSwizzleRect (* unchanged since 4361 *)
-    {
-        (OOVPA*)&XGSwizzleRect_1_0_4361,
-
-        XTL::EmuXGSwizzleRect,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGSwizzleRect"
-        #endif
-    },
+	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, PATCH),
+	// REGISTER_OOVPA(XGSwizzleRect, 4361, DISABLED), // TODO : Uncomment
 };
 
 // ******************************************************************
-// * XG_1_0_5233_SIZE
+// * XG_5233_SIZE
 // ******************************************************************
-uint32 XG_1_0_5233_SIZE = sizeof(XG_1_0_5233);
+uint32 XG_5233_SIZE = sizeof(XG_5233);

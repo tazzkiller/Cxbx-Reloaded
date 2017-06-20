@@ -40,8 +40,11 @@
 #include "HLEDataBase/Xapi.1.0.4361.h"
 #include "HLEDataBase/Xapi.1.0.4432.h"
 #include "HLEDataBase/Xapi.1.0.4627.h"
+#include "HLEDataBase/Xapi.1.0.5028.h"
 #include "HLEDataBase/Xapi.1.0.5233.h"
+#include "HLEDataBase/Xapi.1.0.5344.h"
 #include "HLEDataBase/Xapi.1.0.5558.h"
+#include "HLEDataBase/Xapi.1.0.5788.h"
 #include "HLEDataBase/Xapi.1.0.5849.h"
 #include "HLEDataBase/D3D8.1.0.3925.h"
 #include "HLEDataBase/D3D8.1.0.4034.h"
@@ -49,31 +52,42 @@
 #include "HLEDataBase/D3D8.1.0.4361.h"
 #include "HLEDataBase/D3D8.1.0.4432.h"
 #include "HLEDataBase/D3D8.1.0.4627.h"
+#include "HLEDataBase/D3D8.1.0.5028.h"
 #include "HLEDataBase/D3D8.1.0.5233.h"
+#include "HLEDataBase/D3D8.1.0.5344.h"
 #include "HLEDataBase/D3D8.1.0.5558.h"
+#include "HLEDataBase/D3D8.1.0.5788.h"
 #include "HLEDataBase/D3D8.1.0.5849.h"
-#include "HLEDataBase/D3D8LTCG.1.0.5849.h"
 #include "HLEDataBase/DSound.1.0.3936.h"
 #include "HLEDataBase/DSound.1.0.4134.h"
 #include "HLEDataBase/DSound.1.0.4361.h"
 #include "HLEDataBase/DSound.1.0.4432.h"
 #include "HLEDataBase/DSound.1.0.4627.h"
+#include "HLEDataBase/DSound.1.0.5028.h"
 #include "HLEDataBase/DSound.1.0.5233.h"
+#include "HLEDataBase/DSound.1.0.5344.h"
 #include "HLEDataBase/DSound.1.0.5558.h"
+#include "HLEDataBase/DSound.1.0.5788.h"
 #include "HLEDataBase/DSound.1.0.5849.h"
 #include "HLEDataBase/XG.1.0.3911.h"
 #include "HLEDataBase/XG.1.0.4034.h"
 #include "HLEDataBase/XG.1.0.4361.h"
 #include "HLEDataBase/XG.1.0.4432.h"
 #include "HLEDataBase/XG.1.0.4627.h"
+#include "HLEDataBase/XG.1.0.5028.h"
 #include "HLEDataBase/XG.1.0.5233.h"
+#include "HLEDataBase/XG.1.0.5344.h"
 #include "HLEDataBase/XG.1.0.5558.h"
+#include "HLEDataBase/XG.1.0.5788.h"
 #include "HLEDataBase/XG.1.0.5849.h"
 #include "HLEDataBase/XNet.1.0.3911.h"
 #include "HLEDataBase/XOnline.1.0.4361.h"
 #include "HLEDataBase/XOnline.1.0.4627.h"
+#include "HLEDataBase/XOnline.1.0.5028.h"
 #include "HLEDataBase/XOnline.1.0.5233.h"
+#include "HLEDataBase/XOnline.1.0.5344.h"
 #include "HLEDataBase/XOnline.1.0.5558.h"
+#include "HLEDataBase/XOnline.1.0.5788.h"
 #include "HLEDataBase/XOnline.1.0.5849.h"
 #include "HLEDataBase/XactEng.1.0.4627.h"
 
@@ -82,41 +96,34 @@
 // ******************************************************************
 extern "C" const char *szHLELastCompileTime;
 
+extern const char *Lib_D3D8;
+extern const char *Lib_D3D8LTCG;
+extern const char *Lib_D3DX8;
+extern const char *Lib_DSOUND;
+extern const char *Lib_XACTENG;
+extern const char *Lib_XAPILIB;
+extern const char *Lib_XGRAPHC;
+extern const char *Lib_XNETS;
+extern const char *Lib_XONLINE; // TODO : Typo for XONLINES?
+extern const char *Lib_XONLINES;
+
 // ******************************************************************
 // * HLEDataBase
 // ******************************************************************
-extern struct HLEData
+extern const struct HLEData
 {
-    char       *Library;
+    const char *Library;
 
-    uint16      MajorVersion;
-    uint16      MinorVersion;
     uint16      BuildVersion;
-
     OOVPATable *OovpaTable;
     uint32      OovpaTableSize;
 }
 HLEDataBase[];
 
 // ******************************************************************
-// * HLEDataBaseSize
+// * HLEDataBaseCount
 // ******************************************************************
-extern uint32 HLEDataBaseSize;
-
-// ******************************************************************
-// * XRefDataBase
-// ******************************************************************
-extern uint32 XRefDataBase[];
-
-// ******************************************************************
-// * UnResolvedXRefs
-// ******************************************************************
-extern uint32 UnResolvedXRefs;
-
-// ******************************************************************
-// * bXRefFirstPass
-// ******************************************************************
-extern bool bXRefFirstPass;
+extern const uint32 HLEDataBaseCount;
 
 // ******************************************************************
 // * XRefDataBaseOffset
@@ -124,7 +131,9 @@ extern bool bXRefFirstPass;
 enum XRefDataBaseOffset
 {
     XREF_D3DDEVICE=0,
-    XREF_DXSRSCULLMODE,
+    XREF_SETRENDERSTATE_CULLMODE,
+	XREF_D3DRS_CULLMODE,
+	XREF_D3DTSS_TEXCOORDINDEX,
     XREF_D3DRS_MULTISAMPLEMODE,
     XREF_D3DRS_MULTISAMPLERENDERTARGETMODE,
     XREF_D3DRS_ROPZCMPALWAYSREAD,
@@ -147,17 +156,17 @@ enum XRefDataBaseOffset
     XREF_SETROLLOFFFACTORB,
     XREF_SETDOPPLERFACTOR,
     XREF_SETBUFFERDATA,
-    XREF_SETCURRENTPOSITION,
-    XREF_SETCURRENTPOSITION2,
-    XREF_GETCURRENTPOSITION,
-    XREF_GETCURRENTPOSITION2,
-    XREF_DSOUNDPLAY,
-    XREF_DSOUNDPLAY2,
-    XREF_DSOUNDSTOP,
-    XREF_DSOUNDSTOP2,
+	XREF_CMcpxBuffer_SetCurrentPosition,
+	XREF_CDirectSoundBuffer_SetCurrentPosition,
+	XREF_CMcpxBuffer_GetCurrentPosition,
+	XREF_CDirectSoundBuffer_GetCurrentPosition,
+    XREF_CDirectSoundBuffer_Play,
+	XREF_CMcpxBuffer_Stop,
+	XREF_CDirectSoundBuffer_Stop,
     XREF_DSFLUSHEX2,
-    XREF_DSSETBUFFERDATA,
-    XREF_DSSETBUFFERDATA2,
+	XREF_DSSETBUFFERDATA,
+	XREF_CMcpxBuffer_SetBufferData,
+	XREF_CDirectSoundBuffer_SetBufferData,
     XREF_DSCREATESOUNDBUFFER,
     XREF_DSCREATESOUNDSTREAM,
     XREF_DSSTREAMPAUSE,
@@ -187,8 +196,6 @@ enum XRefDataBaseOffset
     XREF_DSSETI3DL2SOURCE2A,
     XREF_DSBUFFERSETPITCHA,
     XREF_DSBUFFERSETPITCHB,
-    XREF_DSBUFFERGETSTATUSA,
-    XREF_DSBUFFERGETSTATUSB,
     XREF_DSBUFFERSETVOLUMEA,
     XREF_DSBUFFERSETVOLUMEB,
     XREF_DSBUFFERSETCURRENTPOSITIONA,
@@ -241,7 +248,7 @@ enum XRefDataBaseOffset
     XREF_DSVOICESETCONEOUTSIDEVOLUME,
     XREF_DSVOICESETPOSITION,
     XREF_DSVOICESETVELOCITY,
-    XREF_DSVOICESETDOPPLERFACTOR,
+	XREF_CDirectSoundVoice_SetDopplerFactor,
     XREF_DSVOICESETI3DL2SOURCE,
     XREF_DSBUFFERSETMODEA,
     XREF_DSBUFFERSETMODEB,
@@ -257,40 +264,40 @@ enum XRefDataBaseOffset
     XREF_DSBUFFERSETVELOCITY,
     XREF_DSBUFFERSETDOPPLERFACTOR,
     XREF_DSBUFFERSETI3DL2SOURCE,
-    XREF_DirectSound_CDirectSoundVoice_SetFormat,
-    XREF_DirectSound_CDirectSoundBuffer_SetFormat,
-    XREF_DirectSound_CFullHRTFSource_GetCenterVolume,
-    XREF_DirectSound_CHRTFSource_SetFullHRTF5Channel,
+    XREF_CDirectSoundVoice_SetFormat,
+    XREF_CDirectSoundBuffer_SetFormat,
+    XREF_CFullHRTFSource_GetCenterVolume,
+    XREF_CHRTFSource_SetFullHRTF5Channel,
     XREF_D3D_BlockOnResource,
-    XREF_DirectSound_CMcpxVoiceClient_SetLFO,
-    XREF_DirectSound_CDirectSoundVoice_SetLFO,
-    XREF_DirectSound_CDirectSoundBuffer_SetLFO,
-    XREF_DirectSound_CDirectSoundVoice_SetVolume,
-    XREF_DirectSound_CDirectSoundBuffer_SetVolume,
-    XREF_DirectSound_CDirectSoundBuffer_SetLoopRegion,
-    XREF_DirectSound_CMcpxBuffer_Play,
-    XREF_DirectSound_CDirectSoundBuffer_PlayEx,
-    XREF_DirectSound_WaveFormat_CreateXboxAdpcmFormat,
-    XREF_DirectSound_CDirectSoundVoice_SetConeAngles,
-    XREF_DirectSound_CDirectSoundBuffer_SetConeAngles,
-    XREF_DirectSound_CDirectSoundVoice_CommitDeferredSettings,
-    XREF_DirectSound_CDirectSoundVoice_SetAllParameters,
-    XREF_DirectSound_CDirectSoundBuffer_SetAllParameters,
-	XREF_DirectSound_CDirectSound_EnableHeadphones,
-	XREF_DirectSound_CDirectSoundVoice_SetHeadroom,
-	XREF_DirectSound_CDirectSoundBuffer_SetHeadroom,
-	XREF_DirectSound_CDirectSound_GetOutputLevels,
-	XREF_DirectSound_CMcpxBuffer_Pause,
-	XREF_DirectSound_CDirectSoundBuffer_Pause,
-	XREF_DirectSound_CMcpxBuffer_GetStatus,
-	XREF_DirectSound_CDirectSoundBuffer_GetStatus,
-	XREF_DirectSound_CDirectSoundVoice_SetEG,
-	XREF_DirectSound_CMcpxVoiceClient_SetEG,
-	XREF_DirectSound_CMcpxVoiceClient_SetFilter,
-	XREF_DirectSound_CDirectSoundVoice_SetFilter,
-	XREF_DirectSound_CDirectSoundBuffer_SetFilter,
-	XREF_DirectSound_CDirectSoundStream_SetFilter,
-	XREF_DirectSound_CDirectSoundBuffer_StopEx,
+    XREF_CMcpxVoiceClient_SetLFO,
+    XREF_CDirectSoundVoice_SetLFO,
+    XREF_CDirectSoundBuffer_SetLFO,
+    XREF_CDirectSoundVoice_SetVolume,
+    XREF_CDirectSoundBuffer_SetVolume,
+    XREF_CDirectSoundBuffer_SetLoopRegion,
+    XREF_CMcpxBuffer_Play,
+    XREF_CDirectSoundBuffer_PlayEx,
+    XREF_WaveFormat_CreateXboxAdpcmFormat,
+    XREF_CDirectSoundVoice_SetConeAngles,
+    XREF_CDirectSoundBuffer_SetConeAngles,
+    XREF_CDirectSoundVoice_CommitDeferredSettings,
+    XREF_CDirectSoundVoice_SetAllParameters,
+    XREF_CDirectSoundBuffer_SetAllParameters,
+	XREF_CDirectSound_EnableHeadphones,
+	XREF_CDirectSoundVoice_SetHeadroom,
+	XREF_CDirectSoundBuffer_SetHeadroom,
+	XREF_CDirectSound_GetOutputLevels,
+	XREF_CMcpxBuffer_Pause,
+	XREF_CDirectSoundBuffer_Pause,
+	XREF_CMcpxBuffer_GetStatus,
+	XREF_CDirectSoundBuffer_GetStatus,
+	XREF_CDirectSoundVoice_SetEG,
+	XREF_CMcpxVoiceClient_SetEG,
+	XREF_CMcpxVoiceClient_SetFilter,
+	XREF_CDirectSoundVoice_SetFilter,
+	XREF_CDirectSoundBuffer_SetFilter,
+	XREF_CDirectSoundStream_SetFilter,
+	XREF_CDirectSoundBuffer_StopEx,
 	XREF_CMcpxBuffer_Stop2,
 	XREF_CMcpxAPU_Set3dDopplerFactor,
 	XREF_CSensaura3d_GetFullHRTFFilterPair,
@@ -304,14 +311,15 @@ enum XRefDataBaseOffset
 	XREF_CDirectSoundVoice_SetI3DL2Source,
 	XREF_CDirectSoundVoice_SetMixBinVolumes,
 	XREF_CDirectSoundStream_SetMixBinVolumes,
-	XREF_DirectSound_CDirectSoundStream_SetHeadroom,
-	XREF_DirectSound_CDirectSoundVoice_SetOutputBuffer,
-	XREF_DirectSound_CDirectSoundBuffer_SetOutputBuffer,
-	XREF_DirectSound_CDirectSoundBuffer_SetNotificationPositions,
-	XREF_DirectSound_CDirectSoundBuffer_SetEG,
-	XREF_DirectSound_CDirectSound_GetEffectData,
+	XREF_CDirectSoundStream_SetHeadroom,
+	XREF_CDirectSoundVoice_SetOutputBuffer,
+	XREF_CDirectSoundBuffer_SetOutputBuffer,
 	XREF_CDirectSoundBuffer_SetNotificationPositions,
-	XREF_DirectSound_CMcpxBuffer_Play2,
+	XREF_CDirectSoundBuffer_SetEG,
+	XREF_CDirectSound_GetEffectData,
+	XREF_CMcpxBuffer_Play2,
+	XREF_CDirectSoundVoice_Use3DVoiceData,
+	XREF_CDirectSoundBuffer_Use3DVoiceData,
 	// XACT
 	// +s
 	XREF_XACT_CEngine_RegisterWaveBank,
@@ -335,6 +343,18 @@ enum XRefDataBaseOffset
     // +s
 //	XREF_XLoadSectionByHandle,
 //	XREF_XFreeSectionByHandle,
+
+	XREF_COUNT // XREF_COUNT must always be last.
+	// Also, if XREF_COUNT > sizeof(uint16), enlarge struct OOVPA.XRefSaveIndex (and Value somehow)
 };
 
-#endif
+#define XREF_ADDR_UNDETERMINED -1
+#define XREF_ADDR_NOT_FOUND ((xbaddr)nullptr)
+#define XREF_ADDR_DERIVE 1
+
+// ******************************************************************
+// * XRefDataBase
+// ******************************************************************
+extern xbaddr XRefDataBase[XREF_COUNT];
+
+#endif /*HLEDATABASE_H*/

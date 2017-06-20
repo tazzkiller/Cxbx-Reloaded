@@ -36,93 +36,140 @@
 
 #include "Cxbx.h"
 
-// ******************************************************************
-// * Take THIS C++ !!
-// ******************************************************************
-template <class BaseClass, typename MFT> inline void *MFPtoFP( MFT pMemFunc)
-{
-    union
-    {
-        MFT pMemFunc;
-        void (*pFunc)();
-    }
-    ThisConv;
-
-    ThisConv.pMemFunc = pMemFunc;
-
-    return ThisConv.pFunc;
-}
-
 #pragma pack(1)
 
 // ******************************************************************
-// * Optimized (Order,Value)-Pair Array
+// * Optimized (Offset, Value)-Pair Array
 // ******************************************************************
 struct OOVPA
 {
-    uint16 Large : 1;
-    uint16 Count : 15;
+	// This OOVPA field (uint08 Count) indicates the number of
+	// {Offset, Value}-pairs present in the Lovp array,
+	// available after casting this OOVPA to LOOVPA.
+	// (This Count INCLUDES optional leading {Offset, XREF_*-enum}-
+	// pairs - see comment at XRefCount.)
+	uint08 Count;
 
-    uint08 XRefSaveIndex;
-    uint08 XRefCount;
+	// This OOVPA field (uint08 XRefCount) contains the number of
+	// {Offset, XREF_*-enum}-pairs that come before all other
+	// {Offset, Value}-pairs.
+	// (The {Offset, XREF_*-enum}-pairs are INCLUDED in OOVPA.Count)
+	// (Also, see comments at XRefZero and XRefOne.)
+	uint08 XRefCount;
+
+	// This OOVPA field (uint16 XRefSaveIndex) contains either an
+	// XREF_* enum value, or the XRefNoSaveIndex marker when there's
+	// no XREF_* enum defined for this OOVPA.
+	uint16 XRefSaveIndex;
+
+	// Define LOVP here to reduce type definition complexity.
+	// (Otherwise, if defined in the template classes, that would mean
+	// that for each template instance, the type is redefined. Let's
+	// avoid that.)
+
+	// {Offset, Value}-pair(s)
+	struct LOVP
+	{
+		uint16 Offset;
+		uint08 Value;
+	};
 };
 
-const uint08 XRefNotSaved = (uint08)-1;
-const uint08 XRefNotUsed = (uint08)0;
+// This XRefZero constant, when set in the OOVPA.XRefCount field,
+// indicates there are no {offset, XREF_*-enum} present in the OOVPA.
+const uint08 XRefZero = (uint08)0;
+
+// This XRefOne constant, when set in the OOVPA.XRefCount field,
+// indicates the OOVPA contains one (1) {offset, XREF_* enum} pair.
+const uint08 XRefOne = (uint08)1;
+const uint08 XRefTwo = (uint08)2;
+
+// Note : Theoretically, there can be more than one {Offset, XREF_*-enum}
+// pair at the start of the OOVPA's, but there are no examples of that yet.
+
+// This XRefNoSaveIndex constant, when set in the OOVPA.XRefSaveIndex
+// field, functions as a marker indicating there's no XREF_* enum
+// defined for the OOVPA.
+const uint16 XRefNoSaveIndex = (uint16)-1;
+
+// Macro used for storing an XRef {Offset, XRef}-Pair.
+//
+// XRefs are stored with Offset and Value swapped. This is to be able
+// to store XRef values beyond 8 bits (for now limited to 16 bits).
+// The price to pay for this is that the Offset is stored using 8 bits,
+// meaning that offsets beyond 255 cannot be used, not problem for now.
+#define XREF_ENTRY(Offset, XRef)	\
+	{ XRef, Offset }
+
+// UNUSED Macro for storing a normal (non-XRef) {Offset, Value}-Pair
+// Offsets can go up to 16 bits, values are always one byte (8 bits)
+#define OV_ENTRY(Offset, Value)	\
+	{ Offset, Value }
+
 
 // ******************************************************************
 // * Large Optimized (Offset,Value)-Pair Array
 // ******************************************************************
 template <uint16 COUNT> struct LOOVPA
 {
-    uint16 Large : 1;
-    uint16 Count : 15;
+	OOVPA Header;
 
-    uint08 XRefSaveIndex;
-    uint08 XRefCount;
-
-    // Large (Offset,Value)-Pair(s)
-    struct LOVP
-    {
-        uint16 Offset;
-        uint08 Value;
-    }
-    Lovp[COUNT];
+	// Large (Offset,Value)-Pair(s)
+	OOVPA::LOVP Lovp[COUNT];
 };
 
-// ******************************************************************
-// * Small Optimized (Offset,Value)-Pair Array
-// ******************************************************************
-template <uint16 COUNT> struct SOOVPA
-{
-    uint16 Large : 1;
-    uint16 Count : 15;
+#define OOVPA_XREF(Name, Version, Count, XRefSaveIndex, XRefCount)	\
+LOOVPA<Count> Name##_##Version = { { Count, XRefCount, XRefSaveIndex }, {
 
-    uint08 XRefSaveIndex;
-    uint08 XRefCount;
+#define OOVPA_NO_XREF(Name, Version, Count) \
+OOVPA_XREF(Name, Version, Count, XRefNoSaveIndex, XRefZero)
 
-    // Small (Offset,Value)-Pair(s)
-    struct SOVP
-    {
-        uint08 Offset;
-        uint08 Value;
-    }
-    Sovp[COUNT];
-};
+#define OOVPA_END } }
+
 
 // ******************************************************************
 // * OOVPATable
 // ******************************************************************
 struct OOVPATable
 {
-    OOVPA *Oovpa;
-
-    void  *lpRedirect;
-
-    #ifdef _DEBUG_TRACE
-    char  *szFuncName;
-    #endif
+	OOVPA *Oovpa;
+	char  *szFuncName;
+	uint16_t Version : 13; // 2^13 = 8192, enough to store lowest and higest possible Library Version number in
+	uint16_t Flags : 3;
 };
+
+const uint16_t Flag_DontScan = 1; // Indicates an entry that's currently disabled and thus shouldn't be searched for
+const uint16_t Flag_XRef = 2;	  // Indicates that an entry is an X-Ref
+const uint16_t Flag_DontPatch = 4;// Indicates an entry that's shouldn't be patched (even when it's found)
+
+#define OOVPA_TABLE_ENTRY_FULL(Oovpa, DebugName, Version, Flags) \
+	{ & Oovpa ## _ ## Version.Header, DebugName, Version, Flags }
+
+// REGISTER_OOVPA is the ONLY allowed macro for registrations.
+// Registrations MUST stay sorted to prevent duplicates and maintain overview.
+// The TYPE argument MUST be PATCH, XREF, ALIAS, EMUTHIS, LTCG or DISABLED (see below).
+// ONLY use ALIAS when absolutely required (when OOVPA identifier cannot follow Patch)
+// ONLY use LTCG for LTCG OOVPA's (HLE support for these is flacky at best)
+// DO NOT comment out registrations, but use TYPE DISABLED instead.
+#define REGISTER_OOVPA(Symbol, Version, TYPE, ...) \
+	REGISTER_OOVPA_##TYPE(Symbol, Version, __VA_ARGS__)
+
+#define PATCH /* most common registration, Symbol indicates both an OOVPA and Patch */
+#define REGISTER_OOVPA_PATCH(Symbol, Version, ...) \
+	OOVPA_TABLE_ENTRY_FULL(Symbol, #Symbol ##, Version, 0)
+
+#define XREF /* registration of an XRef-only OOVPA, for which no Patch is present */
+#define REGISTER_OOVPA_XREF(Symbol, Version, ...) \
+	OOVPA_TABLE_ENTRY_FULL(Symbol, #Symbol ##, Version, Flag_XRef)
+
+#define ALIAS /* registration of a Patch using an alternatively named OOVPA */
+#define REGISTER_OOVPA_ALIAS(Symbol, Version, AliasOovpa) \
+	OOVPA_TABLE_ENTRY_FULL(AliasOovpa, #Symbol ##, Version, 0)
+
+#define DISABLED /* registration is (temporarily) disabled by a flag */
+#define REGISTER_OOVPA_DISABLED(Symbol, Version, ...) \
+	OOVPA_TABLE_ENTRY_FULL(Symbol, #Symbol ##, Version, Flag_DontPatch)
+
 
 #pragma pack()
 

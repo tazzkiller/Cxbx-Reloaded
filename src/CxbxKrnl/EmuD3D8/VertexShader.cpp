@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -40,6 +42,8 @@
 #include "CxbxKrnl/EmuFS.h"
 #include "CxbxKrnl/EmuAlloc.h"
 #include "CxbxKrnl/EmuXTL.h"
+#include "CxbxKrnl/MemoryManager.h"
+#include "CxbxKrnl/EmuD3D8Types.h" // For X_D3DVSDE_*
 
 // ****************************************************************************
 // * Vertex shader function recompiler
@@ -52,6 +56,27 @@
 #define VERSION_XVSW                   0x77 // Xbox vertex read/write shader
 #define VSH_XBOX_MAX_INSTRUCTION_COUNT 136  // The maximum Xbox shader instruction count
 #define VSH_MAX_INTERMEDIATE_COUNT     1024 // The maximum number of intermediate format slots
+
+typedef enum _VSH_SWIZZLE
+{
+	SWIZZLE_X = 0,
+	SWIZZLE_Y,
+	SWIZZLE_Z,
+	SWIZZLE_W
+}
+VSH_SWIZZLE;
+
+typedef struct DxbxSwizzles { VSH_SWIZZLE s[4]; } DxbxSwizzles;
+
+typedef DWORD DxbxMask,
+*PDxbxMask;
+
+#define MASK_X 0x001
+#define MASK_Y 0x002
+#define MASK_Z 0x004
+#define MASK_W 0x008
+#define MASK_XYZ MASK_X | MASK_Y | MASK_Z
+#define MASK_XYZW MASK_X | MASK_Y | MASK_Z | MASK_W
 
 // Local types
 typedef enum _VSH_FIELD_NAME
@@ -111,33 +136,24 @@ VSH_FIELD_NAME;
 
 typedef enum _VSH_OREG_NAME
 {
-    OREG_OPOS,
-    OREG_UNUSED1,
-    OREG_UNUSED2,
-    OREG_OD0,
-    OREG_OD1,
-    OREG_OFOG,
-    OREG_OPTS,
-    OREG_OB0,
-    OREG_OB1,
-    OREG_OT0,
-    OREG_OT1,
-    OREG_OT2,
-    OREG_OT3,
-    OREG_UNUSED3,
-    OREG_UNUSED4,
-    OREG_A0X
+	OREG_OPOS,    //  0
+	OREG_UNUSED1, //  1
+	OREG_UNUSED2, //  2
+	OREG_OD0,     //  3
+	OREG_OD1,     //  4
+	OREG_OFOG,    //  5
+	OREG_OPTS,    //  6
+	OREG_OB0,     //  7
+	OREG_OB1,     //  8
+	OREG_OT0,     //  9
+	OREG_OT1,     // 10
+	OREG_OT2,     // 11
+	OREG_OT3,     // 12
+	OREG_UNUSED3, // 13
+	OREG_UNUSED4, // 14
+	OREG_A0X      // 15 - all values of the 4 bits are used
 }
 VSH_OREG_NAME;
-
-typedef enum _VSH_PARAMETER_TYPE
-{
-    PARAM_UNKNOWN = 0,
-    PARAM_R,
-    PARAM_V,
-    PARAM_C
-}
-VSH_PARAMETER_TYPE;
 
 typedef enum _VSH_OUTPUT_TYPE
 {
@@ -146,6 +162,18 @@ typedef enum _VSH_OUTPUT_TYPE
 }
 VSH_OUTPUT_TYPE;
 
+typedef enum _VSH_ARGUMENT_TYPE
+{
+    PARAM_UNKNOWN = 0,
+    PARAM_R,          // Temporary registers
+    PARAM_V,          // Vertex registers
+    PARAM_C,          // Constant registers, set by SetVertexShaderConstant
+    PARAM_O
+}
+VSH_ARGUMENT_TYPE;
+
+typedef VSH_ARGUMENT_TYPE VSH_PARAMETER_TYPE; // Alias, to indicate difference between a parameter and a generic argument
+
 typedef enum _VSH_OUTPUT_MUX
 {
     OMUX_MAC = 0,
@@ -153,6 +181,16 @@ typedef enum _VSH_OUTPUT_MUX
 }
 VSH_OUTPUT_MUX;
 
+typedef enum _VSH_IMD_OUTPUT_TYPE
+{
+    IMD_OUTPUT_C,
+    IMD_OUTPUT_R,
+    IMD_OUTPUT_O,
+    IMD_OUTPUT_A0X
+}
+VSH_IMD_OUTPUT_TYPE;
+
+// Dxbx note : ILU stands for 'Inverse Logic Unit' opcodes
 typedef enum _VSH_ILU
 {
     ILU_NOP = 0,
@@ -162,13 +200,14 @@ typedef enum _VSH_ILU
     ILU_RSQ,
     ILU_EXP,
     ILU_LOG,
-    ILU_LIT
+    ILU_LIT // = 7 - all values of the 3 bits are used
 }
 VSH_ILU;
 
+// Dxbx note : MAC stands for 'Multiply And Accumulate' opcodes
 typedef enum _VSH_MAC
 {
-    MAC_NOP,
+    MAC_NOP = 0,
     MAC_MOV,
     MAC_MUL,
     MAC_ADD,
@@ -182,27 +221,22 @@ typedef enum _VSH_MAC
     MAC_SLT,
     MAC_SGE,
     MAC_ARL
+	// ??? 14
+	// ??? 15 - 2 values of the 4 bits are undefined
 }
 VSH_MAC;
 
 typedef struct _VSH_OPCODE_PARAMS
 {
-    VSH_ILU   ILU;
-    VSH_MAC   MAC;
+	// Dxbx Note : Since we split up g_OpCodeParams into g_OpCodeParams_ILU and g_OpCodeParams_MAC
+	// the following two members aren't needed anymore :
+	// VSH_ILU   ILU;
+    // VSH_MAC   MAC;
     boolean   A;
     boolean   B;
     boolean   C;
 }
 VSH_OPCODE_PARAMS;
-
-typedef enum _VSH_SWIZZLE
-{
-    SWIZZLE_X = 0,
-    SWIZZLE_Y,
-    SWIZZLE_Z,
-    SWIZZLE_W
-}
-VSH_SWIZZLE;
 
 typedef struct _VSH_PARAMETER
 {
@@ -217,7 +251,7 @@ typedef struct _VSH_OUTPUT
 {
     // Output register
     VSH_OUTPUT_MUX      OutputMux;       // MAC or ILU used as output
-    VSH_OUTPUT_TYPE     OutputType;      // C or O
+	VSH_OUTPUT_TYPE     OutputType;      // C or O
     boolean             OutputMask[4];
     int16               OutputAddress;
     // MAC output R register
@@ -242,15 +276,6 @@ typedef struct _VSH_SHADER_INSTRUCTION
 }
 VSH_SHADER_INSTRUCTION;
 
-typedef enum _VSH_IMD_OUTPUT_TYPE
-{
-    IMD_OUTPUT_C,
-    IMD_OUTPUT_R,
-    IMD_OUTPUT_O,
-    IMD_OUTPUT_A0X
-}
-VSH_IMD_OUTPUT_TYPE;
-
 typedef enum _VSH_IMD_INSTRUCTION_TYPE
 {
     IMD_MAC,
@@ -270,7 +295,11 @@ typedef struct _VSH_IMD_PARAMETER
 {
     boolean         Active;
     VSH_PARAMETER   Parameter;
-    boolean         IsA0X;
+	// There is only a single address register in Microsoft DirectX 8.0.
+	// The address register, designated as a0.x, may be used as signed
+	// integer offset in relative addressing into the constant register file.
+	//     c[a0.x + n]
+	boolean         IndexesWithA0_X;
 }
 VSH_IMD_PARAMETER;
 
@@ -312,7 +341,7 @@ static const VSH_FIELDMAPPING g_FieldMapping[] =
     {  FLD_MAC,              1,   21,     4 },
     {  FLD_CONST,            1,   13,     8 },
     {  FLD_V,                1,    9,     4 },
-    // INPUT A
+    // Input A
     {  FLD_A_NEG,            1,    8,     1 },
     {  FLD_A_SWZ_X,          1,    6,     2 },
     {  FLD_A_SWZ_Y,          1,    4,     2 },
@@ -320,7 +349,7 @@ static const VSH_FIELDMAPPING g_FieldMapping[] =
     {  FLD_A_SWZ_W,          1,    0,     2 },
     {  FLD_A_R,              2,   28,     4 },
     {  FLD_A_MUX,            2,   26,     2 },
-    // INPUT B
+    // Input B
     {  FLD_B_NEG,            2,   25,     1 },
     {  FLD_B_SWZ_X,          2,   23,     2 },
     {  FLD_B_SWZ_Y,          2,   21,     2 },
@@ -328,7 +357,7 @@ static const VSH_FIELDMAPPING g_FieldMapping[] =
     {  FLD_B_SWZ_W,          2,   17,     2 },
     {  FLD_B_R,              2,   13,     4 },
     {  FLD_B_MUX,            2,   11,     2 },
-    // INPUT C
+    // Input C
     {  FLD_C_NEG,            2,   10,     1 },
     {  FLD_C_SWZ_X,          2,    8,     2 },
     {  FLD_C_SWZ_Y,          2,    6,     2 },
@@ -354,34 +383,42 @@ static const VSH_FIELDMAPPING g_FieldMapping[] =
     {  FLD_OUT_ORB,          3,   11,     1 },
     {  FLD_OUT_ADDRESS,      3,    3,     8 },
     {  FLD_OUT_MUX,          3,    2,     1 },
-    // Other
+	// Relative addressing
     {  FLD_A0X,              3,    1,     1 },
-    {  FLD_FINAL,            3,    0,     1 }
+	// Final instruction
+	{  FLD_FINAL,            3,    0,     1 }
 };
 
-static const VSH_OPCODE_PARAMS g_OpCodeParams[] =
+static const VSH_OPCODE_PARAMS g_OpCodeParams_ILU[] =
 {
-    // ILU OP   MAC OP  ParamA ParamB ParamC
-    { ILU_MOV, MAC_NOP, FALSE, FALSE, TRUE  },
-    { ILU_RCP, MAC_NOP, FALSE, FALSE, TRUE  },
-    { ILU_RCC, MAC_NOP, FALSE, FALSE, TRUE  },
-    { ILU_RSQ, MAC_NOP, FALSE, FALSE, TRUE  },
-    { ILU_EXP, MAC_NOP, FALSE, FALSE, TRUE  },
-    { ILU_LOG, MAC_NOP, FALSE, FALSE, TRUE  },
-    { ILU_LIT, MAC_NOP, FALSE, FALSE, TRUE  },
-    { ILU_NOP, MAC_MOV, TRUE,  FALSE, FALSE },
-    { ILU_NOP, MAC_MUL, TRUE,  TRUE,  FALSE },
-    { ILU_NOP, MAC_ADD, TRUE,  FALSE, TRUE  },
-    { ILU_NOP, MAC_MAD, TRUE,  TRUE,  TRUE  },
-    { ILU_NOP, MAC_DP3, TRUE,  TRUE,  FALSE },
-    { ILU_NOP, MAC_DPH, TRUE,  TRUE,  FALSE },
-    { ILU_NOP, MAC_DP4, TRUE,  TRUE,  FALSE },
-    { ILU_NOP, MAC_DST, TRUE,  TRUE,  FALSE },
-    { ILU_NOP, MAC_MIN, TRUE,  TRUE,  FALSE },
-    { ILU_NOP, MAC_MAX, TRUE,  TRUE,  FALSE },
-    { ILU_NOP, MAC_SLT, TRUE,  TRUE,  FALSE },
-    { ILU_NOP, MAC_SGE, TRUE,  TRUE,  FALSE },
-    { ILU_NOP, MAC_ARL, TRUE,  FALSE, FALSE }
+	//  ILU OP   MAC OP      ParamA ParamB ParamC
+	{ /*ILU_NOP, MAC_NOP, */ FALSE, FALSE, FALSE },  // Dxbx note : Unused
+	{ /*ILU_MOV, MAC_NOP, */ FALSE, FALSE, TRUE  },
+	{ /*ILU_RCP, MAC_NOP, */ FALSE, FALSE, TRUE  },
+	{ /*ILU_RCC, MAC_NOP, */ FALSE, FALSE, TRUE  },
+	{ /*ILU_RSQ, MAC_NOP, */ FALSE, FALSE, TRUE  },
+	{ /*ILU_EXP, MAC_NOP, */ FALSE, FALSE, TRUE  },
+	{ /*ILU_LOG, MAC_NOP, */ FALSE, FALSE, TRUE  },
+	{ /*ILU_LIT, MAC_NOP, */ FALSE, FALSE, TRUE  },
+};
+
+static const VSH_OPCODE_PARAMS g_OpCodeParams_MAC[] =
+{
+	//  ILU OP   MAC OP      ParamA ParamB ParamC
+	{ /*ILU_NOP, MAC_NOP, */ FALSE, FALSE, FALSE },  // Dxbx note : Unused
+	{ /*ILU_NOP, MAC_MOV, */ TRUE,  FALSE, FALSE },
+	{ /*ILU_NOP, MAC_MUL, */ TRUE,  TRUE,  FALSE },
+    { /*ILU_NOP, MAC_ADD, */ TRUE,  FALSE, TRUE  },
+    { /*ILU_NOP, MAC_MAD, */ TRUE,  TRUE,  TRUE  },
+    { /*ILU_NOP, MAC_DP3, */ TRUE,  TRUE,  FALSE },
+    { /*ILU_NOP, MAC_DPH, */ TRUE,  TRUE,  FALSE },
+    { /*ILU_NOP, MAC_DP4, */ TRUE,  TRUE,  FALSE },
+    { /*ILU_NOP, MAC_DST, */ TRUE,  TRUE,  FALSE },
+    { /*ILU_NOP, MAC_MIN, */ TRUE,  TRUE,  FALSE },
+    { /*ILU_NOP, MAC_MAX, */ TRUE,  TRUE,  FALSE },
+    { /*ILU_NOP, MAC_SLT, */ TRUE,  TRUE,  FALSE },
+    { /*ILU_NOP, MAC_SGE, */ TRUE,  TRUE,  FALSE },
+    { /*ILU_NOP, MAC_ARL, */ TRUE,  FALSE, FALSE }
 };
 
 static const char* MAC_OpCode[] =
@@ -399,7 +436,7 @@ static const char* MAC_OpCode[] =
     "max",
     "slt",
     "sge",
-    "mov", // really "arl"
+    "mov", // really "arl" Dxbx note : Alias for 'mov a0.x'
     "???",
     "???"
 };
@@ -435,6 +472,26 @@ static const char* OReg_Name[] =
     "???",
     "a0.x"
 };
+
+// Dxbx note : This tooling function is never used, but clearly illustrates the relation
+// between vertex shader's being passed around, and the actual handle value used on PC.
+DWORD VshHandleGetRealHandle(DWORD aHandle)
+{
+	using namespace XTL;
+
+	if (VshHandleIsVertexShader(aHandle))
+	{
+		X_D3DVertexShader *pD3DVertexShader = VshHandleGetVertexShader(aHandle);
+		// assert(pD3DVertexShader);
+
+		VERTEX_SHADER *pVertexShader = (VERTEX_SHADER*)(pD3DVertexShader->Handle);
+		// assert(pVertexShader);
+
+		return pVertexShader->Handle;
+	}
+	else
+		return aHandle;
+}
 
 static inline int IsInUse(const boolean *pMask)
 {
@@ -499,17 +556,13 @@ uint08 VshGetField(uint32         *pShaderToken,
 static VSH_OPCODE_PARAMS* VshGetOpCodeParams(VSH_ILU ILU,
                                              VSH_MAC MAC)
 {
-    int i;
-
-    for (i = 0; i < (sizeof(g_OpCodeParams) / sizeof(VSH_OPCODE_PARAMS)); i++)
-    {
-        if(ILU != ILU_NOP && ILU == g_OpCodeParams[i].ILU ||
-            MAC != MAC_NOP && MAC == g_OpCodeParams[i].MAC)
-        {
-            return (VSH_OPCODE_PARAMS*)&g_OpCodeParams[i];
-        }
-    }
-    return NULL;
+	if (ILU >= ILU_MOV && ILU <= ILU_LIT)
+		return (VSH_OPCODE_PARAMS*)&g_OpCodeParams_ILU[ILU];
+	else
+		if (MAC >= MAC_MOV && MAC <= MAC_ARL)
+			return (VSH_OPCODE_PARAMS*)&g_OpCodeParams_MAC[MAC];
+		else
+		    return NULL;
 }
 
 static void VshParseInstruction(uint32                 *pShaderToken,
@@ -518,6 +571,7 @@ static void VshParseInstruction(uint32                 *pShaderToken,
     // First get the instruction(s).
     pInstruction->ILU = (VSH_ILU)VshGetField(pShaderToken, FLD_ILU);
     pInstruction->MAC = (VSH_MAC)VshGetField(pShaderToken, FLD_MAC);
+
     // Get parameter A
     pInstruction->A.ParameterType = (VSH_PARAMETER_TYPE)VshGetField(pShaderToken, FLD_A_MUX);
     switch(pInstruction->A.ParameterType)
@@ -532,7 +586,7 @@ static void VshParseInstruction(uint32                 *pShaderToken,
         pInstruction->A.Address = ConvertCRegister(VshGetField(pShaderToken, FLD_CONST));
         break;
     default:
-        EmuWarning("Invalid instruction, parameter A type unknown %d\n", pInstruction->A.ParameterType);
+        EmuWarning("Invalid instruction, parameter A type unknown %d", pInstruction->A.ParameterType);
         return;
     }
     pInstruction->A.Neg = VshGetField(pShaderToken, FLD_A_NEG);
@@ -619,18 +673,20 @@ static void VshParseInstruction(uint32                 *pShaderToken,
 }
 
 // Print functions
-static char VshGetRegisterName(VSH_PARAMETER_TYPE ParameterType)
+static char *VshGetRegisterName(VSH_PARAMETER_TYPE ParameterType)
 {
     switch(ParameterType)
     {
     case PARAM_R:
-        return 'r';
+        return "r";
     case PARAM_V:
-        return 'v';
+        return "v";
     case PARAM_C:
-        return 'c';
-    default:
-        return '?';
+        return "c";
+	case PARAM_O:
+		return "oPos";
+	default:
+        return "?";
     }
 }
 
@@ -640,7 +696,7 @@ static void VshWriteOutputMask(boolean *OutputMask,
 {
     if(OutputMask[0] && OutputMask[1] && OutputMask[2] && OutputMask[3])
     {
-        // All compoenents are there, no need to print the mask
+        // All components are there, no need to print the mask
         return;
     }
     *pDisassemblyPos += sprintf(pDisassembly + *pDisassemblyPos, ".%s%s%s%s",
@@ -654,10 +710,10 @@ static void VshWriteParameter(VSH_IMD_PARAMETER *pParameter,
                               char              *pDisassembly,
                               uint32            *pDisassemblyPos)
 {
-    *pDisassemblyPos += sprintf(pDisassembly + *pDisassemblyPos, ", %s%c",
+    *pDisassemblyPos += sprintf(pDisassembly + *pDisassemblyPos, ", %s%s",
                                 pParameter->Parameter.Neg ? "-" : "",
                                 VshGetRegisterName(pParameter->Parameter.ParameterType));
-    if(pParameter->Parameter.ParameterType == PARAM_C && pParameter->IsA0X)
+    if(pParameter->Parameter.ParameterType == PARAM_C && pParameter->IndexesWithA0_X)
     {
         // Only display the offset if it's not 0.
         if(pParameter->Parameter.Address)
@@ -674,10 +730,10 @@ static void VshWriteParameter(VSH_IMD_PARAMETER *pParameter,
         *pDisassemblyPos += sprintf(pDisassembly + *pDisassemblyPos, "%d", pParameter->Parameter.Address);
     }
     // Only bother printing the swizzle if it is not .xyzw
-    if(!(pParameter->Parameter.Swizzle[0] == 0 &&
-          pParameter->Parameter.Swizzle[1] == 1 &&
-          pParameter->Parameter.Swizzle[2] == 2 &&
-          pParameter->Parameter.Swizzle[3] == 3))
+    if(!(pParameter->Parameter.Swizzle[0] == SWIZZLE_X &&
+          pParameter->Parameter.Swizzle[1] == SWIZZLE_Y &&
+          pParameter->Parameter.Swizzle[2] == SWIZZLE_Z &&
+          pParameter->Parameter.Swizzle[3] == SWIZZLE_W))
     {
         int i;
 
@@ -747,19 +803,29 @@ static void VshWriteShader(VSH_XBOX_SHADER *pShader,
         {
             DisassemblyPos += sprintf(pDisassembly + DisassemblyPos, "; -- Passing the truncation limit --\n");
         }
+
         // Writing combining sign if neccessary
         if(pIntermediate->IsCombined)
         {
             DisassemblyPos += sprintf(pDisassembly + DisassemblyPos, "+");
         }
+
         // Print the op code
         if(pIntermediate->InstructionType == IMD_MAC)
         {
-            DisassemblyPos += sprintf(pDisassembly + DisassemblyPos, "%s ", MAC_OpCode[pIntermediate->MAC]);
+			// Dxbx addition : Safeguard against incorrect MAC opcodes :
+			if (pIntermediate->MAC > MAC_ARL)
+				DisassemblyPos += sprintf(pDisassembly + DisassemblyPos, "??? ");
+			else
+				DisassemblyPos += sprintf(pDisassembly + DisassemblyPos, "%s ", MAC_OpCode[pIntermediate->MAC]);
         }
-        else
+        else // IMD_ILU
         {
-            DisassemblyPos += sprintf(pDisassembly + DisassemblyPos, "%s ", ILU_OpCode[pIntermediate->ILU]);
+			// Dxbx addition : Safeguard against incorrect ILU opcodes :
+			if (pIntermediate->ILU > ILU_LIT)
+				DisassemblyPos += sprintf(pDisassembly + DisassemblyPos, "??? ");
+			else
+				DisassemblyPos += sprintf(pDisassembly + DisassemblyPos, "%s ", ILU_OpCode[pIntermediate->ILU]);
         }
 
         // Print the output parameter
@@ -778,7 +844,11 @@ static void VshWriteShader(VSH_XBOX_SHADER *pShader,
                 DisassemblyPos += sprintf(pDisassembly + DisassemblyPos, "r%d", pIntermediate->Output.Address);
                 break;
             case IMD_OUTPUT_O:
-                DisassemblyPos += sprintf(pDisassembly + DisassemblyPos, "%s", OReg_Name[pIntermediate->Output.Address]);
+				// Dxbx addition : Safeguard against incorrect VSH_OREG_NAME values :
+				if ((int)pIntermediate->Output.Address > OREG_A0X)
+					; // don't add anything
+				else
+					DisassemblyPos += sprintf(pDisassembly + DisassemblyPos, "%s", OReg_Name[pIntermediate->Output.Address]);
                 break;
             default:
                 CxbxKrnlCleanup("Invalid output register in vertex shader!");
@@ -806,7 +876,7 @@ static void VshAddParameter(VSH_PARAMETER     *pParameter,
 {
     pIntermediateParameter->Parameter = *pParameter;
     pIntermediateParameter->Active    = TRUE;
-    pIntermediateParameter->IsA0X     = a0x;
+    pIntermediateParameter->IndexesWithA0_X     = a0x;
 }
 
 static void VshAddParameters(VSH_SHADER_INSTRUCTION  *pInstruction,
@@ -926,7 +996,7 @@ static boolean VshAddInstructionMAC_O(VSH_SHADER_INSTRUCTION* pInstruction,
     pIntermediate->MAC = pInstruction->MAC;
 
     // Output param
-    pIntermediate->Output.Type = pInstruction->Output.OutputType == OUTPUT_C ? IMD_OUTPUT_C : IMD_OUTPUT_O;
+	pIntermediate->Output.Type = pInstruction->Output.OutputType == OUTPUT_C ? IMD_OUTPUT_C : IMD_OUTPUT_O;
     pIntermediate->Output.Address = pInstruction->Output.OutputAddress;
     memcpy(pIntermediate->Output.Mask, pInstruction->Output.OutputMask, sizeof(boolean) * 4);
 
@@ -963,6 +1033,63 @@ static boolean VshAddInstructionMAC_ARL(VSH_SHADER_INSTRUCTION *pInstruction,
     return TRUE;
 }
 
+/*
+// Dxbx addition : Scalar instructions reading from W should read from X instead
+boolean DxbxFixupScalarParameter(VSH_SHADER_INSTRUCTION *pInstruction,
+	VSH_XBOX_SHADER *pShader,
+	VSH_PARAMETER *pParameter)
+{
+	boolean Result;
+	int i;
+	boolean WIsWritten;
+
+	// The DirectX vertex shader language specifies that the exp, log, rcc, rcp, and rsq instructions
+	// all operate on the "w" component of the input. But the microcode versions of these instructions
+	// actually operate on the "x" component of the input.
+	Result = false;
+
+	// Test if this is a scalar instruction :
+	if (pInstruction->ILU in [ILU_RCP, ILU_RCC, ILU_RSQ, ILU_EXP, ILU_LOG])
+	{
+		// Test if this parameter reads all components, including W (TODO : Or should we fixup any W reading swizzle?) :
+		if ((pParameter->Swizzle[0] = SWIZZLE_X)
+			&& (pParameter->Swizzle[1] = SWIZZLE_Y)
+			&& (pParameter->Swizzle[2] = SWIZZLE_Z)
+			&& (pParameter->Swizzle[3] = SWIZZLE_W))
+		{
+			// Also test that the .W component is never written to before:
+			WIsWritten = false;
+			for (i = 0; i < pShader->IntermediateCount; i++)
+			{
+				// Stop when we reached this instruction :
+				if (&(pShader->Intermediate[i]) == pInstruction)
+					break;
+
+				// Check if this instruction writes to the .W component of the same input parameter :
+				if (((pShader->Intermediate[i].Output.Type == IMD_OUTPUT_C) && (pParameter->ParameterType == PARAM_C))
+					|| ((pShader->Intermediate[i].Output.Type == IMD_OUTPUT_R) && (pParameter->ParameterType == PARAM_R)))
+				{
+					WIsWritten = (pShader->Intermediate[i].Output.Address == pParameter->Address)
+						&& ((pShader->Intermediate[i].Output.Mask && MASK_W) > 0);
+					if (WIsWritten)
+						break;
+				}
+			}
+
+			if (!WIsWritten)
+			{
+				// Change the read from W into a read from X (this fixes the XDK VolumeLight sample) :
+				VshSetSwizzle(pParameter, SWIZZLE_X, SWIZZLE_X, SWIZZLE_X, SWIZZLE_X);
+				DbgVshPrintf("Dxbx fixup on scalar instruction applied; Changed read of uninitialized W into a read of X!\n");
+				Result = true;
+			}
+		}
+	}
+
+	return Result;
+}
+*/
+
 static boolean VshAddInstructionILU_R(VSH_SHADER_INSTRUCTION *pInstruction,
                                       VSH_XBOX_SHADER        *pShader,
                                       boolean                IsCombined)
@@ -973,7 +1100,11 @@ static boolean VshAddInstructionILU_R(VSH_SHADER_INSTRUCTION *pInstruction,
         return FALSE;
     }
 
-    pIntermediate = VshNewIntermediate(pShader);
+/* TODO
+	// Dxbx note : Scalar instructions read from C, but use X instead of W, fix that :
+	DxbxFixupScalarParameter(pInstruction, pShader, &pInstruction.C);
+*/
+	pIntermediate = VshNewIntermediate(pShader);
     pIntermediate->IsCombined = IsCombined;
 
     // Opcode
@@ -1119,7 +1250,7 @@ static void VshRemoveScreenSpaceInstructions(VSH_XBOX_SHADER *pShader)
             if(pIntermediate->Parameters[k].Active)
             {
                 if(pIntermediate->Parameters[k].Parameter.ParameterType == PARAM_C &&
-                   !pIntermediate->Parameters[k].IsA0X)
+                   !pIntermediate->Parameters[k].IndexesWithA0_X)
                 {
                     if(pIntermediate->Parameters[k].Parameter.Address == -37)
                     {
@@ -1199,13 +1330,13 @@ static void VshRemoveScreenSpaceInstructions(VSH_XBOX_SHADER *pShader)
                 MulIntermediate.Output.Mask[2]    = pIntermediate->Output.Mask[2];
                 MulIntermediate.Output.Mask[3]    = pIntermediate->Output.Mask[3];
                 MulIntermediate.Parameters[0].Active                  = TRUE;
-                MulIntermediate.Parameters[0].IsA0X                   = FALSE;
+                MulIntermediate.Parameters[0].IndexesWithA0_X                   = FALSE;
                 MulIntermediate.Parameters[0].Parameter.ParameterType = PARAM_R;
                 MulIntermediate.Parameters[0].Parameter.Address       = 11;
                 MulIntermediate.Parameters[0].Parameter.Neg           = FALSE;
                 VshSetSwizzle(&MulIntermediate.Parameters[0], SWIZZLE_X, SWIZZLE_Y, SWIZZLE_Z, SWIZZLE_W);
                 MulIntermediate.Parameters[1].Active                  = TRUE;
-                MulIntermediate.Parameters[1].IsA0X                   = FALSE;
+                MulIntermediate.Parameters[1].IndexesWithA0_X                   = FALSE;
                 MulIntermediate.Parameters[1].Parameter.ParameterType = PARAM_C;
                 MulIntermediate.Parameters[1].Parameter.Address       = ConvertCRegister(58);
                 MulIntermediate.Parameters[1].Parameter.Neg           = FALSE;
@@ -1298,7 +1429,7 @@ static boolean VshConvertShader(VSH_XBOX_SHADER *pShader,
             if(pIntermediate->Output.Type != IMD_OUTPUT_R)
             {
                 // TODO: Complete dph support
-                EmuWarning("Can't simulate dph for other than output r registers (yet)\n");
+                EmuWarning("Can't simulate dph for other than output r registers (yet)");
 
 				// attempt to find unused register...
 				int outRegister = -1;
@@ -1327,7 +1458,7 @@ static boolean VshConvertShader(VSH_XBOX_SHADER *pShader,
 				VshSetOutputMask(&pIntermediate->Output, TRUE, TRUE, TRUE, TRUE);
 
 				TmpIntermediate.MAC = MAC_ADD;
-				TmpIntermediate.Parameters[0].IsA0X = FALSE;
+				TmpIntermediate.Parameters[0].IndexesWithA0_X = FALSE;
 				TmpIntermediate.Parameters[0].Parameter.ParameterType = PARAM_R;
 				TmpIntermediate.Parameters[0].Parameter.Address = outRegister;
 				TmpIntermediate.Parameters[0].Parameter.Neg = FALSE;
@@ -1341,7 +1472,7 @@ static boolean VshConvertShader(VSH_XBOX_SHADER *pShader,
 				VSH_INTERMEDIATE_FORMAT TmpIntermediate = *pIntermediate;
 				pIntermediate->MAC = MAC_DP3;
 				TmpIntermediate.MAC = MAC_ADD;
-				TmpIntermediate.Parameters[0].IsA0X = FALSE;
+				TmpIntermediate.Parameters[0].IndexesWithA0_X = FALSE;
 				TmpIntermediate.Parameters[0].Parameter.ParameterType = PARAM_R;
 				TmpIntermediate.Parameters[0].Parameter.Address = TmpIntermediate.Output.Address;
 				TmpIntermediate.Parameters[0].Parameter.Neg = FALSE;
@@ -1414,7 +1545,7 @@ static boolean VshConvertShader(VSH_XBOX_SHADER *pShader,
                     }
                     else if(pIntermediate->Parameters[k].Parameter.ParameterType == PARAM_C &&
                              pIntermediate->Parameters[k].Parameter.Address == 58 &&
-                             !pIntermediate->Parameters[k].IsA0X)
+                             !pIntermediate->Parameters[k].IndexesWithA0_X)
                     {
                         // Found c-38, replace it with r12.w
                         pIntermediate->Parameters[k].Parameter.ParameterType = PARAM_R;
@@ -1448,6 +1579,7 @@ typedef struct _VSH_TYPE_PATCH_DATA
 {
     DWORD NbrTypes;
     UINT  Types[256];
+	UINT  NewSizes[256];
 }
 VSH_TYPE_PATCH_DATA;
 
@@ -1461,7 +1593,8 @@ VSH_STREAM_PATCH_DATA;
 typedef struct _VSH_PATCH_DATA
 {
     boolean              NeedPatching;
-    DWORD                ConvertedStride;
+	WORD                 CurrentStreamNumber;
+	DWORD                ConvertedStride;
     VSH_TYPE_PATCH_DATA  TypePatchData;
     VSH_STREAM_PATCH_DATA StreamPatchData;
 }
@@ -1481,89 +1614,106 @@ static DWORD VshGetDeclarationSize(DWORD *pDeclaration)
     return (Pos + 1) * sizeof(DWORD);
 }
 
-DWORD Xb2PCRegisterType(DWORD VertexRegister)
+typedef DWORD D3DDECLUSAGE;
+
+#define D3DDECLUSAGE_UNSUPPORTED ((D3DDECLUSAGE)-1)
+
+D3DDECLUSAGE Xb2PCRegisterType
+(
+	DWORD VertexRegister,
+	boolean IsFixedFunction
+)
 {
-    DWORD PCRegisterType;
-    switch(VertexRegister)
-    {
-    case -1:
-        DbgVshPrintf("D3DVSDE_VERTEX /* xbox ext. */");
-        PCRegisterType = -1;
-        break;
-    case 0:
-        DbgVshPrintf("D3DVSDE_POSITION");
-        PCRegisterType = D3DVSDE_POSITION;
-        break;
-    case 1:
-        DbgVshPrintf("D3DVSDE_BLENDWEIGHT");
-        PCRegisterType = D3DVSDE_BLENDWEIGHT;
-        break;
-    case 2:
-        DbgVshPrintf("D3DVSDE_NORMAL");
-        PCRegisterType = D3DVSDE_NORMAL;
-        break;
-    case 3:
-        DbgVshPrintf("D3DVSDE_DIFFUSE");
-        PCRegisterType = D3DVSDE_DIFFUSE;
-        break;
-    case 4:
-        DbgVshPrintf("D3DVSDE_SPECULAR");
-        PCRegisterType = D3DVSDE_SPECULAR;
-        break;
-    case 5:
-        DbgVshPrintf("D3DVSDE_FOG /* xbox ext. */");
-        PCRegisterType = -1;
-        break;
-    case 7:
-        DbgVshPrintf("D3DVSDE_BACKDIFFUSE /* xbox ext. */");
-        PCRegisterType = -1;
-        break;
-    case 8:
-        DbgVshPrintf("D3DVSDE_BACKSPECULAR /* xbox ext. */");
-        PCRegisterType = -1;
-        break;
-    case 9:
-        DbgVshPrintf("D3DVSDE_TEXCOORD0");
-        PCRegisterType = D3DVSDE_TEXCOORD0;
-        break;
-    case 10:
-        DbgVshPrintf("D3DVSDE_TEXCOORD1");
-        PCRegisterType = D3DVSDE_TEXCOORD1;
-        break;
-    case 11:
-        DbgVshPrintf("D3DVSDE_TEXCOORD2");
-        PCRegisterType = D3DVSDE_TEXCOORD2;
-        break;
-    case 12:
-        DbgVshPrintf("D3DVSDE_TEXCOORD3");
-        PCRegisterType = D3DVSDE_TEXCOORD3;
-        break;
-    default:
-        DbgVshPrintf("%d /* unknown register */", VertexRegister);
-        PCRegisterType = -1;
-        break;
-    }
+	using namespace XTL;
+
+	D3DDECLUSAGE PCRegisterType;
+	// For fixed function vertex shaders, print D3DVSDE_*, for custom shaders print numbered registers.
+	if (IsFixedFunction) {
+		switch (VertexRegister)
+		{
+		case X_D3DVSDE_VERTEX: // -1
+			DbgVshPrintf("D3DVSDE_VERTEX /* xbox ext. */");
+			PCRegisterType = D3DDECLUSAGE_UNSUPPORTED;
+			break;
+		case X_D3DVSDE_POSITION: // 0
+			DbgVshPrintf("D3DVSDE_POSITION");
+			PCRegisterType = D3DVSDE_POSITION;
+			break;
+		case X_D3DVSDE_BLENDWEIGHT: // 1
+			DbgVshPrintf("D3DVSDE_BLENDWEIGHT");
+			PCRegisterType = D3DVSDE_BLENDWEIGHT;
+			break;
+		case X_D3DVSDE_NORMAL: // 2
+			DbgVshPrintf("D3DVSDE_NORMAL");
+			PCRegisterType = D3DVSDE_NORMAL;
+			break;
+		case X_D3DVSDE_DIFFUSE: // 3
+			DbgVshPrintf("D3DVSDE_DIFFUSE");
+			PCRegisterType = D3DVSDE_DIFFUSE;
+			break;
+		case X_D3DVSDE_SPECULAR: // 4
+			DbgVshPrintf("D3DVSDE_SPECULAR");
+			PCRegisterType = D3DVSDE_SPECULAR;
+			break;
+		case X_D3DVSDE_FOG: // 5
+			DbgVshPrintf("D3DVSDE_FOG /* xbox ext. */");
+			PCRegisterType = D3DDECLUSAGE_UNSUPPORTED;
+			break;
+		case X_D3DVSDE_BACKDIFFUSE: // 7
+			DbgVshPrintf("D3DVSDE_BACKDIFFUSE /* xbox ext. */");
+			PCRegisterType = D3DDECLUSAGE_UNSUPPORTED;
+			break;
+		case X_D3DVSDE_BACKSPECULAR: // 8
+			DbgVshPrintf("D3DVSDE_BACKSPECULAR /* xbox ext. */");
+			PCRegisterType = D3DDECLUSAGE_UNSUPPORTED;
+			break;
+		case X_D3DVSDE_TEXCOORD0: // 9
+			DbgVshPrintf("D3DVSDE_TEXCOORD0");
+			PCRegisterType = D3DVSDE_TEXCOORD0;
+			break;
+		case X_D3DVSDE_TEXCOORD1: // 10
+			DbgVshPrintf("D3DVSDE_TEXCOORD1");
+			PCRegisterType = D3DVSDE_TEXCOORD1;
+			break;
+		case X_D3DVSDE_TEXCOORD2: // 11
+			DbgVshPrintf("D3DVSDE_TEXCOORD2");
+			PCRegisterType = D3DVSDE_TEXCOORD2;
+			break;
+		case X_D3DVSDE_TEXCOORD3: // 12
+			DbgVshPrintf("D3DVSDE_TEXCOORD3");
+			PCRegisterType = D3DVSDE_TEXCOORD3;
+			break;
+		default:
+			DbgVshPrintf("%d /* unknown register */", VertexRegister);
+			PCRegisterType = D3DDECLUSAGE_UNSUPPORTED;
+			break;
+		}
+	} else {
+		PCRegisterType = (D3DDECLUSAGE)VertexRegister;
+		DbgVshPrintf("%d", VertexRegister);
+	}
+
     return PCRegisterType;
 }
 
 static inline DWORD VshGetTokenType(DWORD Token)
 {
-    return (Token & D3DVSD_TOKENTYPEMASK) >> D3DVSD_TOKENTYPESHIFT;
+    return (Token & X_D3DVSD_TOKENTYPEMASK) >> X_D3DVSD_TOKENTYPESHIFT;
 }
 
 static inline DWORD VshGetVertexRegister(DWORD Token)
 {
-    return (Token & D3DVSD_VERTEXREGMASK) >> D3DVSD_VERTEXREGSHIFT;
+    return (Token & X_D3DVSD_VERTEXREGMASK) >> X_D3DVSD_VERTEXREGSHIFT;
 }
 
 static inline DWORD VshGetVertexRegisterIn(DWORD Token)
 {
-    return (Token & D3DVSD_VERTEXREGINMASK) >> D3DVSD_VERTEXREGINSHIFT;
+    return (Token & X_D3DVSD_VERTEXREGINMASK) >> X_D3DVSD_VERTEXREGINSHIFT;
 }
 
 static inline DWORD VshGetVertexStream(DWORD Token)
 {
-    return (Token & D3DVSD_STREAMNUMBERMASK) >> D3DVSD_STREAMNUMBERSHIFT;
+    return (Token & X_D3DVSD_STREAMNUMBERMASK) >> X_D3DVSD_STREAMNUMBERSHIFT;
 }
 
 static void VshConvertToken_NOP(DWORD *pToken)
@@ -1571,7 +1721,7 @@ static void VshConvertToken_NOP(DWORD *pToken)
     // D3DVSD_NOP
     if(*pToken != DEF_VSH_NOP)
     {
-        EmuWarning("Token NOP found, but extra parameters are given!\n");
+        EmuWarning("Token NOP found, but extra parameters are given!");
     }
     DbgVshPrintf("\tD3DVSD_NOP(),\n");
 }
@@ -1581,8 +1731,8 @@ static DWORD VshConvertToken_CONSTMEM(DWORD *pToken)
     // D3DVSD_CONST
     DbgVshPrintf("\tD3DVSD_CONST(");
 
-    DWORD ConstantAddress = ((*pToken >> D3DVSD_CONSTADDRESSSHIFT) & 0xFF);
-    DWORD Count           = (*pToken & D3DVSD_CONSTCOUNTMASK) >> D3DVSD_CONSTCOUNTSHIFT;
+    DWORD ConstantAddress = (*pToken & X_D3DVSD_CONSTADDRESSMASK) >> X_D3DVSD_CONSTADDRESSSHIFT;
+    DWORD Count           = (*pToken & X_D3DVSD_CONSTCOUNTMASK) >> X_D3DVSD_CONSTCOUNTSHIFT;
 
     DbgVshPrintf("%d, %d),\n", ConstantAddress, Count);
 
@@ -1608,16 +1758,7 @@ static void VshConverToken_TESSELATOR(DWORD   *pToken,
         XTL::DWORD NewVertexRegister = VertexRegister;
 
         DbgVshPrintf("\tD3DVSD_TESSUV(");
-
-        if(IsFixedFunction)
-        {
-            NewVertexRegister = Xb2PCRegisterType(VertexRegister);
-        }
-        else
-        {
-            DbgVshPrintf("%d", NewVertexRegister);
-        }
-
+		NewVertexRegister = Xb2PCRegisterType(VertexRegister, IsFixedFunction);
         DbgVshPrintf("),\n");
 
         *pToken = D3DVSD_TESSUV(NewVertexRegister);
@@ -1632,27 +1773,9 @@ static void VshConverToken_TESSELATOR(DWORD   *pToken,
         XTL::DWORD NewVertexRegisterOut = VertexRegisterOut;
 
         DbgVshPrintf("\tD3DVSD_TESSNORMAL(");
-
-        if(IsFixedFunction)
-        {
-            NewVertexRegisterIn = Xb2PCRegisterType(VertexRegisterIn);
-        }
-        else
-        {
-            DbgVshPrintf("%d", NewVertexRegisterIn);
-        }
-
+        NewVertexRegisterIn = Xb2PCRegisterType(VertexRegisterIn, IsFixedFunction);
         DbgVshPrintf(", ");
-
-        if(IsFixedFunction)
-        {
-            NewVertexRegisterOut = Xb2PCRegisterType(VertexRegisterOut);
-        }
-        else
-        {
-            DbgVshPrintf("%d", NewVertexRegisterOut);
-        }
-
+        NewVertexRegisterOut = Xb2PCRegisterType(VertexRegisterOut, IsFixedFunction);
         DbgVshPrintf("),\n");
         *pToken = D3DVSD_TESSNORMAL(NewVertexRegisterIn, NewVertexRegisterOut);
     }
@@ -1660,7 +1783,7 @@ static void VshConverToken_TESSELATOR(DWORD   *pToken,
 
 static boolean VshAddStreamPatch(VSH_PATCH_DATA *pPatchData)
 {
-    int CurrentStream = pPatchData->StreamPatchData.NbrStreams - 1;
+    int CurrentStream = pPatchData->StreamPatchData.NbrStreams - 1; // TODO : Should we use pPatchData->CurrentStreamNumber?
 
     if(CurrentStream >= 0)
     {
@@ -1672,8 +1795,11 @@ static boolean VshAddStreamPatch(VSH_PATCH_DATA *pPatchData)
         pStreamPatch->NbrTypes = pPatchData->TypePatchData.NbrTypes;
         pStreamPatch->NeedPatch = pPatchData->NeedPatching;
 		// 2010/01/12 - revel8n - fixed allocated data size and type
-        pStreamPatch->pTypes = (UINT *)CxbxMalloc(pPatchData->TypePatchData.NbrTypes * sizeof(UINT)); //VSH_TYPE_PATCH_DATA));
+        pStreamPatch->pTypes = (UINT *)malloc(pPatchData->TypePatchData.NbrTypes * sizeof(UINT)); //VSH_TYPE_PATCH_DATA));
         memcpy(pStreamPatch->pTypes, pPatchData->TypePatchData.Types, pPatchData->TypePatchData.NbrTypes * sizeof(UINT)); //VSH_TYPE_PATCH_DATA));
+        // 2010/12/06 - PatrickvL - do the same for new sizes :
+		pStreamPatch->pSizes = (UINT *)malloc(pPatchData->TypePatchData.NbrTypes * sizeof(UINT));
+		memcpy(pStreamPatch->pSizes, pPatchData->TypePatchData.NewSizes, pPatchData->TypePatchData.NbrTypes * sizeof(UINT));
 
         return TRUE;
     }
@@ -1696,14 +1822,19 @@ static void VshConvertToken_STREAM(DWORD          *pToken,
 
         // new stream
         // copy current data to structure
-        if(VshAddStreamPatch(pPatchData))
+		// Dxbx note : Use Dophin(s), FieldRender, MatrixPaletteSkinning and PersistDisplay as a testcase
+		if(VshAddStreamPatch(pPatchData))
         {
-            pPatchData->ConvertedStride = 0;
+			// Reset fields for next patch :
+			pPatchData->ConvertedStride = 0;
             pPatchData->TypePatchData.NbrTypes = 0;
             pPatchData->NeedPatching = FALSE;
-        }
+			pPatchData->StreamPatchData.NbrStreams = 0; // Dxbx addition
+		}
 
-        pPatchData->StreamPatchData.NbrStreams++;
+		pPatchData->CurrentStreamNumber = (WORD)StreamNumber;
+		
+		pPatchData->StreamPatchData.NbrStreams++;
     }
 }
 
@@ -1711,7 +1842,7 @@ static void VshConvertToken_STREAMDATA_SKIP(DWORD *pToken)
 {
     using namespace XTL;
 
-    XTL::DWORD SkipCount = (*pToken & D3DVSD_SKIPCOUNTMASK) >> D3DVSD_SKIPCOUNTSHIFT;
+    XTL::DWORD SkipCount = (*pToken & X_D3DVSD_SKIPCOUNTMASK) >> X_D3DVSD_SKIPCOUNTSHIFT;
     DbgVshPrintf("\tD3DVSD_SKIP(%d),\n", SkipCount);
 }
 
@@ -1719,7 +1850,7 @@ static void VshConvertToken_STREAMDATA_SKIPBYTES(DWORD *pToken)
 {
     using namespace XTL;
 
-    XTL::DWORD SkipBytesCount = (*pToken & D3DVSD_SKIPCOUNTMASK) >> D3DVSD_SKIPCOUNTSHIFT;
+    XTL::DWORD SkipBytesCount = (*pToken & X_D3DVSD_SKIPCOUNTMASK) >> X_D3DVSD_SKIPCOUNTSHIFT;
     DbgVshPrintf("\tD3DVSD_SKIPBYTES(%d), /* xbox ext. */\n", SkipBytesCount);
     if(SkipBytesCount % sizeof(XTL::DWORD))
     {
@@ -1734,174 +1865,176 @@ static void VshConvertToken_STREAMDATA_REG(DWORD          *pToken,
 {
     using namespace XTL;
 
-    DbgVshPrintf("\tD3DVSD_REG(");
-
     XTL::DWORD VertexRegister = VshGetVertexRegister(*pToken);
     XTL::DWORD NewVertexRegister;
 
-    if(IsFixedFunction)
-    {
-        NewVertexRegister = Xb2PCRegisterType(VertexRegister);
-    }
-    else
-    {
-        NewVertexRegister = VertexRegister;
-        DbgVshPrintf("%d", NewVertexRegister);
-    }
-
+    DbgVshPrintf("\tD3DVSD_REG(");
+    NewVertexRegister = Xb2PCRegisterType(VertexRegister, IsFixedFunction);
     DbgVshPrintf(", ");
 
-    XTL::DWORD DataType = (*pToken >> D3DVSD_DATATYPESHIFT) & 0xFF;
+    XTL::DWORD DataType = (*pToken & X_D3DVSD_DATATYPEMASK) >> X_D3DVSD_DATATYPESHIFT;
     XTL::DWORD NewDataType = 0;
-
-    // save patching information
-    pPatchData->TypePatchData.Types[pPatchData->TypePatchData.NbrTypes] = DataType;
-    pPatchData->TypePatchData.NbrTypes++;
+	XTL::DWORD NewSize = 0;
 
     switch(DataType)
     {
-    case 0x12:
+	case X_D3DVSDT_FLOAT1: // 0x12:
         DbgVshPrintf("D3DVSDT_FLOAT1");
         NewDataType = D3DVSDT_FLOAT1;
-        pPatchData->ConvertedStride += sizeof(FLOAT);
+		NewSize = 1*sizeof(FLOAT);
         break;
-    case 0x22:
+	case X_D3DVSDT_FLOAT2: // 0x22:
         DbgVshPrintf("D3DVSDT_FLOAT2");
         NewDataType = D3DVSDT_FLOAT2;
-        pPatchData->ConvertedStride += 2*sizeof(FLOAT);
+		NewSize = 2*sizeof(FLOAT);
         break;
-    case 0x32:
+	case X_D3DVSDT_FLOAT3: // 0x32:
         DbgVshPrintf("D3DVSDT_FLOAT3");
         NewDataType = D3DVSDT_FLOAT3;
-        pPatchData->ConvertedStride += 3*sizeof(FLOAT);
+		NewSize = 3*sizeof(FLOAT);
         break;
-    case 0x42:
+	case X_D3DVSDT_FLOAT4: // 0x42:
         DbgVshPrintf("D3DVSDT_FLOAT4");
         NewDataType = D3DVSDT_FLOAT4;
-        pPatchData->ConvertedStride += 4*sizeof(FLOAT);
+		NewSize = 4*sizeof(FLOAT);
         break;
-    case 0x40:
+	case X_D3DVSDT_D3DCOLOR: // 0x40:
         DbgVshPrintf("D3DVSDT_D3DCOLOR");
         NewDataType = D3DVSDT_D3DCOLOR;
-        pPatchData->ConvertedStride += sizeof(D3DCOLOR);
+		NewSize = sizeof(D3DCOLOR);
         break;
-    case 0x25:
+	case X_D3DVSDT_SHORT2: // 0x25:
         DbgVshPrintf("D3DVSDT_SHORT2");
         NewDataType = D3DVSDT_SHORT2;
-        pPatchData->ConvertedStride += 2*sizeof(XTL::SHORT);
+		NewSize = 2*sizeof(XTL::SHORT);
         break;
-    case 0x45:
+	case X_D3DVSDT_SHORT4: // 0x45:
         DbgVshPrintf("D3DVSDT_SHORT4");
         NewDataType = D3DVSDT_SHORT4;
-        pPatchData->ConvertedStride += 4*sizeof(XTL::SHORT);
+		NewSize = 4*sizeof(XTL::SHORT);
         break;
-    case 0x11:
+	case X_D3DVSDT_NORMSHORT1: // 0x11:
         DbgVshPrintf("D3DVSDT_NORMSHORT1 /* xbox ext. */");
-        NewDataType = D3DVSDT_SHORT2; // hmm, emulation?
-        pPatchData->ConvertedStride += 2*sizeof(XTL::SHORT);
+        NewDataType = D3DVSDT_FLOAT1; // TODO -oDxbx : Is it better to use D3DVSDT_NORMSHORT2 in Direct3D9 ?
+		NewSize = sizeof(FLOAT);
         pPatchData->NeedPatching = TRUE;
         break;
-    case 0x21:
+	case X_D3DVSDT_NORMSHORT2: // 0x21:
         DbgVshPrintf("D3DVSDT_NORMSHORT2 /* xbox ext. */");
-        NewDataType = D3DVSDT_SHORT2;
-        pPatchData->ConvertedStride += 2*sizeof(XTL::SHORT);
+        NewDataType = D3DVSDT_FLOAT2;
+		NewSize = 2*sizeof(FLOAT);
         pPatchData->NeedPatching = TRUE;
         break;
-    case 0x31:
+	case X_D3DVSDT_NORMSHORT3: // 0x31:
         DbgVshPrintf("D3DVSDT_NORMSHORT3 /* xbox ext. nsp */");
-        NewDataType = D3DVSDT_SHORT4;
-        pPatchData->ConvertedStride += 4*sizeof(XTL::SHORT);
+        NewDataType = D3DVSDT_FLOAT3; // TODO -oDxbx : Is it better to use D3DVSDT_NORMSHORT4 in Direct3D9 ?
+		NewSize = 3*sizeof(FLOAT);
         pPatchData->NeedPatching = TRUE;
         break;
-    case 0x41:
+	case X_D3DVSDT_NORMSHORT4: // 0x41:
         DbgVshPrintf("D3DVSDT_NORMSHORT4 /* xbox ext. */");
-        NewDataType = D3DVSDT_SHORT4;
-        pPatchData->ConvertedStride += 4*sizeof(XTL::SHORT);
+        NewDataType = D3DVSDT_FLOAT4;
+		NewSize = 4*sizeof(FLOAT);
         pPatchData->NeedPatching = TRUE;
         break;
-    case 0x16:
+	case X_D3DVSDT_NORMPACKED3: // 0x16:
         DbgVshPrintf("D3DVSDT_NORMPACKED3 /* xbox ext. nsp */");
-        NewDataType = D3DVSDT_FLOAT3;//0xFF; //32bit
-        pPatchData->ConvertedStride += 3*sizeof(FLOAT);
+        NewDataType = D3DVSDT_FLOAT3;
+		NewSize = 3*sizeof(FLOAT);
         pPatchData->NeedPatching = TRUE;
         break;
-    case 0x15:
+	case X_D3DVSDT_SHORT1: // 0x15:
         DbgVshPrintf("D3DVSDT_SHORT1 /* xbox ext. nsp */");
         NewDataType = D3DVSDT_SHORT2;
-        pPatchData->ConvertedStride += 2*sizeof(XTL::SHORT);
+		NewSize = 2*sizeof(XTL::SHORT);
         pPatchData->NeedPatching = TRUE;
         break;
-    case 0x35:
+	case X_D3DVSDT_SHORT3: // 0x35:
         DbgVshPrintf("D3DVSDT_SHORT3 /* xbox ext. nsp */");
         NewDataType = D3DVSDT_SHORT4;
-        pPatchData->ConvertedStride += 4*sizeof(XTL::SHORT);
+		NewSize = 4*sizeof(XTL::SHORT);
         pPatchData->NeedPatching = TRUE;
         break;
-    case 0x14:
+	case X_D3DVSDT_PBYTE1: // 0x14:
         DbgVshPrintf("D3DVSDT_PBYTE1 /* xbox ext. nsp */");
-        NewDataType = D3DVSDT_FLOAT1;
-        pPatchData->ConvertedStride += 1*sizeof(FLOAT);
+        NewDataType = D3DVSDT_FLOAT1; // TODO -oDxbx : Is it better to use D3DVSDT_NORMSHORT2 in Direct3D9 ?
+		NewSize = 1*sizeof(FLOAT);
         pPatchData->NeedPatching = TRUE;
         break;
-    case 0x24:
+	case X_D3DVSDT_PBYTE2: // 0x24:
         DbgVshPrintf("D3DVSDT_PBYTE2 /* xbox ext. nsp */");
-        NewDataType = D3DVSDT_FLOAT2;
-        pPatchData->ConvertedStride += 2*sizeof(FLOAT);
+        NewDataType = D3DVSDT_FLOAT2; // TODO -oDxbx : Is it better to use D3DVSDT_NORMSHORT2 in Direct3D9 ?
+		NewSize = 2*sizeof(FLOAT);
         pPatchData->NeedPatching = TRUE;
         break;
-    case 0x34:
+	case X_D3DVSDT_PBYTE3: // 0x34:
         DbgVshPrintf("D3DVSDT_PBYTE3 /* xbox ext. nsp */");
-        NewDataType = D3DVSDT_FLOAT3;
-        pPatchData->ConvertedStride += 3*sizeof(FLOAT);
+        NewDataType = D3DVSDT_FLOAT3; // TODO -oDxbx : Is it better to use D3DVSDT_NORMSHORT4 in Direct3D9 ?
+		NewSize = 3*sizeof(FLOAT);
         pPatchData->NeedPatching = TRUE;
         break;
-    case 0x44:
+	case X_D3DVSDT_PBYTE4: // 0x44: // Hit by Panzer
         DbgVshPrintf("D3DVSDT_PBYTE4 /* xbox ext. */");
-        NewDataType = D3DVSDT_FLOAT4;
-        pPatchData->ConvertedStride += 4*sizeof(FLOAT);
-        break;
-    case 0x72:
+        NewDataType = D3DVSDT_FLOAT4; // TODO -oDxbx : Is it better to use D3DVSDT_NORMSHORT4 or D3DDECLTYPE_UBYTE4N (if in caps) in Direct3D9 ?
+		NewSize = 4*sizeof(FLOAT);
+		pPatchData->NeedPatching = TRUE;
+		break;
+	case X_D3DVSDT_FLOAT2H: // 0x72:
         DbgVshPrintf("D3DVSDT_FLOAT2H /* xbox ext. */");
-        NewDataType = D3DVSDT_FLOAT3;
-        pPatchData->ConvertedStride += 3*sizeof(FLOAT);
+        NewDataType = D3DVSDT_FLOAT4;
+		NewSize = 4*sizeof(FLOAT);
         pPatchData->NeedPatching = TRUE;
         break;
-    case 0x02:
+	case X_D3DVSDT_NONE: // 0x02:
         DbgVshPrintf("D3DVSDT_NONE /* xbox ext. nsp */");
+#if DXBX_USE_D3D9
+		NewDataType = D3DVSDT_NONE;
+#endif
+	    // TODO -oDxbx: Use D3DVSD_NOP ?
         NewDataType = 0xFF;
         break;
     default:
         DbgVshPrintf("Unknown data type for D3DVSD_REG: 0x%02X\n", DataType);
         break;
     }
+
+	// save patching information
+	pPatchData->TypePatchData.Types[pPatchData->TypePatchData.NbrTypes] = DataType;
+	pPatchData->TypePatchData.NewSizes[pPatchData->TypePatchData.NbrTypes] = NewSize;
+	pPatchData->TypePatchData.NbrTypes++;
+
     *pToken = D3DVSD_REG(NewVertexRegister, NewDataType);
+
+    pPatchData->ConvertedStride += NewSize;
 
     DbgVshPrintf("),\n");
 
     if(NewDataType == 0xFF)
     {
-        EmuWarning("/* WARNING: Fatal type mismatch, no fitting type! */\n");
+        EmuWarning("/* WARNING: Fatal type mismatch, no fitting type! */");
     }
 }
+
+#define D3DVSD_MASK_TESSUV 0x10000000
+#define D3DVSD_MASK_SKIP 0x10000000 // Skips (normally) dwords
+#define D3DVSD_MASK_SKIPBYTES 0x08000000 // Skips bytes (no, really?!)
+
 
 static void VshConvertToken_STREAMDATA(DWORD          *pToken,
                                        boolean         IsFixedFunction,
                                        VSH_PATCH_DATA *pPatchData)
 {
     using namespace XTL;
-
-    // D3DVSD_SKIP
-    if(*pToken & 0x10000000)
-    {
-        VshConvertToken_STREAMDATA_SKIP(pToken);
-    }
-    // D3DVSD_SKIPBYTES
-    else if(*pToken & 0x18000000)
-    {
-        VshConvertToken_STREAMDATA_SKIPBYTES(pToken);
-    }
-    // D3DVSD_REG
-    else
+	if (*pToken & D3DVSD_MASK_SKIP)
+	{
+		// For D3D9, use D3DDECLTYPE_UNUSED ?
+		if (*pToken & D3DVSD_MASK_SKIPBYTES) {
+			VshConvertToken_STREAMDATA_SKIPBYTES(pToken);
+		} else {
+			VshConvertToken_STREAMDATA_SKIP(pToken);
+		}
+	}
+	else // D3DVSD_REG
     {
         VshConvertToken_STREAMDATA_REG(pToken, IsFixedFunction, pPatchData);
     }
@@ -1967,7 +2100,7 @@ DWORD XTL::EmuRecompileVshDeclaration
 
     // Calculate size of declaration
     DWORD DeclarationSize = VshGetDeclarationSize(pDeclaration);
-    *ppRecompiledDeclaration = (DWORD *)CxbxMalloc(DeclarationSize);
+    *ppRecompiledDeclaration = (DWORD *)malloc(DeclarationSize);
     DWORD *pRecompiled = *ppRecompiledDeclaration;
     memcpy(pRecompiled, pDeclaration, DeclarationSize);
     *pDeclarationSize = DeclarationSize;
@@ -1982,16 +2115,17 @@ DWORD XTL::EmuRecompileVshDeclaration
         DWORD Step = VshRecompileToken(pRecompiled, IsFixedFunction, &PatchData);
         pRecompiled += Step;
     }
-    DbgVshPrintf("\tD3DVSD_END()\n};\n");
 
-    VshAddStreamPatch(&PatchData);
+	// copy last current data to structure
+	VshAddStreamPatch(&PatchData);
+    DbgVshPrintf("\tD3DVSD_END()\n};\n");
 
     DbgVshPrintf("NbrStreams: %d\n", PatchData.StreamPatchData.NbrStreams);
 
     // Copy the patches to the vertex shader struct
     DWORD StreamsSize = PatchData.StreamPatchData.NbrStreams * sizeof(STREAM_DYNAMIC_PATCH);
     pVertexDynamicPatch->NbrStreams = PatchData.StreamPatchData.NbrStreams;
-    pVertexDynamicPatch->pStreamPatches = (STREAM_DYNAMIC_PATCH *)CxbxMalloc(StreamsSize);
+    pVertexDynamicPatch->pStreamPatches = (STREAM_DYNAMIC_PATCH *)malloc(StreamsSize);
     memcpy(pVertexDynamicPatch->pStreamPatches,
            PatchData.StreamPatchData.pStreamPatches,
            StreamsSize);
@@ -2012,7 +2146,7 @@ extern HRESULT XTL::EmuRecompileVshFunction
     VSH_SHADER_HEADER   *pShaderHeader = (VSH_SHADER_HEADER*)pFunction;
     DWORD               *pToken;
     boolean             EOI = false;
-    VSH_XBOX_SHADER     *pShader = (VSH_XBOX_SHADER*)CxbxMalloc(sizeof(VSH_XBOX_SHADER));
+    VSH_XBOX_SHADER     *pShader = (VSH_XBOX_SHADER*)calloc(1, sizeof(VSH_XBOX_SHADER));
 	LPD3DXBUFFER		pErrors = NULL;
     HRESULT             hRet = 0;
 
@@ -2029,7 +2163,6 @@ extern HRESULT XTL::EmuRecompileVshFunction
         EmuWarning("Couldn't allocate memory for vertex shader conversion buffer");
         hRet = E_OUTOFMEMORY;
     }
-    memset(pShader, 0, sizeof(VSH_XBOX_SHADER));
     pShader->ShaderHeader = *pShaderHeader;
     switch(pShaderHeader->Version)
     {
@@ -2044,7 +2177,7 @@ extern HRESULT XTL::EmuRecompileVshFunction
             hRet = E_FAIL;
             break;
         default:
-            EmuWarning("Unknown vertex shader version 0x%02X\n", pShaderHeader->Version);
+            EmuWarning("Unknown vertex shader version 0x%02X", pShaderHeader->Version);
             hRet = E_FAIL;
             break;
     }
@@ -2064,7 +2197,7 @@ extern HRESULT XTL::EmuRecompileVshFunction
         // The size of the shader is
         *pOriginalSize = (DWORD)pToken - (DWORD)pFunction;
 
-        char* pShaderDisassembly = (char*)CxbxMalloc(pShader->IntermediateCount * 100); // Should be plenty
+        char* pShaderDisassembly = (char*)malloc(pShader->IntermediateCount * 100); // Should be plenty
         DbgVshPrintf("-- Before conversion --\n");
         VshWriteShader(pShader, pShaderDisassembly, FALSE);
         DbgVshPrintf("%s", pShaderDisassembly);
@@ -2102,16 +2235,17 @@ extern HRESULT XTL::EmuRecompileVshFunction
 
         if (FAILED(hRet))
         {
-            EmuWarning("Couldn't assemble recompiled vertex shader\n");
-			EmuWarning("%s\n", pErrors->GetBufferPointer());
+            EmuWarning("Couldn't assemble recompiled vertex shader");
+			EmuWarning("%s", pErrors->GetBufferPointer());
         }
 
 		if( pErrors )
 			pErrors->Release();
 
-        CxbxFree(pShaderDisassembly);
+        free(pShaderDisassembly);
     }
-    CxbxFree(pShader);
+
+    free(pShader);
 
     return hRet;
 }
@@ -2120,26 +2254,32 @@ extern void XTL::FreeVertexDynamicPatch(VERTEX_SHADER *pVertexShader)
 {
     for (DWORD i = 0; i < pVertexShader->VertexDynamicPatch.NbrStreams; i++)
     {
-        CxbxFree(pVertexShader->VertexDynamicPatch.pStreamPatches[i].pTypes);
+        free(pVertexShader->VertexDynamicPatch.pStreamPatches[i].pTypes);
+		pVertexShader->VertexDynamicPatch.pStreamPatches[i].pTypes = nullptr;
+		free(pVertexShader->VertexDynamicPatch.pStreamPatches[i].pSizes);
+		pVertexShader->VertexDynamicPatch.pStreamPatches[i].pSizes = nullptr;
     }
-    CxbxFree(pVertexShader->VertexDynamicPatch.pStreamPatches);
+
+    free(pVertexShader->VertexDynamicPatch.pStreamPatches);
     pVertexShader->VertexDynamicPatch.pStreamPatches = NULL;
     pVertexShader->VertexDynamicPatch.NbrStreams = 0;
 }
 
 extern boolean XTL::IsValidCurrentShader(void)
 {
-    DWORD Handle;
+	// Dxbx addition : There's no need to call
+	// XTL_EmuIDirect3DDevice_GetVertexShader, just check g_CurrentVertexShader :
+	return VshHandleIsValidShader(g_CurrentVertexShader);
+}
 
-    
-    EmuIDirect3DDevice8_GetVertexShader(&Handle);
-    
-
+// Checks for failed vertex shaders, and shaders that would need patching
+boolean XTL::VshHandleIsValidShader(DWORD Handle)
+{
 	//printf( "VS = 0x%.08X\n", Handle );
 
     if (VshHandleIsVertexShader(Handle))
     {
-        X_D3DVertexShader *pD3DVertexShader = (X_D3DVertexShader *)(Handle & 0x7FFFFFFF);
+        X_D3DVertexShader *pD3DVertexShader = VshHandleGetVertexShader(Handle);
         VERTEX_SHADER *pVertexShader = (VERTEX_SHADER *)pD3DVertexShader->Handle;
         if (pVertexShader->Status != 0)
         {

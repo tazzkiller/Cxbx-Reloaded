@@ -35,33 +35,15 @@
 
 
 // ******************************************************************
-// * XG_1_0_4432
+// * XG_4432
 // ******************************************************************
-OOVPATable XG_1_0_4432[] =
-{
-    // XGIsSwizzledFormat (* unchanged since 4361 *)
-    {
-        (OOVPA*)&XGIsSwizzledFormat_1_0_4361,
+OOVPATable XG_4432[1] = {
 
-        XTL::EmuXGIsSwizzledFormat,
-
-        #ifdef _DEBUG_TRACE
-        "XGIsSwizzledFormat"
-        #endif
-    },
-    // XGSwizzleRect (* unchanged since 4361 *)
-    {
-        (OOVPA*)&XGSwizzleRect_1_0_4361,
-
-        XTL::EmuXGSwizzleRect,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGSwizzleRect"
-        #endif
-    },
+	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, PATCH),
+	// REGISTER_OOVPA(XGSwizzleRect, 4361, DISABLED), // TODO : Uncomment
 };
 
 // ******************************************************************
-// * XG_1_0_4432_SIZE
+// * XG_4432_SIZE
 // ******************************************************************
-uint32 XG_1_0_4432_SIZE = sizeof(XG_1_0_4432);
+uint32 XG_4432_SIZE = sizeof(XG_4432);

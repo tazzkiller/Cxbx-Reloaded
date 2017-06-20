@@ -35,15 +35,8 @@
 // ******************************************************************
 // * XGIsSwizzledFormat
 // ******************************************************************
-SOOVPA<7> XGIsSwizzledFormat_1_0_3911 = 
-{
-    0,  // Large == 0
-    7,  // Count == 7
+OOVPA_NO_XREF(XGIsSwizzledFormat, 3911, 7)
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
         { 0x07, 0x7F },
         { 0x10, 0x7C },
         { 0x19, 0x0B },
@@ -51,21 +44,13 @@ SOOVPA<7> XGIsSwizzledFormat_1_0_3911 =
         { 0x2B, 0x83 },
         { 0x34, 0x0A },
         { 0x3D, 0x7F },
-    }
-};
+OOVPA_END;
 
 // ******************************************************************
 // * XGSwizzleRect
 // ******************************************************************
-SOOVPA<8> XGSwizzleRect_1_0_3911 = 
-{
-    0,  // Large == 0
-    8,  // Count == 8
+OOVPA_NO_XREF(XGSwizzleRect, 3911, 8)
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
         { 0x1E, 0x03 },
         { 0x3E, 0x89 },
         { 0x5E, 0x83 },
@@ -74,21 +59,13 @@ SOOVPA<8> XGSwizzleRect_1_0_3911 =
         { 0xBE, 0xFF },
         { 0xDE, 0x89 },
         { 0xFE, 0x89 },
-    }
-};
+OOVPA_END;
 
 // ******************************************************************
 // * XGSwizzleBox
 // ******************************************************************
-SOOVPA<8> XGSwizzleBox_1_0_3911 = 
-{
-    0,  // Large == 0
-    8,  // Count == 8
+OOVPA_NO_XREF(XGSwizzleBox, 3911, 8)
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
         { 0x1E, 0x75 },
         { 0x3E, 0x4D },
         { 0x5E, 0x48 },
@@ -97,21 +74,14 @@ SOOVPA<8> XGSwizzleBox_1_0_3911 =
         { 0xC0, 0x83 },
         { 0xDE, 0xAF },
         { 0xFE, 0x45 },
-    }
-};
+OOVPA_END;
 
+/* Leave unpatched
 // ******************************************************************
 // * XGUnswizzleRect
 // ******************************************************************
-SOOVPA<8> XGUnswizzleRect_1_0_3911 = 
-{
-    0,  // Large == 0
-    8,  // Count == 8
+OOVPA_NO_XREF(XGUnswizzleRect, 3911, 8)
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
         { 0x1E, 0x03 },
         { 0x3E, 0x00 },
         { 0x5E, 0xD2 },
@@ -120,21 +90,14 @@ SOOVPA<8> XGUnswizzleRect_1_0_3911 =
         { 0xC1, 0xE9 },
         { 0xDE, 0x89 },
         { 0xFE, 0x60 },
-    }
-};
+OOVPA_END;
+*/
 
 // ******************************************************************
 // * XGWriteSurfaceOrTextureToXPR
 // ******************************************************************
-SOOVPA<7> XGWriteSurfaceOrTextureToXPR_1_0_3911 = 
-{
-    0,  // Large == 0
-    7,  // Count == 7
+OOVPA_NO_XREF(XGWriteSurfaceOrTextureToXPR, 3911, 7)
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
         { 0x1E, 0x3D },
         { 0x3E, 0xE0 },
         { 0x5E, 0x75 },
@@ -142,21 +105,13 @@ SOOVPA<7> XGWriteSurfaceOrTextureToXPR_1_0_3911 =
         { 0x9E, 0xC2 },
         { 0xBE, 0xF0 },
         { 0xDE, 0xFC },
-    }
-};
+OOVPA_END;
 
 // ******************************************************************
 // * XGSetTextureHeader
 // ******************************************************************
-SOOVPA<7> XGSetTextureHeader_1_0_3911 = 
-{
-    0,  // Large == 0
-    7,  // Count == 7
+OOVPA_NO_XREF(XGSetTextureHeader, 3911, 7)
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
         { 0x04, 0x75 },
         { 0x0A, 0x00 },
         { 0x10, 0xFF },
@@ -164,76 +119,22 @@ SOOVPA<7> XGSetTextureHeader_1_0_3911 =
         { 0x1C, 0x75 },
         { 0x26, 0x5D },
         { 0x28, 0x24 },
-    }
+OOVPA_END;
+
+// ******************************************************************
+// * XG_3911
+// ******************************************************************
+OOVPATable XG_3911[] = {
+
+	REGISTER_OOVPA(XGIsSwizzledFormat, 3911, PATCH),
+	// REGISTER_OOVPA(XGSwizzleRect, 3911, DISABLED), // TODO : Uncomment
+	// REGISTER_OOVPA(XGUnswizzleRect, 3911, DISABLED), // TODO : Uncomment
+	REGISTER_OOVPA(XGSwizzleBox, 3911, PATCH),
+	REGISTER_OOVPA(XGWriteSurfaceOrTextureToXPR, 3911, PATCH),
+	REGISTER_OOVPA(XGSetTextureHeader, 3911, PATCH),
 };
 
 // ******************************************************************
-// * XG_1_0_3911
+// * XG_3911_SIZE
 // ******************************************************************
-OOVPATable XG_1_0_3911[] =
-{
-    // XGIsSwizzledFormat
-    {
-        (OOVPA*)&XGIsSwizzledFormat_1_0_3911,
-
-        XTL::EmuXGIsSwizzledFormat,
-
-        #ifdef _DEBUG_TRACE
-        "XGIsSwizzledFormat"
-        #endif
-    },
-    // XGSwizzleRect
-    {
-        (OOVPA*)&XGSwizzleRect_1_0_3911,
-
-        XTL::EmuXGSwizzleRect,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGSwizzleRect"
-        #endif
-    },
-	// XGUnswizzleRect
-    {
-        (OOVPA*)&XGUnswizzleRect_1_0_3911,
-
-        XTL::EmuXGUnswizzleRect,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGUnswizzleRect"
-        #endif
-    },
-    // XGSwizzleBox
-    {
-        (OOVPA*)&XGSwizzleBox_1_0_3911,
-
-        XTL::EmuXGSwizzleBox,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGSwizzleBox"
-        #endif
-    },
-	// XGWriteSurfaceOrTextureToXPR
-    {
-        (OOVPA*)&XGWriteSurfaceOrTextureToXPR_1_0_3911,
-
-        XTL::EmuXGWriteSurfaceOrTextureToXPR,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGWriteSurfaceOrTextureToXPR"
-        #endif
-    },
-	// XGSetTextureHeader
-	{
-		(OOVPA*)&XGSetTextureHeader_1_0_3911,
-		XTL::EmuXGSetTextureHeader,
-
-		#ifdef _DEBUG_TRACE
-		"XGSetTextureHeader"
-		#endif
-	},
-};
-
-// ******************************************************************
-// * XG_1_0_3911_SIZE
-// ******************************************************************
-uint32 XG_1_0_3911_SIZE = sizeof(XG_1_0_3911);
+uint32 XG_3911_SIZE = sizeof(XG_3911);

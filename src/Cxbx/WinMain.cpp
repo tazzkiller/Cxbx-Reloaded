@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -34,31 +36,44 @@
 
 #include "WndMain.h"
 
-#include "Cxbx/EmuExe.h"
-
 #include "CxbxKrnl/CxbxKrnl.h"
 #include "CxbxKrnl/Emu.h"
 #include "CxbxKrnl/EmuShared.h"
+#include <commctrl.h>
 
-unsigned char memory[XBOX_MEMORY_SIZE];
+// Enable Visual Styles
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name = 'Microsoft.Windows.Common-Controls' version = '6.0.0.0' \
+processorArchitecture = '*' publicKeyToken = '6595b64144ccf1df' language = '*'\"")
 
 /*! program entry point */
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
-    /*! verify CxbxKrnl.dll is the same version as Cxbx.exe */
-    if(!CxbxKrnlVerifyVersion(_CXBX_VERSION))
-    {
-        MessageBox(NULL, "CxbxKrnl.dll is the incorrect version", "Cxbx-Reloaded", MB_OK);
-        return 1;
-    }
+	/*! verify Cxbx.exe is loaded to base address 0x00010000 */
+	if ((UINT_PTR)GetModuleHandle(nullptr) != CXBX_BASE_ADDR)
+	{
+		/*! CXBX_BASE_ADDR is defined as 0x00010000, which is the base address of
+			the Cxbx.exe host executable.
+		    Set in Cxbx Project options, Linker, Advanced, Base Address */
+		MessageBox(NULL, "Cxbx.exe is not loaded to base address 0x00010000 (which is a requirement for Xbox emulation)", "Cxbx-Reloaded", MB_OK);
+		return 1;
+	}
+
+	/* Initialize Cxbx File Paths */
+	CxbxInitFilePaths();
+
+    /*! initialize shared memory */
+    EmuShared::Init();
 
 	if (__argc >= 2 && strcmp(__argv[1], "/load") == 0 && strlen(__argv[2]) > 0)  {
 		CxbxKrnlMain(__argc, __argv);
 		return 0;
 	}
 
-    /*! initialize shared memory */
-    EmuShared::Init();
+	INITCOMMONCONTROLSEX icc;
+	icc.dwSize = sizeof(icc);
+	icc.dwICC = ICC_WIN95_CLASSES;
+	InitCommonControlsEx(&icc);
 
     WndMain *MainWindow = new WndMain(hInstance);
 
@@ -69,23 +84,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
     }
 
     /*! optionally open xbe and start emulation, if command line parameter was specified */
-    if(__argc > 1 && MainWindow->GetError() == 0)
+    if(__argc > 1 && false == MainWindow->HasError())
     {
         MainWindow->OpenXbe(__argv[1]);
 
-        MainWindow->StartEmulation(AUTO_CONVERT_WINDOWS_TEMP, MainWindow->GetHwnd());
+        MainWindow->StartEmulation(MainWindow->GetHwnd());
     }
 
     /*! wait for window to be closed, or failure */
-    while(MainWindow->GetError() == 0 && MainWindow->ProcessMessages())
+    while(!MainWindow->HasError() && MainWindow->ProcessMessages())
     {
         Sleep(10);
     }
 
     /*! if an error occurred, notify user */
-    if(MainWindow->GetError() != 0)
+    if(MainWindow->HasError())
     {
-        MessageBox(NULL, MainWindow->GetError(), "Cxbx-Reloaded", MB_ICONSTOP | MB_OK);
+        MessageBox(NULL, MainWindow->GetError().c_str(), "Cxbx-Reloaded", MB_ICONSTOP | MB_OK);
     }
 
     delete MainWindow;

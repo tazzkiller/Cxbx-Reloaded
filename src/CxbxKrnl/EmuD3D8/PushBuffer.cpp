@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -36,7 +38,9 @@
 
 #include "CxbxKrnl/Emu.h"
 #include "CxbxKrnl/EmuXTL.h"
+#include "CxbxKrnl/EmuD3D8Types.h" // For X_D3DFORMAT
 #include "CxbxKrnl/ResourceTracker.h"
+#include "CxbxKrnl/MemoryManager.h"
 
 uint32  XTL::g_dwPrimaryPBCount = 0;
 uint32 *XTL::g_pPrimaryPB = 0;
@@ -67,87 +71,6 @@ void XTL::EmuExecutePushBuffer
     return;
 }
 
-static void EmuUnswizzleActiveTexture()
-{
-    // for current usages, we're always on stage 0
-    XTL::X_D3DPixelContainer *pPixelContainer = (XTL::X_D3DPixelContainer*)XTL::EmuD3DActiveTexture[0];
-
-    if(pPixelContainer == NULL || !(pPixelContainer->Common & X_D3DCOMMON_ISLOCKED))
-        return;
-
-    DWORD XBFormat = (pPixelContainer->Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT;
-    DWORD dwBPP = 0;
-
-    if(!XTL::EmuXBFormatIsSwizzled(XBFormat, &dwBPP))
-        return;
-
-    // remove lock
-    pPixelContainer->EmuTexture8->UnlockRect(0);
-    pPixelContainer->Common &= ~X_D3DCOMMON_ISLOCKED;
-
-    // TODO: potentially CRC to see if this surface was actually modified..
-
-    //
-    // unswizzle texture
-    //
-
-    {
-        XTL::IDirect3DTexture8 *pTexture = pPixelContainer->EmuTexture8;
-
-        DWORD dwLevelCount = pTexture->GetLevelCount();
-
-        for(uint32 v=0;v<dwLevelCount;v++)
-        {
-            XTL::D3DSURFACE_DESC SurfaceDesc;
-
-            HRESULT hRet = pTexture->GetLevelDesc(v, &SurfaceDesc);
-
-            if(FAILED(hRet))
-                continue;
-
-            //
-            // perform unswizzle
-            //
-
-            {
-                XTL::D3DLOCKED_RECT LockedRect;
-
-                //if(SurfaceDesc.Format != XTL::D3DFMT_A8R8G8B8)
-                //    break;
-                //CxbxKrnlCleanup("Temporarily unsupported format for active texture unswizzle (0x%.08X)", SurfaceDesc.Format);
-
-                hRet = pTexture->LockRect(v, &LockedRect, NULL, NULL);
-
-                if(FAILED(hRet))
-                    continue;
-
-                DWORD dwWidth = SurfaceDesc.Width;
-                DWORD dwHeight = SurfaceDesc.Height;
-                DWORD dwDepth = 1;
-                DWORD dwPitch = LockedRect.Pitch;
-                RECT  iRect = {0,0,0,0};
-                POINT iPoint = {0,0};
-
-                void *pTemp = malloc(dwHeight*dwPitch);
-
-                XTL::EmuXGUnswizzleRect
-                (
-                    LockedRect.pBits, dwWidth, dwHeight, dwDepth,
-                    pTemp, dwPitch, iRect, iPoint, dwBPP
-                );
-
-                memcpy(LockedRect.pBits, pTemp, dwPitch*dwHeight);
-
-                pTexture->UnlockRect(0);
-
-                free(pTemp);
-            }
-        }
-
-        DbgPrintf("Active texture was unswizzled\n");
-    }
-}
-
 extern void XTL::EmuExecutePushBufferRaw
 (
     DWORD                 *pdwPushData
@@ -155,6 +78,11 @@ extern void XTL::EmuExecutePushBufferRaw
 {
     if(g_bSkipPush)
         return;
+
+	if (!pdwPushData) {
+		EmuWarning("pdwPushData is null");
+		return;
+	}
 
     DWORD *pdwOrigPushData = pdwPushData;
 
@@ -233,7 +161,7 @@ extern void XTL::EmuExecutePushBufferRaw
                 #endif
 
                 XBPrimitiveType = (X_D3DPRIMITIVETYPE)*pdwPushData;
-                PCPrimitiveType = EmuPrimitiveType(XBPrimitiveType);
+                PCPrimitiveType = EmuXB2PC_D3DPrimitiveType(XBPrimitiveType);
             }
         }
         else if(dwMethod == 0x1818) // NVPB_InlineVertexArray
@@ -332,8 +260,6 @@ extern void XTL::EmuExecutePushBufferRaw
                 printf("  dwVertexShader : 0x%08X\n", dwVertexShader);
             }
             #endif
-
-            EmuUnswizzleActiveTexture();
 
             // render vertices
             if(dwVertexShader != -1)
@@ -833,7 +759,7 @@ void XTL::DbgDumpPushBuffer( DWORD* PBData, DWORD dwSize )
 	DWORD dwBytesWritten;
 
 	// Write pushbuffer data to the file.
-	// TODO: Cache the 32-bit CRC of each pushbuffer to ensure that the same
+	// TODO: Cache the 32-bit XXHash32::hash() of each pushbuffer to ensure that the same
 	// pushbuffer is not written twice within a given emulation session.
 	WriteFile( hFile, &g_CurrentVertexShader, sizeof( DWORD ), &dwBytesWritten, NULL );
 	WriteFile( hFile, PBData, dwSize, &dwBytesWritten, NULL );

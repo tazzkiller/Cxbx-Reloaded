@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -41,11 +43,15 @@ namespace xboxkrnl
 #include <xboxkrnl/xboxkrnl.h> // For XboxEEPROMKey, etc.
 };
 
-#include "Logging.h" // For LOG_FUNC()
-#include "Emu.h" // For EmuWarning()
+// Certificate Key
+// Not exported but used to generate per-title keys
+xboxkrnl::XBOX_KEY_DATA xboxkrnl::XboxCertificateKey = { 0 };
 
+// ******************************************************************
+// * 0x0141 - XboxEEPROMKey
+// ******************************************************************
 // TODO : What should we initialize this to?
-XBSYSAPI EXPORTNUM(321) xboxkrnl::XBOX_KEY_DATA xboxkrnl::XboxEEPROMKey = {};
+XBSYSAPI EXPORTNUM(321) xboxkrnl::XBOX_KEY_DATA xboxkrnl::XboxEEPROMKey = { 0 };
 
 // ******************************************************************
 // * 0x0142 - XboxHardwareInfo
@@ -59,14 +65,7 @@ XBSYSAPI EXPORTNUM(322) xboxkrnl::XBOX_HARDWARE_INFO xboxkrnl::XboxHardwareInfo 
 // ******************************************************************
 // * 0x0143 - XboxHDKey
 // ******************************************************************
-XBSYSAPI EXPORTNUM(323) xboxkrnl::UCHAR xboxkrnl::XboxHDKey[16] =
-{
-	0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00,
-};
-
+XBSYSAPI EXPORTNUM(323) xboxkrnl::XBOX_KEY_DATA xboxkrnl::XboxHDKey = { 0 };
 
 // ******************************************************************
 // * 0x0144 - XboxKrnlVersion
@@ -78,20 +77,25 @@ XBSYSAPI EXPORTNUM(324) xboxkrnl::XBOX_KRNL_VERSION xboxkrnl::XboxKrnlVersion =
 	1, 0, 5838, 1 // TODO : Make this configurable
 };
 
+// ******************************************************************
+// * 0x0145 - XboxSignatureKey
+// Generated in SetupPerTitleKeys() using the Certificate Key and the 
+// XBE's Signature Key
+// ******************************************************************
+XBSYSAPI EXPORTNUM(325) xboxkrnl::XBOX_KEY_DATA xboxkrnl::XboxSignatureKey = { 0 };
 
 // ******************************************************************
-// * XboxSignatureKey
+// * 0x0161 - XboxLANKey
+// Generated in SetupPerTitleKeys() using the Certificate Key and the 
+// XBE's LAN Key
 // ******************************************************************
-XBSYSAPI EXPORTNUM(325) xboxkrnl::BYTE xboxkrnl::XboxSignatureKey[16] =
-{
-	// cxbx default saved game key
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-};
+XBSYSAPI EXPORTNUM(353) xboxkrnl::XBOX_KEY_DATA xboxkrnl::XboxLANKey = { 0 };
 
-// TODO : What should we initialize this to?
-XBSYSAPI EXPORTNUM(353) xboxkrnl::XBOX_KEY_DATA xboxkrnl::XboxLANKey = {};
+// ******************************************************************
+// * 0x0162 - XboxAlternateSignatureKeys
+// Generated in SetupPerTitleKeys() using the Certificate Key and the 
+// XBE's Alternate Signature Keys Key
+// ******************************************************************
+XBSYSAPI EXPORTNUM(354) xboxkrnl::XBOX_KEY_DATA xboxkrnl::XboxAlternateSignatureKeys[ALTERNATE_SIGNATURE_COUNT] = { 0 };
 
-// TODO : What should we initialize this to?
-XBSYSAPI EXPORTNUM(354) xboxkrnl::XBOX_KEY_DATA xboxkrnl::XboxAlternateSignatureKeys = {};
-
+	

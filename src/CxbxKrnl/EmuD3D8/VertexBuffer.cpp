@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -35,74 +37,29 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#include "CxbxKrnl/xxhash32.h" // For XXHash32::hash()
 #include "CxbxKrnl/Emu.h"
 #include "CxbxKrnl/EmuAlloc.h"
 #include "CxbxKrnl/EmuXTL.h"
 #include "CxbxKrnl/ResourceTracker.h"
+#include "CxbxKrnl/MemoryManager.h"
 
 #include <ctime>
 
-#define VERTEX_BUFFER_CACHE_SIZE 64
+#define HASH_SEED 0
+
+#define VERTEX_BUFFER_CACHE_SIZE 256
 #define MAX_STREAM_NOT_USED_TIME (2 * CLOCKS_PER_SEC) // TODO: Trim the not used time
 
 // inline vertex buffer emulation
-XTL::DWORD                  *XTL::g_pIVBVertexBuffer = 0;
+XTL::DWORD                  *XTL::g_pIVBVertexBuffer = nullptr;
 XTL::X_D3DPRIMITIVETYPE      XTL::g_IVBPrimitiveType = XTL::X_D3DPT_INVALID;
 UINT                         XTL::g_IVBTblOffs = 0;
-struct XTL::_D3DIVB         *XTL::g_IVBTable = 0;
+struct XTL::_D3DIVB         *XTL::g_IVBTable = nullptr;
 extern DWORD                 XTL::g_IVBFVF = 0;
 extern XTL::X_D3DVertexBuffer      *g_pVertexBuffer = NULL;
 
 extern DWORD				XTL::g_dwPrimPerFrame = 0;
-static unsigned int crctab[256];
-
-static void CRC32Init(void)
-{
-    static boolean bFirstTime = true;
-    int i, j;
-
-    unsigned int crc;
-
-    if(!bFirstTime)
-    {
-        return;
-    }
-    for(i = 0; i < 256; i++)
-    {
-        crc = i << 24;
-        for(j = 0; j < 8; j++)
-        {
-            if(crc & 0x80000000)
-                crc = (crc << 1) ^ 0x04c11db7;
-            else
-                crc = crc << 1;
-        }
-        crctab[i] = crc;
-    }
-    bFirstTime = false;
-}
-
-static unsigned int CRC32(unsigned char *data, int len)
-{
-    unsigned int        result;
-    int                 i;;
-
-    if(len < 4) abort();
-
-    result = *data++ << 24;
-    result |= *data++ << 16;
-    result |= *data++ << 8;
-    result |= *data++;
-    result = ~ result;
-    len -=4;
-
-    for(i=0; i<len; i++)
-    {
-        result = (result << 8 | *data++) ^ crctab[result >> 24];
-    }
-
-    return ~result;
-}
 
 XTL::VertexPatcher::VertexPatcher()
 {
@@ -112,7 +69,6 @@ XTL::VertexPatcher::VertexPatcher()
     this->m_bAllocatedStreamZeroData = false;
     this->m_pNewVertexStreamZeroData = NULL;
     this->m_pDynamicPatch = NULL;
-    CRC32Init();
 }
 
 XTL::VertexPatcher::~VertexPatcher()
@@ -129,11 +85,11 @@ void XTL::VertexPatcher::DumpCache(void)
         if(pCachedStream)
         {
             // TODO: Write nicer dump presentation
-            printf("Key: 0x%.08X Cache Hits: %d IsUP: %s OrigStride: %d NewStride: %d CRCCount: %d CRCFreq: %d Lengh: %d CRC32: 0x%.08X\n",
+            printf("Key: 0x%.08X Cache Hits: %d IsUP: %s OrigStride: %d NewStride: %d HashCount: %d HashFreq: %d Length: %d Hash: 0x%.08X\n",
                    pNode->uiKey, pCachedStream->uiCacheHit, pCachedStream->bIsUP ? "YES" : "NO",
                    pCachedStream->Stream.uiOrigStride, pCachedStream->Stream.uiNewStride,
                    pCachedStream->uiCount, pCachedStream->uiCheckFrequency,
-                   pCachedStream->uiLength, pCachedStream->uiCRC32);
+                   pCachedStream->uiLength, pCachedStream->uiHash);
         }
 
         pNode = pNode->pNext;
@@ -144,14 +100,12 @@ void XTL::VertexPatcher::CacheStream(VertexPatchDesc *pPatchDesc,
                                      UINT             uiStream)
 {
     UINT                       uiStride;
-    IDirect3DVertexBuffer8    *pOrigVertexBuffer;
+    IDirect3DVertexBuffer8    *pOrigVertexBuffer = nullptr;
     XTL::D3DVERTEXBUFFER_DESC  Desc;
     void                      *pCalculateData = NULL;
     uint32                     uiKey;
     UINT                       uiLength;
-    CACHEDSTREAM              *pCachedStream = (CACHEDSTREAM *)CxbxMalloc(sizeof(CACHEDSTREAM));
-
-    ZeroMemory(pCachedStream, sizeof(CACHEDSTREAM));
+    CACHEDSTREAM              *pCachedStream = (CACHEDSTREAM *)calloc(1, sizeof(CACHEDSTREAM));
 
     // Check if the cache is full, if so, throw away the least used stream
     if(g_PatchedStreamsCache.get_count() > VERTEX_BUFFER_CACHE_SIZE)
@@ -222,13 +176,13 @@ void XTL::VertexPatcher::CacheStream(VertexPatchDesc *pPatchDesc,
         uiKey = (uint32)pCalculateData;
     }
 
-    UINT uiChecksum = CRC32((unsigned char *)pCalculateData, uiLength);
-    if(!pPatchDesc->pVertexStreamZeroData)
+    uint32_t uiHash = XXHash32::hash((void *)pCalculateData, uiLength, HASH_SEED);
+    if(pOrigVertexBuffer)
     {
         pOrigVertexBuffer->Unlock();
     }
 
-    pCachedStream->uiCRC32 = uiChecksum;
+    pCachedStream->uiHash = uiHash;
     pCachedStream->Stream = m_pStreams[uiStream];
     pCachedStream->uiCheckFrequency = 1; // Start with checking every 1th Draw..
     pCachedStream->uiCount = 0;
@@ -247,7 +201,7 @@ void XTL::VertexPatcher::FreeCachedStream(void *pStream)
     {
         if(pCachedStream->bIsUP && pCachedStream->pStreamUP)
         {
-            CxbxFree(pCachedStream->pStreamUP);
+            free(pCachedStream->pStreamUP);
         }
         if(pCachedStream->Stream.pOriginalStream)
         {
@@ -257,7 +211,7 @@ void XTL::VertexPatcher::FreeCachedStream(void *pStream)
         {
             pCachedStream->Stream.pPatchedStream->Release();
         }
-        CxbxFree(pCachedStream);
+        free(pCachedStream);
     }
     g_PatchedStreamsCache.Unlock();
     g_PatchedStreamsCache.remove(pStream);
@@ -268,23 +222,26 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
 										   bool			   *pbFatalError)
 {
     UINT                       uiStride;
-    IDirect3DVertexBuffer8    *pOrigVertexBuffer;
+    IDirect3DVertexBuffer8    *pOrigVertexBuffer = nullptr;
     XTL::D3DVERTEXBUFFER_DESC  Desc;
     void                      *pCalculateData = NULL;
     UINT                       uiLength;
     bool                       bApplied = false;
     uint32                     uiKey;
-    //CACHEDSTREAM              *pCachedStream = (CACHEDSTREAM *)CxbxMalloc(sizeof(CACHEDSTREAM));
+    //CACHEDSTREAM              *pCachedStream = (CACHEDSTREAM *)malloc(sizeof(CACHEDSTREAM));
 
     if(!pPatchDesc->pVertexStreamZeroData)
     {
-        g_pD3DDevice8->GetStreamSource(uiStream, &pOrigVertexBuffer, &uiStride);
+        g_pD3DDevice8->GetStreamSource(
+			uiStream, 
+			&pOrigVertexBuffer, 
+			&uiStride);
         if(!pOrigVertexBuffer)
 		{
-			/*if(!g_pVertexBuffer || !g_pVertexBuffer->EmuVertexBuffer8)
+			/*if(!g_pVertexBuffer || !GetHostVertexBuffer(g_pVertexBuffer))
 				CxbxKrnlCleanup("Unable to retrieve original buffer (Stream := %d)", uiStream);
 			else
-				pOrigVertexBuffer = g_pVertexBuffer->EmuVertexBuffer8;*/
+				pOrigVertexBuffer = GetHostVertexBuffer(g_pVertexBuffer);*/
 
 			if(pbFatalError)
 				*pbFatalError = true;
@@ -307,6 +264,7 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
         {
             CxbxKrnlCleanup("Trying to find a cached Draw..UP with more than stream zero!");
         }
+
         uiStride  = pPatchDesc->uiVertexStreamZeroStride;
         pCalculateData = (uint08 *)pPatchDesc->pVertexStreamZeroData;
         // TODO: This is sometimes the number of indices, which isn't too good
@@ -325,16 +283,17 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
         bool bMismatch = false;
         if(pCachedStream->uiCount == (pCachedStream->uiCheckFrequency - 1))
         {
-            if(!pPatchDesc->pVertexStreamZeroData)
+            if(pOrigVertexBuffer)
             {
                 if(FAILED(pOrigVertexBuffer->Lock(0, 0, (uint08**)&pCalculateData, 0)))
                 {
                     CxbxKrnlCleanup("Couldn't lock the original buffer");
                 }
             }
+
             // Use the cached stream length (which is a must for the UP stream)
-            uint32 Checksum = CRC32((uint08*)pCalculateData, pCachedStream->uiLength);
-            if(Checksum == pCachedStream->uiCRC32)
+            uint32_t uiHash = XXHash32::hash((void *)pCalculateData, pCachedStream->uiLength, HASH_SEED);
+            if(uiHash == pCachedStream->uiHash)
             {
                 // Take a while longer to check
                 if(pCachedStream->uiCheckFrequency < 32*1024)
@@ -357,7 +316,8 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
                 pCachedStream = NULL;
                 bMismatch = true;
             }
-            if(!pPatchDesc->pVertexStreamZeroData)
+
+            if(pOrigVertexBuffer)
             {
                 pOrigVertexBuffer->Unlock();
             }
@@ -366,6 +326,7 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
         {
             pCachedStream->uiCount++;
         }
+
         if(!bMismatch)
         {
             if(!pCachedStream->bIsUP)
@@ -383,18 +344,21 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
                 pPatchDesc->pVertexStreamZeroData = pCachedStream->pStreamUP;
                 pPatchDesc->uiVertexStreamZeroStride = pCachedStream->Stream.uiNewStride;
             }
+
             if(pCachedStream->dwPrimitiveCount)
             {
                 // The primitives were patched, draw with the correct number of primimtives from the cache
                 pPatchDesc->dwPrimitiveCount = pCachedStream->dwPrimitiveCount;
             }
+
             bApplied = true;
             m_bPatched = true;
         }
     }
+
     g_PatchedStreamsCache.Unlock();
 
-    if(!pPatchDesc->pVertexStreamZeroData)
+    if(pOrigVertexBuffer)
     {
         pOrigVertexBuffer->Release();
     }
@@ -404,9 +368,9 @@ bool XTL::VertexPatcher::ApplyCachedStream(VertexPatchDesc *pPatchDesc,
 
 UINT XTL::VertexPatcher::GetNbrStreams(VertexPatchDesc *pPatchDesc)
 {
-    if(VshHandleIsVertexShader(g_CurrentVertexShader))
+    if(VshHandleIsVertexShader(pPatchDesc->hVertexShader))
     {
-        VERTEX_DYNAMIC_PATCH *pDynamicPatch = VshGetVertexDynamicPatch(g_CurrentVertexShader);
+        VERTEX_DYNAMIC_PATCH *pDynamicPatch = VshGetVertexDynamicPatch(pPatchDesc->hVertexShader);
         if(pDynamicPatch)
         {
             return pDynamicPatch->NbrStreams;
@@ -416,7 +380,7 @@ UINT XTL::VertexPatcher::GetNbrStreams(VertexPatchDesc *pPatchDesc)
             return 1; // Could be more, but it doesn't matter as we're not going to patch the types
         }
     }
-    else if(g_CurrentVertexShader)
+    else if(pPatchDesc->hVertexShader)
     {
         return 1;
     }
@@ -451,6 +415,7 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
     IDirect3DVertexBuffer8    *pNewVertexBuffer;
     uint08                    *pOrigData;
     uint08                    *pNewData;
+	UINT                       uiVertexCount;
     UINT                       uiStride;
     XTL::D3DVERTEXBUFFER_DESC  Desc;
     PATCHEDSTREAM             *pStream = &m_pStreams[uiStream];
@@ -459,14 +424,21 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
 
     if(!pPatchDesc->pVertexStreamZeroData)
     {
-        g_pD3DDevice8->GetStreamSource(uiStream, &pOrigVertexBuffer, &uiStride);
+        g_pD3DDevice8->GetStreamSource(
+			uiStream, 
+			&pOrigVertexBuffer, 
+			&uiStride);
         if(FAILED(pOrigVertexBuffer->GetDesc(&Desc)))
         {
             CxbxKrnlCleanup("Could not retrieve original buffer size");
         }
         // Set a new (exact) vertex count
-        pPatchDesc->dwVertexCount = Desc.Size / uiStride;
-        dwNewSize = pPatchDesc->dwVertexCount * pStreamPatch->ConvertedStride;
+		uiVertexCount = Desc.Size / uiStride;
+		// Dxbx addition : Don't update pPatchDesc.dwVertexCount because an indexed draw
+		// can (and will) use less vertices than the supplied nr of indexes. Thix fixes
+		// the missing parts in the CompressedVertices sample (in Vertex shader mode).
+		pStreamPatch->ConvertedStride = max(pStreamPatch->ConvertedStride, uiStride); // ??
+		dwNewSize = uiVertexCount * pStreamPatch->ConvertedStride;
 
         if(FAILED(pOrigVertexBuffer->Lock(0, 0, &pOrigData, 0)))
         {
@@ -491,193 +463,149 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
             CxbxKrnlCleanup("Trying to patch a Draw..UP with more than stream zero!");
         }
         uiStride  = pPatchDesc->uiVertexStreamZeroStride;
-        pOrigData = (uint08 *)pPatchDesc->pVertexStreamZeroData;
+		pStreamPatch->ConvertedStride = max(pStreamPatch->ConvertedStride, uiStride); // ??
+		pOrigData = (uint08 *)pPatchDesc->pVertexStreamZeroData;
         // TODO: This is sometimes the number of indices, which isn't too good
-        dwNewSize = pPatchDesc->dwVertexCount * pStreamPatch->ConvertedStride;
+		uiVertexCount = pPatchDesc->dwVertexCount;
+        dwNewSize = uiVertexCount * pStreamPatch->ConvertedStride;
         pNewVertexBuffer = NULL;
-        pNewData = (uint08*)CxbxMalloc(dwNewSize);
+        pNewData = (uint08*)g_MemoryManager.Allocate(dwNewSize);
         if(!pNewData)
         {
             CxbxKrnlCleanup("Couldn't allocate the new stream zero buffer");
         }
     }
 
-    for(uint32 uiVertex = 0; uiVertex < pPatchDesc->dwVertexCount; uiVertex++)
-    {
-        DWORD dwPosOrig = 0;
-        DWORD dwPosNew = 0;
-        for(UINT uiType = 0; uiType < pStreamPatch->NbrTypes; uiType++)
-        {
-            switch(pStreamPatch->pTypes[uiType])
-            {
-                case 0x12: // FLOAT1
-                    memcpy(&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew],
-                           &pOrigData[uiVertex * uiStride + dwPosOrig],
-                           sizeof(FLOAT));
-                    dwPosOrig += sizeof(FLOAT);
-                    dwPosNew  += sizeof(FLOAT);
-                    break;
-                case 0x22: // FLOAT2
-                    memcpy(&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew],
-                           &pOrigData[uiVertex * uiStride + dwPosOrig],
-                           2 * sizeof(FLOAT));
-                    dwPosOrig += 2 * sizeof(FLOAT);
-                    dwPosNew  += 2 * sizeof(FLOAT);
-                    break;
-                case 0x32: // FLOAT3
-                    memcpy(&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew],
-                           &pOrigData[uiVertex * uiStride + dwPosOrig],
-                           3 * sizeof(FLOAT));
-                    dwPosOrig += 3 * sizeof(FLOAT);
-                    dwPosNew  += 3 * sizeof(FLOAT);
-                    break;
-                case 0x42: // FLOAT4
-                    memcpy(&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew],
-                           &pOrigData[uiVertex * uiStride + dwPosOrig],
-                           4 * sizeof(FLOAT));
-                    dwPosOrig += 4 * sizeof(FLOAT);
-                    dwPosNew  += 4 * sizeof(FLOAT);
-                    break;
-                case 0x40: // D3DCOLOR
-                    memcpy(&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew],
-                           &pOrigData[uiVertex * uiStride + dwPosOrig],
-                           sizeof(XTL::D3DCOLOR));
-                    dwPosOrig += sizeof(XTL::D3DCOLOR);
-                    dwPosNew  += sizeof(XTL::D3DCOLOR);
-                    break;
-                case 0x16: //NORMPACKED3
-                    {
-                        DWORD dwPacked = ((DWORD *)&pOrigData[uiVertex * uiStride + dwPosOrig])[0];
+	for (uint32 uiVertex = 0; uiVertex < uiVertexCount; uiVertex++)
+	{
+		uint08 *pOrigVertex = &pOrigData[uiVertex * uiStride];
+		uint08 *pNewDataPos = &pNewData[uiVertex * pStreamPatch->ConvertedStride];
+		for (UINT uiType = 0; uiType < pStreamPatch->NbrTypes; uiType++)
+		{
+			// Dxbx note : The following code handles only the D3DVSDT enums that need conversion;
+			// All other cases are catched by the memcpy in the default-block.
+			switch (pStreamPatch->pTypes[uiType])
+			{
+			case X_D3DVSDT_NORMPACKED3: { // 0x16: // Make it FLOAT3
+				// Hit by Dashboard
+				int32 iPacked = ((int32 *)pOrigVertex)[0];
+				// Cxbx note : to make each component signed, two need to be shifted towards the sign-bit first :
+				((FLOAT *)pNewDataPos)[0] = ((FLOAT)((iPacked << 21) >> 21)) / 1023.0f;
+				((FLOAT *)pNewDataPos)[1] = ((FLOAT)((iPacked << 10) >> 21)) / 1023.0f;
+				((FLOAT *)pNewDataPos)[2] = ((FLOAT)((iPacked      ) >> 22)) / 511.0f;
+				pOrigVertex += 1 * sizeof(int32);
+				break;
+			}
+			case X_D3DVSDT_SHORT1: { // 0x15: // Make it SHORT2 and set the second short to 0
+				((SHORT *)pNewDataPos)[0] = ((SHORT*)pOrigVertex)[0];
+				((SHORT *)pNewDataPos)[1] = 0x00;
+				pOrigVertex += 1 * sizeof(SHORT);
+				break;
+			}
+			case X_D3DVSDT_SHORT3: { // 0x35: // Make it a SHORT4 and set the fourth short to 1
+				// Hit by Turok
+				memcpy(pNewDataPos, pOrigVertex, 3 * sizeof(SHORT));
+				((SHORT *)pNewDataPos)[3] = 0x01;
+				pOrigVertex += 3 * sizeof(SHORT);
+				break;
+			}
+			case X_D3DVSDT_PBYTE1: { // 0x14:  // Make it FLOAT1
+				((FLOAT *)pNewDataPos)[0] = ((FLOAT)((BYTE*)pOrigVertex)[0]) / 255.0f;
+				pOrigVertex += 1 * sizeof(BYTE);
+				break;
+			}
+			case X_D3DVSDT_PBYTE2: { // 0x24:  // Make it FLOAT2
+				((FLOAT *)pNewDataPos)[0] = ((FLOAT)((BYTE*)pOrigVertex)[0]) / 255.0f;
+				((FLOAT *)pNewDataPos)[1] = ((FLOAT)((BYTE*)pOrigVertex)[1]) / 255.0f;
+				pOrigVertex += 2 * sizeof(BYTE);
+				break;
+			}
+			case X_D3DVSDT_PBYTE3: { // 0x34: // Make it FLOAT3
+				// Hit by Turok
+				((FLOAT *)pNewDataPos)[0] = ((FLOAT)((BYTE*)pOrigVertex)[0]) / 255.0f;
+				((FLOAT *)pNewDataPos)[1] = ((FLOAT)((BYTE*)pOrigVertex)[1]) / 255.0f;
+				((FLOAT *)pNewDataPos)[2] = ((FLOAT)((BYTE*)pOrigVertex)[2]) / 255.0f;
+				pOrigVertex += 3 * sizeof(BYTE);
+				break;
+			}
+			case X_D3DVSDT_PBYTE4: { // 0x44: // Make it FLOAT4
+				// Hit by Jet Set Radio Future
+				((FLOAT *)pNewDataPos)[0] = ((FLOAT)((BYTE*)pOrigVertex)[0]) / 255.0f;
+				((FLOAT *)pNewDataPos)[1] = ((FLOAT)((BYTE*)pOrigVertex)[1]) / 255.0f;
+				((FLOAT *)pNewDataPos)[2] = ((FLOAT)((BYTE*)pOrigVertex)[2]) / 255.0f;
+				((FLOAT *)pNewDataPos)[3] = ((FLOAT)((BYTE*)pOrigVertex)[3]) / 255.0f;
+				pOrigVertex += 4 * sizeof(BYTE);
+				break;
+			}
+			case X_D3DVSDT_NORMSHORT1: { // 0x11: // Make it FLOAT1
+				// UNTESTED - Need test-case!
+				((FLOAT *)pNewDataPos)[0] = ((FLOAT)((SHORT*)pOrigVertex)[0]) / 32767.0f;
+				//((FLOAT *)pNewDataPos)[1] = 0.0f; // Would be needed for FLOAT2
+				pOrigVertex += 1 * sizeof(SHORT);
+				break;
+			}
+#if !DXBX_USE_D3D9 // No need for patching in D3D9
+			case X_D3DVSDT_NORMSHORT2: { // 0x21: // Make it FLOAT2
+				// UNTESTED - Need test-case!
+				((FLOAT *)pNewDataPos)[0] = ((FLOAT)((SHORT*)pOrigVertex)[0]) / 32767.0f;
+				((FLOAT *)pNewDataPos)[1] = ((FLOAT)((SHORT*)pOrigVertex)[1]) / 32767.0f;
+				pOrigVertex += 2 * sizeof(SHORT);
+				break;
+			}
+#endif
+			case X_D3DVSDT_NORMSHORT3: { // 0x31: // Make it FLOAT3
+				// UNTESTED - Need test-case!
+				((FLOAT *)pNewDataPos)[0] = ((FLOAT)((SHORT*)pOrigVertex)[0]) / 32767.0f;
+				((FLOAT *)pNewDataPos)[1] = ((FLOAT)((SHORT*)pOrigVertex)[1]) / 32767.0f;
+				((FLOAT *)pNewDataPos)[2] = ((FLOAT)((SHORT*)pOrigVertex)[2]) / 32767.0f;
+				pOrigVertex += 3 * sizeof(SHORT);
+				break;
+			}
+#if !DXBX_USE_D3D9 // No need for patching in D3D9
+			case X_D3DVSDT_NORMSHORT4: { // 0x41: // Make it FLOAT4
+				// UNTESTED - Need test-case!
+				((FLOAT *)pNewDataPos)[0] = ((FLOAT)((SHORT*)pOrigVertex)[0]) / 32767.0f;
+				((FLOAT *)pNewDataPos)[1] = ((FLOAT)((SHORT*)pOrigVertex)[1]) / 32767.0f;
+				((FLOAT *)pNewDataPos)[2] = ((FLOAT)((SHORT*)pOrigVertex)[2]) / 32767.0f;
+				((FLOAT *)pNewDataPos)[3] = ((FLOAT)((SHORT*)pOrigVertex)[3]) / 32767.0f;
+				pOrigVertex += 4 * sizeof(SHORT);
+				break;
+			}
+#endif
+			case X_D3DVSDT_FLOAT2H: { // 0x72: // Make it FLOAT4 and set the third float to 0.0
+				((FLOAT *)pNewDataPos)[0] = ((FLOAT*)pOrigVertex)[0];
+				((FLOAT *)pNewDataPos)[1] = ((FLOAT*)pOrigVertex)[1];
+				((FLOAT *)pNewDataPos)[2] = 0.0f;
+				((FLOAT *)pNewDataPos)[3] = ((FLOAT*)pOrigVertex)[2];
+				pOrigVertex += 3 * sizeof(FLOAT);
+				break;
+			}
+			/*TODO
+			case X_D3DVSDT_NONE: { // 0x02:
+				printf("D3DVSDT_NONE / xbox ext. nsp /");
+				dwNewDataType = 0xFF;
+				break;
+			}
+			*/
+			default: {
+				// Generic 'conversion' - just make a copy :
+				memcpy(pNewDataPos, pOrigVertex, pStreamPatch->pSizes[uiType]);
+				pOrigVertex += pStreamPatch->pSizes[uiType];
+				break;
+			}
+			} // switch
 
-                        ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[0] = ((FLOAT)(dwPacked & 0x7ff)) / 1023.0f;
-                        ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[1] = ((FLOAT)((dwPacked >> 11) & 0x7ff)) / 1023.0f;
-                        ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[2] = ((FLOAT)((dwPacked >> 22) & 0x3ff)) / 511.0f;
+			// Increment the new pointer :
+			pNewDataPos += pStreamPatch->pSizes[uiType];
+		}
+	}
 
-                        dwPosOrig += sizeof(DWORD);
-                        dwPosNew  += 3 * sizeof(FLOAT);
-                    }
-                    break;
-                case 0x15: // SHORT1
-                    // Make it a SHORT2
-                    (*((SHORT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew + 0 * sizeof(SHORT)])) = *(SHORT*)&pOrigData[uiVertex * uiStride + dwPosOrig];
-                    (*((SHORT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew + 1 * sizeof(SHORT)])) = 0x00;
-
-                    dwPosOrig += 1 * sizeof(SHORT);
-                    dwPosNew  += 2 * sizeof(SHORT);
-
-                    break;
-                case 0x25: // SHORT2
-                    memcpy(&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew],
-                           &pOrigData[uiVertex * uiStride+dwPosOrig],
-                           2 * sizeof(SHORT));
-                    dwPosOrig += 2 * sizeof(SHORT);
-                    dwPosNew  += 2 * sizeof(SHORT);
-                    break;
-                case 0x35: // SHORT3
-                    memcpy(&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew],
-                           &pOrigData[uiVertex * uiStride + dwPosOrig],
-                           3 * sizeof(SHORT));
-                    // Make it a SHORT4 and set the last short to 1
-                    (*((SHORT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew + 3 * sizeof(SHORT)])) = 0x01;
-
-                    dwPosOrig += 3 * sizeof(SHORT);
-                    dwPosNew  += 4 * sizeof(SHORT);
-
-                    break;
-                case 0x45: // SHORT4
-                    memcpy(&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew],
-                           &pOrigData[uiVertex * uiStride + dwPosOrig],
-                           4 * sizeof(SHORT));
-                    dwPosOrig += 4 * sizeof(SHORT);
-                    dwPosNew  += 4 * sizeof(SHORT);
-                    break;
-                case 0x14: // PBYTE1
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[0] = ((FLOAT)((BYTE*)&pOrigData[uiVertex * uiStride + dwPosOrig])[0]) / 255.0f;
-
-                    dwPosOrig += 1 * sizeof(BYTE);
-                    dwPosNew  += 1 * sizeof(FLOAT);
-
-                    break;
-                case 0x24: // PBYTE2
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[0] = ((FLOAT)((BYTE*)&pOrigData[uiVertex * uiStride + dwPosOrig])[0]) / 255.0f;
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[1] = ((FLOAT)((BYTE*)&pOrigData[uiVertex * uiStride + dwPosOrig])[1]) / 255.0f;
-
-                    dwPosOrig += 2 * sizeof(BYTE);
-                    dwPosNew  += 2 * sizeof(FLOAT);
-
-                    break;
-                case 0x34: // PBYTE3
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[0] = ((FLOAT)((BYTE*)&pOrigData[uiVertex * uiStride + dwPosOrig])[0]) / 255.0f;
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[1] = ((FLOAT)((BYTE*)&pOrigData[uiVertex * uiStride + dwPosOrig])[1]) / 255.0f;
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[2] = ((FLOAT)((BYTE*)&pOrigData[uiVertex * uiStride + dwPosOrig])[2]) / 255.0f;
-
-                    dwPosOrig += 3 * sizeof(BYTE);
-                    dwPosNew  += 3 * sizeof(FLOAT);
-
-                    break;
-                case 0x44: // PBYTE4
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[0] = ((FLOAT)((BYTE*)&pOrigData[uiVertex * uiStride + dwPosOrig])[0]) / 255.0f;
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[1] = ((FLOAT)((BYTE*)&pOrigData[uiVertex * uiStride + dwPosOrig])[1]) / 255.0f;
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[2] = ((FLOAT)((BYTE*)&pOrigData[uiVertex * uiStride + dwPosOrig])[2]) / 255.0f;
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[3] = ((FLOAT)((BYTE*)&pOrigData[uiVertex * uiStride + dwPosOrig])[3]) / 255.0f;
-
-                    dwPosOrig += 4 * sizeof(BYTE);
-                    dwPosNew  += 4 * sizeof(FLOAT);
-
-                    break;
-                case 0x11: // NORMSHORT1
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[0] = ((FLOAT)((SHORT*)&pOrigData[uiVertex * uiStride + dwPosOrig])[0]) / 32767.0f;
-
-                    dwPosOrig += 1 * sizeof(SHORT);
-                    dwPosNew  += 1 * sizeof(FLOAT);
-                    break;
-                case 0x21: // NORMSHORT2
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[0] = ((FLOAT)((SHORT*)&pOrigData[uiVertex * uiStride + dwPosOrig])[0]) / 32767.0f;
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[1] = ((FLOAT)((SHORT*)&pOrigData[uiVertex * uiStride + dwPosOrig])[1]) / 32767.0f;
-
-                    dwPosOrig += 2 * sizeof(SHORT);
-                    dwPosNew  += 2 * sizeof(FLOAT);
-                    break;
-                case 0x31: // NORMSHORT3
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[0] = ((FLOAT)((SHORT*)&pOrigData[uiVertex * uiStride + dwPosOrig])[0]) / 32767.0f;
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[1] = ((FLOAT)((SHORT*)&pOrigData[uiVertex * uiStride + dwPosOrig])[1]) / 32767.0f;
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[2] = ((FLOAT)((SHORT*)&pOrigData[uiVertex * uiStride + dwPosOrig])[2]) / 32767.0f;
-
-                    dwPosOrig += 3 * sizeof(SHORT);
-                    dwPosNew  += 3 * sizeof(FLOAT);
-                    break;
-                case 0x41: // NORMSHORT4
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[0] = ((FLOAT)((SHORT*)&pOrigData[uiVertex * uiStride + dwPosOrig])[0]) / 32767.0f;
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[1] = ((FLOAT)((SHORT*)&pOrigData[uiVertex * uiStride + dwPosOrig])[1]) / 32767.0f;
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[2] = ((FLOAT)((SHORT*)&pOrigData[uiVertex * uiStride + dwPosOrig])[2]) / 32767.0f;
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[3] = ((FLOAT)((SHORT*)&pOrigData[uiVertex * uiStride + dwPosOrig])[3]) / 32767.0f;
-
-                    dwPosOrig += 4 * sizeof(SHORT);
-                    dwPosNew  += 4 * sizeof(FLOAT);
-                    break;
-                case 0x72: // FLOAT2H
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[0] = ((FLOAT*)&pOrigData[uiVertex * uiStride + dwPosOrig])[0];
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[1] = ((FLOAT*)&pOrigData[uiVertex * uiStride + dwPosOrig])[1];
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[2] = 0.0f;
-                    ((FLOAT *)&pNewData[uiVertex * pStreamPatch->ConvertedStride + dwPosNew])[3] = ((FLOAT*)&pOrigData[uiVertex * uiStride + dwPosOrig])[2];
-					break;
-
-                /*TODO
-                case 0x02:
-                    printf("D3DVSDT_NONE / xbox ext. nsp /");
-                    dwNewDataType = 0xFF;
-                    break;
-                */
-                default:
-                    CxbxKrnlCleanup("Unhandled stream type: 0x%.02X\n", pStreamPatch->pTypes[uiType]);
-                    break;
-            }
-        }
-    }
     if(!pPatchDesc->pVertexStreamZeroData)
     {
-        pNewVertexBuffer->Unlock();
-        pOrigVertexBuffer->Unlock();
+        //if(pNewVertexBuffer != nullptr) // Dxbx addition
+			pNewVertexBuffer->Unlock();
+		//if (pOrigVertexBuffer != nullptr) // Dxbx addition
+			pOrigVertexBuffer->Unlock();
 
         if(FAILED(g_pD3DDevice8->SetStreamSource(uiStream, pNewVertexBuffer, pStreamPatch->ConvertedStride)))
         {
@@ -701,6 +629,7 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
             m_pNewVertexStreamZeroData = pNewData;
         }
     }
+
     pStream->uiOrigStride = uiStride;
     pStream->uiNewStride = pStreamPatch->ConvertedStride;
     m_bPatched = true;
@@ -711,20 +640,20 @@ bool XTL::VertexPatcher::PatchStream(VertexPatchDesc *pPatchDesc,
 bool XTL::VertexPatcher::NormalizeTexCoords(VertexPatchDesc *pPatchDesc, UINT uiStream)
 {
     // Check for active linear textures.
-    bool bHasLinearTex = false, bTexIsLinear[4];
+	bool bHasLinearTex = false, bTexIsLinear[4] = { false };
     X_D3DPixelContainer *pLinearPixelContainer[4];
 
     for(uint08 i = 0; i < 4; i++)
     {
-        X_D3DPixelContainer *pPixelContainer = (X_D3DPixelContainer*)EmuD3DActiveTexture[i];
-        if(pPixelContainer && EmuXBFormatIsLinear(((X_D3DFORMAT)pPixelContainer->Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT))
-        {
-            bHasLinearTex = bTexIsLinear[i] = true;
-            pLinearPixelContainer[i] = pPixelContainer;
-        }
-        else
-        {
-            bTexIsLinear[i] = false;
+        X_D3DPixelContainer *pPixelContainer = EmuD3DActiveTexture[i];
+		if (pPixelContainer)
+		{ 
+			XTL::X_D3DFORMAT XBFormat = (XTL::X_D3DFORMAT)((pPixelContainer->Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT);
+			if (EmuXBFormatIsLinear(XBFormat))
+			{
+				bHasLinearTex = bTexIsLinear[i] = true;
+				pLinearPixelContainer[i] = pPixelContainer;
+			}
         }
     }
 
@@ -874,7 +803,7 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 {
     PATCHEDSTREAM *pStream = &m_pStreams[uiStream];
 
-    if((pPatchDesc->PrimitiveType) < 1 || (pPatchDesc->PrimitiveType >= X_D3DPT_MAX))
+    if((pPatchDesc->PrimitiveType < X_D3DPT_POINTLIST) || (pPatchDesc->PrimitiveType >= X_D3DPT_MAX))
     {
         CxbxKrnlCleanup("Unknown primitive type: 0x%.02X\n", pPatchDesc->PrimitiveType);
     }
@@ -927,10 +856,10 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
     DWORD dwNewSizeWR       = 0;
 
     // vertex data arrays
-    BYTE *pOrigVertexData = 0;
-    BYTE *pPatchedVertexData = 0;
+    BYTE *pOrigVertexData = nullptr;
+    BYTE *pPatchedVertexData = nullptr;
 
-    if(pPatchDesc->pVertexStreamZeroData == 0)
+    if(pPatchDesc->pVertexStreamZeroData == nullptr)
     {
         g_pD3DDevice8->GetStreamSource(0, &pStream->pOriginalStream, &pStream->uiOrigStride);
         pStream->uiNewStride = pStream->uiOrigStride; // The stride is still the same
@@ -959,7 +888,7 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
         dwNewSize       = pPatchDesc->dwPrimitiveCount * pStream->uiOrigStride + pStream->uiOrigStride;
     }
 
-    if(pPatchDesc->pVertexStreamZeroData == 0)
+    if(pPatchDesc->pVertexStreamZeroData == nullptr)
     {
         // Retrieve the original buffer size
         {
@@ -995,7 +924,7 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
         dwOriginalSizeWR = dwOriginalSize;
         dwNewSizeWR = dwNewSize;
 
-        m_pNewVertexStreamZeroData = (uint08*)CxbxMalloc(dwNewSizeWR);
+        m_pNewVertexStreamZeroData = (uint08*)malloc(dwNewSizeWR);
         m_bAllocatedStreamZeroData = true;
 
         pPatchedVertexData = (uint08*)m_pNewVertexStreamZeroData;
@@ -1062,7 +991,7 @@ bool XTL::VertexPatcher::PatchPrimitive(VertexPatchDesc *pPatchDesc,
 	    memcpy(&pPatchedVertexData[pPatchDesc->dwOffset + dwOriginalSize], &pOrigVertexData[pPatchDesc->dwOffset], pStream->uiOrigStride);
     }
 
-    if(pPatchDesc->pVertexStreamZeroData == 0)
+    if(pPatchDesc->pVertexStreamZeroData == nullptr)
     {
         pStream->pOriginalStream->Unlock();
         pStream->pPatchedStream->Unlock();
@@ -1135,7 +1064,10 @@ bool XTL::VertexPatcher::Restore()
 
             if(this->m_bAllocatedStreamZeroData)
             {
-                CxbxFree(m_pNewVertexStreamZeroData);
+                free(m_pNewVertexStreamZeroData);
+				// Cleanup, just to be sure :
+				m_pNewVertexStreamZeroData = nullptr;
+				this->m_bAllocatedStreamZeroData = false;
             }
         }
         else
@@ -1152,7 +1084,7 @@ VOID XTL::EmuFlushIVB()
 {
     XTL::EmuUpdateDeferredStates();
 
-    DWORD *pdwVB = (DWORD*)g_IVBTable;
+    DWORD *pdwVB = (DWORD*)g_pIVBVertexBuffer;
 
     UINT uiStride = 0;
 
@@ -1177,23 +1109,18 @@ VOID XTL::EmuFlushIVB()
 
     DbgPrintf("g_IVBTblOffs := %d\n", g_IVBTblOffs);
 
-    for(uint v=0;v<g_IVBTblOffs;v++)
-    {
-        DWORD dwPos = dwCurFVF & D3DFVF_POSITION_MASK;
+    DWORD dwPos = dwCurFVF & D3DFVF_POSITION_MASK;
+	DWORD dwTexN = (dwCurFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
 
+	for(uint v=0;v<g_IVBTblOffs;v++)
+    {
         if(dwPos == D3DFVF_XYZ)
         {
             *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.x;
             *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
             *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
 
-            if(v == 0)
-            {
-                uiStride += (sizeof(FLOAT)*3);
-            }
-
             DbgPrintf("IVB Position := {%f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z);
- 
         }
         else if(dwPos == D3DFVF_XYZRHW)
         {
@@ -1201,11 +1128,6 @@ VOID XTL::EmuFlushIVB()
             *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.y;
             *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
             *(FLOAT*)pdwVB++ = g_IVBTable[v].Rhw;
-
-            if(v == 0)
-            {
-                uiStride += (sizeof(FLOAT)*4);
-            }
 
             DbgPrintf("IVB Position := {%f, %f, %f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z, g_IVBTable[v].Position.z, g_IVBTable[v].Rhw);
         }
@@ -1216,14 +1138,8 @@ VOID XTL::EmuFlushIVB()
             *(FLOAT*)pdwVB++ = g_IVBTable[v].Position.z;
 			*(FLOAT*)pdwVB++ = g_IVBTable[v].Blend1;
 
-            if(v == 0)
-            {
-                uiStride += (sizeof(FLOAT)*4);
-            }
-
 			DbgPrintf("IVB Position := {%f, %f, %f, %f}\n", g_IVBTable[v].Position.x, g_IVBTable[v].Position.y, g_IVBTable[v].Position.z, g_IVBTable[v].Blend1);
         }
-
         else
         {
 			CxbxKrnlCleanup("Unsupported Position Mask (FVF := 0x%.08X dwPos := 0x%.08X)", dwCurFVF, dwPos);
@@ -1236,23 +1152,12 @@ VOID XTL::EmuFlushIVB()
             *(FLOAT*)pdwVB++ = g_IVBTable[v].Normal.y;
             *(FLOAT*)pdwVB++ = g_IVBTable[v].Normal.z;
 
-            if(v == 0)
-            {
-                uiStride += (sizeof(FLOAT)*3);
-            }
-
             DbgPrintf("IVB Normal := {%f, %f, %f}\n", g_IVBTable[v].Normal.x, g_IVBTable[v].Normal.y, g_IVBTable[v].Normal.z);
- 
         }
 
         if(dwCurFVF & D3DFVF_DIFFUSE)
         {
             *(DWORD*)pdwVB++ = g_IVBTable[v].dwDiffuse;
-
-            if(v == 0)
-            {
-                uiStride += sizeof(DWORD);
-            }
 
             DbgPrintf("IVB Diffuse := 0x%.08X\n", g_IVBTable[v].dwDiffuse);
         }
@@ -1261,25 +1166,13 @@ VOID XTL::EmuFlushIVB()
         {
             *(DWORD*)pdwVB++ = g_IVBTable[v].dwSpecular;
 
-            if(v == 0)
-            {
-                uiStride += sizeof(DWORD);
-            }
-
             DbgPrintf("IVB Specular := 0x%.08X\n", g_IVBTable[v].dwSpecular);
         }
-
-        DWORD dwTexN = (dwCurFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
 
         if(dwTexN >= 1)
         {
             *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord1.x;
             *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord1.y;
-
-            if(v == 0)
-            {
-                uiStride += sizeof(FLOAT)*2;
-            }
 
             DbgPrintf("IVB TexCoord1 := {%f, %f}\n", g_IVBTable[v].TexCoord1.x, g_IVBTable[v].TexCoord1.y);
         }
@@ -1289,11 +1182,6 @@ VOID XTL::EmuFlushIVB()
             *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord2.x;
             *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord2.y;
 
-            if(v == 0)
-            {
-                uiStride += sizeof(FLOAT)*2;
-            }
-
             DbgPrintf("IVB TexCoord2 := {%f, %f}\n", g_IVBTable[v].TexCoord2.x, g_IVBTable[v].TexCoord2.y);
         }
 
@@ -1301,11 +1189,6 @@ VOID XTL::EmuFlushIVB()
         {
             *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord3.x;
             *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord3.y;
-
-            if(v == 0)
-            {
-                uiStride += sizeof(FLOAT)*2;
-            }
 
             DbgPrintf("IVB TexCoord3 := {%f, %f}\n", g_IVBTable[v].TexCoord3.x, g_IVBTable[v].TexCoord3.y);
         }
@@ -1315,21 +1198,29 @@ VOID XTL::EmuFlushIVB()
             *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord4.x;
             *(FLOAT*)pdwVB++ = g_IVBTable[v].TexCoord4.y;
 
-            if(v == 0)
-            {
-                uiStride += sizeof(FLOAT)*2;
-            }
-
             DbgPrintf("IVB TexCoord4 := {%f, %f}\n", g_IVBTable[v].TexCoord4.x, g_IVBTable[v].TexCoord4.y);
         }
-    }
+
+		uint VertexBufferUsage = (BYTE *)pdwVB - (BYTE *)g_pIVBVertexBuffer;
+
+		if (v == 0)
+		{
+			// Stride is equal to the delta of the first vertex
+			uiStride = VertexBufferUsage;
+		}
+
+		if (VertexBufferUsage >= IVB_BUFFER_SIZE)
+		{
+			CxbxKrnlCleanup("Overflow g_pIVBVertexBuffer  : %d", v);
+		}
+	}
 
     VertexPatchDesc VPDesc;
 
     VPDesc.PrimitiveType = g_IVBPrimitiveType;
     VPDesc.dwVertexCount = g_IVBTblOffs;
     VPDesc.dwOffset = 0;
-    VPDesc.pVertexStreamZeroData = g_IVBTable;
+    VPDesc.pVertexStreamZeroData = g_pIVBVertexBuffer;
     VPDesc.uiVertexStreamZeroStride = uiStride;
     VPDesc.hVertexShader = g_CurrentVertexShader;
 
@@ -1343,7 +1234,7 @@ VOID XTL::EmuFlushIVB()
     }
 
     g_pD3DDevice8->DrawPrimitiveUP(
-        EmuPrimitiveType(VPDesc.PrimitiveType),
+		EmuXB2PC_D3DPrimitiveType(VPDesc.PrimitiveType),
         VPDesc.dwPrimitiveCount,
         VPDesc.pVertexStreamZeroData,
         VPDesc.uiVertexStreamZeroStride);
@@ -1360,204 +1251,4 @@ VOID XTL::EmuFlushIVB()
     g_IVBTblOffs = 0;
 
     return;
-}
-
-VOID XTL::EmuUpdateActiveTexture()
-{
-    //
-    // DEBUGGING
-    //
-    for(int Stage=0;Stage<4;Stage++)
-    {
-        X_D3DResource *pTexture = EmuD3DActiveTexture[Stage];
-
-        if(pTexture == NULL)
-            continue;
-
-        //*
-        X_D3DResource       *pResource = (X_D3DResource*)pTexture;
-        X_D3DPixelContainer *pPixelContainer = (X_D3DPixelContainer*)pTexture;
-
-        X_D3DFORMAT X_Format = (X_D3DFORMAT)((pPixelContainer->Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT);
-
-        if(X_Format != 0xCD && (pTexture->EmuResource8->GetType() == D3DRTYPE_TEXTURE))
-        {
-            DWORD dwWidth, dwHeight, dwBPP, dwDepth = 1, dwPitch = 0, dwMipMapLevels = 1;
-            BOOL  bSwizzled = FALSE, bCompressed = FALSE, dwCompressedSize = 0;
-            BOOL  bCubemap = pPixelContainer->Format & X_D3DFORMAT_CUBEMAP;
-
-            // Interpret Width/Height/BPP
-            if(X_Format == 0x07 /* X_D3DFMT_X8R8G8B8 */ || X_Format == 0x06 /* X_D3DFMT_A8R8G8B8 */)
-            {
-                bSwizzled = TRUE;
-
-                // Swizzled 32 Bit
-                dwWidth  = 1 << ((pPixelContainer->Format & X_D3DFORMAT_USIZE_MASK) >> X_D3DFORMAT_USIZE_SHIFT);
-                dwHeight = 1 << ((pPixelContainer->Format & X_D3DFORMAT_VSIZE_MASK) >> X_D3DFORMAT_VSIZE_SHIFT);
-                dwMipMapLevels = (pPixelContainer->Format & X_D3DFORMAT_MIPMAP_MASK) >> X_D3DFORMAT_MIPMAP_SHIFT;
-                dwDepth  = 1;// HACK? 1 << ((pPixelContainer->Format & X_D3DFORMAT_PSIZE_MASK) >> X_D3DFORMAT_PSIZE_SHIFT);
-                dwPitch  = dwWidth*4;
-                dwBPP = 4;
-            }
-            else if(X_Format == 0x05 /* X_D3DFMT_R5G6B5 */ || X_Format == 0x04 /* X_D3DFMT_A4R4G4B4 */
-                 || X_Format == 0x02 /* X_D3DFMT_A1R5G5B5 */ || X_Format == 0x03 /* X_D3DFMT_X1R5G5B5 */
-                 || X_Format == 0x28 /* X_D3DFMT_G8B8 */ )
-            {
-                bSwizzled = TRUE;
-
-                // Swizzled 16 Bit
-                dwWidth  = 1 << ((pPixelContainer->Format & X_D3DFORMAT_USIZE_MASK) >> X_D3DFORMAT_USIZE_SHIFT);
-                dwHeight = 1 << ((pPixelContainer->Format & X_D3DFORMAT_VSIZE_MASK) >> X_D3DFORMAT_VSIZE_SHIFT);
-                dwMipMapLevels = (pPixelContainer->Format & X_D3DFORMAT_MIPMAP_MASK) >> X_D3DFORMAT_MIPMAP_SHIFT;
-                dwDepth  = 1;// HACK? 1 << ((pPixelContainer->Format & X_D3DFORMAT_PSIZE_MASK) >> X_D3DFORMAT_PSIZE_SHIFT);
-                dwPitch  = dwWidth*2;
-                dwBPP = 2;
-            }
-            else if(X_Format == 0x00 /* X_D3DFMT_L8 */ || X_Format == 0x0B /* X_D3DFMT_P8 */ 
-				 || X_Format == 0x01 /* X_D3DFMT_AL8 */ || X_Format == 0x1A /* X_D3DFMT_A8L8 */)
-            {
-                bSwizzled = TRUE;
-
-                // Swizzled 8 Bit
-                dwWidth  = 1 << ((pPixelContainer->Format & X_D3DFORMAT_USIZE_MASK) >> X_D3DFORMAT_USIZE_SHIFT);
-                dwHeight = 1 << ((pPixelContainer->Format & X_D3DFORMAT_VSIZE_MASK) >> X_D3DFORMAT_VSIZE_SHIFT);
-                dwMipMapLevels = (pPixelContainer->Format & X_D3DFORMAT_MIPMAP_MASK) >> X_D3DFORMAT_MIPMAP_SHIFT;
-                dwDepth  = 1;// HACK? 1 << ((pPixelContainer->Format & X_D3DFORMAT_PSIZE_MASK) >> X_D3DFORMAT_PSIZE_SHIFT);
-                dwPitch  = dwWidth;
-                dwBPP = 1;
-            }
-            else if(X_Format == 0x1E /* X_D3DFMT_LIN_X8R8G8B8 */ || X_Format == 0x12 /* X_D3DFORMAT_LIN_A8R8G8B8 */ 
-				 || X_Format == 0x2E /* D3DFMT_LIN_D24S8 */ || X_Format == 0x3F /* X_D3DFMT_LIN_A8B8G8R8 */)
-            {
-                // Linear 32 Bit
-                dwWidth  = (pPixelContainer->Size & X_D3DSIZE_WIDTH_MASK) + 1;
-                dwHeight = ((pPixelContainer->Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
-                dwPitch  = (((pPixelContainer->Size & X_D3DSIZE_PITCH_MASK) >> X_D3DSIZE_PITCH_SHIFT)+1)*64;
-                dwBPP = 4;
-            }
-            else if(X_Format == 0x11 /* D3DFMT_LIN_R5G6B5 */ || X_Format == 0x30 /* D3DFMT_LIN_D16 */
-				 ||  X_Format == 0x1D /* X_D3DFMT_LIN_A4R4G4B4 */ || X_Format == 0x10 /* X_D3DFMT_LIN_A1R5G5B5 */ )
-            {
-                // Linear 16 Bit
-                dwWidth  = (pPixelContainer->Size & X_D3DSIZE_WIDTH_MASK) + 1;
-                dwHeight = ((pPixelContainer->Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
-                dwPitch  = (((pPixelContainer->Size & X_D3DSIZE_PITCH_MASK) >> X_D3DSIZE_PITCH_SHIFT)+1)*64;
-                dwBPP = 2;
-            }
-            else if(X_Format == 0x0C /* D3DFMT_DXT1 */ || X_Format == 0x0E /* D3DFMT_DXT2 */ || X_Format == 0x0F /* D3DFMT_DXT3 */)
-            {
-                bCompressed = TRUE;
-
-                // Compressed
-                dwWidth  = 1 << ((pPixelContainer->Format & X_D3DFORMAT_USIZE_MASK) >> X_D3DFORMAT_USIZE_SHIFT);
-                dwHeight = 1 << ((pPixelContainer->Format & X_D3DFORMAT_VSIZE_MASK) >> X_D3DFORMAT_VSIZE_SHIFT);
-                dwDepth  = 1 << ((pPixelContainer->Format & X_D3DFORMAT_PSIZE_MASK) >> X_D3DFORMAT_PSIZE_SHIFT);
-                dwMipMapLevels = (pPixelContainer->Format & X_D3DFORMAT_MIPMAP_MASK) >> X_D3DFORMAT_MIPMAP_SHIFT;
-
-                // D3DFMT_DXT2...D3DFMT_DXT5 : 128bits per block/per 16 texels
-                dwCompressedSize = dwWidth*dwHeight;
-
-                if(X_Format == 0x0C)    // D3DFMT_DXT1 : 64bits per block/per 16 texels
-                    dwCompressedSize /= 2;
-
-                dwBPP = 1;
-            }
-            else if(X_Format == 0x24 /* D3DFMT_YUY2 */)
-            {
-                // Linear 32 Bit
-                dwWidth  = (pPixelContainer->Size & X_D3DSIZE_WIDTH_MASK) + 1;
-                dwHeight = ((pPixelContainer->Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
-                dwPitch  = (((pPixelContainer->Size & X_D3DSIZE_PITCH_MASK) >> X_D3DSIZE_PITCH_SHIFT)+1)*64;
-            }
-            else
-            {
-                CxbxKrnlCleanup("0x%.08X is not a supported format!\n", X_Format);
-            }
-
-            // as we iterate through mipmap levels, we'll adjust the source resource offset
-            DWORD dwCompressedOffset = 0;
-
-            DWORD dwMipOffs = 0;
-            DWORD dwMipWidth = dwWidth;
-            DWORD dwMipHeight = dwHeight;
-            DWORD dwMipPitch = dwPitch;
-
-            if(dwMipMapLevels > 6)
-                dwMipMapLevels = 6;
-
-            // iterate through the number of mipmap levels
-            for(uint level=0;level<dwMipMapLevels;level++)
-            {
-                D3DLOCKED_RECT LockedRect;
-
-                HRESULT hRet = pResource->EmuTexture8->LockRect(level, &LockedRect, NULL, 0);
-
-                RECT  iRect  = {0,0,0,0};
-                POINT iPoint = {0,0};
-
-                BYTE *pSrc = (BYTE*)pTexture->Data;
-
-                if( IsSpecialResource(pResource->Data) && (pResource->Data & X_D3DRESOURCE_DATA_FLAG_SURFACE))
-                {
-
-                }
-                else
-                {
-                    if(bSwizzled)
-                    {
-                        if((DWORD)pSrc == 0x80000000)
-                        {
-                            // TODO: Fix or handle this situation..?
-                        }
-                        else
-                        {
-                            XTL::EmuXGUnswizzleRect
-                            (
-                                pSrc + dwMipOffs, dwMipWidth, dwMipHeight, dwDepth, LockedRect.pBits,
-                                LockedRect.Pitch, iRect, iPoint, dwBPP
-                            );
-                        }
-                    }
-                    else if(bCompressed)
-                    {
-                        // NOTE: compressed size is (dwWidth/2)*(dwHeight/2)/2, so each level divides by 4
-
-                        memcpy(LockedRect.pBits, pSrc + dwCompressedOffset, dwCompressedSize >> (level*2));
-
-                        dwCompressedOffset += (dwCompressedSize >> (level*2));
-                    }
-                    else
-                    {
-                        BYTE *pDest = (BYTE*)LockedRect.pBits;
-
-                        if((DWORD)LockedRect.Pitch == dwMipPitch && dwMipPitch == dwMipWidth*dwBPP)
-                        {
-                            memcpy(pDest, pSrc + dwMipOffs, dwMipWidth*dwMipHeight*dwBPP);
-                        }
-                        else
-                        {
-                            for(DWORD v=0;v<dwMipHeight;v++)
-                            {
-                                memcpy(pDest, pSrc + dwMipOffs, dwMipWidth*dwBPP);
-
-                                pDest += LockedRect.Pitch;
-                                pSrc  += dwMipPitch;
-                            }
-                        }
-                    }
-                }
-
-                pResource->EmuTexture8->UnlockRect(level);
-
-                dwMipOffs += dwMipWidth*dwMipHeight*dwBPP;
-
-                dwMipWidth /= 2;
-                dwMipHeight /= 2;
-                dwMipPitch /= 2;
-            }
-        }
-
-        g_pD3DDevice8->SetTexture(Stage, pTexture->EmuTexture8);
-        //*/
-    }
 }

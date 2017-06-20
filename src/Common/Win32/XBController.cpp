@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -33,6 +35,7 @@
 // ******************************************************************
 #include "XBController.h"
 
+#include "CxbxKrnl/EmuShared.h"
 #include "CxbxKrnl/EmuXTL.h"
 
 // This is ridiculous
@@ -85,7 +88,7 @@ void XBController::Load(const char *szRegistryKey)
 {
     if(m_CurrentState != XBCTRL_STATE_NONE)
     {
-        SetError("Invalid State", false);
+        SetError("Invalid State");
         return;
     }
 
@@ -150,7 +153,7 @@ void XBController::Save(const char *szRegistryKey)
 {
     if(m_CurrentState != XBCTRL_STATE_NONE)
     {
-        SetError("Invalid State", false);
+        SetError("Invalid State");
         return;
     }
 
@@ -213,7 +216,7 @@ void XBController::ConfigBegin(HWND hwnd, XBCtrlObject object)
 {
     if(m_CurrentState != XBCTRL_STATE_NONE)
     {
-        SetError("Invalid State", false);
+        SetError("Invalid State");
         return;
     }
 
@@ -221,7 +224,7 @@ void XBController::ConfigBegin(HWND hwnd, XBCtrlObject object)
 
     DInputInit(hwnd);
 
-    if(GetError() != 0)
+    if(HasError())
         return;
 
     lPrevMouseX = -1;
@@ -240,7 +243,7 @@ bool XBController::ConfigPoll(char *szStatus)
 {
     if(m_CurrentState != XBCTRL_STATE_CONFIG)
     {
-        SetError("Invalid State", false);
+        SetError("Invalid State");
         return false;
     }
 
@@ -363,7 +366,7 @@ bool XBController::ConfigPoll(char *szStatus)
             // ******************************************************************
             if(dwHow != -1)
             {
-                char *szDirection = (dwFlags & DEVICE_FLAG_AXIS) ? (dwFlags & DEVICE_FLAG_POSITIVE) ? "Positive " : "Negative " : "";
+                const char *szDirection = (dwFlags & DEVICE_FLAG_AXIS) ? (dwFlags & DEVICE_FLAG_POSITIVE) ? "Positive " : "Negative " : "";
 
                 m_InputDevice[v].m_Device->GetDeviceInfo(&DeviceInstance);
 
@@ -508,8 +511,8 @@ bool XBController::ConfigPoll(char *szStatus)
                 // ******************************************************************
                 if(dwHow != -1)
                 {
-                    char *szDirection = (dwFlags & DEVICE_FLAG_POSITIVE) ? "Positive" : "Negative";
-                    char *szObjName = "Unknown";
+                    const char *szDirection = (dwFlags & DEVICE_FLAG_POSITIVE) ? "Positive" : "Negative";
+                    const char *szObjName = "Unknown";
 
                     ObjectInstance.dwSize = sizeof(ObjectInstance);
 
@@ -538,7 +541,7 @@ void XBController::ConfigEnd()
 {
     if(m_CurrentState != XBCTRL_STATE_CONFIG)
     {
-        SetError("Invalid State", false);
+        SetError("Invalid State");
         return;
     }
 
@@ -558,7 +561,7 @@ void XBController::ListenBegin(HWND hwnd)
 
     if(m_CurrentState != XBCTRL_STATE_NONE)
     {
-        SetError("Invalid State", false);
+        SetError("Invalid State");
         return;
     }
 
@@ -779,76 +782,76 @@ void XBController::ListenPoll(XTL::XINPUT_STATE *Controller)
                     Controller->Gamepad.sThumbRX -= wValue;
                     break;
                 case XBCTRL_OBJECT_A:
-                    Controller->Gamepad.bAnalogButtons[XINPUT_GAMEPAD_A] = (wValue / 128);
+                    Controller->Gamepad.bAnalogButtons[XB_XINPUT_GAMEPAD_A] = (wValue / 128);
                     break;
                 case XBCTRL_OBJECT_B:
-                    Controller->Gamepad.bAnalogButtons[XINPUT_GAMEPAD_B] = (wValue / 128);
+                    Controller->Gamepad.bAnalogButtons[XB_XINPUT_GAMEPAD_B] = (wValue / 128);
                     break;
                 case XBCTRL_OBJECT_X:
-                    Controller->Gamepad.bAnalogButtons[XINPUT_GAMEPAD_X] = (wValue / 128);
+                    Controller->Gamepad.bAnalogButtons[XB_XINPUT_GAMEPAD_X] = (wValue / 128);
                     break;
                 case XBCTRL_OBJECT_Y:
-                    Controller->Gamepad.bAnalogButtons[XINPUT_GAMEPAD_Y] = (wValue / 128);
+                    Controller->Gamepad.bAnalogButtons[XB_XINPUT_GAMEPAD_Y] = (wValue / 128);
                     break;
                 case XBCTRL_OBJECT_WHITE:
-                    Controller->Gamepad.bAnalogButtons[XINPUT_GAMEPAD_WHITE] = (wValue / 128);
+                    Controller->Gamepad.bAnalogButtons[XB_XINPUT_GAMEPAD_WHITE] = (wValue / 128);
                     break;
                 case XBCTRL_OBJECT_BLACK:
-                    Controller->Gamepad.bAnalogButtons[XINPUT_GAMEPAD_BLACK] = (wValue / 128);
+                    Controller->Gamepad.bAnalogButtons[XB_XINPUT_GAMEPAD_BLACK] = (wValue / 128);
                     break;
                 case XBCTRL_OBJECT_LTRIGGER:
-                    Controller->Gamepad.bAnalogButtons[XINPUT_GAMEPAD_LEFT_TRIGGER] = (wValue / 128);
+                    Controller->Gamepad.bAnalogButtons[XB_XINPUT_GAMEPAD_LEFT_TRIGGER] = (wValue / 128);
                     break;
                 case XBCTRL_OBJECT_RTRIGGER:
-                    Controller->Gamepad.bAnalogButtons[XINPUT_GAMEPAD_RIGHT_TRIGGER] = (wValue / 128);
+                    Controller->Gamepad.bAnalogButtons[XB_XINPUT_GAMEPAD_RIGHT_TRIGGER] = (wValue / 128);
                     break;
                 case XBCTRL_OBJECT_DPADUP:
                     if(wValue > 0)
-                        Controller->Gamepad.wButtons |= XINPUT_GAMEPAD_DPAD_UP;
+                        Controller->Gamepad.wButtons |= XB_XINPUT_GAMEPAD_DPAD_UP;
                     else
-                        Controller->Gamepad.wButtons &= ~XINPUT_GAMEPAD_DPAD_UP;
+                        Controller->Gamepad.wButtons &= ~XB_XINPUT_GAMEPAD_DPAD_UP;
                     break;
                 case XBCTRL_OBJECT_DPADDOWN:
                     if(wValue > 0)
-                        Controller->Gamepad.wButtons |= XINPUT_GAMEPAD_DPAD_DOWN;
+                        Controller->Gamepad.wButtons |= XB_XINPUT_GAMEPAD_DPAD_DOWN;
                     else
-                        Controller->Gamepad.wButtons &= ~XINPUT_GAMEPAD_DPAD_DOWN;
+                        Controller->Gamepad.wButtons &= ~XB_XINPUT_GAMEPAD_DPAD_DOWN;
                     break;
                 case XBCTRL_OBJECT_DPADLEFT:
                     if(wValue > 0)
-                        Controller->Gamepad.wButtons |= XINPUT_GAMEPAD_DPAD_LEFT;
+                        Controller->Gamepad.wButtons |= XB_XINPUT_GAMEPAD_DPAD_LEFT;
                     else
-                        Controller->Gamepad.wButtons &= ~XINPUT_GAMEPAD_DPAD_LEFT;
+                        Controller->Gamepad.wButtons &= ~XB_XINPUT_GAMEPAD_DPAD_LEFT;
                     break;
                 case XBCTRL_OBJECT_DPADRIGHT:
                     if(wValue > 0)
-                        Controller->Gamepad.wButtons |= XINPUT_GAMEPAD_DPAD_RIGHT;
+                        Controller->Gamepad.wButtons |= XB_XINPUT_GAMEPAD_DPAD_RIGHT;
                     else
-                        Controller->Gamepad.wButtons &= ~XINPUT_GAMEPAD_DPAD_RIGHT;
+                        Controller->Gamepad.wButtons &= ~XB_XINPUT_GAMEPAD_DPAD_RIGHT;
                     break;
                 case XBCTRL_OBJECT_BACK:
                     if(wValue > 0)
-                        Controller->Gamepad.wButtons |= XINPUT_GAMEPAD_BACK;
+                        Controller->Gamepad.wButtons |= XB_XINPUT_GAMEPAD_BACK;
                     else
-                        Controller->Gamepad.wButtons &= ~XINPUT_GAMEPAD_BACK;
+                        Controller->Gamepad.wButtons &= ~XB_XINPUT_GAMEPAD_BACK;
                     break;
                 case XBCTRL_OBJECT_START:
                     if(wValue > 0)
-                        Controller->Gamepad.wButtons |= XINPUT_GAMEPAD_START;
+                        Controller->Gamepad.wButtons |= XB_XINPUT_GAMEPAD_START;
                     else
-                        Controller->Gamepad.wButtons &= ~XINPUT_GAMEPAD_START;
+                        Controller->Gamepad.wButtons &= ~XB_XINPUT_GAMEPAD_START;
                     break;
                 case XBCTRL_OBJECT_LTHUMB:
                     if(wValue > 0)
-                        Controller->Gamepad.wButtons |= XINPUT_GAMEPAD_LEFT_THUMB;
+                        Controller->Gamepad.wButtons |= XB_XINPUT_GAMEPAD_LEFT_THUMB;
                     else
-                        Controller->Gamepad.wButtons &= ~XINPUT_GAMEPAD_LEFT_THUMB;
+                        Controller->Gamepad.wButtons &= ~XB_XINPUT_GAMEPAD_LEFT_THUMB;
                     break;
                 case XBCTRL_OBJECT_RTHUMB:
                     if(wValue > 0)
-                        Controller->Gamepad.wButtons |= XINPUT_GAMEPAD_RIGHT_THUMB;
+                        Controller->Gamepad.wButtons |= XB_XINPUT_GAMEPAD_RIGHT_THUMB;
                     else
-                        Controller->Gamepad.wButtons &= ~XINPUT_GAMEPAD_RIGHT_THUMB;
+                        Controller->Gamepad.wButtons &= ~XB_XINPUT_GAMEPAD_RIGHT_THUMB;
                     break;
             }
         }
@@ -864,7 +867,7 @@ void XBController::ListenEnd()
 {
     if(m_CurrentState != XBCTRL_STATE_LISTEN)
     {
-        SetError("Invalid State", false);
+        SetError("Invalid State");
         return;
     }
 
@@ -914,10 +917,11 @@ void XBController::DInputInit(HWND hwnd)
 
         if(FAILED(hRet))
         {
-            SetError("Could not initialized DirectInput8", true);
+            SetFatalError("Could not initialized DirectInput8");
             return;
         }
     }
+
 
     // ******************************************************************
     // * Create all the devices available (well...most of them)
@@ -1066,6 +1070,7 @@ int XBController::Insert(const char *szDeviceName)
 
     MessageBox(NULL, "Unexpected Circumstance (Too Many Controller Devices)! Please contact caustik!", "Cxbx-Reloaded", MB_OK | MB_ICONEXCLAMATION);
 
+	EmuShared::Cleanup();
     ExitProcess(1);
 
     return 0;
@@ -1220,7 +1225,7 @@ const char *XBController::m_DeviceNameLookup[XBCTRL_OBJECT_COUNT] =
     // ******************************************************************
     // * Analog Buttons
     // ******************************************************************
-    "X", "Y", "A", "B", "White", "Black", "LTrigger", "RTrigger",
+    "A", "B", "X", "Y", "Black", "White", "LTrigger", "RTrigger",
 
     // ******************************************************************
     // * Digital Buttons

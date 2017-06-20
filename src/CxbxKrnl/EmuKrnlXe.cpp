@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -42,10 +44,11 @@ namespace xboxkrnl
 };
 
 #include "Logging.h" // For LOG_FUNC()
+#include "EmuKrnlLogging.h"
 #include "Emu.h" // For EmuWarning()
 
 // ******************************************************************
-// * XeImageFileName
+// * 0x0146 - XeImageFileName
 // ******************************************************************
 XBSYSAPI EXPORTNUM(326) xboxkrnl::OBJECT_STRING xboxkrnl::XeImageFileName =
 // XeImageFileName.Buffer points to path of XBE
@@ -56,6 +59,9 @@ XBSYSAPI EXPORTNUM(326) xboxkrnl::OBJECT_STRING xboxkrnl::XeImageFileName =
 
 };
 
+// ******************************************************************
+// * 0x0147 - XeLoadSection()
+// ******************************************************************
 // XeLoadSection:
 // Adds one to the reference count of the specified section and loads if the
 // count is now above zero.
@@ -63,46 +69,54 @@ XBSYSAPI EXPORTNUM(326) xboxkrnl::OBJECT_STRING xboxkrnl::XeImageFileName =
 // New to the XBOX.
 XBSYSAPI EXPORTNUM(327) xboxkrnl::NTSTATUS NTAPI xboxkrnl::XeLoadSection
 (
-	void* section
+	IN PXBEIMAGE_SECTION Section
 )
 {
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(section)
+		LOG_FUNC_ARG(Section)
 		LOG_FUNC_END;
 
-	if (((Xbe::SectionHeader*)section)->dwSectionRefCount > 0) {
-		((Xbe::SectionHeader*)section)->dwSectionRefCount++;
-		RETURN(STATUS_SUCCESS);
+	NTSTATUS ret = STATUS_SUCCESS;
+
+	if (Section->SectionReferenceCount++ == 0) {
+		LOG_INCOMPLETE(); // TODO : Load section - probably lock this too
 	}
 
-	EmuWarning("XeLoadSection lied");
-
-	RETURN(STATUS_SUCCESS);
+	RETURN(ret);
 }
 
-// XeUnloadSection:
+// ******************************************************************
+// * 0x0148 - XeUnloadSection()
+// ******************************************************************
 // Subtracts one from the reference count of the specified section and unloads
 // if the count is now zero.
 //
 // New to the XBOX.
 XBSYSAPI EXPORTNUM(328) xboxkrnl::NTSTATUS NTAPI xboxkrnl::XeUnloadSection
 (
-	void* section
+	IN PXBEIMAGE_SECTION Section
 )
 {
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(section)
+		LOG_FUNC_ARG(Section)
 		LOG_FUNC_END;
 
-	if (((Xbe::SectionHeader*)section)->dwSectionRefCount == 0) {
-		RETURN(STATUS_INVALID_PARAMETER);
+	NTSTATUS ret = STATUS_SUCCESS;
+
+	if (Section->SectionReferenceCount > 0) {
+		if (--Section->SectionReferenceCount == 0) {
+			LOG_INCOMPLETE(); // TODO : Unload section - probably lock this too
+		}
 	}
+	else
+		ret = STATUS_INVALID_PARAMETER;
 
-	EmuWarning("XeUnloadSection lied");
-
-	RETURN(STATUS_SUCCESS);
+	RETURN(ret);
 }
 
+// ******************************************************************
+// * 0x0163 - XePublicKeyData
+// ******************************************************************
 // TODO : What should we initialize this to?
 XBSYSAPI EXPORTNUM(355) xboxkrnl::DWORD xboxkrnl::XePublicKeyData = 0;
 

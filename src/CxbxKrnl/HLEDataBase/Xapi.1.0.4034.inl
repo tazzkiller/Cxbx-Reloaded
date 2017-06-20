@@ -37,15 +37,8 @@
 // ******************************************************************
 // * XInputGetCapabilities
 // ******************************************************************
-SOOVPA<14> XInputGetCapabilities_1_0_4361 =
-{
-    0,  // Large == 0
-    14, // Count == 14
+OOVPA_NO_XREF(XInputGetCapabilities, 4361, 14)
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
         // XInputGetCapabilities+0x03 : sub esp, 0x48
         { 0x03, 0x83 }, // (Offset,Value)-Pair #1
         { 0x04, 0xEC }, // (Offset,Value)-Pair #2
@@ -69,21 +62,13 @@ SOOVPA<14> XInputGetCapabilities_1_0_4361 =
         // XInputGetCapabilities+0xEE : cmp [eax], ebx
         { 0xEE, 0x39 }, // (Offset,Value)-Pair #13
         { 0xEF, 0x18 }, // (Offset,Value)-Pair #14
-    }
-};
+OOVPA_END;
 
 // ******************************************************************
 // * XInputGetState
 // ******************************************************************
-SOOVPA<12> XInputGetState_1_0_4361 =
-{
-    0,  // Large == 0
-    12, // Count == 12
+OOVPA_NO_XREF(XInputGetState, 4361, 12)
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
         // XInputGetState+0x0E : mov ecx, [edx+0x0A3]
         { 0x0E, 0x8B }, // (Offset,Value)-Pair #1
         { 0x0F, 0x8A }, // (Offset,Value)-Pair #2
@@ -105,21 +90,13 @@ SOOVPA<12> XInputGetState_1_0_4361 =
         // XInputGetState+0x6C : retn 8
         { 0x6C, 0xC2 }, // (Offset,Value)-Pair #11
         { 0x6D, 0x08 }, // (Offset,Value)-Pair #12
-    }
-};
+OOVPA_END;
 
 // ******************************************************************
 // * CreateThread
 // ******************************************************************
-SOOVPA<8> CreateThread_1_0_4361 =
-{
-    0,  // Large == 0
-    8,  // Count == 8
+OOVPA_NO_XREF(CreateThread, 4361, 8)
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
         // CreateThread+0x0A : mov eax, ds:10130h
         { 0x0A, 0xA1 }, // (Offset,Value)-Pair #1
         { 0x0B, 0x30 }, // (Offset,Value)-Pair #2
@@ -132,22 +109,14 @@ SOOVPA<8> CreateThread_1_0_4361 =
 
         // CreateThread+0x6B : retn 0x18
         { 0x6B, 0xC2 }, // (Offset,Value)-Pair #7
-        { 0x6C, 0x18 }  // (Offset,Value)-Pair #8
-    }
-};
+        { 0x6C, 0x18 }, // (Offset,Value)-Pair #8
+OOVPA_END;
 
 // ******************************************************************
 // * CloseHandle
 // ******************************************************************
-SOOVPA<10> CloseHandle_1_0_4361 =
-{
-    0,  // Large == 0
-    10, // Count == 10
+OOVPA_NO_XREF(CloseHandle, 4361, 10)
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
         // CloseHandle+0x00 : push [esp+4]
         { 0x00, 0xFF }, // (Offset,Value)-Pair #1
         { 0x01, 0x74 }, // (Offset,Value)-Pair #2
@@ -164,22 +133,14 @@ SOOVPA<10> CloseHandle_1_0_4361 =
 
         // CloseHandle+0x1B : retn 4
         { 0x1B, 0xC2 }, // (Offset,Value)-Pair #9
-        { 0x1C, 0x04 }  // (Offset,Value)-Pair #10
-    }
-};
+        { 0x1C, 0x04 }, // (Offset,Value)-Pair #10
+OOVPA_END;
 
 // ******************************************************************
 // * XapiInitProcess
 // ******************************************************************
-SOOVPA<7> XapiInitProcess_1_0_4361 =
-{
-    0,  // Large == 0
-    7,  // Count == 7
+OOVPA_NO_XREF(XapiInitProcess, 4361, 7)
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
         // XapiInitProcess+0x00 : sub esp, 30h
         { 0x05, 0x30 }, // (Offset,Value)-Pair #1
 
@@ -194,224 +155,44 @@ SOOVPA<7> XapiInitProcess_1_0_4361 =
         // XapiInitProcess+0x42 : jnz +0x0B
         { 0x42, 0x75 }, // (Offset,Value)-Pair #6
         { 0x43, 0x0B }, // (Offset,Value)-Pair #7
-    }
-};
+OOVPA_END;
 */
 
 // ******************************************************************
-// * XAPI_1_0_4034
+// * XAPI_4034
 // ******************************************************************
-OOVPATable XAPI_1_0_4034[] =
-{
-    // XInitDevices (* unchanged since 3911 *)
-    {
-        (OOVPA*)&XInitDevices_1_0_3911,
+OOVPATable XAPI_4034[] = {
 
-        XTL::EmuXInitDevices,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXInitDevices"
-        #endif
-    },
-    // XGetDevices (* unchanged since 3911 *)
-    {
-        (OOVPA*)&XGetDevices_1_0_3911,
-
-        XTL::EmuXGetDevices,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGetDevices"
-        #endif
-    },
+	REGISTER_OOVPA(XInitDevices, 3911, PATCH),
+	REGISTER_OOVPA(XGetDevices, 3911, PATCH),
 /* These functions havent been rev'd yet (may be same as new/old)
-    // XInputOpen
-    {
-        (OOVPA*)&XInputOpen_1_0_4034,
-
-        XTL::EmuXInputOpen,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXInputOpen"
-        #endif
-    },
-    // XInputGetCapabilities
-    {
-        (OOVPA*)&XInputGetCapabilities_1_0_4361,
-
-        XTL::EmuXInputGetCapabilities,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXInputGetCapabilities"
-        #endif
-    },
-    // XInputGetState
-    {
-        (OOVPA*)&XInputGetState_1_0_4361,
-
-        XTL::EmuXInputGetState,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXInputGetState"
-        #endif
-    },
-    */
-    /* Too High Level
-    // CreateThread (* unchanged since 1.0.3911 *)
-    {
-        (OOVPA*)&CreateThread_1_0_3911,
-
-        XTL::EmuCreateThread,
-
-        #ifdef _DEBUG_TRACE
-        "EmuCreateThread"
-        #endif
-    },
-    */
-    /*
-    // CloseHandle (*???*)
-    {
-        (OOVPA*)&CloseHandle_1_0_(???),
-
-        XTL::EmuCloseHandle,
-
-        #ifdef _DEBUG_TRACE
-        "EmuCloseHandle"
-        #endif
-    },
-    */
-    //*/
-	// GetTimeZoneInformation (* unchanged since 3911 *)
-    {
-        (OOVPA*)&GetTimeZoneInformation_1_0_3911,
-
-        XTL::EmuGetTimeZoneInformation,
-
-        #ifdef _DEBUG_TRACE
-        "GetTimeZoneInformation"
-        #endif
-    },
-    // SetThreadPriority (* unchanged since 3911 *)
-    {
-        (OOVPA*)&SetThreadPriority_1_0_3911,
-
-        XTL::EmuSetThreadPriority,
-
-        #ifdef _DEBUG_TRACE
-        "EmuSetThreadPriority"
-        #endif
-    },
-	// SignalObjectAndWait (* unchanged since 3911 *)
-	{
-		(OOVPA*)&SignalObjectAndWait_1_0_3911, 
-			
-		XTL::EmuSignalObjectAndWait,
-
-		#ifdef _DEBUG_TRACE
-		"EmuSignalObjectAndWait"
-		#endif
-	},
-	// QueueUserAPC (* unchanged since 3911 *)
-	{ 
-		(OOVPA*)&QueueUserAPC_1_0_3911,
-
-		XTL::EmuQueueUserAPC,
-			
-		#ifdef _DEBUG_TRACE
-		"EmuQueueUserAPC"
-		#endif
-	},
-	// XInputSetState (* unchanged since 3911 *)
-    {
-        (OOVPA*)&XInputSetState_1_0_3911,
-
-        XTL::EmuXInputSetState,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXInputSetState"
-        #endif
-    },
-
-	// XRegisterThreadNotifyRoutine (* unchanged since 3911 *)
-    {
-        (OOVPA*)&XRegisterThreadNotifyRoutine_1_0_3911,
-
-        XTL::EmuXRegisterThreadNotifyRoutine,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXRegisterThreadNotifyRoutine"
-        #endif
-    },
-	// XGetDeviceChanges (* unchanged since 3911 *)
-    {
-        (OOVPA*)&XGetDeviceChanges_1_0_3911,
-
-        XTL::EmuXGetDeviceChanges,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGetDeviceChanges"
-        #endif
-    },
-	// XID_fCloseDevice (* unchanged since 3911 *)
-    {
-        (OOVPA*)&XID_fCloseDevice_1_0_3911, 0,
-
-        #ifdef _DEBUG_TRACE
-        "XID_fCloseDevice (XREF)"
-        #endif
-    },
-    // XInputClose (* unchanged since 3911 *)
-    {
-        (OOVPA*)&XInputClose_1_0_3911,
-
-        XTL::EmuXInputClose,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXInputClose"
-        #endif
-    },
-    // XInputGetCapabilities (* unchanged since 3911 *)
-    {
-        (OOVPA*)&XInputGetCapabilities_1_0_3911,
-
-        XTL::EmuXInputGetCapabilities,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXInputGetCapabilities"
-        #endif
-    },
-	// GetThreadPriority (* unchanged since 3911 *)
-	{
-		(OOVPA*)&GetThreadPriority_1_0_3911,
-
-		XTL::EmuGetThreadPriority,
-
-		#ifdef _DEBUG_TRACE
-		"EmuGetThreadPriority"
-		#endif
-	},
-	// XInputOpen (* unchanged since 3911 *)
-    {
-        (OOVPA*)&XInputOpen_1_0_3911,
-
-        XTL::EmuXInputOpen,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXInputOpen"
-        #endif
-    },
-	// XInputGetState (* unchanged since 3911 *)
-    {
-        (OOVPA*)&XInputGetState_1_0_3911,
-
-        XTL::EmuXInputGetState,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXInputGetState"
-        #endif
-    },
+	REGISTER_OOVPA(XInputOpen, 4034, PATCH),
+	REGISTER_OOVPA(XInputGetCapabilities, 4361, PATCH),
+	REGISTER_OOVPA(XInputGetState, 4361, PATCH),
+*/
+	// REGISTER_OOVPA(CreateThread, 3911, PATCH), // Too High Level
+	// REGISTER_OOVPA(CloseHandle, (???, PATCH)),
+	REGISTER_OOVPA(CreateFiber, 3911, DISABLED),
+	REGISTER_OOVPA(DeleteFiber, 3911, DISABLED),
+	REGISTER_OOVPA(SwitchToFiber, 3911, DISABLED),
+	REGISTER_OOVPA(ConvertThreadToFiber, 3911, DISABLED),
+	REGISTER_OOVPA(GetTimeZoneInformation, 3911, DISABLED),
+	REGISTER_OOVPA(SetThreadPriority, 3911, PATCH),
+	REGISTER_OOVPA(SignalObjectAndWait, 3911, PATCH),
+	REGISTER_OOVPA(QueueUserAPC, 3911, PATCH),
+	REGISTER_OOVPA(XInputSetState, 3911, PATCH),
+	REGISTER_OOVPA(XRegisterThreadNotifyRoutine, 3911, PATCH),
+	REGISTER_OOVPA(XGetDeviceChanges, 3911, PATCH),
+	REGISTER_OOVPA(XID_fCloseDevice, 3911, XREF),
+	REGISTER_OOVPA(XInputClose, 3911, PATCH),
+	REGISTER_OOVPA(XInputGetCapabilities, 3911, PATCH),
+	REGISTER_OOVPA(GetThreadPriority, 3911, PATCH),
+	REGISTER_OOVPA(XInputOpen, 3911, PATCH),
+	REGISTER_OOVPA(XInputGetState, 3911, PATCH),
+	REGISTER_OOVPA(OutputDebugStringA, 3911, PATCH),
 };
 
 // ******************************************************************
-// * XAPI_1_0_4034_SIZE
+// * XAPI_4034_SIZE
 // ******************************************************************
-uint32 XAPI_1_0_4034_SIZE = sizeof(XAPI_1_0_4034);
+uint32 XAPI_4034_SIZE = sizeof(XAPI_4034);

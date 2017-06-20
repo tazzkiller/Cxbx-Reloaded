@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by C:\Users\Brandon\Desktop\Cxbx\dstien\wip\resource\Cxbx.rc
+// Used by C:\Users\lukeu\Desktop\Projects\Xbox\Cxbx-Reloaded\resource\Cxbx.rc
 //
 #define IDI_CXBX                        101
 #define IDB_SPLASH                      102
@@ -11,6 +11,9 @@
 #define IDD_VIDEO_CFG                   113
 #define IDR_JPEG_ABOUT                  116
 #define IDR_JPEG_SPLASH                 118
+#define IDD_ABOUT                       119
+#define IDR_CONTRIBUTORS                121
+#define IDR_COPYING                     122
 #define IDC_SET_X                       1000
 #define IDC_SET_Y                       1001
 #define IDC_SET_A                       1002
@@ -49,10 +52,12 @@
 #define IDC_CV_VSYNC                    1042
 #define IDC_VC_VIDEO_RESOLUTION         1047
 #define IDC_CV_HARDWAREYUV              1050
+#define IDC_LIST2                       1055
+#define IDC_ABOUT                       1056
+#define IDC_TAB1                        1057
 #define ID_FILE_EXIT                    40005
 #define ID_HELP_ABOUT                   40008
 #define ID_EMULATION_START              40009
-#define ID_FILE_EXPORTTOEXE             40011
 #define ID_FILE_OPEN_XBE                40013
 #define ID_FILE_CLOSE_XBE               40014
 #define ID_HELP_HOMEPAGE                40019
@@ -62,11 +67,13 @@
 #define ID_EDIT_LOGOBITMAP_IMPORT       40026
 #define ID_EDIT_PATCH_ALLOW64MB         40027
 #define ID_EDIT_PATCH_DEBUGMODE         40031
-#define ID_FILE_IMPORTFROMEXE           40032
 #define ID_EMULATION_DEBUGOUTPUTGUI_CONSOLE 40035
 #define ID_EMULATION_DEBUGOUTPUTGUI_FILE 40036
 #define ID_EMULATION_DEBUGOUTPUTKERNEL_CONSOLE 40037
 #define ID_EMULATION_DEBUGOUTPUTKERNEL_FILE 40038
+#define ID_EMULATION_LLE_APU            40039
+#define ID_EMULATION_LLE_GPU            40040
+#define ID_EMULATION_LLE_JIT            40041
 #define ID_SETTINGS_CONFIG_CONTROLLER   40046
 #define ID_SETTINGS_CONFIG_VIDEO        40047
 #define ID_SETTINGS_CONFIGURESOUND      40048
@@ -80,30 +87,22 @@
 #define ID_FILE_RXBE_7                  40057
 #define ID_FILE_RXBE_8                  40058
 #define ID_FILE_RXBE_9                  40059
-#define ID_FILE_REXE_0                  40060
-#define ID_FILE_REXE_1                  40061
-#define ID_FILE_REXE_2                  40062
-#define ID_FILE_REXE_3                  40063
-#define ID_FILE_REXE_4                  40064
-#define ID_FILE_REXE_5                  40065
-#define ID_FILE_REXE_6                  40066
-#define ID_FILE_REXE_7                  40067
-#define ID_FILE_REXE_8                  40068
-#define ID_FILE_REXE_9                  40069
 #define ID_EDIT_DUMPXBEINFOTO_FILE      40071
 #define ID_EDIT_DUMPXBEINFOTO_DEBUGCONSOLE 40072
-#define ID_SETTINGS_GENXP               40078
-#define ID_SETTINGS_GENWT               40079
-#define ID_SETTINGS_GENMA               40080
 #define ID_EMULATION_STOP               40082
+#define ID_SETTINGS_CACHE               40083
+#define ID_CACHE_CLEARHLECACHE_ALL      40084
+#define ID_CACHE_CLEARHLECACHE_CURRENT  40085
+#define ID_SETTINGS_XINPUT              40086
+#define IDC_STATIC                      -1
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        119
-#define _APS_NEXT_COMMAND_VALUE         40083
-#define _APS_NEXT_CONTROL_VALUE         1051
+#define _APS_NEXT_RESOURCE_VALUE        130
+#define _APS_NEXT_COMMAND_VALUE         40087
+#define _APS_NEXT_CONTROL_VALUE         1058
 #define _APS_NEXT_SYMED_VALUE           104
 #endif
 #endif

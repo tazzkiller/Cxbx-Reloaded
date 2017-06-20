@@ -42,16 +42,13 @@
 
 // print out a warning message to the kernel debug log file
 #ifdef _DEBUG_WARNINGS
-extern "C" CXBXKRNL_API void NTAPI EmuWarning(const char *szWarningMessage, ...);
+void NTAPI EmuWarning(const char *szWarningMessage, ...);
 #else
 inline void NTAPI EmuWarning(const char *szWarningMessage, ...) { }
 #endif
 
 // exception handler
 extern int EmuException(LPEXCEPTION_POINTERS e);
-
-// check the allocation size of a given virtual address
-extern int EmuCheckAllocationSize(LPVOID pBase, bool largeBound);
 
 // print call stack trace
 #ifdef _DEBUG
@@ -63,17 +60,11 @@ extern volatile bool g_bEmuException;
 extern volatile bool g_bEmuSuspended;
 
 // global exception patching address
-extern uint32 funcExclude[2048];
+extern void * funcExclude[2048];
 
 // partition emulation directory handles
 extern HANDLE g_hCurDir;
 extern CHAR  *g_strCurDrive;
-extern HANDLE g_hTDrive;
-extern CHAR  *g_strTDrive;
-extern HANDLE g_hUDrive;
-extern CHAR  *g_strUDrive;
-extern HANDLE g_hZDrive;
-extern CHAR  *g_strZDrive;
 extern HWND   g_hEmuWindow;
 
 // thread notification routine
@@ -82,6 +73,8 @@ extern int g_iThreadNotificationCount;
 
 extern DWORD_PTR g_CPUXbox;
 extern DWORD_PTR g_CPUOthers;
+
+extern HANDLE g_CurrentProcessHandle; // Set in CxbxKrnlInit
 
 // Delta added to host SystemTime, used in xboxkrnl::KeQuerySystemTime and xboxkrnl::NtSetSystemTime
 extern LARGE_INTEGER HostSystemTimeDelta;
@@ -102,8 +95,17 @@ g_pXInputSetStateStatus[XINPUT_SETSTATE_SLOTS];
 // 4 controllers
 #define XINPUT_HANDLE_SLOTS 4
 
+extern bool g_XInputEnabled;
 extern HANDLE g_hInputHandle[XINPUT_HANDLE_SLOTS];
 
 extern void InitializeSectionStructures(void);
+
+typedef struct DUMMY_KERNEL
+{
+	IMAGE_DOS_HEADER DosHeader;
+	DWORD Signature;
+	IMAGE_FILE_HEADER FileHeader;
+	IMAGE_SECTION_HEADER SectionHeader;
+} *PDUMMY_KERNEL;
 
 #endif

@@ -35,93 +35,8 @@
 // ******************************************************************
 // * XGSwizzleBox
 // ******************************************************************
-SOOVPA<10> XGSwizzleBox_1_0_5558 =
-{
-    0,  // Large == 0
-    10, // Count == 10
-
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
-        // XGSwizzleBox+0x60 : sub ecx, [eax]
-        { 0x60, 0x2B }, // (Offset,Value)-Pair #1
-        { 0x61, 0x08 }, // (Offset,Value)-Pair #2
-
-        // XGSwizzleBox+0x8E : lea ecx, [ebp+0xD8]
-        { 0x8E, 0x8D }, // (Offset,Value)-Pair #3
-        { 0x8F, 0x4D }, // (Offset,Value)-Pair #4
-        { 0x90, 0xD8 }, // (Offset,Value)-Pair #5
-
-        // XGSwizzleBox+0xD5 : shl eax, 2
-        { 0xD5, 0xC1 }, // (Offset,Value)-Pair #6
-        { 0xD6, 0xE0 }, // (Offset,Value)-Pair #7
-        { 0xD7, 0x02 }, // (Offset,Value)-Pair #8
-
-        // XGSwizzleBox+0xE2 : test ebx, ebx
-        { 0xE2, 0x85 }, // (Offset,Value)-Pair #9
-        { 0xE3, 0xDB }, // (Offset,Value)-Pair #10
-    }
-};
-
-// ******************************************************************
-// * XGSwizzleRect
-// ******************************************************************
-SOOVPA<8> XGSwizzleRect_1_0_5558 =
-{
-    0,  // Large == 0
-    8,  // Count == 8
-
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
-        { 0x1E, 0x03 },
-        { 0x3E, 0x89 },
-        { 0x5E, 0x83 },
-        { 0x7E, 0x6C },
-        { 0x9E, 0xFF },
-        { 0xBE, 0xFF },
-        { 0xDE, 0x89 },
-        { 0xFE, 0x89 },
-    }
-};
-
-// ******************************************************************
-// * XGUnswizzleRect
-// ******************************************************************
-SOOVPA<8> XGUnswizzleRect_1_0_5558 = 
-{
-    0,  // Large == 0
-    8,  // Count == 8
-
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
-        { 0x1E, 0x03 },
-        { 0x3E, 0x00 },
-        { 0x5E, 0xD2 },
-        { 0x7E, 0x75 },
-        { 0x9E, 0x70 },
-        { 0xC1, 0xE9 },
-        { 0xDE, 0x89 },
-        { 0xFE, 0x60 },
-    }
-};
-
-// ******************************************************************
-// * XGSwizzleBox
-// ******************************************************************
-//SOOVPA<8> XGSwizzleBox_1_0_5558 = 
-//{
-//    0,  // Large == 0
-//    8,  // Count == 8
+//OOVPA_NO_XREF(XGSwizzleBox, 5558, 8)
 //
-//    XRefNotSaved,
-//    XRefNotUsed,
-//
-//    {
 //        { 0x1E, 0x75 },
 //        { 0x3E, 0x4D },
 //        { 0x5E, 0x48 },
@@ -130,21 +45,13 @@ SOOVPA<8> XGUnswizzleRect_1_0_5558 =
 //        { 0xC0, 0x83 },
 //        { 0xDE, 0xAF },
 //        { 0xFE, 0x45 },
-//    }
-//};
+//OOVPA_END;
 
 // ******************************************************************
 // * XGUnswizzleBox
 // ******************************************************************
-SOOVPA<8> XGUnswizzleBox_1_0_5558 = 
-{
-    0,  // Large == 0
-    8,  // Count == 8
+OOVPA_NO_XREF(XGUnswizzleBox, 5558, 8)
 
-    XRefNotSaved,
-    XRefNotUsed,
-
-    {
         { 0x1E, 0x26 },
         { 0x3E, 0x55 },
         { 0x5E, 0x58 },
@@ -153,67 +60,22 @@ SOOVPA<8> XGUnswizzleBox_1_0_5558 =
         { 0xBE, 0x2C },
         { 0xDE, 0x24 },
         { 0xFE, 0x20 },
-    }
+OOVPA_END;
+
+// ******************************************************************
+// * XG_5558
+// ******************************************************************
+OOVPATable XG_5558[] = {
+
+	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, PATCH),
+    
+	// REGISTER_OOVPA(XGSwizzleRect, 3911, DISABLED), // TODO : Uncomment
+	REGISTER_OOVPA(XGSwizzleBox, 4627, PATCH), // (* UNTESTED *)
+	// REGISTER_OOVPA(XGUnswizzleRect, 3911, DISABLED), // TODO : Uncomment
+	// REGISTER_OOVPA(XGUnswizzleBox, 5558, PATCH), //  (* UNTESTED *)
 };
 
 // ******************************************************************
-// * XG_1_0_5558
+// * XG_5558_SIZE
 // ******************************************************************
-OOVPATable XG_1_0_5558[] =
-{
-    // XGIsSwizzledFormat (* unchanged since 4361 *)
-    {
-        (OOVPA*)&XGIsSwizzledFormat_1_0_4361,
-
-        XTL::EmuXGIsSwizzledFormat,
-
-        #ifdef _DEBUG_TRACE
-        "XGIsSwizzledFormat"
-        #endif
-    },
-    // XGSwizzleRect
-    {
-        (OOVPA*)&XGSwizzleRect_1_0_5558,
-
-        XTL::EmuXGSwizzleRect,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGSwizzleRect"
-        #endif
-    },
-    // XGSwizzleBox (* UNTESTED *)
-    {
-        (OOVPA*)&XGSwizzleBox_1_0_5558,
-
-        XTL::EmuXGSwizzleBox,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGSwizzleBox"
-        #endif
-    },
-	// XGUnswizzleRect
-    {
-        (OOVPA*)&XGUnswizzleRect_1_0_5558,
-
-        XTL::EmuXGUnswizzleRect,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGSwizzleRect"
-        #endif
-    },
-    // XGUnswizzleBox (* UNTESTED *)
-    /*{
-        (OOVPA*)&XGUnswizzleBox_1_0_5558,
-
-        XTL::EmuXGUnswizzleBox,
-
-        #ifdef _DEBUG_TRACE
-        "EmuXGSwizzleBox"
-        #endif
-    },*/
-};
-
-// ******************************************************************
-// * XG_1_0_5558_SIZE
-// ******************************************************************
-uint32 XG_1_0_5558_SIZE = sizeof(XG_1_0_5558);
+uint32 XG_5558_SIZE = sizeof(XG_5558);

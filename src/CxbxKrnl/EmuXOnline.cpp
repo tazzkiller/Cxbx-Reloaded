@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -49,32 +51,39 @@ namespace NtDll
 #include "EmuXTL.h"
 
 // ******************************************************************
-// * func: EmuWSAStartup
+// * patch: WSAStartup
 // ******************************************************************
-int WINAPI XTL::EmuWSAStartup
+int WINAPI XTL::EMUPATCH(WSAStartup)
 (
     WORD        wVersionRequested,
     WSADATA    *lpWSAData
 )
 {
+	FUNC_EXPORTS
+
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(wVersionRequested)
 		LOG_FUNC_ARG(lpWSAData)
 		LOG_FUNC_END;
 
-    int ret = WSAStartup(wVersionRequested, lpWSAData);
+	// Prevent this function from failing by requesting a version of Winsock that
+	// we know for sure is actually supported on Windows.  This also fixes one error
+	// in the 4920 dashboard.
+    int ret = WSAStartup(MAKEWORD(2,2) /*wVersionRequested*/, lpWSAData);
 
 	RETURN(ret);
 }
 
 // ******************************************************************
-// * func: EmuXNetStartup
+// * patch: XNetStartup
 // ******************************************************************
-INT WINAPI XTL::EmuXNetStartup
+INT WINAPI XTL::EMUPATCH(XNetStartup)
 (
     const PVOID pDummy
 )
 {
+	FUNC_EXPORTS
+
 	LOG_FUNC_ONE_ARG(pDummy);
 
 	// Fake Successfull...hehehe...sucker...hehehehehe
@@ -84,10 +93,12 @@ INT WINAPI XTL::EmuXNetStartup
 }
 
 // ******************************************************************
-// * func: EmuXNetGetEthernetLinkStatus
+// * patch: XNetGetEthernetLinkStatus
 // ******************************************************************
-DWORD WINAPI XTL::EmuXNetGetEthernetLinkStatus()
+DWORD WINAPI XTL::EMUPATCH(XNetGetEthernetLinkStatus)()
 {
+	FUNC_EXPORTS
+
 	LOG_FUNC();
 
 	// for now, no ethernet connection is available
@@ -97,17 +108,18 @@ DWORD WINAPI XTL::EmuXNetGetEthernetLinkStatus()
 }
 
 // ******************************************************************
-// * func: EmuThis::Emusocket
+// * patch: This::Emusocket
 // ******************************************************************
-SOCKET XTL::EmuThis::Emusocket
+SOCKET WINAPI XTL::EMUPATCH(socket)
 (
     int   af,
     int   type,
     int   protocol
 )
 {
+	FUNC_EXPORTS
+
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(this)
 		LOG_FUNC_ARG(af)
 		LOG_FUNC_ARG(type)
 		LOG_FUNC_ARG(protocol)
@@ -119,17 +131,91 @@ SOCKET XTL::EmuThis::Emusocket
 }
 
 // ******************************************************************
-// * func: EmuThis::Emubind
+// * patch: This::Emuconnect
 // ******************************************************************
-int XTL::EmuThis::Emubind
+int WINAPI XTL::EMUPATCH(connect)
+(
+	SOCKET s,
+	const struct sockaddr FAR *name,
+	int namelen
+)
+{
+	FUNC_EXPORTS
+
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(s)
+		LOG_FUNC_ARG(name)
+		LOG_FUNC_ARG(namelen)
+		LOG_FUNC_END;
+
+	int ret = connect(s, name, namelen);
+
+	RETURN(ret);
+}
+
+// ******************************************************************
+// * patch: This::Emusend
+// ******************************************************************
+int WINAPI XTL::EMUPATCH(send)
+(
+	SOCKET s,
+	const char FAR *buf,
+	int len,
+	int flags
+)
+{
+	FUNC_EXPORTS
+
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(s)
+		LOG_FUNC_ARG(buf)
+		LOG_FUNC_ARG(len)
+		LOG_FUNC_ARG(flags)
+		LOG_FUNC_END;
+
+	int ret = send(s, buf, len, flags);
+
+	RETURN(ret);
+}
+
+// ******************************************************************
+// * patch: This::Emurecv
+// ******************************************************************
+int WINAPI XTL::EMUPATCH(recv)
+(
+	SOCKET s,
+	char FAR *buf,
+	int len,
+	int flags
+)
+{
+	FUNC_EXPORTS
+
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(s)
+		LOG_FUNC_ARG(buf)
+		LOG_FUNC_ARG(len)
+		LOG_FUNC_ARG(flags)
+		LOG_FUNC_END;
+
+	int ret = recv(s, buf, len, flags);
+
+	RETURN(ret);
+}
+
+// ******************************************************************
+// * patch: This::Emubind
+// ******************************************************************
+int WINAPI XTL::EMUPATCH(bind)
 (
 	SOCKET s, 
 	const struct sockaddr FAR *name, 
 	int namelen
 )
 {
+	FUNC_EXPORTS
+
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(this)
 		LOG_FUNC_ARG(s)
 		LOG_FUNC_ARG(name)
 		LOG_FUNC_ARG(namelen)
@@ -143,16 +229,17 @@ int XTL::EmuThis::Emubind
 }
 
 // ******************************************************************
-// * func: EmuThis::Emulisten
+// * patch: This::Emulisten
 // ******************************************************************
-int XTL::EmuThis::Emulisten
+int WINAPI XTL::EMUPATCH(listen)
 (
 	SOCKET s, 
 	int backlog
 )
 {
+	FUNC_EXPORTS
+
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(this)
 		LOG_FUNC_ARG(s)
 		LOG_FUNC_ARG(backlog)
 		LOG_FUNC_END;
@@ -165,17 +252,18 @@ int XTL::EmuThis::Emulisten
 }
 
 // ******************************************************************
-// * func: EmuThis::Emuioctlsocket
+// * patch: This::Emuioctlsocket
 // ******************************************************************
-int XTL::EmuThis::Emuioctlsocket
+int WINAPI XTL::EMUPATCH(ioctlsocket)
 (
 	SOCKET s, 
 	long cmd, 
 	u_long FAR *argp
 )
 {
+	FUNC_EXPORTS
+
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(this)
 		LOG_FUNC_ARG(s)
 		LOG_FUNC_ARG(cmd)
 		LOG_FUNC_ARG(argp)
@@ -187,7 +275,7 @@ int XTL::EmuThis::Emuioctlsocket
 }
 
 // ******************************************************************
-// * func: EmuXOnlineLaunchNewImage
+// * patch: XOnlineLaunchNewImage
 // ******************************************************************
 HRESULT WINAPI XOnlineLaunchNewImage
 (
@@ -208,9 +296,9 @@ HRESULT WINAPI XOnlineLaunchNewImage
 }
 
 // ******************************************************************
-// * func: EmuXOnlineLogon
+// * patch: XOnlineLogon
 // ******************************************************************
-HRESULT WINAPI XTL::EmuXOnlineLogon
+HRESULT WINAPI XTL::EMUPATCH(XOnlineLogon)
 (
     VOID*	pUsers,
     DWORD*	pdwServiceIDs,
@@ -219,6 +307,8 @@ HRESULT WINAPI XTL::EmuXOnlineLogon
     HANDLE	pHandle
 )
 {
+	FUNC_EXPORTS
+
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pUsers)
 		LOG_FUNC_ARG(pdwServiceIDs)

@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -115,15 +117,7 @@ INT_PTR CALLBACK DlgVideoConfigProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPAR
                     XTL::D3DADAPTER_IDENTIFIER8 adapterIdentifier;
 
                     g_pD3D8->GetAdapterIdentifier(v, D3DENUM_NO_WHQL_LEVEL, &adapterIdentifier);
-
-                    if(v == 0)
-                    {
-                        SendMessage(g_hDisplayAdapter, CB_ADDSTRING, 0, (LPARAM)"Primary Display Adapter");
-                    }
-                    else
-                    {
-                        SendMessage(g_hDisplayAdapter, CB_ADDSTRING, 0, (LPARAM)adapterIdentifier.Description);
-                    }
+					SendMessage(g_hDisplayAdapter, CB_ADDSTRING, 0, (LPARAM)adapterIdentifier.Description);
                 }
             }
 
@@ -322,7 +316,7 @@ VOID RefreshDirect3DDevice()
             /*! enumerate through available adapter modes */
             for(uint32 v=0;v<dwAdapterModeCount;v++)
             {
-                char *szFormat = 0;
+                const char *szFormat = "<unknown>";
 
                 XTL::D3DDISPLAYMODE displayMode;
 

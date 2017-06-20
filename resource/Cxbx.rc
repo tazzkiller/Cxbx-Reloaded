@@ -9,21 +9,15 @@
 //
 #include "WinResrc.h"
 
-#ifndef IDC_STATIC
-#define IDC_STATIC -1
-#endif // IDC_STATIC
-
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
 
 /////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// English (United States) resources
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
-#ifdef _WIN32
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(1252)
-#endif //_WIN32
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -33,6 +27,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 IDI_CXBX                ICON                    "Cxbx.ico"
+
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -53,7 +48,6 @@ END
 
 3 TEXTINCLUDE 
 BEGIN
-    "\r\n"
     "\0"
 END
 
@@ -67,20 +61,18 @@ END
 
 IDB_LOGO                BITMAP                  "Logo.bmp"
 
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Menu
 //
 
-IDR_MAINMENU MENU 
+IDR_MAINMENU MENU
 BEGIN
     POPUP "&File"
     BEGIN
         MENUITEM "&Open Xbe...",                ID_FILE_OPEN_XBE
-        MENUITEM "&Close xbe",                  ID_FILE_CLOSE_XBE, GRAYED
-        MENUITEM SEPARATOR
-        MENUITEM "&Import Exe...",              ID_FILE_IMPORTFROMEXE
-        MENUITEM "&Export Exe...",              ID_FILE_EXPORTTOEXE, GRAYED
+        MENUITEM "&Close Xbe",                  ID_FILE_CLOSE_XBE, GRAYED
         MENUITEM SEPARATOR
         MENUITEM "&Save Xbe",                   ID_FILE_SAVEXBEFILE, GRAYED
         MENUITEM "Save Xbe &As...",             ID_FILE_SAVEXBEFILEAS, GRAYED
@@ -97,19 +89,6 @@ BEGIN
             MENUITEM "&7 : Recent Placeholder",     ID_FILE_RXBE_7
             MENUITEM "&8 : Recent Placeholder",     ID_FILE_RXBE_8
             MENUITEM "&9 : Recent Placeholder",     ID_FILE_RXBE_9
-        END
-        POPUP "Recent Exe &Files"
-        BEGIN
-            MENUITEM "&0 : Recent Placeholder",     ID_FILE_REXE_0
-            MENUITEM "&1 : Recent Placeholder",     ID_FILE_REXE_1
-            MENUITEM "&2 : Recent Placeholder",     ID_FILE_REXE_2
-            MENUITEM "&3 : Recent Placeholder",     ID_FILE_REXE_3
-            MENUITEM "&4 : Recent Placeholder",     ID_FILE_REXE_4
-            MENUITEM "&5 : Recent Placeholder",     ID_FILE_REXE_5
-            MENUITEM "&6 : Recent Placeholder",     ID_FILE_REXE_6
-            MENUITEM "&7 : Recent Placeholder",     ID_FILE_REXE_7
-            MENUITEM "&8 : Recent Placeholder",     ID_FILE_REXE_8
-            MENUITEM "&9 : Recent Placeholder",     ID_FILE_REXE_9
         END
         MENUITEM SEPARATOR
         MENUITEM "E&xit",                       ID_FILE_EXIT
@@ -148,15 +127,23 @@ BEGIN
     END
     POPUP "&Settings"
     BEGIN
-        MENUITEM "Config &Controller...",       ID_SETTINGS_CONFIG_CONTROLLER
+        MENUITEM "Config &Controller...",		ID_SETTINGS_CONFIG_CONTROLLER
         MENUITEM "Config &Audio...",            ID_SETTINGS_CONFIGURESOUND, GRAYED
         MENUITEM "Config &Video...",            ID_SETTINGS_CONFIG_VIDEO
         MENUITEM SEPARATOR
-        POPUP "Executable &Generation"
+        MENUITEM "Use XInput",                  ID_SETTINGS_XINPUT
+        MENUITEM SEPARATOR
+        POPUP "&HLE Cache"
         BEGIN
-            MENUITEM "&Automatic (&Windows Temp)",  ID_SETTINGS_GENWT
-            MENUITEM "Automatic (&Xbe Path)",       ID_SETTINGS_GENXP
-            MENUITEM "&Manual",                     ID_SETTINGS_GENMA
+            MENUITEM "&Clear entire HLE Cache",            ID_CACHE_CLEARHLECACHE_ALL
+            MENUITEM "&Rescan title HLE Cache",            ID_CACHE_CLEARHLECACHE_CURRENT
+        END
+        MENUITEM SEPARATOR
+        POPUP "&LLE (Experimental)"
+        BEGIN
+            MENUITEM "LLE &JIT",                    ID_EMULATION_LLE_JIT
+            MENUITEM "LLE &APU",                    ID_EMULATION_LLE_APU
+            MENUITEM "LLE &GPU",                    ID_EMULATION_LLE_GPU
         END
     END
     POPUP "E&mulation"
@@ -179,7 +166,7 @@ END
 //
 
 #ifdef APSTUDIO_INVOKED
-GUIDELINES DESIGNINFO 
+GUIDELINES DESIGNINFO
 BEGIN
     IDD_CONTROLLER_CFG, DIALOG
     BEGIN
@@ -272,19 +259,74 @@ END
 //
 
 IDR_JPEG_ABOUT          JPEG                    "About.jpg"
+
 IDR_JPEG_SPLASH         JPEG                    "Splash.jpg"
-#endif    // English (U.S.) resources
+
+#endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 
 
+/////////////////////////////////////////////////////////////////////////////
+// English (United Kingdom) resources
 
-#ifndef APSTUDIO_INVOKED
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENG)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
+#pragma code_page(1252)
+
 /////////////////////////////////////////////////////////////////////////////
 //
-// Generated from the TEXTINCLUDE 3 resource.
+// DESIGNINFO
 //
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_ABOUT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 303
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 170
+    END
+END
+#endif    // APSTUDIO_INVOKED
 
 
 /////////////////////////////////////////////////////////////////////////////
-#endif    // not APSTUDIO_INVOKED
+//
+// Dialog
+//
+
+IDD_ABOUT DIALOGEX 0, 0, 310, 177
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About Cxbx-Reloaded"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_TAB1,"SysTabControl32",0x0,7,7,296,163
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_ABOUT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// TXT
+//
+
+IDR_CONTRIBUTORS        TXT                     "..\\CONTRIBUTORS"
+
+IDR_COPYING             TXT                     "..\\COPYING"
+
+#endif    // English (United Kingdom) resources
+/////////////////////////////////////////////////////////////////////////////
+
 

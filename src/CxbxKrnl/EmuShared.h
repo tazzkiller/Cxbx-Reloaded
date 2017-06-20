@@ -40,59 +40,83 @@
 
 #include <memory.h>
 
+enum {
+	LLE_APU = 1 << 0,
+	LLE_GPU = 1 << 1,
+	LLE_JIT = 1 << 2,
+};
+
 // ******************************************************************
 // * EmuShared : Shared memory
 // ******************************************************************
 class EmuShared : public Mutex
 {
     public:
-        // ******************************************************************
-        // * Constructor / Deconstructor
-        // ******************************************************************
-        CXBXKRNL_API  EmuShared();
-        CXBXKRNL_API ~EmuShared();
+		int m_RefCount;
 
         // ******************************************************************
         // * Each process needs to call this to initialize shared memory
         // ******************************************************************
-        CXBXKRNL_API static void Init();
+        static void Init();
 
-        // ******************************************************************
+		void EmuShared::Load();
+		void EmuShared::Save();
+
+		// ******************************************************************
         // * Each process needs to call this to cleanup shared memory
         // ******************************************************************
-        CXBXKRNL_API static void Cleanup();
+        static void Cleanup();
 
         // ******************************************************************
         // * Xbox Video Accessors
         // ******************************************************************
-        CXBXKRNL_API void GetXBVideo(      XBVideo *video) { Lock(); memcpy(video, &m_XBVideo, sizeof(XBVideo)); Unlock(); }
-        CXBXKRNL_API void SetXBVideo(const XBVideo *video) { Lock(); memcpy(&m_XBVideo, video, sizeof(XBVideo)); Unlock(); }
+        void GetXBVideo(      XBVideo *video) { Lock(); memcpy(video, &m_XBVideo, sizeof(XBVideo)); Unlock(); }
+        void SetXBVideo(const XBVideo *video) { Lock(); memcpy(&m_XBVideo, video, sizeof(XBVideo)); Unlock(); }
 
         // ******************************************************************
         // * Xbox Controller Accessors
         // ******************************************************************
-        CXBXKRNL_API void GetXBController(      XBController *ctrl) { Lock(); memcpy(ctrl, &m_XBController, sizeof(XBController)); Unlock();}
-        CXBXKRNL_API void SetXBController(const XBController *ctrl) { Lock(); memcpy(&m_XBController, ctrl, sizeof(XBController)); Unlock();}
+        void GetXBController(      XBController *ctrl) { Lock(); memcpy(ctrl, &m_XBController, sizeof(XBController)); Unlock();}
+        void SetXBController(const XBController *ctrl) { Lock(); memcpy(&m_XBController, ctrl, sizeof(XBController)); Unlock();}
 
         // ******************************************************************
         // * Xbe Path Accessors
         // ******************************************************************
-        CXBXKRNL_API void GetXbePath(      char *path) { Lock(); strcpy(path, m_XbePath); Unlock(); }
-        CXBXKRNL_API void SetXbePath(const char *path) { Lock(); strcpy(m_XbePath, path); Unlock(); }
+        void GetXbePath(      char *path) { Lock(); strcpy(path, m_XbePath); Unlock(); }
+        void SetXbePath(const char *path) { Lock(); strcpy(m_XbePath, path); Unlock(); }
+
+		// ******************************************************************
+		// * LLE Flags Accessors
+		// ******************************************************************
+		void GetFlagsLLE(      int *flags) { Lock(); *flags = m_FlagsLLE; Unlock(); }
+		void SetFlagsLLE(const int *flags) { Lock(); m_FlagsLLE = *flags; Unlock(); }
+
+		// ******************************************************************
+		// * XInput Flag Accessors
+		// ******************************************************************
+		void GetXInputEnabled(int* value) { Lock(); *value = m_XInputEnabled; Unlock(); }
+		void SetXInputEnabled(int* value) { Lock(); m_XInputEnabled = *value; Unlock(); }
 
     private:
+        // ******************************************************************
+        // * Constructor / Deconstructor
+        // ******************************************************************
+         EmuShared();
+        ~EmuShared();
+
         // ******************************************************************
         // * Shared configuration
         // ******************************************************************
         XBController m_XBController;
         XBVideo      m_XBVideo;
         char         m_XbePath[MAX_PATH];
+		int          m_FlagsLLE;
+		int			 m_XInputEnabled;
 };
 
 // ******************************************************************
 // * Exported Global Shared Memory Pointer
 // ******************************************************************
-extern CXBXKRNL_API EmuShared *g_EmuShared;
-extern CXBXKRNL_API int        g_EmuSharedRefCount;
+extern EmuShared *g_EmuShared;
 
 #endif
