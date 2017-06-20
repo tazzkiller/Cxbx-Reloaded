@@ -1197,19 +1197,20 @@ void *XTL::GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 
 void DxbxDetermineSurFaceAndLevelByData(const DecodedPixelContainer PixelJar, OUT UINT &Level, OUT XTL::D3DCUBEMAP_FACES &FaceType)
 {
-	UINT_PTR ParentData = (UINT_PTR)GetDataFromXboxResource(((XTL::X_D3DSurface*)(PixelJar.pPixelContainer)->Parent);
+	UINT_PTR ParentData = (UINT_PTR)GetDataFromXboxResource(((XTL::X_D3DSurface*)(PixelJar.pPixelContainer))->Parent);
 	UINT_PTR SurfaceData = (UINT_PTR)GetDataFromXboxResource(PixelJar.pPixelContainer);
 
 	// Step to the correct face :
-	FaceType = XTL::D3DCUBEMAP_FACE_POSITIVE_X;
-	while (FaceType < XTL::D3DCUBEMAP_FACE_NEGATIVE_Z)
+	int f = XTL::D3DCUBEMAP_FACE_POSITIVE_X;
+	while (f < XTL::D3DCUBEMAP_FACE_NEGATIVE_Z)
 	{
 		if (ParentData >= SurfaceData)
 			break;
 
 		ParentData += PixelJar.dwFacePitch;
-		*((DWORD*)&FaceType)++; // enum can't be increased using FaceType++;
+		f++; // enum can't be increased using FaceType++;
 	}
+	FaceType = (XTL::D3DCUBEMAP_FACES)f;
 
 	// Step to the correct mipmap level :
 	Level = 0;
@@ -8303,7 +8304,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 			UINT primCount = DrawContext.dwHostPrimitiveCount * TRIANGLES_PER_QUAD;
 			// Determine highest and lowest index in use :
 			INDEX16 LowIndex = pQuadToTriangleIndexBuffer[startIndex];
-			INDEX16 HighIndex = LowIndex + DrawContext.dwVertexCount - 1;
+			INDEX16 HighIndex = LowIndex + (INDEX16)DrawContext.dwVertexCount - 1;
 			// Emulate a quad by drawing each as a fan of 2 triangles
 			HRESULT hRet = g_pD3DDevice8->DrawIndexedPrimitive(
 				D3DPT_TRIANGLELIST, // Draw indexed triangles instead of quads
