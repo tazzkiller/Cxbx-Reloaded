@@ -298,7 +298,7 @@ struct EmuD3D8CreateDeviceProxyData
     XTL::X_D3DPRESENT_PARAMETERS    *pPresentationParameters; // Original Xbox version
 	XTL::D3DPRESENT_PARAMETERS		 NativePresentationParameters; // Converted to Windows
 	XTL::IDirect3DDevice8          **ppReturnedDeviceInterface;
-	volatile bool                    bReady;
+	volatile bool                    bSignalled;
     union
     {
         volatile HRESULT  hRet;
@@ -2224,15 +2224,11 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 
     DbgPrintf("EmuD3D8: CreateDevice proxy thread is running.\n");
 
-    while(true)
-    {
+    while (true) {
         // if we have been signalled, create the device with cached parameters
-        if(g_EmuCDPD.bReady)
-        {
+        if (g_EmuCDPD.bSignalled) {
             DbgPrintf("EmuD3D8: CreateDevice proxy thread received request.\n");
-
-			if (g_EmuCDPD.bCreate)
-			{
+			if (g_EmuCDPD.bCreate) {
 				// only one device should be created at once
 				// TODO: ensure all surfaces are somehow cleaned up?
 				if (g_pD3DDevice8 != nullptr)
@@ -2618,12 +2614,8 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
 
 				CxbxPresent();
-
-                // signal completion
-                g_EmuCDPD.bReady = false;
             }
-            else
-            {
+            else { // !bCreate
                 // release direct3d
                 if(g_pD3DDevice8 != nullptr)
                 {
@@ -2663,13 +2655,13 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                     g_pDD7->Release();
                     g_pDD7 = nullptr;
                 }
-
-                // signal completion
-                g_EmuCDPD.bReady = false;
             }
+
+            // signal completion
+            g_EmuCDPD.bSignalled = false;
         }
 
-        Sleep(100);
+        Sleep(250); // react within a quarter of a second to a CreateDevice signal
     }
 
     return 0;
@@ -2878,15 +2870,15 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 	g_EmuCDPD.ppReturnedDeviceInterface = ppReturnedDeviceInterface;
 
     // Wait until proxy is done with an existing call (i highly doubt this situation will come up)
-    while(g_EmuCDPD.bReady)
+    while (g_EmuCDPD.bSignalled)
         Sleep(10);
 
     // Signal proxy thread, and wait for completion
-    g_EmuCDPD.bReady = true;
     g_EmuCDPD.bCreate = true;
+    g_EmuCDPD.bSignalled = true;
 
     // Wait until proxy is completed
-    while(g_EmuCDPD.bReady)
+    while (g_EmuCDPD.bSignalled)
         Sleep(10);
 	
 	// Set the Xbox g_pD3DDevice pointer to our D3D Device object
@@ -6913,12 +6905,16 @@ ULONG WINAPI XTL::EMUPATCH(D3DDevice_Release)()
     DWORD RefCount = g_pD3DDevice8->Release();
     if (RefCount == 1)
     {
-        // Signal proxy thread, and wait for completion
-        g_EmuCDPD.bReady = true;
-        g_EmuCDPD.bCreate = false;
+		while (g_EmuCDPD.bSignalled)
+			Sleep(10);
 
-        while(g_EmuCDPD.bReady)
+		// Signal proxy thread, and wait for completion
+        g_EmuCDPD.bCreate = false;
+        g_EmuCDPD.bSignalled = true;
+
+        while (g_EmuCDPD.bSignalled)
             Sleep(10);
+
         RefCount = g_EmuCDPD.hRet;
     }
     else
