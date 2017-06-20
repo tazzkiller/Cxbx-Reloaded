@@ -3726,7 +3726,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface2)()
 	RETURN(result);
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetTile)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_GetTile)
 (
     DWORD           Index,
     X_D3DTILE      *pTile
@@ -3739,14 +3739,13 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetTile)
 		LOG_FUNC_ARG(pTile)
 		LOG_FUNC_END;
 
-    if(pTile != NULL)
-        memcpy(pTile, &EmuD3DTileCache[Index], sizeof(X_D3DTILE));
-
-    return D3D_OK;
+	if (pTile != NULL) {
+		memcpy(pTile, &EmuD3DTileCache[Index], sizeof(X_D3DTILE));
+	}
 }
 
 // Dxbx note : SetTile is applied to SetTileNoWait in Cxbx 4361 OOPVA's!
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTile)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTile)
 (
     DWORD               Index,
     CONST X_D3DTILE    *pTile
@@ -3759,10 +3758,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTile)
 		LOG_FUNC_ARG(pTile)
 		LOG_FUNC_END;
 
-    if(pTile != NULL)
-        memcpy(&EmuD3DTileCache[Index], pTile, sizeof(X_D3DTILE));
-
-    return D3D_OK;
+	if (pTile != NULL) {
+		memcpy(&EmuD3DTileCache[Index], pTile, sizeof(X_D3DTILE));
+	}
 }
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)

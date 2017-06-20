@@ -365,7 +365,7 @@ X_D3DSurface * WINAPI EMUPATCH(D3DDevice_GetDepthStencilSurface2)();
 // ******************************************************************
 // * patch: D3DDevice_GetTile
 // ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_GetTile)
+VOID WINAPI EMUPATCH(D3DDevice_GetTile)
 (
     DWORD           Index,
     X_D3DTILE      *pTile
@@ -374,7 +374,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_GetTile)
 // ******************************************************************
 // * patch: D3DDevice_SetTile
 // ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_SetTile)
+VOID WINAPI EMUPATCH(D3DDevice_SetTile)
 (
     DWORD               Index,
     CONST X_D3DTILE    *pTile
