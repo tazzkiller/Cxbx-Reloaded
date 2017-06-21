@@ -734,6 +734,7 @@ OOVPATable D3D8_5233[] = {
 	REGISTER_OOVPA(D3DDevice_GetCreationParameters, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetFlickerFilter, 5233, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetSoftDisplayFilter, 5233, PATCH),
+	REGISTER_OOVPA(CMiniport_InitHardware, 4627, PATCH),
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 5233, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_TwoSidedLighting, 4134, PATCH), // Beware of the typo...
 	REGISTER_OOVPA(D3DDevice_SetRenderState_FrontFace, 4134, PATCH),

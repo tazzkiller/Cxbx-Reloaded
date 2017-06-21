@@ -782,6 +782,7 @@ OOVPA_END;
 // ******************************************************************
 OOVPATable D3D8_5028[] = {
 
+	REGISTER_OOVPA(CMiniport_InitHardware, 4627, PATCH),
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 4627, DISABLED),
 
 	REGISTER_OOVPA(Direct3D_CreateDevice, 5028, PATCH), // TODO : Use 3911 instead?
