@@ -2895,7 +2895,7 @@ INT __fastcall XTL::EMUPATCH(CMiniport_CreateCtxDmaObject)
 		break;
 	}
 	default: {
-		LOG_UNIMPLEMENTED("a2");
+		LOG_UNIMPLEMENTED();
 	}
 	}
 
