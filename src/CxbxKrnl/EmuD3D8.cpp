@@ -2432,11 +2432,6 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				// cache device pointer
 				g_pD3DDevice8 = *g_EmuCDPD.ppReturnedDeviceInterface;
 
-				HRESULT hRet;
-
-				hRet = g_pD3DDevice8->BeginScene();
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
-
 				// Update Xbox PresentationParameters :
 				g_EmuCDPD.pPresentationParameters->BackBufferWidth = g_EmuCDPD.NativePresentationParameters.BackBufferWidth;
 				g_EmuCDPD.pPresentationParameters->BackBufferHeight = g_EmuCDPD.NativePresentationParameters.BackBufferHeight;
@@ -2445,6 +2440,8 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 
 				// default NULL guid
 				g_ddguid = { 0 };
+
+				HRESULT hRet;
 
                 // enumerate device guid for this monitor, for directdraw
 				hRet = XTL::DirectDrawEnumerateExA(EmuEnumDisplayDevices, nullptr, DDENUM_ATTACHEDSECONDARYDEVICES);
@@ -2621,6 +2618,9 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					/*Z=*/g_bHasDepthBits ? 1.0f : 0.0f,
 					/*Stencil=*/g_bHasStencilBits ? 0 : 0); // TODO : What to set these to?
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
+
+				hRet = g_pD3DDevice8->BeginScene();
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
 
 				CxbxPresent();
             }
