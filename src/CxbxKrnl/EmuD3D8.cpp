@@ -2842,7 +2842,8 @@ DWORD *m_pGPUTime = NULL; // See Dxbx XTL_EmuExecutePushBufferRaw
 // CMiniport::m_RegisterBase so there's some memory to play with.
 BOOL __fastcall XTL::EMUPATCH(CMiniport_InitHardware)
 (
-	PVOID This
+	PVOID This,
+	void * _EDX // __thiscall simulation
 )
 {
 #ifdef UNPATCH_CREATEDEVICE
@@ -2865,11 +2866,12 @@ BOOL __fastcall XTL::EMUPATCH(CMiniport_InitHardware)
 INT __fastcall XTL::EMUPATCH(CMiniport_CreateCtxDmaObject)
 (
 	PVOID This,
-	INT a2,
-	INT a3,
-	PVOID a4,
-	PVOID a5,
-	PVOID a6
+	void * _EDX, // __thiscall simulation
+	ULONG Dma,
+	ULONG ClassNum,
+	PVOID Base,
+	ULONG Limit,
+	PVOID Object
 )
 {
 #ifdef UNPATCH_CREATEDEVICE
@@ -2878,19 +2880,18 @@ INT __fastcall XTL::EMUPATCH(CMiniport_CreateCtxDmaObject)
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(This)
-		LOG_FUNC_ARG(a2)
-		LOG_FUNC_ARG(a3)
-		LOG_FUNC_ARG(a4)
-		LOG_FUNC_ARG(a5)
-		LOG_FUNC_ARG(a6)
+		LOG_FUNC_ARG(Dma)
+		LOG_FUNC_ARG(ClassNum)
+		LOG_FUNC_ARG(Base)
+		LOG_FUNC_ARG(Limit)
+		LOG_FUNC_ARG(Object)
 		LOG_FUNC_END;
 
-
-	switch (a2) {
+	switch (Dma) {
 	case 8: { // = notification of semaphore address
 		// Remember where the semaphore (starting with a GPU Time DWORD) was allocated
 		// (we could have trapped MmAllocateContiguousMemoryEx too, but this is simpler) :
-		m_pGPUTime = (PDWORD)a4;
+		m_pGPUTime = (PDWORD)Base;
 		DbgPrintf("Registered m_pGPUTime at 0x%0.8x\n", m_pGPUTime);
 		break;
 	}

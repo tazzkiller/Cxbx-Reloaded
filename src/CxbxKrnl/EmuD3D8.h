@@ -90,7 +90,8 @@ XTL::IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer
 // ******************************************************************
 BOOL __fastcall EMUPATCH(CMiniport_InitHardware)
 (
-	PVOID This
+	PVOID This,
+	void *_EDX // __thiscall simulation
 );
 
 // ******************************************************************
@@ -99,11 +100,12 @@ BOOL __fastcall EMUPATCH(CMiniport_InitHardware)
 INT __fastcall EMUPATCH(CMiniport_CreateCtxDmaObject)
 (
 	PVOID This,
-	INT a2,
-	INT a3,
-	PVOID a4,
-	PVOID a5,
-	PVOID a6
+	void * _EDX, // __thiscall simulation
+	ULONG Dma,
+	ULONG ClassNum,
+	PVOID Base,
+	ULONG Limit,
+	PVOID Object
 );
 
 // ******************************************************************
