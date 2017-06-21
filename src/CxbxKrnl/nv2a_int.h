@@ -165,6 +165,13 @@
 #define NV_PFIFO_CACHE1_DMA_DATA_SHADOW                  0x000012AC
 
 
+#define NV_PGRAPH_DEBUG_0                                0x00000080
+#define NV_PGRAPH_DEBUG_1                                0x00000084
+#define NV_PGRAPH_DEBUG_3                                0x0000008C
+#define NV_PGRAPH_DEBUG_4                                0x00000090
+#define NV_PGRAPH_DEBUG_5                                0x00000094
+#define NV_PGRAPH_DEBUG_8                                0x00000098
+#define NV_PGRAPH_DEBUG_9                                0x0000009C
 #define NV_PGRAPH_INTR                                   0x00000100
 #   define NV_PGRAPH_INTR_NOTIFY                              (1 << 0)
 #   define NV_PGRAPH_INTR_MISSING_HW                          (1 << 4)
@@ -223,6 +230,7 @@
 #   define NV_PGRAPH_CTX_SWITCH1_CONTEXT_BETA1                 (1 << 29)
 #   define NV_PGRAPH_CTX_SWITCH1_CONTEXT_BETA4                 (1 << 30)
 #   define NV_PGRAPH_CTX_SWITCH1_VOLATILE_RESET                (1 << 31)
+#define NV_PGRAPH_STATUS                                 0x00000700
 #define NV_PGRAPH_TRAPPED_ADDR                           0x00000704
 #   define NV_PGRAPH_TRAPPED_ADDR_MTHD                        0x00001FFF
 #   define NV_PGRAPH_TRAPPED_ADDR_SUBCH                       0x00070000
@@ -245,6 +253,10 @@
 #define NV_PGRAPH_CHANNEL_CTX_TRIGGER                    0x00000788
 #   define NV_PGRAPH_CHANNEL_CTX_TRIGGER_READ_IN                (1 << 0)
 #   define NV_PGRAPH_CHANNEL_CTX_TRIGGER_WRITE_OUT              (1 << 1)
+#define NV_PGRAPH_DEBUG_2                                0x00000880
+#define NV_PGRAPH_DEBUG_6                                0x00000B80
+#define NV_PGRAPH_DEBUG_7                                0x00000B84
+#define NV_PGRAPH_DEBUG_10                               0x00000B88
 #define NV_PGRAPH_CSV0_D                                 0x00000FB4
 #   define NV_PGRAPH_CSV0_D_LIGHTS                              0x0000FFFF
 #   define NV_PGRAPH_CSV0_D_LIGHT0                              0x00000003
@@ -618,10 +630,10 @@
 #define NV_PFB_TIMING0                                   0x00000220
 #define NV_PFB_TIMING1                                   0x00000224
 #define NV_PFB_TIMING2                                   0x00000228
-#define NV_PFB_TILE							0x00000240
-#define NV_PFB_TLIMIT                       0x00000244
-#define NV_PFB_TSIZE                        0x00000248
-#define NV_PFB_TSTATUS                      0x0000024C
+#define NV_PFB_TILE(i)                                   0x00000240 + (i * 0x10)
+#define NV_PFB_TLIMIT(i)                                 0x00000244 + (i * 0x10)
+#define NV_PFB_TSIZE(i)                                  0x00000248 + (i * 0x10)
+#define NV_PFB_TSTATUS(i)                                0x0000024C + (i * 0x10)
 #define NV_PFB_MRS                                       0x000002C0
 #define NV_PFB_EMRS                                      0x000002C4
 #define NV_PFB_MRS_EXT                                   0x000002C8
