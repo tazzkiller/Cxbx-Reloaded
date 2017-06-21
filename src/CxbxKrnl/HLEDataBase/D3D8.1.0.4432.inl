@@ -585,6 +585,7 @@ OOVPA_END;
 OOVPATable D3D8_4432[]  {
 
 	REGISTER_OOVPA(CMiniport_InitHardware, 4361, PATCH),
+	REGISTER_OOVPA(CMiniport_CreateCtxDmaObject, 4361, PATCH),
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 4361, DISABLED),
 
 	REGISTER_OOVPA(Direct3D_CreateDevice, 4432, PATCH),

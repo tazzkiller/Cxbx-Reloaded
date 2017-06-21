@@ -64,6 +64,44 @@ OOVPA_NO_XREF(CMiniport_InitHardware, 4361, 24)
 		{ 0x1F, 0xDC },
 OOVPA_END;
 
+// ******************************************************************
+// * CMiniport::CreateCtxDmaObject
+// ******************************************************************
+OOVPA_NO_XREF(CMiniport_CreateCtxDmaObject, 4361, 32) // Also for 4627, 5344, 5558, 5659, 5788, 5849, 5933
+		{ 0x00, 0x55 },
+		{ 0x01, 0x8B },
+		{ 0x02, 0xEC },
+		{ 0x03, 0x51 },
+		{ 0x04, 0x51 },
+		{ 0x05, 0x53 },
+		{ 0x06, 0x56 },
+		{ 0x07, 0x57 },
+		{ 0x08, 0x33 },
+		{ 0x09, 0xC0 },
+		{ 0x0A, 0x50 },
+		{ 0x0B, 0x89 },
+		{ 0x0C, 0x45 },
+		{ 0x0D, 0xF8 },
+		{ 0x0E, 0x89 },
+		{ 0x0F, 0x45 },
+		{ 0x10, 0xFC },
+		{ 0x11, 0x8D },
+		{ 0x12, 0x45 },
+		{ 0x13, 0xFC },
+		{ 0x14, 0x50 },
+		{ 0x15, 0x8D },
+		{ 0x16, 0x45 },
+		{ 0x17, 0xF8 },
+		{ 0x18, 0x50 },
+		{ 0x19, 0xFF },
+		{ 0x1A, 0x75 },
+		{ 0x1B, 0x10 },
+		{ 0x1C, 0x8B },
+		{ 0x1D, 0xD1 },
+		{ 0x1E, 0x8B },
+		{ 0x1F, 0x3A },
+OOVPA_END;
+
 #if 0 // No longer used, replaced by generic 3911 version
 // ******************************************************************
 // * Direct3D_CreateDevice
@@ -1058,6 +1096,7 @@ OOVPA_END;
 OOVPATable D3D8_4361[] = {
 
 	REGISTER_OOVPA(CMiniport_InitHardware, 4361, PATCH),
+	REGISTER_OOVPA(CMiniport_CreateCtxDmaObject, 4361, PATCH),
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 4361, DISABLED),
 
 	REGISTER_OOVPA(Direct3D_CreateDevice, 3911, PATCH), // Was 4361
