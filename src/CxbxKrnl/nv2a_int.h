@@ -69,6 +69,9 @@
 #define NV_PBUS_PCI_NV_26                                0x00000868
 
 
+#define NV_PFIFO_DELAY_0                                 0x00000040
+#define NV_PFIFO_DMA_TIMESLICE                           0x00000044
+#define NV_PFIFO_TIMESLICE                               0x0000004C
 #define NV_PFIFO_INTR_0                                  0x00000100
 #   define NV_PFIFO_INTR_0_CACHE_ERROR                          (1 << 0)
 #   define NV_PFIFO_INTR_0_RUNOUT                               (1 << 4)
@@ -110,9 +113,12 @@
 #   define NV_PFIFO_RUNOUT_STATUS_HIGH_MARK                    (1 << 8)
 #define NV_PFIFO_RUNOUT_PUT_ADDRESS                      0x00000410
 #define NV_PFIFO_RUNOUT_GET_ADDRESS                      0x00000420
+#define NV_PFIFO_CACHES                                  0x00000500
 #define NV_PFIFO_MODE                                    0x00000504
 #define NV_PFIFO_DMA                                     0x00000508
 #define NV_PFIFO_SIZE                                    0x0000050C
+#define NV_PFIFO_CACHE0_PUSH0                            0x00001000
+#define NV_PFIFO_CACHE0_PULL0                            0x00001050
 #define NV_PFIFO_CACHE0_HASH                             0x00001058
 #define NV_PFIFO_CACHE1_PUSH0                            0x00001200
 #   define NV_PFIFO_CACHE1_PUSH0_ACCESS                         (1 << 0)
@@ -149,12 +155,18 @@
 #   define NV_PFIFO_CACHE1_DMA_INSTANCE_ADDRESS               0x0000FFFF
 #define NV_PFIFO_CACHE1_DMA_PUT                          0x00001240
 #define NV_PFIFO_CACHE1_DMA_GET                          0x00001244
+#define NV_PFIFO_CACHE1_REF                              0x00001248
 #define NV_PFIFO_CACHE1_DMA_SUBROUTINE                   0x0000124C
 #   define NV_PFIFO_CACHE1_DMA_SUBROUTINE_RETURN_OFFSET       0x1FFFFFFC
 #   define NV_PFIFO_CACHE1_DMA_SUBROUTINE_STATE                (1 << 0)
 #define NV_PFIFO_CACHE1_PULL0                            0x00001250
 #   define NV_PFIFO_CACHE1_PULL0_ACCESS                        (1 << 0)
+#define NV_PFIFO_CACHE1_PULL1                            0x00001254
 #define NV_PFIFO_CACHE1_HASH                             0x00001258
+#define NV_PFIFO_CACHE1_ACQUIRE_0                        0x00001260
+#define NV_PFIFO_CACHE1_ACQUIRE_1                        0x00001264
+#define NV_PFIFO_CACHE1_ACQUIRE_2                        0x00001268
+#define NV_PFIFO_CACHE1_SEMAPHORE                        0x0000126C
 #define NV_PFIFO_CACHE1_GET                              0x00001270
 #define NV_PFIFO_CACHE1_ENGINE                           0x00001280
 #define NV_PFIFO_CACHE1_DMA_DCOUNT                       0x000012A0
