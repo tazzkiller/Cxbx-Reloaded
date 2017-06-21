@@ -34,6 +34,10 @@
 #   define NV_PMC_ENABLE_PGRAPH                               (1 << 12)
 
 
+#define NV_PBUS_FBIO_RAM                                 0x00000218  
+#  define NV_PBUS_FBIO_RAM_TYPE                              0x00000100
+#    define NV_PBUS_FBIO_RAM_TYPE_DDR                          (0 << 8)
+#    define NV_PBUS_FBIO_RAM_TYPE_SDR                          (1 << 8)
 /* These map approximately to the pci registers */
 #define NV_PBUS_PCI_NV_0                                 0x00000800
 #   define NV_PBUS_PCI_NV_0_VENDOR_ID                         0x0000FFFF
@@ -104,13 +108,18 @@
 #   define NV_PFIFO_RUNOUT_STATUS_RANOUT                       (1 << 0)
 #   define NV_PFIFO_RUNOUT_STATUS_LOW_MARK                     (1 << 4)
 #   define NV_PFIFO_RUNOUT_STATUS_HIGH_MARK                    (1 << 8)
+#define NV_PFIFO_RUNOUT_PUT_ADDRESS                      0x00000410
+#define NV_PFIFO_RUNOUT_GET_ADDRESS                      0x00000420
 #define NV_PFIFO_MODE                                    0x00000504
 #define NV_PFIFO_DMA                                     0x00000508
+#define NV_PFIFO_SIZE                                    0x0000050C
+#define NV_PFIFO_CACHE0_HASH                             0x00001058
 #define NV_PFIFO_CACHE1_PUSH0                            0x00001200
 #   define NV_PFIFO_CACHE1_PUSH0_ACCESS                         (1 << 0)
 #define NV_PFIFO_CACHE1_PUSH1                            0x00001204
 #   define NV_PFIFO_CACHE1_PUSH1_CHID                         0x0000001F
 #   define NV_PFIFO_CACHE1_PUSH1_MODE                         0x00000100
+#define NV_PFIFO_CACHE1_PUT                              0x00001210
 #define NV_PFIFO_CACHE1_STATUS                           0x00001214
 #   define NV_PFIFO_CACHE1_STATUS_LOW_MARK                      (1 << 4)
 #   define NV_PFIFO_CACHE1_STATUS_HIGH_MARK                     (1 << 8)
@@ -145,6 +154,8 @@
 #   define NV_PFIFO_CACHE1_DMA_SUBROUTINE_STATE                (1 << 0)
 #define NV_PFIFO_CACHE1_PULL0                            0x00001250
 #   define NV_PFIFO_CACHE1_PULL0_ACCESS                        (1 << 0)
+#define NV_PFIFO_CACHE1_HASH                             0x00001258
+#define NV_PFIFO_CACHE1_GET                              0x00001270
 #define NV_PFIFO_CACHE1_ENGINE                           0x00001280
 #define NV_PFIFO_CACHE1_DMA_DCOUNT                       0x000012A0
 #   define NV_PFIFO_CACHE1_DMA_DCOUNT_VALUE                   0x00001FFC
@@ -543,7 +554,11 @@
 #define NV_PCRTC_START                                   0x00000800
 #define NV_PCRTC_CONFIG                                  0x00000804
 
+#define NV_PRMCIO_CRX__COLOR                             0x000003D4
+#define NV_PRMCIO_CR__COLOR                              0x000003D5
 
+#define NV_PVIDEO_DEBUG_2                                0x00000088
+#define NV_PVIDEO_DEBUG_3                                0x0000008C
 #define NV_PVIDEO_INTR                                   0x00000100
 #   define NV_PVIDEO_INTR_BUFFER_0                              (1 << 0)
 #   define NV_PVIDEO_INTR_BUFFER_1                              (1 << 4)
@@ -554,26 +569,26 @@
 #   define NV_PVIDEO_BUFFER_0_USE                               (1 << 0)
 #   define NV_PVIDEO_BUFFER_1_USE                               (1 << 4)
 #define NV_PVIDEO_STOP                                   0x00000704
-#define NV_PVIDEO_BASE                                   0x00000900
-#define NV_PVIDEO_LIMIT                                  0x00000908
-#define NV_PVIDEO_LUMINANCE                              0x00000910
-#define NV_PVIDEO_CHROMINANCE                            0x00000918
-#define NV_PVIDEO_OFFSET                                 0x00000920
-#define NV_PVIDEO_SIZE_IN                                0x00000928
+#define NV_PVIDEO_BASE(i)                                0x00000900 + (i * 4)
+#define NV_PVIDEO_LIMIT(i)                               0x00000908 + (i * 4)
+#define NV_PVIDEO_LUMINANCE(i)                           0x00000910 + (i * 4)
+#define NV_PVIDEO_CHROMINANCE(i)                         0x00000918 + (i * 4)
+#define NV_PVIDEO_OFFSET(i)                              0x00000920 + (i * 4)
+#define NV_PVIDEO_SIZE_IN(i)                             0x00000928 + (i * 4)
 #   define NV_PVIDEO_SIZE_IN_WIDTH                            0x000007FF
 #   define NV_PVIDEO_SIZE_IN_HEIGHT                           0x07FF0000
-#define NV_PVIDEO_POINT_IN                               0x00000930
+#define NV_PVIDEO_POINT_IN(i)                            0x00000930 + (i * 4)
 #   define NV_PVIDEO_POINT_IN_S                               0x00007FFF
 #   define NV_PVIDEO_POINT_IN_T                               0xFFFE0000
-#define NV_PVIDEO_DS_DX                                  0x00000938
-#define NV_PVIDEO_DT_DY                                  0x00000940
-#define NV_PVIDEO_POINT_OUT                              0x00000948
+#define NV_PVIDEO_DS_DX(i)                               0x00000938 + (i * 4)
+#define NV_PVIDEO_DT_DY(i)                               0x00000940 + (i * 4)
+#define NV_PVIDEO_POINT_OUT(i)                           0x00000948 + (i * 4)
 #   define NV_PVIDEO_POINT_OUT_X                              0x00000FFF
 #   define NV_PVIDEO_POINT_OUT_Y                              0x0FFF0000
-#define NV_PVIDEO_SIZE_OUT                               0x00000950
+#define NV_PVIDEO_SIZE_OUT(i)                            0x00000950 + (i * 4)
 #   define NV_PVIDEO_SIZE_OUT_WIDTH                           0x00000FFF
 #   define NV_PVIDEO_SIZE_OUT_HEIGHT                          0x0FFF0000
-#define NV_PVIDEO_FORMAT                                 0x00000958
+#define NV_PVIDEO_FORMAT(i)                              0x00000958 + (i * 4)
 #   define NV_PVIDEO_FORMAT_PITCH                             0x00001FFF
 #   define NV_PVIDEO_FORMAT_COLOR                             0x00030000
 #       define NV_PVIDEO_FORMAT_COLOR_LE_CR8YB8CB8YA8             1
@@ -594,6 +609,7 @@
 #define NV_PFB_DEBUG_0                                   0x00000080
 #define NV_PFB_CFG0                                      0x00000200
 #   define NV_PFB_CFG0_PART                                   0x00000003
+#define NV_PFB_CFG1                                      0x00000204
 #define NV_PFB_CSTATUS                                   0x0000020C
 #define NV_PFB_REFCTRL                                   0x00000210
 #define NV_PFB_NVM                                       0x00000214 // 	NV_PFB_NVM_MODE_DISABLE 
