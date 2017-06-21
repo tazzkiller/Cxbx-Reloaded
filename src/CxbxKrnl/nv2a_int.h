@@ -230,6 +230,9 @@
 #   define NV_PGRAPH_CTX_SWITCH1_CONTEXT_BETA1                 (1 << 29)
 #   define NV_PGRAPH_CTX_SWITCH1_CONTEXT_BETA4                 (1 << 30)
 #   define NV_PGRAPH_CTX_SWITCH1_VOLATILE_RESET                (1 << 31)
+#define NV_PGRAPH_CTX_SWITCH2                            0x00000150
+#define NV_PGRAPH_CTX_SWITCH3                            0x00000154
+#define NV_PGRAPH_CTX_SWITCH4                            0x00000158
 #define NV_PGRAPH_STATUS                                 0x00000700
 #define NV_PGRAPH_TRAPPED_ADDR                           0x00000704
 #   define NV_PGRAPH_TRAPPED_ADDR_MTHD                        0x00001FFF
@@ -246,6 +249,9 @@
 #   define NV_PGRAPH_INCREMENT_READ_3D                          (1 << 1)
 #define NV_PGRAPH_FIFO                                   0x00000720
 #   define NV_PGRAPH_FIFO_ACCESS                                (1 << 0)
+#define NV_PGRAPH_RDI_INDEX                              0x00000750
+#define NV_PGRAPH_RDI_DATA                               0x00000754
+#define NV_PGRAPH_FFINTFC_ST2                            0x00000764
 #define NV_PGRAPH_CHANNEL_CTX_TABLE                      0x00000780
 #   define NV_PGRAPH_CHANNEL_CTX_TABLE_INST                   0x0000FFFF
 #define NV_PGRAPH_CHANNEL_CTX_POINTER                    0x00000784
@@ -254,6 +260,14 @@
 #   define NV_PGRAPH_CHANNEL_CTX_TRIGGER_READ_IN                (1 << 0)
 #   define NV_PGRAPH_CHANNEL_CTX_TRIGGER_WRITE_OUT              (1 << 1)
 #define NV_PGRAPH_DEBUG_2                                0x00000880
+#define NV_PGRAPH_TTILE(i)                               0x00000900 + (i * 0x10)
+#define NV_PGRAPH_TLIMIT(i)                              0x00000904 + (i * 0x10)
+#define NV_PGRAPH_TSIZE(i)                               0x00000908 + (i * 0x10)
+#define NV_PGRAPH_TSTATUS(i)                             0x0000090C + (i * 0x10)
+#define NV_PGRAPH_ZCOMP(i)                               0x00000980 + (i * 4)
+#define NV_PGRAPH_ZCOMP_OFFSET                           0x000009A0
+#define NV_PGRAPH_FBCFG0                                 0x000009A4
+#define NV_PGRAPH_FBCFG1                                 0x000009A8
 #define NV_PGRAPH_DEBUG_6                                0x00000B80
 #define NV_PGRAPH_DEBUG_7                                0x00000B84
 #define NV_PGRAPH_DEBUG_10                               0x00000B88
@@ -640,7 +654,8 @@
 #define NV_PFB_EMRS_EXT                                  0x000002CC
 #define NV_PFB_REF                                       0x000002D0
 #define NV_PFB_PRE                                       0x000002D4
-#define NV_PFB_ZCOMP                        0x00000300
+#define NV_PFB_ZCOMP(i)                                  0x00000300 + (i * 4)
+#define NV_PFB_ZCOMP_OFFSET                              0x00000324
 #define NV_PFB_ARB_PREDIVIDER                            0x00000328
 #define NV_PFB_ARB_TIMEOUT                               0x0000032C
 #define NV_PFB_ARB_XFER_REM                              0x00000334
