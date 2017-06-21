@@ -1057,7 +1057,7 @@ OOVPA_END;
 // ******************************************************************
 OOVPATable D3D8_4361[] = {
 
-	REGISTER_OOVPA(D3D_CMiniport_InitHardware, 4361, PATCH),
+	REGISTER_OOVPA(CMiniport_InitHardware, 4361, PATCH),
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 4361, DISABLED),
 
 	REGISTER_OOVPA(Direct3D_CreateDevice, 3911, PATCH), // Was 4361
