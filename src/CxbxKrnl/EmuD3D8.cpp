@@ -10207,6 +10207,7 @@ void DumpPushBufferContents()
 	int i = 0;
 	while (PushBuffer[i] != 0)
 	{
+		LOG_TEST_CASE("");
 		// TODO : Convert NV2A methods to readable string, dump arguments, later on: execute commands
 		DbgPrintf("PushBuffer[%4d] : 0x%X\n", i, PushBuffer[i]);
 		i++;
