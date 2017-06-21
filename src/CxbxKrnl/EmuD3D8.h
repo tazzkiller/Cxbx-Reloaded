@@ -86,6 +86,27 @@ XTL::IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelCo
 XTL::IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer *pXboxVertexBuffer);
 
 // ******************************************************************
+// * patch: CMiniport_InitHardware
+// ******************************************************************
+BOOL __fastcall EMUPATCH(CMiniport_InitHardware)
+(
+	PVOID This
+);
+
+// ******************************************************************
+// * patch: CMiniport_CreateCtxDmaObject
+// ******************************************************************
+INT __fastcall EMUPATCH(CMiniport_CreateCtxDmaObject)
+(
+	PVOID This,
+	INT a2,
+	INT a3,
+	PVOID a4,
+	PVOID a5,
+	PVOID a6
+);
+
+// ******************************************************************
 // * patch: Direct3D_CreateDevice
 // ******************************************************************
 HRESULT WINAPI EMUPATCH(Direct3D_CreateDevice)

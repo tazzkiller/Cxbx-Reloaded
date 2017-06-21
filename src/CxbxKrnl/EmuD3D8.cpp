@@ -2828,9 +2828,79 @@ void CxbxUpdateActiveIndexBuffer
 		CxbxKrnlCleanup("CxbxUpdateActiveIndexBuffer: SetIndices Failed!");
 }
 
+void *GPURegisterBase = NULL; // + NV2A_PFB_WC_CACHE = pNV2AWorkTrigger (see Dxbx EmuThreadHandleNV2ADMA)
+DWORD *m_pGPUTime = NULL; // See Dxbx XTL_EmuExecutePushBufferRaw
+
 // ******************************************************************
 // * Start of all D3D patches
 // ******************************************************************
+
+//#define UNPATCH_CREATEDEVICE
+
+// Although EmuNV2A catches all NV2A accesses (producing a lot of detailed logging),
+// this patch on CMiniport::InitHardware skips all that, and just initialiazes the
+// CMiniport::m_RegisterBase so there's some memory to play with.
+BOOL __fastcall XTL::EMUPATCH(CMiniport_InitHardware)
+(
+	PVOID This
+)
+{
+#ifdef UNPATCH_CREATEDEVICE
+	FUNC_EXPORTS
+#endif
+
+	LOG_FUNC_ONE_ARG(This);
+
+	// CMiniport::MapRegisters() sets m_RegisterBase (the first member of CMiniport) to 0xFD000000 (NV2A_ADDR)
+	// That address isn't memory-mapped, and thus would cause lots of exceptions,
+	// so instead we allocate a buffer in host virtual memory
+	GPURegisterBase = g_MemoryManager.AllocateZeroed(1, 2 * 1024 * 1024); // PatrickvL : I've seen RegisterBase offsets up to $00100410 so 2 MB should suffice
+	// And put that in the m_RegisterBase field :
+	*((void **)This) = GPURegisterBase;
+	DbgPrintf("Allocated a block of 2 MB to serve as the GPUs RegisterBase at 0x%.08x\n", GPURegisterBase);
+
+	RETURN(true);
+}
+
+INT __fastcall XTL::EMUPATCH(CMiniport_CreateCtxDmaObject)
+(
+	PVOID This,
+	INT a2,
+	INT a3,
+	PVOID a4,
+	PVOID a5,
+	PVOID a6
+)
+{
+#ifdef UNPATCH_CREATEDEVICE
+	FUNC_EXPORTS
+#endif
+
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(This)
+		LOG_FUNC_ARG(a2)
+		LOG_FUNC_ARG(a3)
+		LOG_FUNC_ARG(a4)
+		LOG_FUNC_ARG(a5)
+		LOG_FUNC_ARG(a6)
+		LOG_FUNC_END;
+
+
+	switch (a2) {
+	case 8: { // = notification of semaphore address
+		// Remember where the semaphore (starting with a GPU Time DWORD) was allocated
+		// (we could have trapped MmAllocateContiguousMemoryEx too, but this is simpler) :
+		m_pGPUTime = (PDWORD)a4;
+		DbgPrintf("Registered m_pGPUTime at 0x%0.8x\n", m_pGPUTime);
+		break;
+	}
+	default: {
+		LOG_UNIMPLEMENTED("a2");
+	}
+	}
+
+	return S_OK;
+}
 
 HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 (
@@ -2842,7 +2912,9 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
     IDirect3DDevice8          **ppReturnedDeviceInterface
 )
 {
+#ifndef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Adapter)
