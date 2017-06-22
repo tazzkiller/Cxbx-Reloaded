@@ -161,32 +161,32 @@ OOVPA_END;
 // ******************************************************************
 OOVPATable XAPI_5558[] = {
 
-	REGISTER_OOVPA(SetThreadPriority, 3911, PATCH),
-	REGISTER_OOVPA(XRegisterThreadNotifyRoutine, 3911, PATCH),
-	REGISTER_OOVPA(XMountUtilityDrive, 4432, PATCH),
-	REGISTER_OOVPA(XInitDevices, 5233, PATCH),
-	REGISTER_OOVPA(XGetDevices, 3911, PATCH),
-	REGISTER_OOVPA(XGetDeviceChanges, 5233, PATCH),
-	REGISTER_OOVPA(XInputOpen, 4361, PATCH),
-	REGISTER_OOVPA(XInputGetCapabilities, 5558, PATCH),
-	REGISTER_OOVPA(XInputGetState, 5558, PATCH),
-	REGISTER_OOVPA(XInputSetState, 5233, PATCH),
-	// REGISTER_OOVPA(XapiThreadStartup, 4361, PATCH), // obsolete?
-	REGISTER_OOVPA(XLaunchNewImageA, 5558, PATCH),
-	REGISTER_OOVPA(XGetLaunchInfo, 3911, DISABLED),
-	REGISTER_OOVPA(QueueUserAPC, 3911, PATCH),
-	REGISTER_OOVPA(SetThreadPriorityBoost, 3911, PATCH),
-	REGISTER_OOVPA(GetThreadPriority, 3911, PATCH),
-	REGISTER_OOVPA(GetTimeZoneInformation, 3911, DISABLED),
-	REGISTER_OOVPA(XMountMUA, 4361, PATCH),
-	REGISTER_OOVPA(CreateFiber, 3911, DISABLED),
-	REGISTER_OOVPA(DeleteFiber, 3911, DISABLED),
-	REGISTER_OOVPA(SwitchToFiber, 3911, DISABLED),
-	REGISTER_OOVPA(ConvertThreadToFiber, 3911, DISABLED),
-	REGISTER_OOVPA(XapiFiberStartup, 5558, DISABLED),
-	REGISTER_OOVPA(XID_fCloseDevice, 5558, XREF),
-	REGISTER_OOVPA(XInputClose, 5558, PATCH),
-	REGISTER_OOVPA(OutputDebugStringA, 3911, PATCH),
+	REGISTER_OOVPA(SetThreadPriority, 3911), // PATCH 
+	REGISTER_OOVPA(XRegisterThreadNotifyRoutine, 3911), // PATCH 
+	REGISTER_OOVPA(XMountUtilityDrive, 4432), // PATCH 
+	REGISTER_OOVPA(XInitDevices, 5233), // PATCH 
+	REGISTER_OOVPA(XGetDevices, 3911), // PATCH 
+	REGISTER_OOVPA(XGetDeviceChanges, 5233), // PATCH 
+	REGISTER_OOVPA(XInputOpen, 4361), // PATCH 
+	REGISTER_OOVPA(XInputGetCapabilities, 5558), // PATCH 
+	REGISTER_OOVPA(XInputGetState, 5558), // PATCH 
+	REGISTER_OOVPA(XInputSetState, 5233), // PATCH 
+	// REGISTER_OOVPA(XapiThreadStartup, 4361), // PATCH obsolete?
+	REGISTER_OOVPA(XLaunchNewImageA, 5558), // PATCH 
+	REGISTER_OOVPA(XGetLaunchInfo, 3911), // DISABLED
+	REGISTER_OOVPA(QueueUserAPC, 3911), // PATCH 
+	REGISTER_OOVPA(SetThreadPriorityBoost, 3911), // PATCH 
+	REGISTER_OOVPA(GetThreadPriority, 3911), // PATCH 
+	REGISTER_OOVPA(GetTimeZoneInformation, 3911), // DISABLED
+	REGISTER_OOVPA(XMountMUA, 4361), // PATCH 
+	REGISTER_OOVPA(CreateFiber, 3911), // DISABLED
+	REGISTER_OOVPA(DeleteFiber, 3911), // DISABLED
+	REGISTER_OOVPA(SwitchToFiber, 3911), // DISABLED
+	REGISTER_OOVPA(ConvertThreadToFiber, 3911), // DISABLED
+	REGISTER_OOVPA(XapiFiberStartup, 5558), // DISABLED
+	REGISTER_OOVPA(XID_fCloseDevice, 5558), // XREF
+	REGISTER_OOVPA(XInputClose, 5558), // PATCH 
+	REGISTER_OOVPA(OutputDebugStringA, 3911), // PATCH 
 };
 
 // ******************************************************************

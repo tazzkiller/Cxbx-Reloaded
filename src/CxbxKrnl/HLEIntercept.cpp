@@ -160,57 +160,8 @@ void SetGlobalSymbols()
 #endif
 }
 
-void CheckHLEExports()
-{
-	for (uint32 d = 0; d < HLEDataBaseCount; d++) {
-		const HLEData *FoundHLEData = &HLEDataBase[d];
-		auto OovpaTable = FoundHLEData->OovpaTable;
-		for (size_t a = 0; a < FoundHLEData->OovpaTableSize / sizeof(OOVPATable); a++) {
-			bool IsXRef = (OovpaTable[a].Flags & Flag_XRef) > 0;
-			bool DontPatch = (OovpaTable[a].Flags & Flag_DontPatch) > 0;
-			void* addr = GetEmuPatchAddr(std::string(OovpaTable[a].szFuncName));
-			if (DontPatch) {
-				if (IsXRef) {
-					DbgPrintf("DISABLED and XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
-				}
-			}
-
-			if (addr != nullptr) {
-				if (DontPatch) {
-					DbgPrintf("Patch available, but DISABLED : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
-				}
-
-				if (IsXRef) {
-					DbgPrintf("Patch available, but XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
-				}
-			}
-			else {
-				if (DontPatch) {
-					//  No patch available, and DISABLED is correct
-				}
-				else {
-					if (IsXRef) {
-						// No patch available, and XREF is correct
-					}
-					else {
-						// This message pops up almost 200 times, all are patches that
-						// are being removed because emulation is done one step lower (reading
-						// XDK state variables).
-						// Disable this message, as it won't matter once we start refactoring
-						// the HLE databases (removing the DISABLED/XREF/PATCH distinction,
-						// and merging registation of all versions of a symbol into one line).
-						// DbgPrintf("No patch available, but not DISABLED nor XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
-					}
-				}
-			}
-		}
-	}
-}
-
 void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 {
-	CheckHLEExports();
-
 	Xbe::LibraryVersion *pLibraryVersion = (Xbe::LibraryVersion*)pXbeHeader->dwLibraryVersionsAddr;
 
     printf("\n");
@@ -871,11 +822,6 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
     // traverse the full OOVPA table
     for(size_t a=0;a<OovpaTableSize/sizeof(OOVPATable);a++)
     {
-		// Never used : skip scans when so configured
-		bool DontScan = (OovpaTable[a].Flags & Flag_DontScan) > 0;
-		if (DontScan)
-			continue;
-
 		// Skip already found & handled symbols
 		xbaddr pFunc = g_SymbolAddresses[OovpaTable[a].szFuncName];
 		if (pFunc != (xbaddr)nullptr)
@@ -895,34 +841,14 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 		output << "HLE: 0x" << std::setfill('0') << std::setw(8) << std::hex << pFunc
 			<< " -> " << OovpaTable[a].szFuncName << " " << std::dec << OovpaTable[a].Version;
 
-		bool IsXRef = (OovpaTable[a].Flags & Flag_XRef) > 0;
-		if (IsXRef)
-			output << "\t(XREF)";
-
 		// Retrieve the associated patch, if any is available
 		void* addr = GetEmuPatchAddr(std::string(OovpaTable[a].szFuncName));
-		bool DontPatch = (OovpaTable[a].Flags & Flag_DontPatch) > 0;
-		if (DontPatch)
-		{
-			// Mention if there's an unused patch
-			if (addr != nullptr)
-				output << "\t*PATCH UNUSED!*";
-			else
-				output << "\t*DISABLED*";
+		if (addr != nullptr) {
+			EmuInstallPatch(pFunc, addr);
+			output << "\t*PATCHED*";
 		}
-		else
-		{
-			if (addr != nullptr)
-			{
-				EmuInstallPatch(pFunc, addr);
-				output << "\t*PATCHED*";
-			}
-			else
-			{
-				// Mention there's no patch available, if it was to be applied
-				if (!IsXRef) // TODO : Remove this restriction once we patch xrefs regularly
-					output << "\t*NO PATCH AVAILABLE!*";
-			}
+		else {
+			output << "\t*NO PATCH AVAILABLE*";
 		}
 
 		output << "\n";
@@ -1082,24 +1008,6 @@ void VerifyHLEDataEntry(HLEVerifyContext *context, const OOVPATable *table, uint
 		context->main_index = index;
 	} else {
 		context->against_index = index;
-	}
-
-	if (context->against == nullptr) {
-		if (table[index].Flags & Flag_DontPatch)
-		{
-			if (GetEmuPatchAddr((std::string)table[index].szFuncName))
-			{
-				HLEError(context, "OOVPA registration DISABLED while a patch exists!");
-			}
-		}
-		else
-		if (table[index].Flags & Flag_XRef)
-		{
-			if (GetEmuPatchAddr((std::string)table[index].szFuncName))
-			{
-				HLEError(context, "OOVPA registration XREF while a patch exists!");
-			}
-		}
 	}
 
 	// verify the OOVPA of this entry

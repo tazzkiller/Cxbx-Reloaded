@@ -36,31 +36,31 @@
 // * XAPI_4721
 // ******************************************************************
 OOVPATable XAPI_4721[] = {
-    // REGISTER_OOVPA(RtlCreateHeap, 3911, PATCH), // obsolete, (* unchanged since 1.0.4361 *) (* OR FARTHER *)
-    // REGISTER_OOVPA(RtlAllocateHeap, 3911, PATCH), // obsolete (* unchanged since 1.0.4361 *) (* OR FARTHER *)
-    // REGISTER_OOVPA(RtlReAllocateHeap, 4627, PATCH), // obsolete 
-    // REGISTER_OOVPA(RtlFreeHeap, 4627, PATCH), // obsolete 
-    // REGISTER_OOVPA(RtlSizeHeap, 4627, PATCH), // obsolete 
-	// REGISTER_OOVPA(RtlDestroyHeap, 4627, PATCH), // obsolete 
-	REGISTER_OOVPA(XMountUtilityDrive, 4432, PATCH),
-	REGISTER_OOVPA(XInitDevices, 3911, PATCH),
-	REGISTER_OOVPA(XGetDevices, 3911, PATCH),
-	REGISTER_OOVPA(XInputOpen, 4361, PATCH),
-	REGISTER_OOVPA(XInputGetCapabilities, 4361, PATCH),
-	REGISTER_OOVPA(XInputGetState, 4361, PATCH),
-	REGISTER_OOVPA(XInputSetState, 4361, PATCH),
-	REGISTER_OOVPA(XID_fCloseDevice, 4361, XREF),
-	REGISTER_OOVPA(XInputClose, 3911, PATCH),
-	// REGISTER_OOVPA(XInputClose, 4361, PATCH),
-	REGISTER_OOVPA(XGetDeviceChanges, 3911, PATCH),
-	// REGISTER_OOVPA(XapiThreadStartup, 4361, PATCH), // obsolete 
-	// REGISTER_OOVPA(XapiInitProcess, 4361, PATCH), // obsolete, Too High Level
-    // REGISTER_OOVPA(XapiBootDash, 3911, PATCH), // obsolete 
-	REGISTER_OOVPA(CreateFiber, 3911, DISABLED),
-	REGISTER_OOVPA(DeleteFiber, 3911, DISABLED),
-	REGISTER_OOVPA(SwitchToFiber, 3911, DISABLED),
-	REGISTER_OOVPA(ConvertThreadToFiber, 3911, DISABLED),
-	REGISTER_OOVPA(OutputDebugStringA, 3911, PATCH),
+    // REGISTER_OOVPA(RtlCreateHeap, 3911), // PATCH obsolete, (* unchanged since 1.0.4361 *) (* OR FARTHER *)
+    // REGISTER_OOVPA(RtlAllocateHeap, 3911), // PATCH obsolete (* unchanged since 1.0.4361 *) (* OR FARTHER *)
+    // REGISTER_OOVPA(RtlReAllocateHeap, 4627), // PATCH obsolete 
+    // REGISTER_OOVPA(RtlFreeHeap, 4627), // PATCH obsolete 
+    // REGISTER_OOVPA(RtlSizeHeap, 4627), // PATCH obsolete 
+	// REGISTER_OOVPA(RtlDestroyHeap, 4627), // PATCH obsolete 
+	REGISTER_OOVPA(XMountUtilityDrive, 4432), // PATCH 
+	REGISTER_OOVPA(XInitDevices, 3911), // PATCH 
+	REGISTER_OOVPA(XGetDevices, 3911), // PATCH 
+	REGISTER_OOVPA(XInputOpen, 4361), // PATCH 
+	REGISTER_OOVPA(XInputGetCapabilities, 4361), // PATCH 
+	REGISTER_OOVPA(XInputGetState, 4361), // PATCH 
+	REGISTER_OOVPA(XInputSetState, 4361), // PATCH 
+	REGISTER_OOVPA(XID_fCloseDevice, 4361), // XREF
+	REGISTER_OOVPA(XInputClose, 3911), // PATCH 
+	// REGISTER_OOVPA(XInputClose, 4361), // PATCH 
+	REGISTER_OOVPA(XGetDeviceChanges, 3911), // PATCH 
+	// REGISTER_OOVPA(XapiThreadStartup, 4361), // PATCH obsolete 
+	// REGISTER_OOVPA(XapiInitProcess, 4361), // PATCH obsolete, Too High Level
+    // REGISTER_OOVPA(XapiBootDash, 3911), // PATCH obsolete 
+	REGISTER_OOVPA(CreateFiber, 3911), // DISABLED
+	REGISTER_OOVPA(DeleteFiber, 3911), // DISABLED
+	REGISTER_OOVPA(SwitchToFiber, 3911), // DISABLED
+	REGISTER_OOVPA(ConvertThreadToFiber, 3911), // DISABLED
+	REGISTER_OOVPA(OutputDebugStringA, 3911), // PATCH 
 };
 
 // ******************************************************************

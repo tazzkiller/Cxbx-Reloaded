@@ -37,8 +37,8 @@
 // ******************************************************************
 OOVPATable XG_5344[] = {
 
-	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, DISABLED),
-	// REGISTER_OOVPA(XGSwizzleRect, 4361, DISABLED), // TODO : Uncomment
+	REGISTER_OOVPA(XGIsSwizzledFormat, 4361), // DISABLED
+	// REGISTER_OOVPA(XGSwizzleRect, 4361), // DISABLED TODO : Uncomment
 };
 
 // ******************************************************************
