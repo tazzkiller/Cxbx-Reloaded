@@ -108,9 +108,9 @@ void ReleasePatchedStream(XTL::CxbxPatchedStream *pPatchedStream)
 
 XTL::CxbxVertexBufferConverter::CxbxVertexBufferConverter()
 {
-    this->m_uiNbrStreams = 0;
-    ZeroMemory(this->m_PatchedStreams, sizeof(CxbxPatchedStream) * MAX_NBR_STREAMS);
-    this->m_pVertexShaderDynamicPatch = nullptr;
+    m_uiNbrStreams = 0;
+    ZeroMemory(m_PatchedStreams, sizeof(CxbxPatchedStream) * MAX_NBR_STREAMS);
+    m_pVertexShaderDynamicPatch = nullptr;
 }
 
 XTL::CxbxVertexBufferConverter::~CxbxVertexBufferConverter()
