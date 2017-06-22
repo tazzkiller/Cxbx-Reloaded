@@ -160,8 +160,43 @@ void SetGlobalSymbols()
 #endif
 }
 
+void CheckHLEExports()
+{
+	for (uint32 d = 0; d < HLEDataBaseCount; d++) {
+		const HLEData *FoundHLEData = &HLEDataBase[d];
+		auto OovpaTable = FoundHLEData->OovpaTable;
+		for (size_t a = 0; a < FoundHLEData->OovpaTableSize / sizeof(OOVPATable); a++) {
+			bool IsXRef = (OovpaTable[a].Flags & Flag_XRef) > 0;
+			bool DontPatch = (OovpaTable[a].Flags & Flag_DontPatch) > 0;
+			void* addr = GetEmuPatchAddr(std::string(OovpaTable[a].szFuncName));
+			if (DontPatch) {
+				if (IsXRef) {
+					DbgPrintf("DISABLED and XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
+				}
+			}
+
+			if (addr != nullptr) {
+				if (DontPatch) {
+					DbgPrintf("DISABLED, but patch available : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
+				}
+
+				if (IsXRef) {
+					DbgPrintf("XREF, but patch available : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
+				}
+			}
+			else {
+				if (!DontPatch) {
+//					DbgPrintf("Not DISABLED, but NO patch available : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
+				}
+			}
+		}
+	}
+}
+
 void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 {
+	CheckHLEExports();
+
 	Xbe::LibraryVersion *pLibraryVersion = (Xbe::LibraryVersion*)pXbeHeader->dwLibraryVersionsAddr;
 
     printf("\n");
