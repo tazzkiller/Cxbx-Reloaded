@@ -190,14 +190,11 @@ void XTL::CxbxVertexBufferConverter::CacheStream
 
 void XTL::CxbxVertexBufferConverter::FreeCachedStream(void *pKey)
 {
-    g_PatchedStreamsCache.Lock();
 	CxbxCachedStream *pCachedStream = (CxbxCachedStream *)g_PatchedStreamsCache.remove(pKey);
     if (pCachedStream != nullptr) {
 		ReleasePatchedStream(&pCachedStream->Stream);
 		free(pCachedStream);
     }
-
-    g_PatchedStreamsCache.Unlock();
 }
 
 bool XTL::CxbxVertexBufferConverter::ApplyCachedStream
