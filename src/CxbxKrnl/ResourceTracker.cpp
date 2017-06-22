@@ -60,7 +60,7 @@ ResourceTracker::~ResourceTracker()
 
 void ResourceTracker::clear()
 {
-    this->Lock();
+    Lock();
     RTNode *cur = m_head;
     while(cur != nullptr) {
         RTNode *tmp = cur->pNext;
@@ -69,7 +69,7 @@ void ResourceTracker::clear()
     }
 
     m_head = m_tail = nullptr;
-    this->Unlock();
+    Unlock();
 }
 
 void ResourceTracker::insert(void *pResource)
@@ -79,7 +79,7 @@ void ResourceTracker::insert(void *pResource)
 
 void ResourceTracker::insert(void *pKey, void *pResource)
 {
-    this->Lock();
+    Lock();
 	if (!exists(pKey)) {
 		if (m_head == nullptr) {
 			m_head = m_tail = new RTNode();
@@ -93,14 +93,14 @@ void ResourceTracker::insert(void *pKey, void *pResource)
 		m_tail->pNext = nullptr;
 	}
 
-	this->Unlock();
+	Unlock();
 }
 
 void *ResourceTracker::remove(void *pKey)
 {
 	void *result = NULL;
     RTNode *pre = nullptr;
-    this->Lock();
+    Lock();
     RTNode *cur = m_head;
     while(cur != nullptr) {
         if(cur->pKey == pKey) {
@@ -123,17 +123,18 @@ void *ResourceTracker::remove(void *pKey)
         cur = cur->pNext;
     }
 
-    this->Unlock();
+    Unlock();
+
 	return result;
 }
 
 bool ResourceTracker::exists(void *pKey)
 {
-    this->Lock();
+    Lock();
     RTNode *cur = m_head;
     while(cur != nullptr) {
         if(cur->pKey == pKey) {
-            this->Unlock();
+            Unlock();
 
             return true;
         }
@@ -141,8 +142,7 @@ bool ResourceTracker::exists(void *pKey)
         cur = cur->pNext;
     }
 
-    this->Unlock();
-
+    Unlock();
     return false;
 }
 
@@ -163,14 +163,14 @@ void *ResourceTracker::get(void *pKey)
 uint32 ResourceTracker::get_count(void)
 {
     uint32 uiCount = 0;
-    this->Lock();
+    Lock();
     RTNode *cur = m_head;
     while(cur != nullptr) {
         uiCount++;
         cur = cur->pNext;
     }
 
-    this->Unlock();
+    Unlock();
 
     return uiCount;
 }
