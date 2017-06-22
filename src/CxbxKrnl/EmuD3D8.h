@@ -83,7 +83,9 @@ inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return Xbox_D3DDevic
 extern void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource);
 
 XTL::IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, const DWORD *pPalette);
+#if 0
 XTL::IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer *pXboxVertexBuffer);
+#endif
 
 // ******************************************************************
 // * patch: CMiniport_InitHardware
