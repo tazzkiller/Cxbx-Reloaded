@@ -40,6 +40,8 @@
 //#include "EmuXTL.h"
 #include "Logging.h"
 
+extern const char *D3DErrorString(HRESULT hResult);
+
 namespace XTL
 {
 #include "EmuD3D8Types.h"

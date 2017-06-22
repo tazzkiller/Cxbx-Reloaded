@@ -43,6 +43,7 @@
 #include "CxbxKrnl/EmuXTL.h"
 #include "CxbxKrnl/ResourceTracker.h"
 #include "CxbxKrnl/MemoryManager.h"
+#include "CxbxKrnl/EmuD3D8Logging.h"
 
 #include <ctime>
 
@@ -77,6 +78,8 @@ void ActivatePatchedStream
 	XTL::CxbxPatchedStream *pPatchedStream
 )
 {
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
 	// Use the cached stream values on the host
 	if (pPatchedStream->bCacheIsStreamZeroDrawUP) {
 		// Set the UserPointer variables in the drawing context
@@ -84,7 +87,10 @@ void ActivatePatchedStream
 		pDrawContext->uiHostVertexStreamZeroStride = pPatchedStream->uiCachedHostVertexStride;
 	}
 	else {
-		if (FAILED(g_pD3DDevice8->SetStreamSource(uiStream, pPatchedStream->pCachedHostVertexBuffer, pPatchedStream->uiCachedHostVertexStride)))
+		HRESULT hRet = g_pD3DDevice8->SetStreamSource(uiStream, pPatchedStream->pCachedHostVertexBuffer, pPatchedStream->uiCachedHostVertexStride);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetStreamSource");
+
+		if (FAILED(hRet))
 			XTL::CxbxKrnlCleanup("Failed to set the type patched buffer as the new stream source!\n");
 	}
 }
@@ -287,6 +293,9 @@ bool XTL::CxbxVertexBufferConverter::ConvertStream
     UINT             uiStream
 )
 {
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
+	HRESULT hRet;
 	bool bVshHandleIsFVF = VshHandleIsFVF(pDrawContext->hVertexShader);
 	bool bNeedTextureNormalization = false;
 	struct { bool bTexIsLinear; int Width; int Height; } pActivePixelContainer[X_D3DTSS_STAGECOUNT] = { 0 };
@@ -365,10 +374,19 @@ bool XTL::CxbxVertexBufferConverter::ConvertStream
 		// the missing parts in the CompressedVertices sample (in Vertex shader mode).
 		uiHostVertexStride = (bNeedVertexPatching) ? pStreamDynamicPatch->ConvertedStride : uiXboxVertexStride;
 		dwHostVertexDataSize = uiVertexCount * uiHostVertexStride;
-		g_pD3DDevice8->CreateVertexBuffer(dwHostVertexDataSize, 0, 0, XTL::D3DPOOL_MANAGED, &pNewHostVertexBuffer);
-        if (FAILED(pNewHostVertexBuffer->Lock(0, 0, &pHostVertexData, D3DLOCK_DISCARD)))
+
+		hRet = g_pD3DDevice8->CreateVertexBuffer(dwHostVertexDataSize, 0, 0, XTL::D3DPOOL_MANAGED, &pNewHostVertexBuffer);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateVertexBuffer");
+
+		if (SUCCEEDED(hRet))
+			DbgPrintf("CxbxVertexBufferConverter::ConvertStream : Successfully Created VertexBuffer (0x%.08X)\n", pNewHostVertexBuffer);
+
+		hRet = pNewHostVertexBuffer->Lock(0, 0, &pHostVertexData, D3DLOCK_DISCARD);
+		DEBUG_D3DRESULT(hRet, "pNewHostVertexBuffer->Lock");
+
+        if (FAILED(hRet))
             CxbxKrnlCleanup("Couldn't lock the new buffer");
-        
+
 		bNeedStreamCopy = true;
     }
 
@@ -558,7 +576,9 @@ bool XTL::CxbxVertexBufferConverter::ConvertStream
 		pPatchedStream->bCachedHostVertexStreamZeroDataIsAllocated = bNeedStreamCopy;
     }
 	else {
-		pNewHostVertexBuffer->Unlock();
+		hRet = pNewHostVertexBuffer->Unlock();
+		DEBUG_D3DRESULT(hRet, "pNewHostVertexBuffer->Unlock");
+
 		pPatchedStream->pCachedHostVertexBuffer = pNewHostVertexBuffer;
 	}
 
@@ -647,7 +667,9 @@ void XTL::CxbxVertexBufferConverter::Restore()
 
 VOID XTL::EmuFlushIVB()
 {
-    XTL::DxbxUpdateDeferredStates();
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
+	XTL::DxbxUpdateDeferredStates();
 
     // Parse IVB table with current FVF shader if possible.
     boolean bFVF = VshHandleIsFVF(g_CurrentVertexShader);
@@ -798,10 +820,16 @@ VOID XTL::EmuFlushIVB()
 //    bFVF = true; // This fixes jumping triangles on Nvidia chipsets, as suggested by Defiance
     // As a result however, this change also seems to remove the texture of the fonts in XSokoban!?!
 
-    if (bFVF)
-        g_pD3DDevice8->SetVertexShader(dwCurFVF);
+	HRESULT hRet;
+
+	if (bFVF) {
+		hRet = g_pD3DDevice8->SetVertexShader(dwCurFVF);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetVertexShader");
+	}
 
 	CxbxDrawPrimitiveUP(DrawContext);
-    if (bFVF)
-        g_pD3DDevice8->SetVertexShader(g_CurrentVertexShader);
+	if (bFVF) {
+		hRet = g_pD3DDevice8->SetVertexShader(g_CurrentVertexShader);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetVertexShader");
+	}
 }
