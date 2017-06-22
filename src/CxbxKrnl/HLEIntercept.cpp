@@ -177,16 +177,28 @@ void CheckHLEExports()
 
 			if (addr != nullptr) {
 				if (DontPatch) {
-					DbgPrintf("DISABLED, but patch available : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
+					DbgPrintf("Patch available, but DISABLED : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
 				}
 
 				if (IsXRef) {
-					DbgPrintf("XREF, but patch available : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
+					DbgPrintf("Patch available, but XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
 				}
 			}
 			else {
-				if (!DontPatch) {
-//					DbgPrintf("Not DISABLED, but NO patch available : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
+				if (DontPatch) {
+					//  No patch available, and DISABLED is correct
+				}
+				else {
+					if (IsXRef) {
+						// No patch available, and XREF is correct
+					}
+					else {
+						// This message pops up almost 200 times, almost all are patches that
+						// are being removed because emulation is done one step lower (reading
+						// XDK state variables).
+						// Exceptions : D3DDevice_Unknown1 and DirectSoundUseFullHRTF
+						DbgPrintf("No patch available, but no DISABLED nor XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
+					}
 				}
 			}
 		}
