@@ -2208,21 +2208,21 @@ OOVPA_NO_XREF(D3DDevice_AddRef, 3925, 10)
 OOVPA_END;
 
 // ******************************************************************
-// * D3DDevice_Unknown1
+// * D3D_CMiniport_GetDisplayCapabilities // Was D3DDevice_Unknown1
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_Unknown1, 3925, 9)
+OOVPA_NO_XREF(D3D_CMiniport_GetDisplayCapabilities, 3925, 9)
 
-		// D3DDevice_Unknown1+0x00 : xor eax, eax
+		// D3D_CMiniport_GetDisplayCapabilities+0x00 : xor eax, eax
 		{ 0x00, 0x33 },
 		{ 0x01, 0xC0 },
-		// D3DDevice_Unknown1+0x13 : call ds:AvSendTVEncoderOption
+		// D3D_CMiniport_GetDisplayCapabilities+0x13 : call ds:AvSendTVEncoderOption
 		{ 0x13, 0xFF },
 		{ 0x14, 0x15 },
 		{ 0x15, 0x10 },
 		{ 0x16, 0x49 },
 		{ 0x17, 0x2A },
 		{ 0x18, 0x00 },
-		// D3DDevice_Unknown1+0x1E : retn
+		// D3D_CMiniport_GetDisplayCapabilities+0x1E : retn
 		{ 0x1E, 0xC3 },
 OOVPA_END;
 
@@ -4153,7 +4153,7 @@ OOVPATable D3D8_3925[] = {
 	REGISTER_OOVPA(D3DDevice_SetGammaRamp, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetMaterial, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_AddRef, 3925, PATCH),
-	REGISTER_OOVPA(D3DDevice_Unknown1, 3925, PATCH),
+	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 3925, DISABLED), // Was D3DDevice_Unknown1 PATCH
 	REGISTER_OOVPA(D3DDevice_GetViewport, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetGammaRamp, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDisplayFieldStatus, 3925, PATCH),
