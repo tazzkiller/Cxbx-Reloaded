@@ -175,8 +175,7 @@ extern void XTL::EmuExecutePushBufferRaw
     bool bShowPB = false;
 
     g_PBTrackTotal.insert(pdwPushData);
-    if (g_PBTrackShowOnce.exists(pdwPushData)) {
-        g_PBTrackShowOnce.remove(pdwPushData);
+    if (g_PBTrackShowOnce.remove(pdwPushData) != NULL) {
         printf("\n");
         printf("\n");
         printf("  PushBuffer@0x%.08X...\n", pdwPushData);
