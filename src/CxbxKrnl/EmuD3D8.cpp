@@ -5552,6 +5552,7 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
     return result;
 }
 
+#if 0
 XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 (
 	const XTL::X_D3DVertexBuffer  *pXboxVertexBuffer
@@ -5643,6 +5644,7 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 
     return result;
 }
+#endif
 
 XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 (
