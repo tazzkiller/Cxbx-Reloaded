@@ -55,8 +55,8 @@ extern class ResourceTracker : public Mutex
         // insert a ptr using an explicit key
         void insert(void *pKey, void *pResource);
 
-        // remove a ptr using an explicit key
-        void remove(void *pKey);
+        // remove a ptr using an explicit key (locks, returns resource or NULL)
+        void *remove(void *pKey);
 
         // check for existance of an explicit key
         bool exists(void *pKey);
