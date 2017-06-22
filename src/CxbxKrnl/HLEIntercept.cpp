@@ -193,11 +193,13 @@ void CheckHLEExports()
 						// No patch available, and XREF is correct
 					}
 					else {
-						// This message pops up almost 200 times, almost all are patches that
+						// This message pops up almost 200 times, all are patches that
 						// are being removed because emulation is done one step lower (reading
 						// XDK state variables).
-						// Exceptions : D3DDevice_Unknown1 and DirectSoundUseFullHRTF
-						DbgPrintf("No patch available, but no DISABLED nor XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
+						// Disable this message, as it won't matter once we start refactoring
+						// the HLE databases (removing the DISABLED/XREF/PATCH distinction,
+						// and merging registation of all versions of a symbol into one line).
+						// DbgPrintf("No patch available, but not DISABLED nor XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
 					}
 				}
 			}
