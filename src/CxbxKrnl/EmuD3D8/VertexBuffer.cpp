@@ -194,6 +194,9 @@ void XTL::CxbxVertexBufferConverter::CachePatchedStream(CxbxPatchedStream *pPatc
     pStreamCacheEntry->uiCheckCount = 0;
     pStreamCacheEntry->uiCacheHitCount = 0;
     pStreamCacheEntry->lLastUsed = clock();
+	pStreamCacheEntry->Samples[0] = ((DWORD*)pPatchedStream->pCachedXboxVertexData)[0];
+	pStreamCacheEntry->Samples[1] = ((DWORD*)pPatchedStream->pCachedXboxVertexData)[1];
+	pStreamCacheEntry->Samples[2] = ((DWORD*)pPatchedStream->pCachedXboxVertexData)[2];
 	AssignPatchedStream(pStreamCacheEntry->Stream, pPatchedStream);
 	// Mark the cache entry as such, but AFTER AssignPatchedStream,
 	// so that ownership applies only to the cache entry (not the patch itself) :
@@ -263,8 +266,17 @@ bool XTL::CxbxVertexBufferConverter::ApplyCachedStream
 		else if (pStreamCacheEntry->Stream.uiCachedXboxVertexStride < uiXboxVertexStride) {
 			bFoundInCache = false;
 		} // TODO : Verify that equal (and larger) cached strides can really be reused
-		else
-        if (pStreamCacheEntry->uiCheckCount++ >= (pStreamCacheEntry->uiCheckFrequency - 1)) {
+		else if (((DWORD*)pXboxVertexData)[0] != pStreamCacheEntry->Samples[0]) {
+			bFoundInCache = false;
+		}
+		else if (((DWORD*)pXboxVertexData)[1] != pStreamCacheEntry->Samples[1]) {
+			bFoundInCache = false;
+		}
+		else if (((DWORD*)pXboxVertexData)[2] != pStreamCacheEntry->Samples[2]) {
+			bFoundInCache = false;
+		}
+		else if (pStreamCacheEntry->uiCheckCount++ >= (pStreamCacheEntry->uiCheckFrequency - 1))
+		{
             // Hash the Xbox data over the cached stream length (which is a must for the UP stream)
             uint32_t uiHash = XXHash32::hash((void *)pXboxVertexData, pStreamCacheEntry->Stream.uiCachedXboxVertexDataSize, HASH_SEED);
             if (uiHash != pStreamCacheEntry->uiHash) {

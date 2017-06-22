@@ -75,6 +75,7 @@ typedef struct _StreamCacheEntry
     uint32         uiCheckCount;        // XXHash32::hash() check count
     uint32         uiCacheHitCount;
     long           lLastUsed;           // For cache removal purposes
+	DWORD          Samples[3];
     CxbxPatchedStream  Stream;
 } StreamCacheEntry;
 
