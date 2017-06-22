@@ -123,77 +123,74 @@ void XTL::CxbxVertexBufferConverter::DumpCache(void)
     RTNode *pNode = g_PatchedStreamsCache.getHead();
     while(pNode != nullptr)
     {
-        CxbxCachedStream *pCachedStream = (CxbxCachedStream *)pNode->pResource;
-        if (pCachedStream != nullptr)
+        StreamCacheEntry *pStreamCacheEntry = (StreamCacheEntry *)pNode->pResource;
+        if (pStreamCacheEntry != nullptr)
         {
             // TODO: Write nicer dump presentation
             printf("Key: 0x%.08X Cache Hits: %d IsUP: %s OrigStride: %d NewStride: %d HashCount: %d HashFreq: %d Length: %d Hash: 0x%.08X\n",
-                   pNode->pKey, pCachedStream->uiCacheHitCount, pCachedStream->Stream.bCacheIsStreamZeroDrawUP ? "YES" : "NO",
-                   pCachedStream->Stream.uiCachedXboxVertexStride, pCachedStream->Stream.uiCachedHostVertexStride,
-                   pCachedStream->uiCheckCount, pCachedStream->uiCheckFrequency,
-                   pCachedStream->Stream.uiCachedXboxVertexDataSize, pCachedStream->uiHash);
+                   pNode->pKey, pStreamCacheEntry->uiCacheHitCount, pStreamCacheEntry->Stream.bCacheIsStreamZeroDrawUP ? "YES" : "NO",
+                   pStreamCacheEntry->Stream.uiCachedXboxVertexStride, pStreamCacheEntry->Stream.uiCachedHostVertexStride,
+                   pStreamCacheEntry->uiCheckCount, pStreamCacheEntry->uiCheckFrequency,
+                   pStreamCacheEntry->Stream.uiCachedXboxVertexDataSize, pStreamCacheEntry->uiHash);
         }
 
         pNode = pNode->pNext;
     }
 }
 
-void XTL::CxbxVertexBufferConverter::CacheStream
-(
-	CxbxPatchedStream *pPatchedStream
-)
+void XTL::CxbxVertexBufferConverter::CachePatchedStream(CxbxPatchedStream *pPatchedStream)
 {
     // Check if the cache is full, if so, throw away the least used stream
     if (g_PatchedStreamsCache.get_count() > VERTEX_BUFFER_CACHE_SIZE) {
-        void *pKey = NULL;
+        void *pKeyToPrune = NULL;
         uint32 uiMinHitCount = 0xFFFFFFFF;
 		clock_t ctExpiryTime = (clock() - MAX_STREAM_NOT_USED_TIME); // Was addition, seems wrong
-        RTNode *pNode = g_PatchedStreamsCache.getHead();
-        while(pNode != nullptr) {
-			CxbxCachedStream *pNodeStream = (CxbxCachedStream *)pNode->pResource;
-            if (pNodeStream != nullptr) {
+        RTNode *pStreamCacheNode = g_PatchedStreamsCache.getHead();
+        while(pStreamCacheNode != nullptr) {
+			StreamCacheEntry *pStreamCacheNodeEntry = (StreamCacheEntry *)pStreamCacheNode->pResource;
+            if (pStreamCacheNodeEntry != nullptr) {
                 // First, check if there is an "expired" stream in the cache (not recently used)
-                if (pNodeStream->lLastUsed < ctExpiryTime) {
-                    printf("!!!Found an old stream, %2.2f\n", ((FLOAT)(ctExpiryTime - pNodeStream->lLastUsed)) / (FLOAT)CLOCKS_PER_SEC);
-                    pKey = pNode->pKey;
+                if (pStreamCacheNodeEntry->lLastUsed < ctExpiryTime) {
+                    printf("!!!Found an old stream, %2.2f\n", ((FLOAT)(ctExpiryTime - pStreamCacheNodeEntry->lLastUsed)) / (FLOAT)CLOCKS_PER_SEC);
+                    pKeyToPrune = pStreamCacheNode->pKey;
                     break;
                 }
 
                 // Find the least used cached stream
-                if (uiMinHitCount > pNodeStream->uiCacheHitCount) {
-                    uiMinHitCount = pNodeStream->uiCacheHitCount;
-                    pKey = pNode->pKey;
+                if (uiMinHitCount > pStreamCacheNodeEntry->uiCacheHitCount) {
+                    uiMinHitCount = pStreamCacheNodeEntry->uiCacheHitCount;
+                    pKeyToPrune = pStreamCacheNode->pKey;
                 }
             }
 
-            pNode = pNode->pNext;
+            pStreamCacheNode = pStreamCacheNode->pNext;
         }
 
-        if (pKey != NULL) {
+        if (pKeyToPrune != NULL) {
             printf("!!!Removing stream\n\n");
-            FreeCachedStream(pKey);
+            RemovePatchedStream(pKeyToPrune);
         }
     }
 
     // Start the actual stream caching
-	CxbxCachedStream *pCachedStream = (CxbxCachedStream *)calloc(1, sizeof(CxbxCachedStream));
+	StreamCacheEntry *pStreamCacheEntry = (StreamCacheEntry *)calloc(1, sizeof(StreamCacheEntry));
 
-	pCachedStream->uiHash = XXHash32::hash(pPatchedStream->pCachedXboxVertexData, pPatchedStream->uiCachedXboxVertexDataSize, HASH_SEED);
-    pCachedStream->uiCheckFrequency = 1; // Start with checking every 1th Draw..
-    pCachedStream->uiCheckCount = 0;
-    pCachedStream->uiCacheHitCount = 0;
-    pCachedStream->lLastUsed = clock();
-	AssignPatchedStream(pCachedStream->Stream, pPatchedStream);
+	pStreamCacheEntry->uiHash = XXHash32::hash(pPatchedStream->pCachedXboxVertexData, pPatchedStream->uiCachedXboxVertexDataSize, HASH_SEED);
+    pStreamCacheEntry->uiCheckFrequency = 1; // Start with checking every 1th Draw..
+    pStreamCacheEntry->uiCheckCount = 0;
+    pStreamCacheEntry->uiCacheHitCount = 0;
+    pStreamCacheEntry->lLastUsed = clock();
+	AssignPatchedStream(pStreamCacheEntry->Stream, pPatchedStream);
 
-    g_PatchedStreamsCache.insert(pPatchedStream->pCachedXboxVertexData, pCachedStream);
+    g_PatchedStreamsCache.insert(pPatchedStream->pCachedXboxVertexData, pStreamCacheEntry);
 }
 
-void XTL::CxbxVertexBufferConverter::FreeCachedStream(void *pKey)
+void XTL::CxbxVertexBufferConverter::RemovePatchedStream(void *pKey)
 {
-	CxbxCachedStream *pCachedStream = (CxbxCachedStream *)g_PatchedStreamsCache.remove(pKey);
-    if (pCachedStream != nullptr) {
-		ReleasePatchedStream(&pCachedStream->Stream);
-		free(pCachedStream);
+	StreamCacheEntry *pStreamCacheEntry = (StreamCacheEntry *)g_PatchedStreamsCache.remove(pKey);
+    if (pStreamCacheEntry != nullptr) {
+		ReleasePatchedStream(&pStreamCacheEntry->Stream);
+		free(pStreamCacheEntry);
     }
 }
 
@@ -235,43 +232,43 @@ bool XTL::CxbxVertexBufferConverter::ApplyCachedStream
     bool bFoundInCache = false;
 
     g_PatchedStreamsCache.Lock();
-    CxbxCachedStream *pCachedStream = (CxbxCachedStream *)g_PatchedStreamsCache.get(pXboxVertexData);
-    if (pCachedStream != nullptr) {
-        pCachedStream->lLastUsed = clock();
-        pCachedStream->uiCacheHitCount++;
+    StreamCacheEntry *pStreamCacheEntry = (StreamCacheEntry *)g_PatchedStreamsCache.get(pXboxVertexData);
+    if (pStreamCacheEntry != nullptr) {
+        pStreamCacheEntry->lLastUsed = clock();
+        pStreamCacheEntry->uiCacheHitCount++;
 		bFoundInCache = true;
 
 		// Is cached data too small?
-		if (pCachedStream->Stream.uiCachedXboxVertexDataSize < uiXboxVertexDataSize) {
+		if (pStreamCacheEntry->Stream.uiCachedXboxVertexDataSize < uiXboxVertexDataSize) {
 			bFoundInCache = false;
 		}
 		// Is cached stride too small?
-		else if (pCachedStream->Stream.uiCachedXboxVertexStride < uiXboxVertexStride) {
+		else if (pStreamCacheEntry->Stream.uiCachedXboxVertexStride < uiXboxVertexStride) {
 			bFoundInCache = false;
 		} // TODO : Verify that equal (and larger) cached strides can really be reused
 		else
-        if (pCachedStream->uiCheckCount++ >= (pCachedStream->uiCheckFrequency - 1)) {
+        if (pStreamCacheEntry->uiCheckCount++ >= (pStreamCacheEntry->uiCheckFrequency - 1)) {
             // Hash the Xbox data over the cached stream length (which is a must for the UP stream)
-            uint32_t uiHash = XXHash32::hash((void *)pXboxVertexData, pCachedStream->Stream.uiCachedXboxVertexDataSize, HASH_SEED);
-            if (uiHash != pCachedStream->uiHash) {
+            uint32_t uiHash = XXHash32::hash((void *)pXboxVertexData, pStreamCacheEntry->Stream.uiCachedXboxVertexDataSize, HASH_SEED);
+            if (uiHash != pStreamCacheEntry->uiHash) {
 				bFoundInCache = false;
             }
             else {
                 // Take a while longer to check
-                if (pCachedStream->uiCheckFrequency < 32*1024)
-                    pCachedStream->uiCheckFrequency *= 2;
+                if (pStreamCacheEntry->uiCheckFrequency < 32*1024)
+                    pStreamCacheEntry->uiCheckFrequency *= 2;
 
-				pCachedStream->uiCheckCount = 0;
+				pStreamCacheEntry->uiCheckCount = 0;
             }
 		}
 
 		if (!bFoundInCache) {
-			// Free pCachedStream via it's key
-			FreeCachedStream(pXboxVertexData);
+			// Free pStreamCacheEntry via it's key
+			RemovePatchedStream(pXboxVertexData);
 		}
 		else {
 			// Copy back all cached stream values
-			AssignPatchedStream(m_PatchedStreams[uiStream], &(pCachedStream->Stream));
+			AssignPatchedStream(m_PatchedStreams[uiStream], &(pStreamCacheEntry->Stream));
         }
     }
 
@@ -607,7 +604,7 @@ void XTL::CxbxVertexBufferConverter::Apply(CxbxDrawContext *pDrawContext)
 #ifndef VERTEX_CACHE_DISABLED
 			// Insert the patched stream in the cache
 			m_PatchedStreams[uiStream].bCacheIsUsed = true;
-			CacheStream(&m_PatchedStreams[uiStream]);
+			CachePatchedStream(&m_PatchedStreams[uiStream]);
 #endif
 		}
     }

@@ -68,7 +68,7 @@ typedef struct _CxbxPatchedStream
     bool                    bCacheIsUsed;
 } CxbxPatchedStream;
 
-typedef struct _CxbxCachedStream
+typedef struct _StreamCacheEntry
 {
     uint32_t       uiHash;
     uint32         uiCheckFrequency;
@@ -76,7 +76,7 @@ typedef struct _CxbxCachedStream
     uint32         uiCacheHitCount;
     long           lLastUsed;           // For cache removal purposes
     CxbxPatchedStream  Stream;
-} CxbxCachedStream;
+} StreamCacheEntry;
 
 class CxbxVertexBufferConverter
 {
@@ -98,10 +98,10 @@ class CxbxVertexBufferConverter
         CxbxVertexShaderDynamicPatch *m_pVertexShaderDynamicPatch;
 
         // Caches a patched stream
-        void CacheStream(CxbxPatchedStream *pPatchedStream);
+        void CachePatchedStream(CxbxPatchedStream *pPatchedStream);
 
         // Frees a cached, patched stream
-        void FreeCachedStream(void *pStream);
+        void RemovePatchedStream(void *pStream);
 
         // Tries to apply a previously patched stream from the cache
         bool ApplyCachedStream(CxbxDrawContext *pDrawContext,
