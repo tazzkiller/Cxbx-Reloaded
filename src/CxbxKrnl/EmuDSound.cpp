@@ -2798,7 +2798,7 @@ HRESULT WINAPI XTL::EMUPATCH(IDirectSoundBuffer_SetFormat)
 // ******************************************************************
 // * patch: DirectSoundUseFullHRTF
 // ******************************************************************
-STDAPI_(void) EMUPATCH(DirectSoundUseFullHRTF)
+STDAPI_(void) XTL::EMUPATCH(DirectSoundUseFullHRTF)
 (
     void
 )
