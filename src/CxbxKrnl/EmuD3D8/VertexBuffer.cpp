@@ -64,10 +64,14 @@ UINT   g_InlineVertexBuffer_DataSize = 0;
 
 void AssignPatchedStream(XTL::CxbxPatchedStream &Dest, XTL::CxbxPatchedStream *pPatchedStream)
 {
-	//assert(pPatchedStream.bCacheIsUsed);
 	Dest = *pPatchedStream;
 	if (pPatchedStream->pCachedHostVertexBuffer != nullptr) {
 		pPatchedStream->pCachedHostVertexBuffer->AddRef();
+	}
+
+	if (pPatchedStream->bIsCacheEntry) {
+		// Don't take ownership of pCachedHostVertexStreamZeroData when the cache entry alreay owns it
+		Dest.bIsCacheEntry = false;
 	}
 }
 
@@ -97,13 +101,17 @@ void ActivatePatchedStream
 
 void ReleasePatchedStream(XTL::CxbxPatchedStream *pPatchedStream)
 {
-	if (pPatchedStream->bCachedHostVertexStreamZeroDataIsAllocated) {
-		if (pPatchedStream->pCachedHostVertexStreamZeroData != nullptr) {
-			free(pPatchedStream->pCachedHostVertexStreamZeroData);
-			pPatchedStream->pCachedHostVertexStreamZeroData = nullptr;
+	if (pPatchedStream->pCachedHostVertexStreamZeroData != nullptr) {
+		if (pPatchedStream->bIsCacheEntry) {
+			if (pPatchedStream->bCachedHostVertexStreamZeroDataIsAllocated) {
+				free(pPatchedStream->pCachedHostVertexStreamZeroData);
+				pPatchedStream->bCachedHostVertexStreamZeroDataIsAllocated = false;
+			}
+
+			pPatchedStream->bIsCacheEntry = false;
 		}
 
-		pPatchedStream->bCachedHostVertexStreamZeroDataIsAllocated = false;
+		pPatchedStream->pCachedHostVertexStreamZeroData = nullptr;
 	}
 
 	if (pPatchedStream->pCachedHostVertexBuffer != nullptr) {
@@ -187,6 +195,9 @@ void XTL::CxbxVertexBufferConverter::CachePatchedStream(CxbxPatchedStream *pPatc
     pStreamCacheEntry->uiCacheHitCount = 0;
     pStreamCacheEntry->lLastUsed = clock();
 	AssignPatchedStream(pStreamCacheEntry->Stream, pPatchedStream);
+	// Mark the cache entry as such, but AFTER AssignPatchedStream,
+	// so that ownership applies only to the cache entry (not the patch itself) :
+	pStreamCacheEntry->Stream.bIsCacheEntry = true;
 
     g_PatchedStreamsCache.insert(pPatchedStream->pCachedXboxVertexData, pStreamCacheEntry);
 }
@@ -622,8 +633,6 @@ void XTL::CxbxVertexBufferConverter::Apply(CxbxDrawContext *pDrawContext)
 
 		if (ConvertStream(pDrawContext, uiStream)) {
 #ifndef VERTEX_CACHE_DISABLED
-			// Insert the patched stream in the cache
-			m_PatchedStreams[uiStream].bCacheIsUsed = true;
 			CachePatchedStream(&m_PatchedStreams[uiStream]);
 #endif
 		}
@@ -655,12 +664,6 @@ void XTL::CxbxVertexBufferConverter::Apply(CxbxDrawContext *pDrawContext)
 void XTL::CxbxVertexBufferConverter::Restore()
 {
     for(UINT uiStream = 0; uiStream < m_uiNbrStreams; uiStream++) {
-		// Skip freeing resources when they're cached
-		if (m_PatchedStreams[uiStream].bCacheIsUsed) {
-			m_PatchedStreams[uiStream].bCacheIsUsed = false;
-			continue;
-		}
-
 		ReleasePatchedStream(&m_PatchedStreams[uiStream]);
     }
 }

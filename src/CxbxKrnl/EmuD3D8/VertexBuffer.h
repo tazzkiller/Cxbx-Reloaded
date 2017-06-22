@@ -65,7 +65,7 @@ typedef struct _CxbxPatchedStream
     void                   *pCachedHostVertexStreamZeroData;
 	bool                    bCachedHostVertexStreamZeroDataIsAllocated;
     IDirect3DVertexBuffer8 *pCachedHostVertexBuffer;
-    bool                    bCacheIsUsed;
+    bool                    bIsCacheEntry;
 } CxbxPatchedStream;
 
 typedef struct _StreamCacheEntry
