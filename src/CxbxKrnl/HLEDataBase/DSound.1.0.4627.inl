@@ -1601,7 +1601,7 @@ OOVPATable DSound_4627[] = {
 	REGISTER_OOVPA(CDirectSoundStream_SetOutputBuffer, 4627, PATCH),
 	REGISTER_OOVPA(CDirectSoundVoice_SetRolloffCurve, 4627, XREF),
 	REGISTER_OOVPA(CDirectSoundBuffer_SetRolloffCurve, 4627, XREF),
-	REGISTER_OOVPA(CDirectSoundStream_SetRolloffCurve, 4627, XREF),
+	REGISTER_OOVPA(CDirectSoundStream_SetRolloffCurve, 4627, PATCH), // Was XREF
 	REGISTER_OOVPA(IDirectSoundBuffer_SetRolloffCurve, 4627, PATCH),
 	REGISTER_OOVPA(XFileCreateMediaObjectEx, 4627, PATCH),
 	REGISTER_OOVPA(XWaveFileCreateMediaObject, 4627, PATCH),

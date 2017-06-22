@@ -1711,7 +1711,6 @@ OOVPATable DSound_5558[] = {
 	REGISTER_OOVPA(IDirectSoundBuffer_SetMaxDistance, 5344, PATCH),
 	REGISTER_OOVPA(CDirectSoundVoice_SetMinDistance, 5344, XREF),
 	REGISTER_OOVPA(CDirectSoundBuffer_SetMinDistance, 5344, XREF),
-	REGISTER_OOVPA(CDirectSoundStream_SetRolloffCurve, 5558, XREF),
 	REGISTER_OOVPA(IDirectSoundBuffer_SetMinDistance, 5558, PATCH),
 	REGISTER_OOVPA(CDirectSoundVoice_SetRolloffFactor, 5344, XREF),
 	REGISTER_OOVPA(CDirectSoundBuffer_SetRolloffFactor, 4134, XREF),

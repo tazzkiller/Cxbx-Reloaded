@@ -132,6 +132,7 @@ VOID WINAPI XTL::EMUPATCH(XGSwizzleRect)
 }
 #endif
 
+#if 0 // DISABLED
 // ******************************************************************
 // * patch: XGSwizzleBox
 // ******************************************************************
@@ -200,6 +201,7 @@ VOID WINAPI XTL::EMUPATCH(XGSwizzleBox)
         }
 	}
 }
+#endif
 
 // ******************************************************************
 // * patch: XGWriteSurfaceOrTextureToXPR

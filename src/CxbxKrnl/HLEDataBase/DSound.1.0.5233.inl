@@ -358,7 +358,7 @@ OOVPATable DSound_5233[] = {
 	REGISTER_OOVPA(DirectSoundDoWork, 4134, PATCH),
 	REGISTER_OOVPA(CDirectSound_CreateSoundBuffer, 4134, XREF),
 	REGISTER_OOVPA(CMcpxAPU_SynchPlayback, 5233, XREF),
-	REGISTER_OOVPA(CDirectSound_SynchPlayback, 5233, XREF),
+	REGISTER_OOVPA(CDirectSound_SynchPlayback, 5233, PATCH), // Was XREF
 	REGISTER_OOVPA(IDirectSound_SynchPlayback, 5233, PATCH),
 	REGISTER_OOVPA(CMcpxStream_Pause, 4928, XREF),
 	REGISTER_OOVPA(CDirectSoundStream_Pause, 4361, PATCH),
