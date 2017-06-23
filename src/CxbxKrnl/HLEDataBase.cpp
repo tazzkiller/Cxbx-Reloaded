@@ -59,7 +59,7 @@ const char *Lib_XONLINES = "XONLINES";
 #include "HLEDataBase.h"
 #include "HLEDataBase/D3D8.OOVPA.inl"
 //#include "HLEDataBase/DSound.OOVPA.inl"
-//#include "HLEDataBase/XactEng.OOVPA.inl"
+#include "HLEDataBase/XactEng.OOVPA.inl"
 #include "HLEDataBase/Xapi.OOVPA.inl"
 #include "HLEDataBase/XG.OOVPA.inl"
 #include "HLEDataBase/XNet.OOVPA.inl"
@@ -73,7 +73,7 @@ const HLEData HLEDataBase[] =
 {
 	{ Lib_D3D8, D3D8_OOVPA, D3D8_OOVPA_SIZE },
 	// { Lib_DSOUND, DSound_OOVPA, DSound_OOVPA_SIZE },
-	// { Lib_XACTENG, XactEng_OOVPA, XactEng_OOVPA_SIZE },
+	{ Lib_XACTENG, XactEng_OOVPA, XactEng_OOVPA_SIZE },
 	{ Lib_XAPILIB, XAPI_OOVPA, XAPI_OOVPA_SIZE },
 	{ Lib_XGRAPHC, XG_OOVPA, XG_OOVPA_SIZE },
 	{ Lib_XNETS, XNet_OOVPA, XNet_OOVPA_SIZE },
