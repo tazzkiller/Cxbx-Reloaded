@@ -47,7 +47,7 @@
 #include "xxhash32.h"
 #include <Shlwapi.h>
 
-static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper);
+static xbaddr EmuLocateFunction(OOVPA *pOovpa, xbaddr lower, xbaddr upper);
 static void  EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader, int BuildVersion);
 static inline void EmuInstallPatch(xbaddr FunctionAddr, void *Patch);
 
@@ -351,7 +351,20 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 					bFoundD3D = true;
 					if(bXRefFirstPass)
 	                {
-#if 0
+#if 1 // TODO : Improve the following hardcoded D3D8 HLE scan bootstrap :
+						extern LOOVPA<2 + 15> D3DDevice_SetRenderState_CullMode_3925;
+						extern LOOVPA<2 + 14> D3DDevice_SetRenderState_CullMode_4034;
+						extern LOOVPA<2 + 13> D3DDevice_SetRenderState_CullMode_5233;
+
+						extern LOOVPA<1 + 11> D3DDevice_SetTextureState_TexCoordIndex_3925;
+						extern LOOVPA<1 + 10> D3DDevice_SetTextureState_TexCoordIndex_4034;
+						extern LOOVPA<1 + 10> D3DDevice_SetTextureState_TexCoordIndex_4134;
+						extern LOOVPA<1 + 10> D3DDevice_SetTextureState_TexCoordIndex_4361;
+						extern LOOVPA<1 + 10> D3DDevice_SetTextureState_TexCoordIndex_4627;
+
+						extern LOOVPA<1 + 12> D3DDevice_SetStreamSource_3925;
+						extern LOOVPA<1 + 14> D3DDevice_SetStreamSource_4034;
+
 						using namespace XTL;
 
 						// Save D3D8 build version
@@ -588,32 +601,32 @@ static inline void GetOovpaEntry(OOVPA *oovpa, int index, OUT uint32 &offset, OU
 	value = ((LOOVPA<1>*)oovpa)->Lovp[index].Value;
 }
 
-static boolean CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
+static boolean CompareOOVPAToAddress(OOVPA *pOovpa, xbaddr cur)
 {
 	// NOTE : Checking offsets uses bytes. Doing that first is probably
 	// faster than first checking (more complex) xrefs.
 
 	// Check all (Offset,Value)-pairs, stop if any does not match
-	for (uint32 v = Oovpa->XRefCount; v < Oovpa->Count; v++)
+	for (uint32 v = pOovpa->XRefCount; v < pOovpa->Count; v++)
 	{
 		uint32 Offset;
 		uint08 ExpectedValue;
 
 		// get offset + value pair
-		GetOovpaEntry(Oovpa, v, Offset, ExpectedValue);
+		GetOovpaEntry(pOovpa, v, Offset, ExpectedValue);
 		uint08 ActualValue = *(uint08*)(cur + Offset);
 		if (ActualValue != ExpectedValue)
 			return false;
 	}
 
 	// Check all XRefs, stop if any does not match
-	for (uint32 v = 0; v < Oovpa->XRefCount; v++)
+	for (uint32 v = 0; v < pOovpa->XRefCount; v++)
 	{
 		uint32 XRef;
 		uint08 Offset;
 
 		// get currently registered (un)known address
-		GetXRefEntry(Oovpa, v, XRef, Offset);
+		GetXRefEntry(pOovpa, v, XRef, Offset);
 		xbaddr XRefAddr = XRefDataBase[XRef];
 		// Undetermined XRef cannot be checked yet
 		// (EmuLocateFunction already checked this, but this check
@@ -638,21 +651,21 @@ static boolean CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
 }
 
 // locate the given function, searching within lower and upper bounds
-static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper)
+static xbaddr EmuLocateFunction(OOVPA *pOovpa, xbaddr lower, xbaddr upper)
 {
 	// skip out if this is an unnecessary search
-	if (!bXRefFirstPass && Oovpa->XRefCount == XRefZero && Oovpa->XRefSaveIndex == XRefNoSaveIndex)
+	if (!bXRefFirstPass && pOovpa->XRefCount == XRefZero && pOovpa->XRefSaveIndex == XRefNoSaveIndex)
 		return (xbaddr)nullptr;
 
 	uint32_t derive_indices = 0;
 	// Check all XRefs are known (if not, don't do a useless scan) :
-	for (uint32 v = 0; v < Oovpa->XRefCount; v++)
+	for (uint32 v = 0; v < pOovpa->XRefCount; v++)
 	{
 		uint32 XRef;
 		uint08 Offset;
 
 		// get currently registered (un)known address
-		GetXRefEntry(Oovpa, v, XRef, Offset);
+		GetXRefEntry(pOovpa, v, XRef, Offset);
 		xbaddr XRefAddr = XRefDataBase[XRef];
 		// Undetermined XRef cannot be checked yet
 		if (XRefAddr == XREF_ADDR_UNDETERMINED)
@@ -669,24 +682,24 @@ static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper)
 	}
 
 	// correct upper bound with highest Oovpa offset
-	uint32 count = Oovpa->Count;
+	uint32 count = pOovpa->Count;
 	{
 		uint32 Offset;
 		uint08 Value; // ignored
 
-		GetOovpaEntry(Oovpa, count - 1, Offset, Value);
+		GetOovpaEntry(pOovpa, count - 1, Offset, Value);
 		upper -= Offset;
 	}
 
 	// search all of the image memory
 	for (xbaddr cur = lower; cur < upper; cur++)
-		if (CompareOOVPAToAddress(Oovpa, cur))
+		if (CompareOOVPAToAddress(pOovpa, cur))
 		{
 			// do we need to save the found address?
-			if (Oovpa->XRefSaveIndex != XRefNoSaveIndex)
+			if (pOovpa->XRefSaveIndex != XRefNoSaveIndex)
 			{
 				// is the XRef not saved yet?
-				switch (XRefDataBase[Oovpa->XRefSaveIndex]) {
+				switch (XRefDataBase[pOovpa->XRefSaveIndex]) {
 				case XREF_ADDR_NOT_FOUND:
 				{
 					EmuWarning("Found OOVPA after first finding nothing?");
@@ -696,7 +709,7 @@ static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper)
 				{
 					// save and count the found address
 					UnResolvedXRefs--;
-					XRefDataBase[Oovpa->XRefSaveIndex] = cur;
+					XRefDataBase[pOovpa->XRefSaveIndex] = cur;
 					break;
 				}
 				case XREF_ADDR_DERIVE:
@@ -706,7 +719,7 @@ static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper)
 				}
 				default:
 				{
-					if (XRefDataBase[Oovpa->XRefSaveIndex] != cur)
+					if (XRefDataBase[pOovpa->XRefSaveIndex] != cur)
 						EmuWarning("Found OOVPA on other address than in XRefDataBase!");
 					break;
 				}
@@ -724,7 +737,7 @@ static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper)
 				derive_indices ^= (1 << derive_index);
 
 				// get currently registered (un)known address
-				GetXRefEntry(Oovpa, derive_index, XRef, Offset);
+				GetXRefEntry(pOovpa, derive_index, XRef, Offset);
 
 				// Calculate the address where the XRef resides
 				xbaddr XRefAddr = cur + Offset;
@@ -775,10 +788,10 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
     for(size_t a=0;a<OovpaTableSize/sizeof(OOVPATable);a++) {
 
 		// Does this OOVPA have an XREF that can be checked?
-		OOVPA *Oovpa = OovpaTable[a].Oovpa;
-		if (Oovpa->XRefSaveIndex != XRefNoSaveIndex) {
+		OOVPA *pOovpa = OovpaTable[a].pOovpa;
+		if (pOovpa->XRefSaveIndex != XRefNoSaveIndex) {
 			// Skip a search if this XREF already has an assigned address
-			switch (XRefDataBase[Oovpa->XRefSaveIndex]) {
+			switch (XRefDataBase[pOovpa->XRefSaveIndex]) {
 			case XREF_ADDR_NOT_FOUND: // NULL might change
 				break;
 			case XREF_ADDR_UNDETERMINED: // Initial, unknown state
@@ -790,7 +803,7 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 			}
 		}
 
-		char *szCurrentFuncName = OovpaTable[a].szFuncName;
+		char *szCurrentFuncName = OovpaTable[a].szSymbolName;
 		if (szPrevFuncName != szCurrentFuncName) {
 			szPrevFuncName = szCurrentFuncName;
 			// Skip already found & handled symbols
@@ -801,20 +814,20 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 		}
 
 		// Search for each function's location using the OOVPA
-		xbaddr pFunc = (xbaddr)EmuLocateFunction(Oovpa, lower, upper);
+		xbaddr pFunc = (xbaddr)EmuLocateFunction(pOovpa, lower, upper);
 		if (pFunc == (xbaddr)nullptr)
 			continue;
 
 		// Now that we found the address, store it (regardless if we patch it or not)
-		g_SymbolAddresses[OovpaTable[a].szFuncName] = (uint32_t)pFunc;
+		g_SymbolAddresses[OovpaTable[a].szSymbolName] = (uint32_t)pFunc;
 
 		// Output some details
 		std::stringstream output;
 		output << "HLE: 0x" << std::setfill('0') << std::setw(8) << std::hex << pFunc
-			<< " -> " << OovpaTable[a].szFuncName << " " << std::dec << OovpaTable[a].Version;
+			<< " -> " << OovpaTable[a].szSymbolName << " " << std::dec << OovpaTable[a].Version;
 
 		// Retrieve the associated patch, if any is available
-		void* addr = GetEmuPatchAddr(std::string(OovpaTable[a].szFuncName));
+		void* addr = GetEmuPatchAddr(std::string(OovpaTable[a].szSymbolName));
 		if (addr != nullptr) {
 			EmuInstallPatch(pFunc, addr);
 			output << "\t*PATCHED*";
@@ -842,7 +855,7 @@ std::string HLEErrorString(const HLEData *data, uint32 index)
 	std::string result = 
 		"OOVPATable " + (std::string)(data->Library) + "_OOVPA"
 		+ "[" + std::to_string(index) + "] " 
-		+ (std::string)(data->OovpaTable[index].szFuncName);
+		+ (std::string)(data->OovpaTable[index].szSymbolName);
 
 	return result;
 }
@@ -983,8 +996,8 @@ void VerifyHLEDataEntry(HLEVerifyContext *context, const OOVPATable *table, uint
 	}
 
 	// verify the OOVPA of this entry
-	if (table[index].Oovpa != nullptr)
-		VerifyHLEOOVPA(context, table[index].Oovpa);
+	if (table[index].pOovpa != nullptr)
+		VerifyHLEOOVPA(context, table[index].pOovpa);
 }
 
 void VerifyHLEData(HLEVerifyContext *context, const HLEData *data)

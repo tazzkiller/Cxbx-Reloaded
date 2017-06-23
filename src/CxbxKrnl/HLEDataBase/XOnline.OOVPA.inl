@@ -50,17 +50,17 @@
 // ******************************************************************
 OOVPATable XOnline_OOVPA[] = {
 
-	REGISTER_OOVPAS(XNetStartup, 4361, 5233), // PATCH 
-	REGISTER_OOVPAS(WSAStartup, 4361, 5558), // PATCH 
-	REGISTER_OOVPAS(XnInit, 4361, 4627, 5788), // XREF
-	// REGISTER_OOVPAS(socket, 4361), // PATCH 
-	REGISTER_OOVPAS(bind, 4361), // PATCH 
-	// REGISTER_OOVPAS(listen, 4361), // PATCH 
-	REGISTER_OOVPAS(ioctlsocket, 4361), // PATCH
-	REGISTER_OOVPAS(XNetGetEthernetLinkStatus, 4627, 5849), // TODO : , 5233
-	REGISTER_OOVPAS(XoUpdateLaunchNewImageInternal, 4627), // XREF
-	REGISTER_OOVPAS(CXo_XOnlineLogon, 5233), // XREF
-	REGISTER_OOVPAS(XOnlineLogon, 5233), // PATCH 
+	REGISTER_OOVPAS(XNetStartup, 4361, 5233),
+	REGISTER_OOVPAS(WSAStartup, 4361, 5558),
+	REGISTER_OOVPAS(XnInit, 4361, 4627, 5788),
+	// REGISTER_OOVPAS(socket, 4361),
+	REGISTER_OOVPAS(bind, 4361),
+	// REGISTER_OOVPAS(listen, 4361),
+	REGISTER_OOVPAS(ioctlsocket, 4361),
+	REGISTER_OOVPAS(XNetGetEthernetLinkStatus, 4627, 5233, 5849),
+	REGISTER_OOVPAS(XoUpdateLaunchNewImageInternal, 4627),
+	REGISTER_OOVPAS(CXo_XOnlineLogon, 5233),
+	REGISTER_OOVPAS(XOnlineLogon, 5233),
 };
 
 // ******************************************************************
