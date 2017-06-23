@@ -324,22 +324,3 @@ OOVPA_NO_XREF(ioctlsocket, 4627, 10)
         { 0xC6, 0xC2 }, // (Offset,Value)-Pair #9
         { 0xC7, 0x0C }, // (Offset,Value)-Pair #10
 OOVPA_END;
-
-// ******************************************************************
-// * XNet_4627
-// ******************************************************************
-OOVPATable XNet_4627[] = {
-	REGISTER_OOVPAS(XNetStartup, 4627), // PATCH same as xonline 4361
-	REGISTER_OOVPAS(WSAStartup, 4627), // PATCH same as xonline 4361
-	REGISTER_OOVPAS(XnInit, 4627), // XREF
-	REGISTER_OOVPAS(socket, 4627), // PATCH 
-	REGISTER_OOVPAS(connect, 4627), // PATCH 
-	REGISTER_OOVPAS(send, 4627), // PATCH 
-	REGISTER_OOVPAS(recv, 4627), // PATCH 
-	REGISTER_OOVPAS(ioctlsocket, 4627), // PATCH 
-};
-
-// ******************************************************************
-// * XNet_4627_SIZE
-// ******************************************************************
-uint32 XNet_4627_SIZE = sizeof(XNet_4627);

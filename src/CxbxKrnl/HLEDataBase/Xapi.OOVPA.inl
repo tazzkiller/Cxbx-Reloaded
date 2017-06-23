@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->Xapi.1.0.3911.h
+// *   Cxbx->Win32->CxbxKrnl->Xapi.OOVPA.inl
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -31,8 +31,8 @@
 // *  All rights reserved
 // *
 // ******************************************************************
-#ifndef XAPI_3911_H
-#define XAPI_3911_H
+#ifndef XAPI_OOVPA_INL
+#define XAPI_OOVPA_INL
 
 #include "OOVPA.h"
 

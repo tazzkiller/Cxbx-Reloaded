@@ -58,6 +58,7 @@ const char *Lib_XONLINES = "XONLINES";
 #include "EmuXTL.h"
 #include "HLEDataBase.h"
 #include "HLEDataBase/Xapi.OOVPA.inl"
+#include "HLEDataBase/Xapi.OOVPA.inl"
 /*
 #include "HLEDataBase/D3D8.1.0.3925.inl"
 #include "HLEDataBase/D3D8.1.0.4034.inl"
@@ -93,8 +94,6 @@ const char *Lib_XONLINES = "XONLINES";
 #include "HLEDataBase/XG.1.0.5558.inl"
 #include "HLEDataBase/XG.1.0.5788.inl"
 #include "HLEDataBase/XG.1.0.5849.inl"
-#include "HLEDataBase/XNet.1.0.3911.inl"
-#include "HLEDataBase/XNet.1.0.4627.inl"
 #include "HLEDataBase/XOnline.1.0.4361.inl"
 #include "HLEDataBase/XOnline.1.0.4627.inl"
 #include "HLEDataBase/XOnline.1.0.5028.inl"

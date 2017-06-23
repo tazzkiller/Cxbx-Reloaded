@@ -131,19 +131,3 @@ OOVPA_NO_XREF(XNetGetEthernetLinkStatus, 3911, 8)
         // XNetStartup+0x3F : retn
         { 0x3F, 0xC3 }, // (Offset,Value)-Pair #8
 OOVPA_END;
-
-// ******************************************************************
-// * XNet_3911
-// ******************************************************************
-OOVPATable XNet_3911[] = {
-
-	REGISTER_OOVPAS(XNetStartup, 3911), // PATCH 
-	REGISTER_OOVPAS(WSAStartup, 3911), // PATCH 
-	REGISTER_OOVPAS(XnInit, 3911), // XREF
-	REGISTER_OOVPAS(XNetGetEthernetLinkStatus, 3911), // PATCH 
-};
-
-// ******************************************************************
-// * XNet_3911_SIZE
-// ******************************************************************
-uint32 XNet_3911_SIZE = sizeof(XNet_3911);
