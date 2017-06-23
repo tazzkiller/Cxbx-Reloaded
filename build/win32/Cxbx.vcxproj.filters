@@ -566,6 +566,9 @@
     <None Include="..\..\src\CxbxKrnl\HLEDataBase\XNet.OOVPA.inl">
       <Filter>HLEDatabase</Filter>
     </None>
+    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XOnline.OOVPA.inl">
+      <Filter>HLEDatabase</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GUI">

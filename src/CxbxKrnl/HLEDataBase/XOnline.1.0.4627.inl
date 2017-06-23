@@ -91,24 +91,3 @@ OOVPA_XREF(XoUpdateLaunchNewImageInternal, 4627, 8,
         { 0xDE, 0xE8 },
         { 0xFE, 0x15 },
 OOVPA_END;
-
-// ******************************************************************
-// * XOnline_4627
-// ******************************************************************
-OOVPATable XOnline_4627[] ={
-
-	REGISTER_OOVPAS(XNetStartup, 4361), // PATCH 
-	REGISTER_OOVPAS(WSAStartup, 4361), // PATCH 
-	REGISTER_OOVPAS(XnInit, 4627), // XREF
-	REGISTER_OOVPAS(socket, 4361), // PATCH 
-	REGISTER_OOVPAS(bind, 4361), // PATCH 
-	REGISTER_OOVPAS(listen, 4361), // PATCH 
-	REGISTER_OOVPAS(ioctlsocket, 4361), // PATCH 
-	REGISTER_OOVPAS(XNetGetEthernetLinkStatus, 4627), // PATCH 
-	REGISTER_OOVPAS(XoUpdateLaunchNewImageInternal, 4627), // XREF
-};
-
-// ******************************************************************
-// * XOnline_4627_SIZE
-// ******************************************************************
-uint32 XOnline_4627_SIZE = sizeof(XOnline_4627);

@@ -36,18 +36,3 @@
 // * XNetGetEthernetLinkStatus
 // ******************************************************************
 #define XNetGetEthernetLinkStatus_5849 XNetGetEthernetLinkStatus_4627
-
-// ******************************************************************
-// * XOnline_5849
-// ******************************************************************
-OOVPATable XOnline_5849[] = {
-	REGISTER_OOVPAS(XNetStartup, 5233), // PATCH 
-	REGISTER_OOVPAS(WSAStartup, 5558), // PATCH 
-	REGISTER_OOVPAS(XnInit, 5788), // XREF
-	REGISTER_OOVPAS(XNetGetEthernetLinkStatus, 5849), // PATCH 
-};
-
-// ******************************************************************
-// * XOnline_5849_SIZE
-// ******************************************************************
-uint32 XOnline_5849_SIZE = sizeof(XOnline_5849);

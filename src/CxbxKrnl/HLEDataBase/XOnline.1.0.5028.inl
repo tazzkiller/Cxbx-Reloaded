@@ -31,24 +31,3 @@
 // *  All rights reserved
 // *
 // ******************************************************************
-
-// ******************************************************************
-// * XOnline_5028
-// ******************************************************************
-OOVPATable XOnline_5028[] ={
-
-	REGISTER_OOVPAS(XNetStartup, 4361), // PATCH 
-	REGISTER_OOVPAS(WSAStartup, 4361), // PATCH 
-	REGISTER_OOVPAS(XnInit, 4627), // XREF
-	REGISTER_OOVPAS(socket, 4361), // PATCH 
-	REGISTER_OOVPAS(bind, 4361), // PATCH 
-	REGISTER_OOVPAS(listen, 4361), // PATCH 
-	REGISTER_OOVPAS(ioctlsocket, 4361), // PATCH 
-	REGISTER_OOVPAS(XNetGetEthernetLinkStatus, 4627), // PATCH 
-	REGISTER_OOVPAS(XoUpdateLaunchNewImageInternal, 4627), // XREF
-};
-
-// ******************************************************************
-// * XOnline_5028_SIZE
-// ******************************************************************
-uint32 XOnline_5028_SIZE = sizeof(XOnline_5028);

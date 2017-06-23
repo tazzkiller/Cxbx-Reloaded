@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->XNet.OOVPA.cpp
+// *   Cxbx->Win32->CxbxKrnl->XOnline.OOVPA.inl
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -31,32 +31,41 @@
 // *  All rights reserved
 // *
 // ******************************************************************
-#ifndef XNET_OOVPA_INL
-#define XNET_OOVPA_INL
+#ifndef XONLINE_OOVPA_INL
+#define XONLINE_OOVPA_INL
 
 #include "OOVPA.h"
 
-#include "HLEDataBase/XNet.1.0.3911.inl"
-#include "HLEDataBase/XNet.1.0.4627.inl"
+#include "HLEDataBase/XOnline.1.0.4361.inl"
+#include "HLEDataBase/XOnline.1.0.4627.inl"
+#include "HLEDataBase/XOnline.1.0.5028.inl"
+#include "HLEDataBase/XOnline.1.0.5233.inl"
+#include "HLEDataBase/XOnline.1.0.5344.inl"
+#include "HLEDataBase/XOnline.1.0.5558.inl"
+#include "HLEDataBase/XOnline.1.0.5788.inl"
+#include "HLEDataBase/XOnline.1.0.5849.inl"
 
 // ******************************************************************
-// * XNet_OOVPA
+// * XOnline_OOVPA
 // ******************************************************************
-OOVPATable XNet_OOVPA[] = {
-	REGISTER_OOVPAS(XNetStartup, 3911, 4627), // PATCH same as xonline 4361
-	REGISTER_OOVPAS(WSAStartup, 3911, 4627), // PATCH same as xonline 4361
-	REGISTER_OOVPAS(XnInit, 3911, 4627), // XREF
-	REGISTER_OOVPAS(XNetGetEthernetLinkStatus, 3911), // PATCH 
-	REGISTER_OOVPAS(socket, 4627), // PATCH 
-	REGISTER_OOVPAS(connect, 4627), // PATCH 
-	REGISTER_OOVPAS(send, 4627), // PATCH 
-	REGISTER_OOVPAS(recv, 4627), // PATCH 
-	REGISTER_OOVPAS(ioctlsocket, 4627), // PATCH 
+OOVPATable XOnline_OOVPA[] = {
+
+	REGISTER_OOVPAS(XNetStartup, 4361, 5233), // PATCH 
+	REGISTER_OOVPAS(WSAStartup, 4361, 5558), // PATCH 
+	REGISTER_OOVPAS(XnInit, 4361, 4627, 5788), // XREF
+	// REGISTER_OOVPAS(socket, 4361), // PATCH 
+	REGISTER_OOVPAS(bind, 4361), // PATCH 
+	// REGISTER_OOVPAS(listen, 4361), // PATCH 
+	REGISTER_OOVPAS(ioctlsocket, 4361), // PATCH
+	REGISTER_OOVPAS(XNetGetEthernetLinkStatus, 4627, 5849), // TODO : , 5233
+	REGISTER_OOVPAS(XoUpdateLaunchNewImageInternal, 4627), // XREF
+	REGISTER_OOVPAS(CXo_XOnlineLogon, 5233), // XREF
+	REGISTER_OOVPAS(XOnlineLogon, 5233), // PATCH 
 };
 
 // ******************************************************************
-// * XNet_OOVPASIZE
+// * XOnline_OOVPA_SIZE
 // ******************************************************************
-uint32 XNet_OOVPA_SIZE = sizeof(XNet_OOVPA);
+uint32 XOnline_OOVPA_SIZE = sizeof(XOnline_OOVPA);
 
 #endif

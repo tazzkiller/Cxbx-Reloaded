@@ -45,25 +45,3 @@ OOVPA_NO_XREF(WSAStartup, 5558, 7)
         { 0x18, 0xC2 },
         { 0x1A, 0x00 },
 OOVPA_END;
-
-// ******************************************************************
-// * XOnline_5558
-// ******************************************************************
-// * TODO: Verify all of these
-// ******************************************************************
-OOVPATable XOnline_5558[] = {
-
-	REGISTER_OOVPAS(XNetStartup, 5233), // PATCH 
-	REGISTER_OOVPAS(WSAStartup, 5558), // PATCH 
-	REGISTER_OOVPAS(XnInit, 4627), // XREF
-	// REGISTER_OOVPAS(socket, 4361), // PATCH 
-	REGISTER_OOVPAS(bind, 4361), // PATCH 
-	// REGISTER_OOVPAS(listen, 4361), // PATCH 
-	REGISTER_OOVPAS(ioctlsocket, 4361), // PATCH 
-	REGISTER_OOVPAS(XNetGetEthernetLinkStatus, 4627), // PATCH 
-};
-
-// ******************************************************************
-// * XOnline_5558_SIZE
-// ******************************************************************
-uint32 XOnline_5558_SIZE = sizeof(XOnline_5558);

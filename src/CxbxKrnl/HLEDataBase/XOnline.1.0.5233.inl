@@ -88,25 +88,3 @@ OOVPA_XREF(XOnlineLogon, 5233, 8,
         { 0x05, 0x0D },
         { 0x0A, 0xE9 },
 OOVPA_END;
-
-// ******************************************************************
-// * XOnline_4627
-// ******************************************************************
-OOVPATable XOnline_5233[] = {
-
-	REGISTER_OOVPAS(XNetStartup, 5233), // PATCH 
-	REGISTER_OOVPAS(WSAStartup, 4361), // PATCH 
-	REGISTER_OOVPAS(XnInit, 4627), // XREF
-	// REGISTER_OOVPAS(socket, 4361), // PATCH 
-	REGISTER_OOVPAS(bind, 4361), // PATCH 
-	// REGISTER_OOVPAS(listen, 4361), // PATCH 
-	REGISTER_OOVPAS(ioctlsocket, 4361), // PATCH 
-	REGISTER_OOVPAS(XNetGetEthernetLinkStatus, 4627), // PATCH 
-	REGISTER_OOVPAS(CXo_XOnlineLogon, 5233), // XREF
-	REGISTER_OOVPAS(XOnlineLogon, 5233), // PATCH 
-};
-
-// ******************************************************************
-// * XOnline_5233_SIZE
-// ******************************************************************
-uint32 XOnline_5233_SIZE = sizeof(XOnline_5233);
