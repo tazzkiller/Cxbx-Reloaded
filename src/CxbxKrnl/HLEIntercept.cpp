@@ -48,7 +48,7 @@
 #include <Shlwapi.h>
 
 static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper);
-static void  EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader);
+static void  EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader, int BuildVersion);
 static inline void EmuInstallPatch(xbaddr FunctionAddr, void *Patch);
 
 #include <shlobj.h>
@@ -491,7 +491,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 					}
                 }
 
-				printf("HLE: * Searching HLE database for %s version 1.0.%d... ", LibraryName.c_str(), BuildVersion);
+				printf("HLE: * Searching HLE database for %s (will be scanned for version %d)... ", LibraryName.c_str(), BuildVersion);
 
                 const HLEData *FoundHLEData = nullptr;
                 for(uint32 d = 0; d < HLEDataBaseCount; d++) {
@@ -504,7 +504,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 				if (FoundHLEData) {
 					if (g_bPrintfOn) printf("Found\n");
-					EmuInstallPatches(FoundHLEData->OovpaTable, FoundHLEData->OovpaTableSize, pXbeHeader);
+					EmuInstallPatches(FoundHLEData->OovpaTable, FoundHLEData->OovpaTableSize, pXbeHeader, BuildVersion);
 				} else {
 					if (g_bPrintfOn) printf("Skipped\n");
 				}
@@ -755,7 +755,7 @@ static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper)
 }
 
 // install function interception wrappers
-static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader)
+static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader, int BuildVersion)
 {
     xbaddr lower = pXbeHeader->dwBaseAddr;
 
@@ -770,17 +770,38 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 		}	
 	}
 
+	char *szPrevFuncName = nullptr;
     // traverse the full OOVPA table
-    for(size_t a=0;a<OovpaTableSize/sizeof(OOVPATable);a++)
-    {
-		// Skip already found & handled symbols
-		xbaddr pFunc = g_SymbolAddresses[OovpaTable[a].szFuncName];
-		if (pFunc != (xbaddr)nullptr)
-			continue;
+    for(size_t a=0;a<OovpaTableSize/sizeof(OOVPATable);a++) {
+
+		// Does this OOVPA have an XREF that can be checked?
+		OOVPA *Oovpa = OovpaTable[a].Oovpa;
+		if (Oovpa->XRefSaveIndex != XRefNoSaveIndex) {
+			// Skip a search if this XREF already has an assigned address
+			switch (XRefDataBase[Oovpa->XRefSaveIndex]) {
+			case XREF_ADDR_NOT_FOUND: // NULL might change
+				break;
+			case XREF_ADDR_UNDETERMINED: // Initial, unknown state
+				break;
+			case XREF_ADDR_DERIVE: // Marker that isn't yet replaced with an address
+				break;
+			default:
+				continue;
+			}
+		}
+
+		char *szCurrentFuncName = OovpaTable[a].szFuncName;
+		if (szPrevFuncName != szCurrentFuncName) {
+			szPrevFuncName = szCurrentFuncName;
+			// Skip already found & handled symbols
+			// (The above check is a bit faster, thus do this after that)
+			xbaddr pFunc = g_SymbolAddresses[szCurrentFuncName];
+			if (pFunc != (xbaddr)nullptr)
+				continue;
+		}
 
 		// Search for each function's location using the OOVPA
-        OOVPA *Oovpa = OovpaTable[a].Oovpa;
-		pFunc = (xbaddr)EmuLocateFunction(Oovpa, lower, upper);
+		xbaddr pFunc = (xbaddr)EmuLocateFunction(Oovpa, lower, upper);
 		if (pFunc == (xbaddr)nullptr)
 			continue;
 
