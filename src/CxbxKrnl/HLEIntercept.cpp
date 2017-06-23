@@ -48,7 +48,7 @@
 #include <Shlwapi.h>
 
 static xbaddr EmuLocateFunction(OOVPA *pOovpa, xbaddr lower, xbaddr upper);
-static void  EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader, int BuildVersion);
+static void  EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader, uint16 BuildVersion);
 static inline void EmuInstallPatch(xbaddr FunctionAddr, void *Patch);
 
 #include <shlobj.h>
@@ -58,7 +58,7 @@ static inline void EmuInstallPatch(xbaddr FunctionAddr, void *Patch);
 std::unordered_map<std::string, xbaddr> g_SymbolAddresses;
 
 // D3D build version
-uint32 g_BuildVersion;
+uint16 g_BuildVersion;
 
 bool bLLE_APU = false; // Set this to true for experimental APU (sound) LLE
 bool bLLE_GPU = false; // Set this to true for experimental GPU (graphics) LLE
@@ -193,7 +193,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 		char* bufferPtr = buffer;
 
 		GetPrivateProfileString("Info", "HLEDatabaseVersion", NULL, buffer, sizeof(buffer), filename.c_str());
-		g_BuildVersion = GetPrivateProfileInt("Libs", "D3D8_BuildVersion", 0, filename.c_str());
+		g_BuildVersion = (uint16)GetPrivateProfileInt("Libs", "D3D8_BuildVersion", 0, filename.c_str());
 
 		if (strcmp(buffer, szHLELastCompileTime) == 0) {
 			printf("Using HLE Cache\n");
@@ -508,7 +508,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
                 const HLEData *FoundHLEData = nullptr;
                 for(uint32 d = 0; d < HLEDataBaseCount; d++) {
-					//if (BuildVersion == HLEDataBase[d].BuildVersion && strcmp(LibraryName.c_str(), HLEDataBase[d].Library) == 0) {
 					if (strcmp(LibraryName.c_str(), HLEDataBase[d].Library) == 0) {
 						FoundHLEData = &HLEDataBase[d];
 						break;
@@ -768,7 +767,7 @@ static xbaddr EmuLocateFunction(OOVPA *pOovpa, xbaddr lower, xbaddr upper)
 }
 
 // install function interception wrappers
-static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader, int BuildVersion)
+static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader, uint16 BuildVersion)
 {
     xbaddr lower = pXbeHeader->dwBaseAddr;
 

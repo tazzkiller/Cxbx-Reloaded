@@ -43,7 +43,7 @@
 #include "Convert.h" // GetDxbxRenderStateInfo()
 
 // D3D build version
-extern uint32 g_BuildVersion;
+extern uint16 g_BuildVersion;
 
 extern int g_iWireframe;
 extern int X_D3DSCM_CORRECTION_VersionDependent;

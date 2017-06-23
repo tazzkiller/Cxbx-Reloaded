@@ -43,7 +43,7 @@
 #include "CxbxKrnl/EmuD3D8Logging.h"
 
 // D3D build version
-extern uint32 g_BuildVersion;
+extern uint16 g_BuildVersion;
 
 // About format color components:
 // A = alpha, byte : 0 = fully opaque, 255 = fully transparent
