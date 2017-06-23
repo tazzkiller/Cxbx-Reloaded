@@ -782,66 +782,91 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 		}	
 	}
 
-	char *szPrevFuncName = nullptr;
-    // traverse the full OOVPA table
-    for(size_t a=0;a<OovpaTableSize/sizeof(OOVPATable);a++) {
+    // Traverse the full OOVPA table
+	OOVPATable *pLoopEnd = &OovpaTable[OovpaTableSize / sizeof(OOVPATable)];
+	for (OOVPATable *pLoop = OovpaTable; pLoop < pLoopEnd;) {
 
-		// Skip all OOVPA that are too new, compared to the version we are running
-		if (OovpaTable[a].Version > BuildVersion) {
+		// Skip already found & handled symbols
+		char *szCurrentSymbol = pLoop->szSymbolName;
+		xbaddr pFunc = g_SymbolAddresses[szCurrentSymbol];
+		if (pFunc != (xbaddr)nullptr) {
+			pLoop++;
 			continue;
 		}
 
-		// Does this OOVPA have an XREF that can be checked?
-		OOVPA *pOovpa = OovpaTable[a].pOovpa;
-		if (pOovpa->XRefSaveIndex != XRefNoSaveIndex) {
-			// Skip a search if this XREF already has an assigned address
-			switch (XRefDataBase[pOovpa->XRefSaveIndex]) {
-			case XREF_ADDR_NOT_FOUND: // NULL might change
-				break;
-			case XREF_ADDR_UNDETERMINED: // Initial, unknown state
-				break;
-			case XREF_ADDR_DERIVE: // Marker that isn't yet replaced with an address
-				break;
-			default:
+		// Walk over all entries that are about the same symbol
+		OOVPATable *pBestSymbolEntry = pLoop;
+		OOVPATable *pNextBest = nullptr;
+		while ((++pLoop < pLoopEnd) && (strcmp(pLoop->szSymbolName, pBestSymbolEntry->szSymbolName) == 0)) {
+			// Don't consider versions that are too new, compared to the version we are running
+			if (pLoop->Version > BuildVersion) { // TODO : Actually, if we have no exact version, the surrounding ones might be best
 				continue;
 			}
-		}
 
-		char *szCurrentFuncName = OovpaTable[a].szSymbolName;
-		if (szPrevFuncName != szCurrentFuncName) {
-			szPrevFuncName = szCurrentFuncName;
-			// Skip already found & handled symbols
-			// (The above check is a bit faster, thus do this after that)
-			xbaddr pFunc = g_SymbolAddresses[szCurrentFuncName];
-			if (pFunc != (xbaddr)nullptr)
+			// Don't take another entry if we already have an exact (or possibly initially too new) version
+			if (pBestSymbolEntry->Version >= BuildVersion) {
 				continue;
+			}
+
+			// Switch over to the newer loop entry
+			pNextBest = pBestSymbolEntry;
+			pBestSymbolEntry = pLoop;
 		}
 
-		// Search for each function's location using the OOVPA
-		xbaddr pFunc = (xbaddr)EmuLocateFunction(pOovpa, lower, upper);
-		if (pFunc == (xbaddr)nullptr)
+		// If the best matching version is too new, don't scan for it
+		if (pBestSymbolEntry->Version > BuildVersion) {
 			continue;
-
-		// Now that we found the address, store it (regardless if we patch it or not)
-		g_SymbolAddresses[OovpaTable[a].szSymbolName] = (uint32_t)pFunc;
-
-		// Output some details
-		std::stringstream output;
-		output << "HLE: 0x" << std::setfill('0') << std::setw(8) << std::hex << pFunc
-			<< " -> " << OovpaTable[a].szSymbolName << " " << std::dec << OovpaTable[a].Version;
-
-		// Retrieve the associated patch, if any is available
-		void* addr = GetEmuPatchAddr(std::string(OovpaTable[a].szSymbolName));
-		if (addr != nullptr) {
-			EmuInstallPatch(pFunc, addr);
-			output << "\t*PATCHED*";
-		}
-		else {
-			output << "\t*NO PATCH AVAILABLE*";
 		}
 
-		output << "\n";
-		printf(output.str().c_str());
+		// We'll do the following loop at most twice (once for the best match, once for the next)
+		for (; pBestSymbolEntry != nullptr; pBestSymbolEntry = pNextBest, pNextBest = nullptr) {
+
+			// Does this OOVPA have an XREF that can be checked?
+			OOVPA *pOovpa = pBestSymbolEntry->pOovpa;
+			if (pOovpa->XRefSaveIndex != XRefNoSaveIndex) {
+				// Skip a search if this XREF already has an assigned address
+				switch (XRefDataBase[pOovpa->XRefSaveIndex]) {
+				case XREF_ADDR_NOT_FOUND: // NULL might change?
+					break;
+				case XREF_ADDR_UNDETERMINED: // Initial, unknown state
+					break;
+				case XREF_ADDR_DERIVE: // Marker that isn't yet replaced with an address
+					break;
+				default:
+					continue;
+				}
+			}
+
+			// Search for each function's location using the OOVPA
+			pFunc = (xbaddr)EmuLocateFunction(pOovpa, lower, upper);
+			if (pFunc == (xbaddr)nullptr) {
+				continue;
+			}
+
+			// Now that we found the address, store it (regardless if we patch it or not)
+			g_SymbolAddresses[szCurrentSymbol] = pFunc;
+
+			// Don't repeat the search
+			pNextBest = nullptr;
+
+			// Output some details
+			std::stringstream output;
+			output << "HLE: 0x" << std::setfill('0') << std::setw(8) << std::hex << pFunc
+				<< " -> " << szCurrentSymbol << " " << std::dec << pBestSymbolEntry->Version;
+
+			// Retrieve the associated patch, if any is available
+			void* addr = GetEmuPatchAddr(std::string(szCurrentSymbol));
+			if (addr != nullptr) {
+				EmuInstallPatch(pFunc, addr);
+				output << "\t*PATCHED*";
+			}
+			else {
+				output << "\t*NO PATCH AVAILABLE*";
+			}
+
+			output << "\n";
+			printf(output.str().c_str());
+		}
 	}
 }
 
