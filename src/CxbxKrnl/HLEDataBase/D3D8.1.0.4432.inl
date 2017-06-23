@@ -582,7 +582,7 @@ OOVPA_END;
 // ******************************************************************
 // * D3D8_4432
 // ******************************************************************
-OOVPATable D3D8_4432[]  {
+OOVPATable D3D8_4432[] = {
 
 	REGISTER_OOVPAS(CMiniport_InitHardware, 4361), // PATCH 
 	REGISTER_OOVPAS(CMiniport_CreateCtxDmaObject, 4361), // PATCH 
