@@ -309,13 +309,11 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 				std::string LibraryName(pLibraryVersion[v].szName, pLibraryVersion[v].szName + 8);
 				
 				// TODO: HACK: D3DX8 is packed into D3D8 database
-				if (strcmp(LibraryName.c_str(), Lib_D3DX8) == 0)
-				{
+				if (strcmp(LibraryName.c_str(), Lib_D3DX8) == 0) {
 					LibraryName = Lib_D3D8;
 				}
 
-				if (strcmp(LibraryName.c_str(), Lib_D3D8LTCG) == 0)
-				{
+				if (strcmp(LibraryName.c_str(), Lib_D3D8LTCG) == 0) {
 					// If LLE GPU is not enabled, show a warning that the title is not supported
 					if (!bLLE_GPU)
 						CxbxKrnlCleanup("LTCG Title Detected: This game is not supported by HLE");
@@ -324,15 +322,13 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 					continue;
 				}
 				
-				if (strcmp(LibraryName.c_str(), Lib_DSOUND) == 0)
-                {
+				if (strcmp(LibraryName.c_str(), Lib_DSOUND) == 0) {
 					// Skip scanning for DSOUND symbols when LLE APU is selected
 					if (bLLE_APU)
 						continue;
                 }
 
-				if (strcmp(LibraryName.c_str(), Lib_XGRAPHC) == 0)
-				{
+				if (strcmp(LibraryName.c_str(), Lib_XGRAPHC) == 0) {
 					// Skip scanning for XGRAPHC (XG) symbols when LLE GPU is selected
 					if (bLLE_GPU)
 						continue;
@@ -343,8 +339,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 					LibraryName = Lib_XONLINE; // TODO: Verify differences between XONLINE and XONLINES (if any)
 				}
 
-				if (strcmp(LibraryName.c_str(), Lib_D3D8) == 0)
-				{
+				if (strcmp(LibraryName.c_str(), Lib_D3D8) == 0) {
 					// Skip scanning for D3D8 symbols when LLE GPU is selected
 					if (bLLE_GPU)
 						continue;
