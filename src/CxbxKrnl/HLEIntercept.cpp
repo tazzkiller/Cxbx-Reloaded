@@ -170,6 +170,9 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 	printf("*******************************************************************************\n");
 	printf("\n");
 
+	g_SymbolAddresses.clear();
+	g_SymbolAddresses.reserve(1250); // number of symbols that have one or more OOVPA (will be less than the hitcount of search on OOVPA_END)
+
 	// Make sure the HLE Cache directory exists
 	std::string cachePath = std::string(szFolder_CxbxReloadedData) + "\\HLECache\\";
 	int result = SHCreateDirectoryEx(nullptr, cachePath.c_str(), nullptr);
