@@ -54,153 +54,273 @@
 // ******************************************************************
 OOVPATable DSound_OOVPA[] = {
 
-	REGISTER_OOVPAS(DirectSoundCreate, 3936), // PATCH 
-	REGISTER_OOVPAS(DirectSoundDoWorkB, 3936), // XREF
-	REGISTER_OOVPAS(DirectSoundDoWorkA, 3936), // XREF
-	REGISTER_OOVPAS(DirectSoundDoWork, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSound_CreateSoundStream, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSound_CreateSoundStream, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSound_CreateSoundBuffer, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSound_CreateBuffer, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSoundBuffer_Release, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetPitchB, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetPitchA, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetPitch, 3936), // PATCH 
-	REGISTER_OOVPAS(CMcpxBuffer_GetStatus, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundBuffer_GetStatus, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_GetStatus, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetVolumeB, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetVolumeA, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetVolume, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetCurrentPositionB, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetCurrentPositionA, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetCurrentPosition, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetPlayRegionA, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetPlayRegion, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSoundBuffer_LockA, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_Lock, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetHeadroomA, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetHeadroom, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetBufferDataA, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetBufferData, 3936), // PATCH 
-	REGISTER_OOVPAS(CMcpxVoiceClient_SetMixBins, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundVoice_SetMixBins, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetMixBins, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetMixBins, 3936), // PATCH 
-	REGISTER_OOVPAS(CMcpxBuffer_GetCurrentPosition, 3936), // XREF
-	REGISTER_OOVPAS(CMcpxBuffer_GetCurrentPosition2, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundBuffer_GetCurrentPosition, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_GetCurrentPosition, 3936), // PATCH 
-	REGISTER_OOVPAS(CMcpxBuffer_Play, 3925), // XREF
-	REGISTER_OOVPAS(CDirectSoundBuffer_Play, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_Play, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundBuffer_Stop, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_Stop, 3936), // PATCH 
-	REGISTER_OOVPAS(CMcpxVoiceClient_SetVolume, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetVolume, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundStream_SetConeAnglesB, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetConeAnglesA, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetConeAngles, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundStream_SetConeOutsideVolumeB, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetConeOutsideVolumeA, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetConeOutsideVolume, 3936), // PATCH 
-	REGISTER_OOVPAS(CMcpxVoiceClient_Set3dParameters, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundVoice_SetAllParameters, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetAllParameters, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundStream_SetMaxDistanceC, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetMaxDistanceB, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetMaxDistanceA, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetMaxDistance, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundStream_SetMinDistanceC, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetMinDistanceB, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetMinDistanceA, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetMinDistance, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundStream_SetVelocityC, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetVelocityB, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetVelocityA, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetVelocity, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundBuffer_SetVelocity, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetVelocity, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundStream_SetConeOrientationC, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetConeOrientationB, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetConeOrientationA, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetConeOrientation, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundStream_SetPositionC, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetPositionB, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetPositionA, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetPosition, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundBuffer_SetPosition, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetPosition, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundStream_SetFrequencyB, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetFrequencyA, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetFrequency, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetFrequency, 3936), // PATCH 
-	REGISTER_OOVPAS(CMcpxVoiceClient_Set3dMode, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundVoice_SetMode, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetMode, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundVoice_SetHeadroom, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetHeadroom, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSound_SetOrientation, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSound_CommitDeferredSettingsB, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSound_CommitDeferredSettingsA, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSound_CommitDeferredSettings, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSound_Release, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSound_SetDistanceFactorB, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSound_SetDistanceFactorA, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSound_SetDistanceFactor, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSound_SetRolloffFactorB, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSound_SetRolloffFactorA, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSound_SetRolloffFactor, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSound_SetMixBinHeadroomB, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSound_SetMixBinHeadroomA, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSound_SetMixBinHeadroom, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSound_SetPositionB, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSound_SetPositionA, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSound_SetPosition, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSound_SetVelocityB, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSound_SetVelocityA, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSound_SetVelocity, 3936), // PATCH 
-	REGISTER_OOVPAS(CMcpxAPU_Set3dParameters, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSound_SetAllParameters, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSound_SetAllParameters, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSound_DownloadEffectsImage, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundStream_SetMode, 3936), // PATCH 
-	REGISTER_OOVPAS(CMcpxAPU_Set3dDopplerFactor, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSound_SetDopplerFactor, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSound_SetDopplerFactor, 3936), // PATCH 
-	REGISTER_OOVPAS(CSensaura3d_GetFullHRTFFilterPair, 3925), // XREF
-	REGISTER_OOVPAS(CSensaura3d_GetFullHRTFFilterPair, 3936), // XREF
-	REGISTER_OOVPAS(DirectSoundUseFullHRTF, 3925), // PATCH 
-	REGISTER_OOVPAS(CDirectSound_GetCaps, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSound_GetCaps, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundVoice_SetConeAngles, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetConeAngles, 3936), // PATCH 
-	REGISTER_OOVPAS(DirectSoundEnterCriticalSection, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundBuffer_PlayEx, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_PlayEx, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSound_AddRef, 3936), // PATCH 
-	REGISTER_OOVPAS(DirectSoundGetSampleTime, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSoundBuffer_AddRef, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundBuffer_SetMinDistance, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetMinDistance, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundBuffer_SetMaxDistance, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetMaxDistance, 3936), // PATCH 
-	REGISTER_OOVPAS(CMcpxVoiceClient_Commit3dSettings, 3936), // XREF
-	REGISTER_OOVPAS(CMcpxVoiceClient_SetI3DL2Source, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundVoice_SetI3DL2Source, 3936), // XREF
-	REGISTER_OOVPAS(CDirectSoundStream_SetI3DL2Source, 3936), // PATCH 
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetI3DL2Source, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundVoice_SetMixBinVolumes, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetMixBinVolumes, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSound_SetI3DL2Listener, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSound_SetI3DL2Listener, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSound_EnableHeadphones, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSound_EnableHeadphones, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundStream_SetMixBinVolumes, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundBuffer_SetNotificationPositions, 3936), // XREF
-	REGISTER_OOVPAS(IDirectSoundBuffer_SetNotificationPositions, 3936), // PATCH 
-	REGISTER_OOVPAS(CDirectSoundStream_Pause, 3936), // PATCH 
-};
+	REGISTER_OOVPAS(CDirectSoundBuffer_GetCurrentPosition, 3936, 4134, 5558),
+	REGISTER_OOVPAS(CDirectSoundBuffer_GetStatus, 3936, 4134, 4721),
+	REGISTER_OOVPAS(CDirectSoundBuffer_Pause, 4928),
+	REGISTER_OOVPAS(CDirectSoundBuffer_Play, 3936, 4134, 4361, 5558, 5788),
+	REGISTER_OOVPAS(CDirectSoundBuffer_PlayEx, 3936, 4361, 5788),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetAllParameters, 4134),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetBufferData, 4134, 5558),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetConeAngles, 4134, 5558),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetConeOrientation, 4134),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetConeOutsideVolume, 4134),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetCurrentPosition, 4134, 5558, 5788),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetDistanceFactor, 4134, 5558),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetDopplerFactor, 4134, 5558),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetEG, 4627, 5558, 5849),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetFilter, 4134),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetFormat, 4361, 4627, 5558),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetFrequency, 4134),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetHeadroom, 5344, 5558),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetI3DL2Source, 4134, 5558, 5849),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetLFO, 4627),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetLoopRegion, 4134, 5558),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetMaxDistance, 3936, 4134, 5344, 5788),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetMinDistance, 3936, 4134, 5344, 5788),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetMixBinVolumes, 4134, 4361, 4627),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetMixBins, 4134, 5558),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetMode, 4134, 5233, 5849),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetNotificationPositions, 3936, 4627), // Uncommenting these fixes dashboard 4920
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetOutputBuffer, 4627),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetPitch, 4627),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetPlayRegion, 4361, 5558),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetPosition, 3936, 4134, 5558),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetRolloffCurve, 4627),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetRolloffFactor, 4134, 5788),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetVelocity, 3936, 4134, 5558),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetVolume, 4134, 5233, 5788),
+	REGISTER_OOVPAS(CDirectSoundBuffer_Stop, 3936, 4361),
+	REGISTER_OOVPAS(CDirectSoundBuffer_StopEx, 4361, 5344),
+	REGISTER_OOVPAS(CDirectSoundBuffer_Use3DVoiceData, 5558),
+	REGISTER_OOVPAS(CDirectSoundStream_FlushEx, 4627, 5233, 5788),
+	REGISTER_OOVPAS(CDirectSoundStream_Pause, 3936, 4361, 5558),
+	REGISTER_OOVPAS(CDirectSoundStream_SetAllParameters, 3936, 4134),
+	REGISTER_OOVPAS(CDirectSoundStream_SetConeAngles, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetConeAnglesA, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetConeAnglesB, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetConeOrientation, 3936, 4134),
+	REGISTER_OOVPAS(CDirectSoundStream_SetConeOrientationA, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetConeOrientationB, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetConeOrientationC, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetConeOutsideVolume, 3936, 4134),
+	REGISTER_OOVPAS(CDirectSoundStream_SetConeOutsideVolumeA, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetConeOutsideVolumeB, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetEG, 4627, 5558, 5849),
+	REGISTER_OOVPAS(CDirectSoundStream_SetFilter, 4627),
+	REGISTER_OOVPAS(CDirectSoundStream_SetFormat, 4361, 5558),
+	REGISTER_OOVPAS(CDirectSoundStream_SetFrequency, 3936, 5233, 5558),
+	REGISTER_OOVPAS(CDirectSoundStream_SetFrequencyA, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetFrequencyB, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetHeadroom, 3936, 4627, 5558),
+	REGISTER_OOVPAS(CDirectSoundStream_SetI3DL2Source, 3936, 4134),
+	REGISTER_OOVPAS(CDirectSoundStream_SetLFO, 4627),
+	REGISTER_OOVPAS(CDirectSoundStream_SetMaxDistance, 3936, 4134),
+	REGISTER_OOVPAS(CDirectSoundStream_SetMaxDistanceA, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetMaxDistanceB, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetMaxDistanceC, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetMinDistance, 3936, 4134, 5344),
+	REGISTER_OOVPAS(CDirectSoundStream_SetMinDistanceA, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetMinDistanceB, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetMinDistanceC, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetMixBinVolumes, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetMixBinVolumes2, 4134, 4627, 5788),
+	REGISTER_OOVPAS(CDirectSoundStream_SetMixBins, 3936, 4627, 5233, 5558),
+	REGISTER_OOVPAS(CDirectSoundStream_SetMode, 3936, 4134),
+	REGISTER_OOVPAS(CDirectSoundStream_SetOutputBuffer, 4627),
+	REGISTER_OOVPAS(CDirectSoundStream_SetPitch, 4627, 5849),
+	REGISTER_OOVPAS(CDirectSoundStream_SetPosition, 3936, 4134),
+	REGISTER_OOVPAS(CDirectSoundStream_SetPositionA, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetPositionB, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetPositionC, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetRolloffCurve, 4627, 5558),
+	REGISTER_OOVPAS(CDirectSoundStream_SetRolloffFactor, 4134),
+	REGISTER_OOVPAS(CDirectSoundStream_SetVelocity, 3936, 4134),
+	REGISTER_OOVPAS(CDirectSoundStream_SetVelocityA, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetVelocityB, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetVelocityC, 3936),
+	REGISTER_OOVPAS(CDirectSoundStream_SetVolume, 3936, 4134), // (This is actually the XREF we are using)
+	REGISTER_OOVPAS(CDirectSoundStream_Use3DVoiceData, 5558),
+	REGISTER_OOVPAS(CDirectSoundVoiceSettings_SetMixBinVolumes, 4134, 4361, 4627),
+	REGISTER_OOVPAS(CDirectSoundVoiceSettings_SetMixBins, 4134, 4432, 5344, 5558),
+	REGISTER_OOVPAS(CDirectSoundVoice_CommitDeferredSettings, 5558),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetAllParameters, 3936, 4134, 5344, 5558, 5849),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetConeAngles, 3936, 4134, 5344, 5558),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetConeOrientation, 4134, 5344),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetConeOutsideVolume, 4134, 5344),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetDistanceFactor, 4134, 5344, 5558),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetDopplerFactor, 4134, 5344, 5558),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetEG, 4627, 5558, 5849),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetFilter, 4134),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetFormat, 4361, 4627, 4721, 5233, 5558),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetFrequency, 4134),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetHeadroom, 3936, 4627, 5558),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetI3DL2Source, 3936, 4134, 5344, 5558, 5849),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetLFO, 4627),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetMaxDistance, 4134, 5344),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetMinDistance, 4134, 5344),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetMixBinVolumes, 3936, 4134, 4361, 4627),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetMixBins, 3936, 4134, 5558), 
+	REGISTER_OOVPAS(CDirectSoundVoice_SetMode, 3936, 4134, 5233, 5344, 5849),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetOutputBuffer, 4627),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetPitch, 4134),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetPosition, 4134, 4627, 5344, 5558),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetRolloffCurve, 4627, 5233, 5344),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetRolloffFactor, 4134, 5344, 5788),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetVelocity, 4134, 5344, 5558),
+	REGISTER_OOVPAS(CDirectSoundVoice_SetVolume, 4134, 5233, 5788),
+	REGISTER_OOVPAS(CDirectSoundVoice_Use3DVoiceData, 5558),
+	REGISTER_OOVPAS(CDirectSound_CommitDeferredSettings, 3936, 4134, 5344, 5558, 5788),
+	REGISTER_OOVPAS(CDirectSound_CommitDeferredSettingsA, 3936),
+	REGISTER_OOVPAS(CDirectSound_CommitDeferredSettingsB, 3936),
+	REGISTER_OOVPAS(CDirectSound_CreateSoundBuffer, 3936, 4134),
+	REGISTER_OOVPAS(CDirectSound_CreateSoundStream, 3936, 4134, 4361, 5558),
+	REGISTER_OOVPAS(CDirectSound_EnableHeadphones, 3936, 4627, 5233, 5344, 5558),
+	REGISTER_OOVPAS(CDirectSound_GetCaps, 3936),
+	REGISTER_OOVPAS(CDirectSound_GetOutputLevels, 4627, 5558),
+	REGISTER_OOVPAS(CDirectSound_GetSpeakerConfig, 4627),
+	REGISTER_OOVPAS(CDirectSound_SetAllParameters, 3936, 4928, 5558, 5849),
+	REGISTER_OOVPAS(CDirectSound_SetAllParametersA, 4627, 4721, 4831),
+	REGISTER_OOVPAS(CDirectSound_SetDistanceFactor, 5344),
+	REGISTER_OOVPAS(CDirectSound_SetDistanceFactorA, 3936, 4134, 4627, 5558),
+	REGISTER_OOVPAS(CDirectSound_SetDistanceFactorB, 3936),
+	REGISTER_OOVPAS(CDirectSound_SetDopplerFactor, 3936, 4134, 4627, 5344, 5558, 5788),
+	REGISTER_OOVPAS(CDirectSound_SetI3DL2Listener, 3936, 4134, 5344, 5558),
+	REGISTER_OOVPAS(CDirectSound_SetMixBinHeadroom, 4627, 5558),
+	REGISTER_OOVPAS(CDirectSound_SetMixBinHeadroomA, 3936),
+	REGISTER_OOVPAS(CDirectSound_SetMixBinHeadroomB, 3936),
+	REGISTER_OOVPAS(CDirectSound_SetPosition, 5558),
+	REGISTER_OOVPAS(CDirectSound_SetPositionA, 3936, 4134, 4627, 5344),
+	REGISTER_OOVPAS(CDirectSound_SetPositionB, 3936),
+	REGISTER_OOVPAS(CDirectSound_SetRolloffFactor, 4134, 5344, 5558, 5849),
+	REGISTER_OOVPAS(CDirectSound_SetRolloffFactorA, 3936),
+	REGISTER_OOVPAS(CDirectSound_SetRolloffFactorB, 3936),
+	REGISTER_OOVPAS(CDirectSound_SetVelocity, 4134, 4627, 5344, 5558),
+	REGISTER_OOVPAS(CDirectSound_SetVelocityA, 3936),
+	REGISTER_OOVPAS(CDirectSound_SetVelocityB, 3936),
+	REGISTER_OOVPAS(CDirectSound_SynchPlayback, 5233, 5344, 5558),
+	REGISTER_OOVPAS(CFullHRTFSource_GetCenterVolume, 5558),
+	REGISTER_OOVPAS(CHRTFSource_SetFullHRTF5Channel, 5558),
+	REGISTER_OOVPAS(CMcpxAPU_Set3dDopplerFactor, 3936),
+	REGISTER_OOVPAS(CMcpxAPU_Set3dParameters, 3936),
+	REGISTER_OOVPAS(CMcpxAPU_SynchPlayback, 5233),
+	REGISTER_OOVPAS(CMcpxBuffer_GetCurrentPosition, 3936, 4134),
+	REGISTER_OOVPAS(CMcpxBuffer_GetCurrentPosition2, 3936),
+	REGISTER_OOVPAS(CMcpxBuffer_GetStatus, 3936, 4134, 4721, 4831, 5558),
+	REGISTER_OOVPAS(CMcpxBuffer_Pause, 4928),
+	REGISTER_OOVPAS(CMcpxBuffer_Play, 3925, 4361, 4721, 4928),
+	REGISTER_OOVPAS(CMcpxBuffer_Play2, 4361, 5558, 5788),
+	REGISTER_OOVPAS(CMcpxBuffer_SetBufferData, 4134, 5788),
+	REGISTER_OOVPAS(CMcpxBuffer_SetCurrentPosition, 4134, 5558, 5788),
+	REGISTER_OOVPAS(CMcpxBuffer_Stop, 4361),
+	REGISTER_OOVPAS(CMcpxBuffer_Stop2, 4361),
+	REGISTER_OOVPAS(CMcpxStream_Pause, 4361, 4928, 5788),
+	REGISTER_OOVPAS(CMcpxVoiceClient_Commit3dSettings, 3936),
+	REGISTER_OOVPAS(CMcpxVoiceClient_Set3dMode, 3936),
+	REGISTER_OOVPAS(CMcpxVoiceClient_Set3dParameters, 3936),
+	REGISTER_OOVPAS(CMcpxVoiceClient_SetEG, 4627, 5558, 5849),
+	REGISTER_OOVPAS(CMcpxVoiceClient_SetFilter, 4134, 5344, 5558, 5849),
+	REGISTER_OOVPAS(CMcpxVoiceClient_SetI3DL2Source, 3936),
+	REGISTER_OOVPAS(CMcpxVoiceClient_SetLFO, 4627),
+	REGISTER_OOVPAS(CMcpxVoiceClient_SetMixBins, 3936),
+	REGISTER_OOVPAS(CMcpxVoiceClient_SetVolume, 3936, 4134),
+	REGISTER_OOVPAS(CMemoryManager_PoolAlloc, 5788),
+	REGISTER_OOVPAS(CSensaura3d_GetFullHRTFFilterPair, 3925),
+	REGISTER_OOVPAS(CSensaura3d_GetFullHRTFFilterPair, 3936),
+	REGISTER_OOVPAS(DirectSoundCreate, 3936),
+	REGISTER_OOVPAS(DirectSoundCreate, 4134),
+	REGISTER_OOVPAS(DirectSoundCreateBuffer, 4627),
+	REGISTER_OOVPAS(DirectSoundCreateStream, 4134, 4361, 5788),
+	REGISTER_OOVPAS(DirectSoundDoWork, 3936, 4134, 5558),
+	REGISTER_OOVPAS(DirectSoundDoWorkA, 3936),
+	REGISTER_OOVPAS(DirectSoundDoWorkB, 3936),
+	REGISTER_OOVPAS(DirectSoundEnterCriticalSection, 3936),
+	REGISTER_OOVPAS(DirectSoundGetSampleTime, 3936, 4361, 4432, 4627),
+	REGISTER_OOVPAS(DirectSoundUseFullHRTF, 3925, 5558),
+	REGISTER_OOVPAS(IDirectSound8_EnableHeadphones, 5233, 5558),
+	REGISTER_OOVPAS(IDirectSoundBuffer_AddRef, 3936),
+	REGISTER_OOVPAS(IDirectSoundBuffer_GetCurrentPosition, 3936, 5558),
+	REGISTER_OOVPAS(IDirectSoundBuffer_GetStatus, 3936, 4134, 4721),
+	REGISTER_OOVPAS(IDirectSoundBuffer_Lock, 3936, 5558),
+	REGISTER_OOVPAS(IDirectSoundBuffer_LockA, 3936, 4134),
+	REGISTER_OOVPAS(IDirectSoundBuffer_Pause, 4928),
+	REGISTER_OOVPAS(IDirectSoundBuffer_Play, 3936, 4361, 5558),
+	REGISTER_OOVPAS(IDirectSoundBuffer_PlayEx, 3936),
+	REGISTER_OOVPAS(IDirectSoundBuffer_Release, 3936),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetAllParameters, 4134), // Use that for now. Okay, it's your call pal...
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetBufferData, 3936, 4134, 5558),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetBufferDataA, 3936),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetConeAngles, 3936, 4134, 5558),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetConeOrientation, 4134),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetConeOutsideVolume, 4134),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetCurrentPosition, 3936, 4134, 5558, 5788),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetCurrentPositionA, 3936),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetCurrentPositionB, 3936),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetDistanceFactor, 4134, 5558),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetDopplerFactor, 4134, 5558),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetEG, 4627, 5558, 5849),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetFilter, 4134),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetFormat, 4361, 4627, 5558),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetFrequency, 3936, 4134),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetHeadroom, 3936, 4134, 5344, 5558),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetHeadroomA, 3936, 4134),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetI3DL2Source, 3936, 4134, 5558, 5849),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetLFO, 4627),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetLoopRegion, 4134),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetMaxDistance, 3936, 4134, 5344, 5788),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetMinDistance, 3936, 4134, 5558, 5788),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetMixBinVolumes, 3936),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetMixBinVolumes2, 4134, 4627),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetMixBins, 3936, 4134, 5558),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetMode, 3936, 4134, 5233, 5849),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetNotificationPositions, 3936, 4627),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetOutputBuffer, 4627),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetPitch, 3936, 4627),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetPitchA, 3936),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetPitchB, 3936),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetPlayRegion, 3936, 4361),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetPlayRegionA, 3936),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetPosition, 3936, 5558),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetRolloffCurve, 4627),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetRolloffFactor, 4134, 5788),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetVelocity, 3936, 5558),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetVolume, 3936, 4134),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetVolumeA, 3936),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetVolumeB, 3936),
+	REGISTER_OOVPAS(IDirectSoundBuffer_Stop, 3936, 4134, 4361), // (4134 Possibly weak, but quite OK for 4627 DSOUND)
+	REGISTER_OOVPAS(IDirectSoundBuffer_StopEx, 4361, 5233),
+	REGISTER_OOVPAS(IDirectSoundBuffer_Use3DVoiceData, 5558),
+	REGISTER_OOVPAS(IDirectSoundStream_FlushEx, 4627),
+	REGISTER_OOVPAS(IDirectSound_AddRef, 3936),
+	REGISTER_OOVPAS(IDirectSound_CreateBuffer, 3936),
+	REGISTER_OOVPAS(IDirectSound_CreateSoundBuffer, 4134, 4361),
+	REGISTER_OOVPAS(IDirectSound_CreateSoundStream, 3936, 5558),
+	REGISTER_OOVPAS(IDirectSound_DownloadEffectsImage, 3936),
+	REGISTER_OOVPAS(IDirectSound_EnableHeadphones, 3936, 4627),
+	REGISTER_OOVPAS(IDirectSound_GetCaps, 3936),
+	REGISTER_OOVPAS(IDirectSound_GetOutputLevels, 4627, 5558),
+	REGISTER_OOVPAS(IDirectSound_Release, 3936, 4432),
+	REGISTER_OOVPAS(IDirectSound_SetAllParameters, 3936),
+	REGISTER_OOVPAS(IDirectSound_SetDistanceFactor, 3936, 4134),
+	REGISTER_OOVPAS(IDirectSound_SetDopplerFactor, 3936, 4134),
+	REGISTER_OOVPAS(IDirectSound_SetEffectData, 5344),
+	REGISTER_OOVPAS(IDirectSound_SetI3DL2Listener, 3936, 4134),
+	REGISTER_OOVPAS(IDirectSound_SetMixBinHeadroom, 3936, 4627, 5558),
+	REGISTER_OOVPAS(IDirectSound_SetOrientation, 3936),
+	REGISTER_OOVPAS(IDirectSound_SetPosition, 3936, 5558),
+	REGISTER_OOVPAS(IDirectSound_SetRolloffFactor, 3936, 4134, 5344),
+	REGISTER_OOVPAS(IDirectSound_SetVelocity, 3936, 5558),
+	REGISTER_OOVPAS(IDirectSound_SynchPlayback, 5233),
+	REGISTER_OOVPAS(WaveFormat_CreateXboxAdpcmFormat, 5344, 5558),
+	REGISTER_OOVPAS(XAudioCreateAdpcmFormat, 5344, 5558),
+	REGISTER_OOVPAS(XAudioDownloadEffectsImage, 4627, 5558),
+	REGISTER_OOVPAS(XFileCreateMediaObjectAsync, 5788),
+	REGISTER_OOVPAS(XFileCreateMediaObjectEx, 4627, 5028),
+	REGISTER_OOVPAS(XWaveFileCreateMediaObject, 4627),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetCurrentPosition, 4134),
+	REGISTER_OOVPAS(CDirectSoundBuffer_SetLoopRegion, 4134),
+	REGISTER_OOVPAS(CMcpxBuffer_SetCurrentPosition, 4134),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetCurrentPosition, 4134),
+	REGISTER_OOVPAS(IDirectSoundBuffer_SetLoopRegion, 4134), };
 
 // ******************************************************************
 // * DSound_OOVPA_SIZE
