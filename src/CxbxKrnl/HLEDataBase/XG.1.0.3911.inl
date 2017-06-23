@@ -124,12 +124,12 @@ OOVPA_END;
 // ******************************************************************
 OOVPATable XG_3911[] = {
 
-	REGISTER_OOVPA(XGIsSwizzledFormat, 3911), // DISABLED
-	// REGISTER_OOVPA(XGSwizzleRect, 3911), // DISABLED TODO : Uncomment
-	// REGISTER_OOVPA(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
-	REGISTER_OOVPA(XGSwizzleBox, 3911), // DISABLED
-	REGISTER_OOVPA(XGWriteSurfaceOrTextureToXPR, 3911), // PATCH 
-	REGISTER_OOVPA(XGSetTextureHeader, 3911), // PATCH 
+	REGISTER_OOVPAS(XGIsSwizzledFormat, 3911), // DISABLED
+	// REGISTER_OOVPAS(XGSwizzleRect, 3911), // DISABLED TODO : Uncomment
+	// REGISTER_OOVPAS(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
+	REGISTER_OOVPAS(XGSwizzleBox, 3911), // DISABLED
+	REGISTER_OOVPAS(XGWriteSurfaceOrTextureToXPR, 3911), // PATCH 
+	REGISTER_OOVPAS(XGSetTextureHeader, 3911), // PATCH 
 };
 
 // ******************************************************************

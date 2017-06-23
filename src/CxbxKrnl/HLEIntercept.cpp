@@ -403,6 +403,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 	
 					if(bXRefFirstPass)
 	                {
+#if 0
 						using namespace XTL;
 
 						// Save D3D8 build version
@@ -538,6 +539,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								printf("HLE: Derived 0x%.08X -> g_Stream\n", Derived_g_Stream);
 							}
 						}
+#endif
 					}
                 }
 
@@ -545,7 +547,8 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
                 const HLEData *FoundHLEData = nullptr;
                 for(uint32 d = 0; d < HLEDataBaseCount; d++) {
-					if (BuildVersion == HLEDataBase[d].BuildVersion && strcmp(LibraryName.c_str(), HLEDataBase[d].Library) == 0) {
+					//if (BuildVersion == HLEDataBase[d].BuildVersion && strcmp(LibraryName.c_str(), HLEDataBase[d].Library) == 0) {
+					if (strcmp(LibraryName.c_str(), HLEDataBase[d].Library) == 0) {
 						FoundHLEData = &HLEDataBase[d];
 						break;
 					}

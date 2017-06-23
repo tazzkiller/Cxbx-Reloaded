@@ -53,38 +53,3 @@ OOVPA_NO_XREF(XMountUtilityDrive, 4432, 8)
 
         // TODO: Finish signature, toss out function call basically
 OOVPA_END;
-
-// ******************************************************************
-// * XAPI_4432
-// ******************************************************************
-OOVPATable XAPI_4432[] = {
-	REGISTER_OOVPA(XMountUtilityDrive, 4432), // PATCH 
-	REGISTER_OOVPA(XInitDevices, 3911), // PATCH 
-	REGISTER_OOVPA(XGetDevices, 3911), // PATCH 
-	REGISTER_OOVPA(XInputOpen, 4361), // PATCH 
-	REGISTER_OOVPA(XID_fCloseDevice, 4361), // XREF
-	REGISTER_OOVPA(XInputClose, 3911), // PATCH 
-	REGISTER_OOVPA(XInputGetCapabilities, 4361), // PATCH 
-	REGISTER_OOVPA(XInputGetState, 4361), // PATCH 
-	REGISTER_OOVPA(XInputSetState, 4361), // PATCH 
-	REGISTER_OOVPA(XGetDeviceChanges, 3911), // PATCH 
-    // REGISTER_OOVPA(XapiThreadStartup, 4361), // PATCH 
-	REGISTER_OOVPA(GetExitCodeThread, 3911), // PATCH 
-	REGISTER_OOVPA(GetTimeZoneInformation, 3911), // DISABLED
-	REGISTER_OOVPA(SetThreadPriority, 3911), // PATCH 
-	REGISTER_OOVPA(SignalObjectAndWait, 3911), // PATCH 
-	REGISTER_OOVPA(CreateFiber, 3911), // DISABLED
-	REGISTER_OOVPA(DeleteFiber, 3911), // DISABLED
-	REGISTER_OOVPA(SwitchToFiber, 3911), // DISABLED
-	REGISTER_OOVPA(ConvertThreadToFiber, 3911), // DISABLED
-	REGISTER_OOVPA(QueueUserAPC, 3911), // PATCH 
-	REGISTER_OOVPA(timeSetEvent, 4134), // PATCH 
-	REGISTER_OOVPA(timeKillEvent, 4134), // PATCH 
-	REGISTER_OOVPA(XLaunchNewImageA, 3911), // PATCH 
-	REGISTER_OOVPA(OutputDebugStringA, 3911), // PATCH 
-};
-
-// ******************************************************************
-// * XAPI_4432_SIZE
-// ******************************************************************
-uint32 XAPI_4432_SIZE = sizeof(XAPI_4432);

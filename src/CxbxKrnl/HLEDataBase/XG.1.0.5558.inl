@@ -67,12 +67,12 @@ OOVPA_END;
 // ******************************************************************
 OOVPATable XG_5558[] = {
 
-	REGISTER_OOVPA(XGIsSwizzledFormat, 4361), // DISABLED
+	REGISTER_OOVPAS(XGIsSwizzledFormat, 4361), // DISABLED
     
-	// REGISTER_OOVPA(XGSwizzleRect, 3911), // DISABLED TODO : Uncomment
-	REGISTER_OOVPA(XGSwizzleBox, 4627), // DISABLED (* UNTESTED *)
-	// REGISTER_OOVPA(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
-	REGISTER_OOVPA(XGUnswizzleBox, 5558), // DISABLED  (* UNTESTED *)
+	// REGISTER_OOVPAS(XGSwizzleRect, 3911), // DISABLED TODO : Uncomment
+	REGISTER_OOVPAS(XGSwizzleBox, 4627), // DISABLED (* UNTESTED *)
+	// REGISTER_OOVPAS(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
+	REGISTER_OOVPAS(XGUnswizzleBox, 5558), // DISABLED  (* UNTESTED *)
 };
 
 // ******************************************************************

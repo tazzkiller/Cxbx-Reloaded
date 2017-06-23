@@ -134,13 +134,13 @@ OOVPA_END;
 // ******************************************************************
 OOVPATable XG_4361[] = {
 
-	REGISTER_OOVPA(XGIsSwizzledFormat, 4361), // DISABLED
-	// REGISTER_OOVPA(XGSwizzleRect, 4361), // DISABLED TODO : Uncomment
-	// REGISTER_OOVPA(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
-	REGISTER_OOVPA(XGSetTextureHeader, 3911), // PATCH 
-	REGISTER_OOVPA(XGSetVertexBufferHeader, 4361), // XREF
-	REGISTER_OOVPA(XGSetIndexBufferHeader, 4361), // XREF
-	REGISTER_OOVPA(XGCompressRect, 4361), // XREF
+	REGISTER_OOVPAS(XGIsSwizzledFormat, 4361), // DISABLED
+	// REGISTER_OOVPAS(XGSwizzleRect, 4361), // DISABLED TODO : Uncomment
+	// REGISTER_OOVPAS(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
+	REGISTER_OOVPAS(XGSetTextureHeader, 3911), // PATCH 
+	REGISTER_OOVPAS(XGSetVertexBufferHeader, 4361), // XREF
+	REGISTER_OOVPAS(XGSetIndexBufferHeader, 4361), // XREF
+	REGISTER_OOVPAS(XGCompressRect, 4361), // XREF
 };
 
 // ******************************************************************

@@ -38,8 +38,8 @@
 // * XG_4432
 // ******************************************************************
 OOVPATable XG_4432[] = {
-	REGISTER_OOVPA(XGIsSwizzledFormat, 4361), // DISABLED
-	// REGISTER_OOVPA(XGSwizzleRect, 4361), // DISABLED TODO : Uncomment
+	REGISTER_OOVPAS(XGIsSwizzledFormat, 4361), // DISABLED
+	// REGISTER_OOVPAS(XGSwizzleRect, 4361), // DISABLED TODO : Uncomment
 };
 
 // ******************************************************************

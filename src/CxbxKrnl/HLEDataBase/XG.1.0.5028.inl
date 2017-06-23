@@ -37,11 +37,11 @@
 // ******************************************************************
 OOVPATable XG_5028[] = {
 
-	REGISTER_OOVPA(XGIsSwizzledFormat, 4361), // DISABLED
-	// REGISTER_OOVPA(XGSwizzleRect, 4361), // DISABLED TODO : Uncomment
-	// REGISTER_OOVPA(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
-	REGISTER_OOVPA(XGSwizzleBox, 4627), // DISABLED
-	REGISTER_OOVPA(XGWriteSurfaceOrTextureToXPR, 4627), // PATCH 
+	REGISTER_OOVPAS(XGIsSwizzledFormat, 4361), // DISABLED
+	// REGISTER_OOVPAS(XGSwizzleRect, 4361), // DISABLED TODO : Uncomment
+	// REGISTER_OOVPAS(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
+	REGISTER_OOVPAS(XGSwizzleBox, 4627), // DISABLED
+	REGISTER_OOVPAS(XGWriteSurfaceOrTextureToXPR, 4627), // PATCH 
 };
 
 // ******************************************************************

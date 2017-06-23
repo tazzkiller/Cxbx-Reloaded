@@ -37,10 +37,10 @@
 // ******************************************************************
 OOVPATable XG_5849[] = {
 
-	REGISTER_OOVPA(XGIsSwizzledFormat, 4361), // DISABLED
-    // REGISTER_OOVPA(XGSwizzleRect, 3911), // DISABLED TODO : Uncomment
-	// REGISTER_OOVPA(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
-	// REGISTER_OOVPA(XFONT_OpenBitmapFontFromMemory, 5788), // PATCH 
+	REGISTER_OOVPAS(XGIsSwizzledFormat, 4361), // DISABLED
+    // REGISTER_OOVPAS(XGSwizzleRect, 3911), // DISABLED TODO : Uncomment
+	// REGISTER_OOVPAS(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
+	// REGISTER_OOVPAS(XFONT_OpenBitmapFontFromMemory, 5788), // PATCH 
 };
 
 // ******************************************************************

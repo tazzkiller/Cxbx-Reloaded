@@ -41,10 +41,10 @@
 // * XOnline_5849
 // ******************************************************************
 OOVPATable XOnline_5849[] = {
-	REGISTER_OOVPA(XNetStartup, 5233), // PATCH 
-	REGISTER_OOVPA(WSAStartup, 5558), // PATCH 
-	REGISTER_OOVPA(XnInit, 5788), // XREF
-	REGISTER_OOVPA(XNetGetEthernetLinkStatus, 5849), // PATCH 
+	REGISTER_OOVPAS(XNetStartup, 5233), // PATCH 
+	REGISTER_OOVPAS(WSAStartup, 5558), // PATCH 
+	REGISTER_OOVPAS(XnInit, 5788), // XREF
+	REGISTER_OOVPAS(XNetGetEthernetLinkStatus, 5849), // PATCH 
 };
 
 // ******************************************************************

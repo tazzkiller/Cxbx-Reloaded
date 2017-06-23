@@ -57,19 +57,8 @@ const char *Lib_XONLINES = "XONLINES";
 #include "Emu.h"
 #include "EmuXTL.h"
 #include "HLEDataBase.h"
-#include "HLEDataBase/Xapi.1.0.3911.inl"
-#include "HLEDataBase/Xapi.1.0.4034.inl"
-#include "HLEDataBase/Xapi.1.0.4134.inl"
-#include "HLEDataBase/Xapi.1.0.4361.inl"
-#include "HLEDataBase/Xapi.1.0.4432.inl"
-#include "HLEDataBase/Xapi.1.0.4627.inl"
-#include "HLEDataBase/Xapi.1.0.4721.inl"
-#include "HLEDataBase/Xapi.1.0.5028.inl"
-#include "HLEDataBase/Xapi.1.0.5233.inl"
-#include "HLEDataBase/Xapi.1.0.5344.inl"
-#include "HLEDataBase/Xapi.1.0.5558.inl"
-#include "HLEDataBase/Xapi.1.0.5788.inl"
-#include "HLEDataBase/Xapi.1.0.5849.inl"
+#include "HLEDataBase/Xapi.OOVPA.inl"
+/*
 #include "HLEDataBase/D3D8.1.0.3925.inl"
 #include "HLEDataBase/D3D8.1.0.4034.inl"
 #include "HLEDataBase/D3D8.1.0.4134.inl"
@@ -115,18 +104,20 @@ const char *Lib_XONLINES = "XONLINES";
 #include "HLEDataBase/XOnline.1.0.5788.inl"
 #include "HLEDataBase/XOnline.1.0.5849.inl"
 #include "HLEDataBase/XactEng.1.0.4627.inl"
-
+*/
 
 // ******************************************************************
 // * HLEDataBase
 // ******************************************************************
-#define HLE_ENTRY(Lib, DB, Version) \
+#define HLE_ENTRY(Lib, DB) \
 	{Lib, Version, DB##_##Version, DB##_##Version##_SIZE }
 //  For example, HLE_ENTRY(Lib_XAPILIB, XAPI, 3911) results in:
 //  {Lib_XAPILIB, 3911, XAPI_3911, XAPI_3911_SIZE }
 
 const HLEData HLEDataBase[] =
 {
+	{ Lib_XAPILIB, XAPI_OOVPA, XAPI_OOVPA_SIZE }
+/*
 	HLE_ENTRY(Lib_XAPILIB, XAPI, 3911),
 	HLE_ENTRY(Lib_XAPILIB, XAPI, 4034),
 	HLE_ENTRY(Lib_XAPILIB, XAPI, 4134),
@@ -193,6 +184,7 @@ const HLEData HLEDataBase[] =
 	HLE_ENTRY(Lib_XONLINES, XOnline, 5849),
 
 	HLE_ENTRY(Lib_XACTENG, XactEng, 4627),
+*/ 
 };
 
 // ******************************************************************
