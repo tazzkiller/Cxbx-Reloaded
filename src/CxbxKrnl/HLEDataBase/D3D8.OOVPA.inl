@@ -32,8 +32,8 @@
 // *
 // ******************************************************************
 
-#ifndef XONLINE_OOVPA_INL
-#define XONLINE_OOVPA_INL
+#ifndef D3D8_OOVPA_INL
+#define D3D8_OOVPA_INL
 
 #include "OOVPA.h"
 
