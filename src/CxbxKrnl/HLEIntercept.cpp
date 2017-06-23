@@ -56,7 +56,6 @@ static inline void EmuInstallPatch(xbaddr FunctionAddr, void *Patch);
 #include <sstream>
 
 std::unordered_map<std::string, xbaddr> g_SymbolAddresses;
-bool g_HLECacheUsed = false;
 
 // D3D build version
 uint32 g_BuildVersion;
@@ -268,12 +267,15 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 		// If g_SymbolAddresses didn't get filled, the HLE cache is invalid
 		if (g_SymbolAddresses.empty()) {
 			printf("HLE Cache file is outdated and will be regenerated\n");
-			g_HLECacheUsed = false;
 		}
 	}
 
 	// If the HLE Cache was used, skip symbol searching/patching
-	if (g_HLECacheUsed) {
+	if (!g_SymbolAddresses.empty()) {
+		XTL::DxbxBuildRenderStateMappingTable();
+		SetGlobalSymbols();
+		XRefDataBase[XREF_D3DDEVICE] = g_SymbolAddresses["D3DDEVICE"];
+		XTL::InitD3DDeferredStates();
 		return;
 	}
 
