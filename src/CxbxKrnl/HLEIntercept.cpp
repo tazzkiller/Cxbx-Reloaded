@@ -307,21 +307,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
                 uint16 BuildVersion = pLibraryVersion[v].wBuildVersion;
                 uint16 OrigBuildVersion = BuildVersion;
 
-                // Aliases - for testing purposes only
-				// TODO: Remove these and come up with a better way to handle XDKs we don't hve databases for
-				if(BuildVersion == 4039) { BuildVersion = 4034; }
-				if(BuildVersion == 4238) { BuildVersion = 4361; }	// I don't think this XDK was released.
-				if(BuildVersion == 4242) { BuildVersion = 4361; }
-				if(BuildVersion == 4400) { BuildVersion = 4361; }
-				if(BuildVersion == 4531) { BuildVersion = 4432; }
-                if(BuildVersion == 4721) { BuildVersion = 4627; }
-				if(BuildVersion == 4831) { BuildVersion = 4627; }
-                if(BuildVersion == 4928) { BuildVersion = 4627; }
-                if(BuildVersion == 5455) { BuildVersion = 5558; }
-                if(BuildVersion == 5659) { BuildVersion = 5558; }
-				if(BuildVersion == 5120) { BuildVersion = 5233; }
-                if(BuildVersion == 5933) { BuildVersion = 5849; }   // These XDK versions are pretty much the same
-                
 				std::string LibraryName(pLibraryVersion[v].szName, pLibraryVersion[v].szName + 8);
 				
 				// TODO: HACK: D3DX8 is packed into D3D8 database
@@ -345,40 +330,13 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 					// Skip scanning for DSOUND symbols when LLE APU is selected
 					if (bLLE_APU)
 						continue;
-
-					// Several 3911 titles has different DSound builds.
-					if(BuildVersion < 4034)
-                    {
-                        BuildVersion = 3936;
-                    }
-
-					// Redirect other highly similar DSOUND library versions
-					if(BuildVersion == 4361 || BuildVersion == 4400 || BuildVersion == 4432 || 
-						BuildVersion == 4531 )
-						BuildVersion = 4627;
                 }
-
-				if (strcmp(LibraryName.c_str(), Lib_XAPILIB) == 0)
-				{
-					// Change a few XAPILIB versions to similar counterparts
-					if(BuildVersion == 3944)
-						BuildVersion = 3911;
-					if(BuildVersion == 3950)
-						BuildVersion = 3911;
-					if(OrigBuildVersion == 4531)
-						BuildVersion = 4627;
-				}
 
 				if (strcmp(LibraryName.c_str(), Lib_XGRAPHC) == 0)
 				{
 					// Skip scanning for XGRAPHC (XG) symbols when LLE GPU is selected
 					if (bLLE_GPU)
 						continue;
-
-					if (BuildVersion == 3944)
-						BuildVersion = 3911;
-					if (OrigBuildVersion == 4531)
-						BuildVersion = 4361;
 				}
 
 				if (strcmp(LibraryName.c_str(), Lib_D3D8) == 0)
@@ -392,10 +350,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 						continue;
 
 					bFoundD3D = true;
-					// Some 3911 titles have different D3D8 builds
-					if (BuildVersion <= 3948)
-						BuildVersion = 3925;
-	
 					if(bXRefFirstPass)
 	                {
 #if 0
