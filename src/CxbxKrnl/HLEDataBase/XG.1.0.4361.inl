@@ -128,22 +128,3 @@ OOVPA_NO_XREF(XGSetIndexBufferHeader, 4361, 8)
         { 0x13, 0x48 },
         { 0x16, 0x18 },
 OOVPA_END;
-
-// ******************************************************************
-// * XG_4361
-// ******************************************************************
-OOVPATable XG_4361[] = {
-
-	REGISTER_OOVPAS(XGIsSwizzledFormat, 4361), // DISABLED
-	// REGISTER_OOVPAS(XGSwizzleRect, 4361), // DISABLED TODO : Uncomment
-	// REGISTER_OOVPAS(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
-	REGISTER_OOVPAS(XGSetTextureHeader, 3911), // PATCH 
-	REGISTER_OOVPAS(XGSetVertexBufferHeader, 4361), // XREF
-	REGISTER_OOVPAS(XGSetIndexBufferHeader, 4361), // XREF
-	REGISTER_OOVPAS(XGCompressRect, 4361), // XREF
-};
-
-// ******************************************************************
-// * XG_4361_SIZE
-// ******************************************************************
-uint32 XG_4361_SIZE = sizeof(XG_4361);

@@ -118,21 +118,3 @@ OOVPA_NO_XREF(XGSetTextureHeader, 3911, 7)
         { 0x26, 0x5D },
         { 0x28, 0x24 },
 OOVPA_END;
-
-// ******************************************************************
-// * XG_3911
-// ******************************************************************
-OOVPATable XG_3911[] = {
-
-	REGISTER_OOVPAS(XGIsSwizzledFormat, 3911), // DISABLED
-	// REGISTER_OOVPAS(XGSwizzleRect, 3911), // DISABLED TODO : Uncomment
-	// REGISTER_OOVPAS(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
-	REGISTER_OOVPAS(XGSwizzleBox, 3911), // DISABLED
-	REGISTER_OOVPAS(XGWriteSurfaceOrTextureToXPR, 3911), // PATCH 
-	REGISTER_OOVPAS(XGSetTextureHeader, 3911), // PATCH 
-};
-
-// ******************************************************************
-// * XG_3911_SIZE
-// ******************************************************************
-uint32 XG_3911_SIZE = sizeof(XG_3911);

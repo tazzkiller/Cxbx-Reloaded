@@ -31,20 +31,3 @@
 // *  All rights reserved
 // *
 // ******************************************************************
-
-// ******************************************************************
-// * XG_4034
-// ******************************************************************
-OOVPATable XG_4034[] = {
-
-	REGISTER_OOVPAS(XGIsSwizzledFormat, 3911), // DISABLED
-	// REGISTER_OOVPAS(XGSwizzleRect, 3911), // DISABLED TODO : Uncomment
-    // REGISTER_OOVPAS(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
-	REGISTER_OOVPAS(XGSwizzleBox, 3911), // DISABLED
-	// REGISTER_OOVPAS(XGWriteSurfaceOrTextureToXPR, 3911), // DISABLED
-};
-
-// ******************************************************************
-// * XG_3911_SIZE
-// ******************************************************************
-uint32 XG_4034_SIZE = sizeof(XG_4034);

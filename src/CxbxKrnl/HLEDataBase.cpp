@@ -61,7 +61,7 @@ const char *Lib_XONLINES = "XONLINES";
 //#include "HLEDataBase/DSound.OOVPA.inl"
 //#include "HLEDataBase/XactEng.OOVPA.inl"
 #include "HLEDataBase/Xapi.OOVPA.inl"
-//#include "HLEDataBase/XG.OOVPA.inl"
+#include "HLEDataBase/XG.OOVPA.inl"
 #include "HLEDataBase/XNet.OOVPA.inl"
 #include "HLEDataBase/XOnline.OOVPA.inl"
 
@@ -75,7 +75,7 @@ const HLEData HLEDataBase[] =
 	// { Lib_DSOUND, DSound_OOVPA, DSound_OOVPA_SIZE },
 	// { Lib_XACTENG, XactEng_OOVPA, XactEng_OOVPA_SIZE },
 	{ Lib_XAPILIB, XAPI_OOVPA, XAPI_OOVPA_SIZE },
-	// { Lib_XGRAPHC, XG_OOVPA, XG_OOVPA_SIZE },
+	{ Lib_XGRAPHC, XG_OOVPA, XG_OOVPA_SIZE },
 	{ Lib_XNETS, XNet_OOVPA, XNet_OOVPA_SIZE },
 	{ Lib_XONLINE, XOnline_OOVPA, XOnline_OOVPA_SIZE },
 };

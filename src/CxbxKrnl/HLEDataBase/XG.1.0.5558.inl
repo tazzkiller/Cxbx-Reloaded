@@ -61,21 +61,3 @@ OOVPA_NO_XREF(XGUnswizzleBox, 5558, 8)
         { 0xDE, 0x24 },
         { 0xFE, 0x20 },
 OOVPA_END;
-
-// ******************************************************************
-// * XG_5558
-// ******************************************************************
-OOVPATable XG_5558[] = {
-
-	REGISTER_OOVPAS(XGIsSwizzledFormat, 4361), // DISABLED
-    
-	// REGISTER_OOVPAS(XGSwizzleRect, 3911), // DISABLED TODO : Uncomment
-	REGISTER_OOVPAS(XGSwizzleBox, 4627), // DISABLED (* UNTESTED *)
-	// REGISTER_OOVPAS(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
-	REGISTER_OOVPAS(XGUnswizzleBox, 5558), // DISABLED  (* UNTESTED *)
-};
-
-// ******************************************************************
-// * XG_5558_SIZE
-// ******************************************************************
-uint32 XG_5558_SIZE = sizeof(XG_5558);

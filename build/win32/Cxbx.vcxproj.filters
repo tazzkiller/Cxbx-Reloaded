@@ -572,6 +572,12 @@
     <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.OOVPA.inl">
       <Filter>HLEDatabase</Filter>
     </None>
+    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XG.OOVPA.inl">
+      <Filter>HLEDatabase</Filter>
+    </None>
+    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XG.1.0.5788.inl">
+      <Filter>HLEDatabase</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GUI">

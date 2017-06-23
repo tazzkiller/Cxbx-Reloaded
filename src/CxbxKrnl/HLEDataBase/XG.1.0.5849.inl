@@ -31,19 +31,3 @@
 // *  All rights reserved
 // *
 // ******************************************************************
-
-// ******************************************************************
-// * XG_5849
-// ******************************************************************
-OOVPATable XG_5849[] = {
-
-	REGISTER_OOVPAS(XGIsSwizzledFormat, 4361), // DISABLED
-    // REGISTER_OOVPAS(XGSwizzleRect, 3911), // DISABLED TODO : Uncomment
-	// REGISTER_OOVPAS(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
-	// REGISTER_OOVPAS(XFONT_OpenBitmapFontFromMemory, 5788), // PATCH 
-};
-
-// ******************************************************************
-// * XG_5849_SIZE
-// ******************************************************************
-uint32 XG_5849_SIZE = sizeof(XG_5849);

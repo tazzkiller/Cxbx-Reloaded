@@ -69,20 +69,3 @@ OOVPA_NO_XREF(XGWriteSurfaceOrTextureToXPR, 4627, 7)
         { 0xBE, 0xF0 },
         { 0xE2, 0x8B },
 OOVPA_END;
-
-// ******************************************************************
-// * XG_4627
-// ******************************************************************
-OOVPATable XG_4627[] = {
-
-	REGISTER_OOVPAS(XGIsSwizzledFormat, 4361), // DISABLED
-	// REGISTER_OOVPAS(XGSwizzleRect, 4361), // DISABLED TODO : Uncomment
-	// REGISTER_OOVPAS(XGUnswizzleRect, 3911), // DISABLED TODO : Uncomment
-	REGISTER_OOVPAS(XGSwizzleBox, 4627), // DISABLED
-	REGISTER_OOVPAS(XGWriteSurfaceOrTextureToXPR, 4627), // PATCH 
-};
-
-// ******************************************************************
-// * XG_4627_SIZE
-// ******************************************************************
-uint32 XG_4627_SIZE = sizeof(XG_4627);

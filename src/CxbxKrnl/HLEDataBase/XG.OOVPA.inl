@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->XG.1.0.5788.cpp
+// *   Cxbx->Win32->CxbxKrnl->XG.OOVPA.inl
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -32,17 +32,44 @@
 // *
 // ******************************************************************
 
-// ******************************************************************
-// * XFONT_OpenBitmapFontFromMemory
-// ******************************************************************
-OOVPA_NO_XREF(XFONT_OpenBitmapFontFromMemory, 5788, 8)
+#ifndef XG_OOVPA_INL
+#define XG_OOVPA_INL
 
-        { 0x0B, 0x75 },
-        { 0x1A, 0x8B },
-        { 0x28, 0x8B },
-        { 0x32, 0x08 },
-        { 0x3F, 0x8B },
-        { 0x4C, 0x8B },
-        { 0x59, 0x45 },
-        { 0x66, 0x0C },
-OOVPA_END;
+#include "OOVPA.h"
+
+#include "HLEDataBase/XG.1.0.3911.inl"
+#include "HLEDataBase/XG.1.0.4034.inl"
+#include "HLEDataBase/XG.1.0.4361.inl"
+#include "HLEDataBase/XG.1.0.4432.inl"
+#include "HLEDataBase/XG.1.0.4627.inl"
+#include "HLEDataBase/XG.1.0.5028.inl"
+#include "HLEDataBase/XG.1.0.5233.inl"
+#include "HLEDataBase/XG.1.0.5344.inl"
+#include "HLEDataBase/XG.1.0.5558.inl"
+#include "HLEDataBase/XG.1.0.5788.inl"
+#include "HLEDataBase/XG.1.0.5849.inl"
+
+// ******************************************************************
+// * XG_OOVPA
+// ******************************************************************
+OOVPATable XG_OOVPA[] = {
+
+	REGISTER_OOVPAS(XGIsSwizzledFormat, 3911, 4361),
+	// REGISTER_OOVPAS(XGSwizzleRect, 3911, 4361), // TODO : Uncomment
+	// REGISTER_OOVPAS(XGUnswizzleRect, 3911), // TODO : Uncomment
+	REGISTER_OOVPAS(XGSwizzleBox, 3911, 4627),
+	REGISTER_OOVPAS(XGUnswizzleBox, 5558), // (* UNTESTED *)
+	REGISTER_OOVPAS(XGWriteSurfaceOrTextureToXPR, 3911, 4627),
+	REGISTER_OOVPAS(XGSetTextureHeader, 3911),
+	REGISTER_OOVPAS(XGSetVertexBufferHeader, 4361),
+	REGISTER_OOVPAS(XGSetIndexBufferHeader, 4361),
+	REGISTER_OOVPAS(XGCompressRect, 4361),
+	// REGISTER_OOVPAS(XFONT_OpenBitmapFontFromMemory, 5788),
+};
+
+// ******************************************************************
+// * XG_OOVPA_SIZE
+// ******************************************************************
+uint32 XG_OOVPA_SIZE = sizeof(XG_OOVPA);
+
+#endif
