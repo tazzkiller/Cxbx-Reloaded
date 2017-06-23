@@ -584,6 +584,9 @@
     <None Include="..\..\src\CxbxKrnl\HLEDataBase\XactEng.1.0.4928.inl">
       <Filter>HLEDatabase</Filter>
     </None>
+    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.OOVPA.inl">
+      <Filter>HLEDatabase</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GUI">
