@@ -787,6 +787,11 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
     // traverse the full OOVPA table
     for(size_t a=0;a<OovpaTableSize/sizeof(OOVPATable);a++) {
 
+		// Skip all OOVPA that are too new, compared to the version we are running
+		if (OovpaTable[a].Version > BuildVersion) {
+			continue;
+		}
+
 		// Does this OOVPA have an XREF that can be checked?
 		OOVPA *pOovpa = OovpaTable[a].pOovpa;
 		if (pOovpa->XRefSaveIndex != XRefNoSaveIndex) {

@@ -55,69 +55,69 @@
 // ******************************************************************
 OOVPATable XAPI_OOVPA[] = {
 
-	REGISTER_OOVPAS(GetExitCodeThread, 3911), // PATCH 
-	REGISTER_OOVPAS(XInitDevices, 3911, 5233), // PATCH 
-	// REGISTER_OOVPAS(CreateMutex, 3911), // PATCH Too High Level
-	// REGISTER_OOVPAS(CreateThread, 3911), // PATCH Too High Level
-	REGISTER_OOVPAS(GetTimeZoneInformation, 3911), // DISABLED
-	REGISTER_OOVPAS(XRegisterThreadNotifyRoutine, 3911), // PATCH 
-	// REGISTER_OOVPAS(XCalculateSignatureBegin, 3911, 4627), // PATCH 
-	// REGISTER_OOVPAS(XCalculateSignatureBeginEx, 4627), // PATCH +s, not necessary?
-	// REGISTER_OOVPAS(XCalculateSignatureUpdate, 4627), // PATCH 
-	// REGISTER_OOVPAS(XCalculateSignatureEnd, 4627), // PATCH s+
-	REGISTER_OOVPAS(XGetDevices, 3911), // PATCH 
-	REGISTER_OOVPAS(XGetDeviceChanges, 3911, 5233), // PATCH 
-	REGISTER_OOVPAS(XInputOpen, 3911, 4134, 4361), // PATCH 
-	REGISTER_OOVPAS(XID_fCloseDevice, 3911, 4361, 4627, 4928, 5558), // XREF
-	REGISTER_OOVPAS(XInputClose, 3911, 5558), // PATCH 
-	REGISTER_OOVPAS(XInputGetCapabilities, 3911, 4361, 4831, 5233, 5558), // PATCH 
-	REGISTER_OOVPAS(XInputGetDeviceDescription, 4831), // PATCH 
-	REGISTER_OOVPAS(XInputGetState, 3911, 4134, 4361, 4928, 5558), // PATCH 
-	REGISTER_OOVPAS(XInputSetState, 3911, 4361, 4928, 5233), // PATCH 
-	REGISTER_OOVPAS(SetThreadPriority, 3911), // PATCH 
-	REGISTER_OOVPAS(SetThreadPriorityBoost, 3911, 5788), // PATCH 
-	REGISTER_OOVPAS(GetThreadPriority, 3911, 5788), // PATCH 
-	// REGISTER_OOVPAS(GetThreadPriorityBoost, 5788, 5849), // PATCH 
-	REGISTER_OOVPAS(CreateFiber, 3911), // DISABLED
-	REGISTER_OOVPAS(DeleteFiber, 3911), // DISABLED
-	REGISTER_OOVPAS(SwitchToFiber, 3911), // DISABLED
-	REGISTER_OOVPAS(ConvertThreadToFiber, 3911), // DISABLED
-	REGISTER_OOVPAS(SignalObjectAndWait, 3911), // PATCH 
-	REGISTER_OOVPAS(QueueUserAPC, 3911), // PATCH 
-	// REGISTER_OOVPAS(lstrcmpiW, 3911), // PATCH 
-	REGISTER_OOVPAS(XMountAlternateTitleA, 3911, 4928), // PATCH 
-	REGISTER_OOVPAS(XUnmountAlternateTitleA, 3911), // PATCH 
-	REGISTER_OOVPAS(XMountMUA, 3911, 4134, 4361), // PATCH 
-	REGISTER_OOVPAS(XLaunchNewImageA, 3911, 4928, 5558), // PATCH 
-	REGISTER_OOVPAS(XGetLaunchInfo, 3911), // DISABLED
-	REGISTER_OOVPAS(XAutoPowerDownResetTimer, 3911), // DISABLED Just calls KeSetTimer
-	REGISTER_OOVPAS(XMountMURootA, 3911), // PATCH 
+	REGISTER_OOVPAS(GetExitCodeThread, 3911), 
+	REGISTER_OOVPAS(XInitDevices, 3911, 5233), 
+	// REGISTER_OOVPAS(CreateMutex, 3911), // Too High Level
+	// REGISTER_OOVPAS(CreateThread, 3911), // Too High Level
+	REGISTER_OOVPAS(GetTimeZoneInformation, 3911),
+	REGISTER_OOVPAS(XRegisterThreadNotifyRoutine, 3911), 
+	// REGISTER_OOVPAS(XCalculateSignatureBegin, 3911, 4627), 
+	// REGISTER_OOVPAS(XCalculateSignatureBeginEx, 4627), // +s, not necessary?
+	// REGISTER_OOVPAS(XCalculateSignatureUpdate, 4627), 
+	// REGISTER_OOVPAS(XCalculateSignatureEnd, 4627), // s+
+	REGISTER_OOVPAS(XGetDevices, 3911), 
+	REGISTER_OOVPAS(XGetDeviceChanges, 3911, 5233), 
+	REGISTER_OOVPAS(XInputOpen, 3911, 4134, 4361), 
+	REGISTER_OOVPAS(XID_fCloseDevice, 3911, 4361, 4627, 4928, 5558),
+	REGISTER_OOVPAS(XInputClose, 3911, 5558), 
+	REGISTER_OOVPAS(XInputGetCapabilities, 3911, 4361, 4831, 5233, 5558), 
+	REGISTER_OOVPAS(XInputGetDeviceDescription, 4831), 
+	REGISTER_OOVPAS(XInputGetState, 3911, 4134, 4361, 4928, 5558), 
+	REGISTER_OOVPAS(XInputSetState, 3911, 4361, 4928, 5233), 
+	REGISTER_OOVPAS(SetThreadPriority, 3911), 
+	REGISTER_OOVPAS(SetThreadPriorityBoost, 3911, 5788), 
+	REGISTER_OOVPAS(GetThreadPriority, 3911, 5788), 
+	// REGISTER_OOVPAS(GetThreadPriorityBoost, 5788, 5849), 
+	REGISTER_OOVPAS(CreateFiber, 3911),
+	REGISTER_OOVPAS(DeleteFiber, 3911),
+	REGISTER_OOVPAS(SwitchToFiber, 3911),
+	REGISTER_OOVPAS(ConvertThreadToFiber, 3911),
+	REGISTER_OOVPAS(SignalObjectAndWait, 3911), 
+	REGISTER_OOVPAS(QueueUserAPC, 3911), 
+	// REGISTER_OOVPAS(lstrcmpiW, 3911), 
+	REGISTER_OOVPAS(XMountAlternateTitleA, 3911, 4928), 
+	REGISTER_OOVPAS(XUnmountAlternateTitleA, 3911), 
+	REGISTER_OOVPAS(XMountMUA, 3911, 4134, 4361), 
+	REGISTER_OOVPAS(XLaunchNewImageA, 3911, 4928, 5558), 
+	REGISTER_OOVPAS(XGetLaunchInfo, 3911),
+	REGISTER_OOVPAS(XAutoPowerDownResetTimer, 3911), // Just calls KeSetTimer
+	REGISTER_OOVPAS(XMountMURootA, 3911), 
 	REGISTER_OOVPAS(XMountUtilityDrive, 3911, 4134, 4432), // TODO: This needs to be verified on 4361, not just 4242!
-	REGISTER_OOVPAS(OutputDebugStringA, 3911), // PATCH 
-	// REGISTER_OOVPAS(ReadFileEx, 3911), // PATCH 
-	// REGISTER_OOVPAS(WriteFileEx, 3911), // PATCH 
-	// REGISTER_OOVPAS(MoveFileA, 4627), // PATCH 
-	// REGISTER_OOVPAS(CloseHandle, 3911), // PATCH 
-	// REGISTER_OOVPAS(ExitThread, 3911), // PATCH 
-	// REGISTER_OOVPAS(XapiThreadStartup, 4361), // PATCH  obsolete?
-	REGISTER_OOVPAS(GetOverlappedResult, 4627), // PATCH 
-	REGISTER_OOVPAS(timeKillEvent, 4134, 4627, 5849), // PATCH 
-	REGISTER_OOVPAS(XInputPoll, 4134), // PATCH 
-	REGISTER_OOVPAS(timeSetEvent, 4134, 4627, 5849), // PATCH 
-	REGISTER_OOVPAS(XFormatUtilityDrive, 4627), // PATCH 
-	REGISTER_OOVPAS(XSetProcessQuantumLength, 4627), // PATCH 
-	REGISTER_OOVPAS(RaiseException, 4627), // PATCH 
-	// REGISTER_OOVPAS(RtlCreateHeap, 3911), // PATCH obsolete, (* unchanged since 1.0.4361 *) (* OR FARTHER *)
-	// REGISTER_OOVPAS(RtlAllocateHeap, 3911), // PATCH obsolete (* unchanged since 1.0.4361 *) (* OR FARTHER *)
-	// REGISTER_OOVPAS(RtlReAllocateHeap, 4627), // PATCH obsolete 
-	// REGISTER_OOVPAS(RtlFreeHeap, 4627), // PATCH obsolete 
-	// REGISTER_OOVPAS(RtlSizeHeap, 4627), // PATCH obsolete 
-	// REGISTER_OOVPAS(RtlDestroyHeap, 4627), // PATCH obsolete 
-	// REGISTER_OOVPAS(XapiInitProcess, 4361), // PATCH obsolete, Too High Level
-	// REGISTER_OOVPAS(XapiBootDash, 3911), // PATCH obsolete 
-	REGISTER_OOVPAS(XapiFiberStartup, 5558), // DISABLED
-	// REGISTER_OOVPAS(SwitchToThread, 5788, 5849), // PATCH 
-	REGISTER_OOVPAS(XGetDeviceEnumerationStatus, 5788, 5849), // PATCH 
+	REGISTER_OOVPAS(OutputDebugStringA, 3911), 
+	// REGISTER_OOVPAS(ReadFileEx, 3911), 
+	// REGISTER_OOVPAS(WriteFileEx, 3911), 
+	// REGISTER_OOVPAS(MoveFileA, 4627), 
+	// REGISTER_OOVPAS(CloseHandle, 3911), 
+	// REGISTER_OOVPAS(ExitThread, 3911), 
+	// REGISTER_OOVPAS(XapiThreadStartup, 4361), // obsolete?
+	REGISTER_OOVPAS(GetOverlappedResult, 4627), 
+	REGISTER_OOVPAS(timeKillEvent, 4134, 4627, 5849), 
+	REGISTER_OOVPAS(XInputPoll, 4134), 
+	REGISTER_OOVPAS(timeSetEvent, 4134, 4627, 5849), 
+	REGISTER_OOVPAS(XFormatUtilityDrive, 4627), 
+	REGISTER_OOVPAS(XSetProcessQuantumLength, 4627), 
+	REGISTER_OOVPAS(RaiseException, 4627), 
+	// REGISTER_OOVPAS(RtlCreateHeap, 3911), // obsolete, (* unchanged since 1.0.4361 *) (* OR FARTHER *)
+	// REGISTER_OOVPAS(RtlAllocateHeap, 3911), // obsolete (* unchanged since 1.0.4361 *) (* OR FARTHER *)
+	// REGISTER_OOVPAS(RtlReAllocateHeap, 4627), // obsolete 
+	// REGISTER_OOVPAS(RtlFreeHeap, 4627), // obsolete 
+	// REGISTER_OOVPAS(RtlSizeHeap, 4627), // obsolete 
+	// REGISTER_OOVPAS(RtlDestroyHeap, 4627), // obsolete 
+	// REGISTER_OOVPAS(XapiInitProcess, 4361), // obsolete, Too High Level
+	// REGISTER_OOVPAS(XapiBootDash, 3911), // obsolete 
+	REGISTER_OOVPAS(XapiFiberStartup, 5558),
+	// REGISTER_OOVPAS(SwitchToThread, 5788, 5849), 
+	REGISTER_OOVPAS(XGetDeviceEnumerationStatus, 5788, 5849), 
 };
 
 // ******************************************************************
