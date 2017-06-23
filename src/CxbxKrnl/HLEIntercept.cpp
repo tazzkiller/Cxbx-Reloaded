@@ -252,16 +252,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 				output << "\n";
 				printf(output.str().c_str());
 			}
-
-			XTL::DxbxBuildRenderStateMappingTable();
-
-			SetGlobalSymbols();
-
-			XRefDataBase[XREF_D3DDEVICE] = g_SymbolAddresses["D3DDEVICE"];
-
-			XTL::InitD3DDeferredStates();
-
-			g_HLECacheUsed = true;
 		}
 
 		// If g_SymbolAddresses didn't get filled, the HLE cache is invalid
