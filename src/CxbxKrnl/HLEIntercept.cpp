@@ -338,6 +338,11 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 						continue;
 				}
 
+				// TODO: HACK: XONLINES is packed into XONLINE database
+				if (strcmp(LibraryName.c_str(), Lib_XONLINES) == 0) {
+					LibraryName = Lib_XONLINE; // TODO: Verify differences between XONLINE and XONLINES (if any)
+				}
+
 				if (strcmp(LibraryName.c_str(), Lib_D3D8) == 0)
 				{
 					// Skip scanning for D3D8 symbols when LLE GPU is selected

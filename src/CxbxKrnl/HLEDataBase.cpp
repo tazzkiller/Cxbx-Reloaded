@@ -77,8 +77,7 @@ const HLEData HLEDataBase[] =
 	{ Lib_XAPILIB, XAPI_OOVPA, XAPI_OOVPA_SIZE },
 	// { Lib_XGRAPHC, XG_OOVPA, XG_OOVPA_SIZE },
 	{ Lib_XNETS, XNet_OOVPA, XNet_OOVPA_SIZE },
-	{ Lib_XONLINE, XOnline_OOVPA, XOnline_OOVPA_SIZE }, // TODO : Typo for XONLINES?
-	// { Lib_XONLINES, XOnline_OOVPA, XOnline_OOVPA_SIZE }, // TODO: Verify differences between XONLINE and XONLINES (if any)
+	{ Lib_XONLINE, XOnline_OOVPA, XOnline_OOVPA_SIZE },
 };
 
 // ******************************************************************
