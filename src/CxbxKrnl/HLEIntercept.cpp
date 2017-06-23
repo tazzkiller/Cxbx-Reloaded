@@ -305,7 +305,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
             for(uint32 v=0;v<dwLibraryVersions;v++)
             {
                 uint16 BuildVersion = pLibraryVersion[v].wBuildVersion;
-                uint16 OrigBuildVersion = BuildVersion;
 
 				std::string LibraryName(pLibraryVersion[v].szName, pLibraryVersion[v].szName + 8);
 				
@@ -820,7 +819,7 @@ struct HLEVerifyContext {
 std::string HLEErrorString(const HLEData *data, uint32 index)
 {
 	std::string result = 
-		"OOVPATable " + (std::string)(data->Library) + "_" + std::to_string(data->BuildVersion)
+		"OOVPATable " + (std::string)(data->Library) + "_OOVPA"
 		+ "[" + std::to_string(index) + "] " 
 		+ (std::string)(data->OovpaTable[index].szFuncName);
 
