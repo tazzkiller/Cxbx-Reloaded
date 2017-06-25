@@ -795,34 +795,34 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 		}
 
 		// Walk over all entries that are about the same symbol
-		OOVPATable *pBestSymbolEntry = pLoop;
-		OOVPATable *pNextBest = nullptr;
-		while ((++pLoop < pLoopEnd) && (strcmp(pLoop->szSymbolName, pBestSymbolEntry->szSymbolName) == 0)) {
-			// Don't consider versions that are too new, compared to the version we are running
-			if (pLoop->Version > BuildVersion) { // TODO : Actually, if we have no exact version, the surrounding ones might be best
-				continue;
+		OOVPATable *pBestEntry = pLoop;
+		OOVPATable *pPrevEntry = nullptr;
+		while ((++pLoop < pLoopEnd) && (strcmp(pLoop->szSymbolName, pBestEntry->szSymbolName) == 0)) {
+			// Keep remembering OOVPA as long as the pBestEntry is less than the required version :
+			if (pBestEntry->Version < BuildVersion) {
+				// The end result of this will be, that the pBestEntry equals or directly succeeds
+				// the required version, and that the pPrevEntry will be the one before that.
+				pPrevEntry = pBestEntry;
+				pBestEntry = pLoop;
 			}
-
-			// Don't take another entry if we already have an exact (or possibly initially too new) version
-			if (pBestSymbolEntry->Version >= BuildVersion) {
-				continue;
-			}
-
-			// Switch over to the newer loop entry
-			pNextBest = pBestSymbolEntry;
-			pBestSymbolEntry = pLoop;
 		}
 
-		// If the best matching version is too new, don't scan for it
-		if (pBestSymbolEntry->Version > BuildVersion) {
-			continue;
+		if (pPrevEntry != nullptr) {
+			if (pPrevEntry->Version == BuildVersion) {
+				pBestEntry = pPrevEntry;
+			}
 		}
 
-		// We'll do the following loop at most twice (once for the best match, once for the next)
-		for (; pBestSymbolEntry != nullptr; pBestSymbolEntry = pNextBest, pNextBest = nullptr) {
+		// If we have an exact-match, don't use anything else :
+		if (pBestEntry->Version == BuildVersion) {
+			pPrevEntry = nullptr;
+		}
+
+		// We'll do the following loop at most twice (once for the pBestEntry, once for the pPrevEntry, if set)
+		for (; pBestEntry != nullptr; pBestEntry = pPrevEntry, pPrevEntry = nullptr) {
 
 			// Does this OOVPA have an XREF that can be checked?
-			OOVPA *pOovpa = pBestSymbolEntry->pOovpa;
+			OOVPA *pOovpa = pBestEntry->pOovpa;
 			if (pOovpa->XRefSaveIndex != XRefNoSaveIndex) {
 				// Skip a search if this XREF already has an assigned address
 				switch (XRefDataBase[pOovpa->XRefSaveIndex]) {
@@ -847,12 +847,12 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 			g_SymbolAddresses[szCurrentSymbol] = pFunc;
 
 			// Don't repeat the search
-			pNextBest = nullptr;
+			pPrevEntry = nullptr;
 
 			// Output some details
 			std::stringstream output;
 			output << "HLE: 0x" << std::setfill('0') << std::setw(8) << std::hex << pFunc
-				<< " -> " << szCurrentSymbol << " " << std::dec << pBestSymbolEntry->Version;
+				<< " -> " << szCurrentSymbol << " " << std::dec << pBestEntry->Version;
 
 			// Retrieve the associated patch, if any is available
 			void* addr = GetEmuPatchAddr(std::string(szCurrentSymbol));
