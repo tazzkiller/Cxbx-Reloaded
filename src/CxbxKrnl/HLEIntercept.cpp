@@ -786,18 +786,11 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 	OOVPATable *pLoopEnd = &OovpaTable[OovpaTableSize / sizeof(OOVPATable)];
 	for (OOVPATable *pLoop = OovpaTable; pLoop < pLoopEnd;) {
 
-		// Skip already found & handled symbols
-		char *szCurrentSymbol = pLoop->szSymbolName;
-		xbaddr pFunc = g_SymbolAddresses[szCurrentSymbol];
-		if (pFunc != (xbaddr)nullptr) {
-			pLoop++;
-			continue;
-		}
-
 		// Walk over all entries that are about the same symbol
+		char *szCurrentSymbol = pLoop->szSymbolName;
 		OOVPATable *pBestEntry = pLoop;
 		OOVPATable *pPrevEntry = nullptr;
-		while ((++pLoop < pLoopEnd) && (strcmp(pLoop->szSymbolName, pBestEntry->szSymbolName) == 0)) {
+		while ((++pLoop < pLoopEnd) && (strcmp(pLoop->szSymbolName, szCurrentSymbol) == 0)) {
 			// Keep remembering OOVPA as long as the pBestEntry is less than the required version :
 			if (pBestEntry->Version < BuildVersion) {
 				// The end result of this will be, that the pBestEntry equals or directly succeeds
@@ -805,6 +798,12 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 				pPrevEntry = pBestEntry;
 				pBestEntry = pLoop;
 			}
+		}
+
+		// Now that we've looped over all OOVPA of the current symbol, prevent repeated searches
+		xbaddr pFunc = g_SymbolAddresses[szCurrentSymbol];
+		if (pFunc != (xbaddr)nullptr) {
+			continue;
 		}
 
 		// Do we have two entries?
@@ -818,10 +817,13 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 			}
 		}
 
-		// If we the pBestEntry is a version-exact match, don't use the fallback
-		if (pBestEntry->Version == BuildVersion) {
+		// If the pBestEntry is a version-exact match (or not far from it), don't use the fallback
+		// Example : a 4034 title will use a 4039 OOVPA but no 3925 or 4134 OOVPA
+		if (abs(pBestEntry->Version - BuildVersion) < 10) {
 			pPrevEntry = nullptr;
 		}
+
+		// TODO : The old D3D8_4034 table referenced 3925 (=-109) OOVPA while some now use closer (4134 = +100) OOVPA (see D3DDevice_DeleteVertexShader a.o.)
 
 		// We'll do the following loop at most twice (once for the pBestEntry, once for the pPrevEntry, if set)
 		for (; pBestEntry != nullptr; pBestEntry = pPrevEntry, pPrevEntry = nullptr) {
@@ -838,6 +840,7 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 				case XREF_ADDR_DERIVE: // Marker that isn't yet replaced with an address
 					break;
 				default:
+					pPrevEntry = nullptr;
 					continue;
 				}
 			}

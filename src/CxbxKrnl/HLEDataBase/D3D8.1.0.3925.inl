@@ -4031,6 +4031,7 @@ OOVPA_END;
 // * D3D_CMiniport_GetDisplayCapabilities
 // ******************************************************************
 OOVPA_NO_XREF(D3D_CMiniport_GetDisplayCapabilities, 3911, 15)
+#define D3D_CMiniport_GetDisplayCapabilities_4134 D3D_CMiniport_GetDisplayCapabilities_3911 // Not verified
 #define D3D_CMiniport_GetDisplayCapabilities_4361 D3D_CMiniport_GetDisplayCapabilities_3911
 #define D3D_CMiniport_GetDisplayCapabilities_4627 D3D_CMiniport_GetDisplayCapabilities_3911
 #define D3D_CMiniport_GetDisplayCapabilities_5233 D3D_CMiniport_GetDisplayCapabilities_3911 //??
