@@ -807,13 +807,18 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 			}
 		}
 
+		// Do we have two entries?
 		if (pPrevEntry != nullptr) {
-			if (pPrevEntry->Version == BuildVersion) {
-				pBestEntry = pPrevEntry;
+			// Use the one closest to the required version first
+			if (abs(pPrevEntry->Version - BuildVersion) < abs(pBestEntry->Version - BuildVersion)) {
+				// Swap the two entries (this may change the BestEntry into a version-exact match)
+				auto tmp = pPrevEntry;
+				pPrevEntry = pBestEntry;
+				pBestEntry = tmp;
 			}
 		}
 
-		// If we have an exact-match, don't use anything else :
+		// If we the pBestEntry is a version-exact match, don't use the fallback
 		if (pBestEntry->Version == BuildVersion) {
 			pPrevEntry = nullptr;
 		}
