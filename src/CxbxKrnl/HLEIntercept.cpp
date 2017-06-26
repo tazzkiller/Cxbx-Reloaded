@@ -510,6 +510,7 @@ D:\Patrick\git\Dxbx\Resources\Patterns\5933d3d8.pat(150):568B35........8B063B460
 			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_BorderColor_4034, lower, upper);
 			iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x18; // unsure
 		}
+		else {
 			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_BorderColor_3925, lower, upper);
 			iCodeOffsetFor_X_pDevice = 0x11; // verified for 3911
 			iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x11; // verified for 3911
