@@ -45,20 +45,6 @@
 // initialize render window
 extern VOID CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize);
 
-#if 0 // unused
-extern VOID CxbxSetPixelContainerHeader1
-(
-	XTL::X_D3DPixelContainer* pPixelContainer,
-	DWORD           	Common,
-	UINT				Width,
-	UINT				Height,
-	XTL::X_D3DFORMAT	Format,
-	UINT				Levels,
-	UINT				Dimensions,
-	UINT				Pitch
-);
-#endif
-
 #ifdef _DEBUG_TRACE
 
 #define DEBUG_D3DRESULT(hRet, message) \
@@ -90,22 +76,13 @@ extern X_D3DTILE EmuD3DTileCache[0x08];
 
 extern DWORD g_XboxD3DDevice[64 * ONE_KB / sizeof(DWORD)];
 
-#ifdef PATCH_TEXTURES
-extern X_D3DBaseTexture *EmuD3DTextureStages[X_D3DTSS_STAGECOUNT];
-
-inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return EmuD3DTextureStages[uiStage]; }
-#else
 extern X_D3DBaseTexture **Xbox_D3DDevice_m_Textures;
 
 inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return Xbox_D3DDevice_m_Textures[uiStage]; }
-#endif
 
 extern void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource);
 
 XTL::IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, int Stage);
-#if 0
-XTL::IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer *pXboxVertexBuffer);
-#endif
 
 // ******************************************************************
 // * patch: CMiniport_InitHardware
@@ -155,31 +132,6 @@ VOID WINAPI EMUPATCH(D3DDevice_GetCreationParameters)
 (
 	D3DDEVICE_CREATION_PARAMETERS *pParameters
 );
-
-#if 0 // patch disabled
-// ******************************************************************
-// * patch: D3D_CheckDeviceFormat
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3D_CheckDeviceFormat)
-(
-    UINT                        Adapter,
-    D3DDEVTYPE                  DeviceType,
-    X_D3DFORMAT                 AdapterFormat,
-    DWORD                       Usage,
-    X_D3DRESOURCETYPE           RType,
-    X_D3DFORMAT                 CheckFormat
-);
-#endif
-
-#if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_GetDeviceCaps
-// ******************************************************************
-VOID WINAPI EMUPATCH(D3DDevice_GetDeviceCaps)
-(
-    X_D3DCAPS8                   pCaps
-);
-#endif
 
 // ******************************************************************
 // * patch: D3DDevice_GetDisplayFieldStatus
@@ -300,19 +252,6 @@ HRESULT WINAPI EMUPATCH(D3DDevice_CopyRects)
     X_D3DSurface       *pDestinationSurface,
     CONST POINT        *pDestPointsArray
 );
-
-#if 0 // Patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateImageSurface
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_CreateImageSurface)
-(
-    UINT                Width,
-    UINT                Height,
-    X_D3DFORMAT         Format,
-    X_D3DSurface      **ppBackBuffer
-);
-#endif
 
 // ******************************************************************
 // * patch: D3DDevice_GetGammaRamp
@@ -509,114 +448,6 @@ HRESULT WINAPI EMUPATCH(D3DDevice_SetPixelShader)
     DWORD           Handle
 );
 
-#if 0 // Patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateTexture2
-// ******************************************************************
-X_D3DResource * WINAPI EMUPATCH(D3DDevice_CreateTexture2)
-(
-    UINT                Width,
-    UINT                Height,
-    UINT                Depth,
-    UINT                Levels,
-    DWORD               Usage,
-    X_D3DFORMAT         Format,
-    X_D3DRESOURCETYPE   D3DResource
-);
-#endif
-
-#if 0 // Patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateTexture
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_CreateTexture)
-(
-    UINT                Width,
-    UINT                Height,
-    UINT                Levels,
-    DWORD               Usage,
-    X_D3DFORMAT         Format,
-    D3DPOOL             Pool,
-    X_D3DTexture      **ppTexture
-);
-#endif
-
-#if 0 // Patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateVolumeTexture
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_CreateVolumeTexture)
-(
-    UINT                 Width,
-    UINT                 Height,
-    UINT                 Depth,
-    UINT                 Levels,
-    DWORD                Usage,
-    X_D3DFORMAT          Format,
-    D3DPOOL              Pool,
-    X_D3DVolumeTexture **ppVolumeTexture
-);
-#endif
-
-#if 0 // Patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateCubeTexture
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_CreateCubeTexture)
-(
-    UINT                 EdgeLength,
-    UINT                 Levels,
-    DWORD                Usage,
-    X_D3DFORMAT          Format,
-    D3DPOOL              Pool,
-    X_D3DCubeTexture  **ppCubeTexture
-);
-#endif
-
-#if 0 // Patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateIndexBuffer
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_CreateIndexBuffer)
-(
-    UINT                 Length,
-    DWORD                Usage,
-    X_D3DFORMAT          Format,
-    D3DPOOL              Pool,
-    X_D3DIndexBuffer   **ppIndexBuffer
-);
-#endif
-
-#if 0 // Patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateIndexBuffer2
-// ******************************************************************
-X_D3DIndexBuffer * WINAPI EMUPATCH(D3DDevice_CreateIndexBuffer2)
-(
-	UINT Length
-);
-#endif
-
-#if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_SetIndices
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_SetIndices)
-(
-    X_D3DIndexBuffer   *pIndexData,
-    UINT                BaseVertexIndex
-);
-#endif
-
-// ******************************************************************
-// * patch: D3DDevice_SetTexture
-// ******************************************************************
-VOID WINAPI EMUPATCH(D3DDevice_SetTexture)
-(
-    DWORD           Stage,
-	X_D3DBaseTexture  *pTexture
-);
-
 // ******************************************************************
 // * patch: D3DDevice_SwitchTexture
 // ******************************************************************
@@ -755,41 +586,6 @@ DWORD WINAPI EMUPATCH(D3DDevice_Swap)
 );
 
 // ******************************************************************
-// * patch: IDirect3DResource8_Register
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DResource_Register)
-(
-    X_D3DResource      *pThis,
-    PVOID               pBase
-);
-
-// ******************************************************************
-// * patch: IDirect3DResource8_Release
-// ******************************************************************
-ULONG WINAPI EMUPATCH(D3DResource_Release)
-(
-    X_D3DResource      *pThis
-);
-
-#if 0 // patch disabled
-// ******************************************************************
-// * patch: IDirect3DResource8_GetType
-// ******************************************************************
-X_D3DRESOURCETYPE WINAPI EMUPATCH(D3DResource_GetType)
-(
-    X_D3DResource      *pThis
-);
-#endif
-
-// ******************************************************************
-// * patch: IDirect3DResource8_AddRef
-// ******************************************************************
-ULONG WINAPI EMUPATCH(D3DResource_AddRef)
-(
-    X_D3DResource      *pThis
-);
-
-// ******************************************************************
 // * patch: IDirect3DResource8_IsBusy
 // ******************************************************************
 BOOL WINAPI EMUPATCH(D3DResource_IsBusy)
@@ -834,17 +630,6 @@ VOID WINAPI EMUPATCH(Get2DSurfaceDesc)
 );
 #endif
 
-#if 0 // Patch disabled
-// ******************************************************************
-// * patch: IDirect3DSurface8_GetDesc
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DSurface_GetDesc)
-(
-    X_D3DResource      *pThis,
-    X_D3DSURFACE_DESC  *pDesc
-);
-#endif
-
 // ******************************************************************
 // * patch: IDirect3DSurface8_LockRect
 // ******************************************************************
@@ -855,106 +640,6 @@ HRESULT WINAPI EMUPATCH(D3DSurface_LockRect)
     CONST RECT     *pRect,
     DWORD           Flags
 );
-
-#if 0
-// ******************************************************************
-// * patch: IDirect3DBaseTexture8_GetLevelCount
-// ******************************************************************
-DWORD WINAPI EMUPATCH(D3DBaseTexture_GetLevelCount)
-(
-    X_D3DBaseTexture   *pThis
-);
-#endif
-
-#if 0
-// ******************************************************************
-// * patch: IDirect3DTexture8_GetSurfaceLevel2
-// ******************************************************************
-X_D3DSurface * WINAPI EMUPATCH(D3DTexture_GetSurfaceLevel2)
-(
-    X_D3DTexture   *pThis,
-    UINT            Level
-);
-#endif
-
-#if 0
-// ******************************************************************
-// * patch: IDirect3DTexture8_LockRect
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DTexture_LockRect)
-(
-    X_D3DTexture   *pThis,
-    UINT            Level,
-    D3DLOCKED_RECT *pLockedRect,
-    CONST RECT     *pRect,
-    DWORD           Flags
-);
-#endif
-
-#if 0
-// ******************************************************************
-// * patch: IDirect3DTexture8_GetSurfaceLevel
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DTexture_GetSurfaceLevel)
-(
-    X_D3DTexture   *pThis,
-    UINT            Level,
-    X_D3DSurface  **ppSurfaceLevel
-);
-#endif
-
-#if 0
-// ******************************************************************
-// * patch: IDirect3DVolumeTexture8_LockBox
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DVolumeTexture_LockBox)
-(
-    X_D3DVolumeTexture *pThis,
-    UINT                Level,
-    D3DLOCKED_BOX      *pLockedVolume,
-    CONST D3DBOX       *pBox,
-    DWORD               Flags
-);
-#endif
-
-#if 0
-// ******************************************************************
-// * patch: IDirect3DCubeTexture8_LockRect
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DCubeTexture_LockRect)
-(
-    X_D3DCubeTexture   *pThis,
-    D3DCUBEMAP_FACES    FaceType,
-    UINT                Level,
-    D3DLOCKED_RECT     *pLockedBox,
-    CONST RECT         *pRect,
-    DWORD               Flags
-);
-#endif
-
-#if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateVertexBuffer
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_CreateVertexBuffer)
-(
-    UINT                Length,
-    DWORD               Usage,
-    DWORD               FVF,
-    D3DPOOL             Pool,
-    X_D3DVertexBuffer **ppVertexBuffer
-);
-#endif
-
-#if 0 // patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreateVertexBuffer2
-// ******************************************************************
-X_D3DVertexBuffer* WINAPI EMUPATCH(D3DDevice_CreateVertexBuffer2)
-(
-    UINT Length
-);
-#endif
 
 // ******************************************************************
 // * patch: D3DDevice_EnableOverlay
@@ -1461,27 +1146,6 @@ HRESULT WINAPI EMUPATCH(D3DDevice_GetLightEnable)
 // ******************************************************************
 ULONG WINAPI EMUPATCH(D3DDevice_Release)();
 
-#if 0 // Patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreatePalette
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3DDevice_CreatePalette)
-(
-    X_D3DPALETTESIZE    Size,
-    X_D3DPalette      **ppPalette
-);
-#endif
-
-#if 0 // Patch disabled
-// ******************************************************************
-// * patch: D3DDevice_CreatePalette2
-// ******************************************************************
-X_D3DPalette * WINAPI EMUPATCH(D3DDevice_CreatePalette2)
-(
-    X_D3DPALETTESIZE    Size
-);
-#endif
-
 // ******************************************************************
 // * patch: D3DDevice_SetRenderTarget
 // ******************************************************************
@@ -1674,54 +1338,6 @@ HRESULT WINAPI EMUPATCH(D3DDevice_SetDepthClipPlanes)
     DWORD Flags
 );
 
-#if 0 // DISABLED (Just calls MmAllocateContiguousMemory)
-// ******************************************************************
-// * patch: D3D_AllocContiguousMemory
-// ******************************************************************
-PVOID WINAPI EMUPATCH(D3D_AllocContiguousMemory)
-(
-    SIZE_T dwSize,
-    DWORD dwAllocAttributes
-);
-#endif
-
-#if 0 // patch disabled
-// ******************************************************************
-// * patch: Direct3D_CheckDeviceMultiSampleType
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(Direct3D_CheckDeviceMultiSampleType)
-(
-    UINT                 Adapter,
-    D3DDEVTYPE           DeviceType,
-    X_D3DFORMAT          SurfaceFormat,
-    BOOL                 Windowed,
-    D3DMULTISAMPLE_TYPE  MultiSampleType
-);
-#endif
-
-#if 0 // patch disabled
-// ******************************************************************
-// * patch: D3D_GetDeviceCaps
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3D_GetDeviceCaps)
-(
-    UINT        Adapter,
-    D3DDEVTYPE  DeviceType,
-    X_D3DCAPS   *pCaps
-);
-#endif
-
-#if 0 // patch disabled
-// ******************************************************************
-// * patch: D3D_SetPushBufferSize
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3D_SetPushBufferSize)
-(
-    DWORD PushBufferSize,
-    DWORD KickOffSize
-);
-#endif
-
 // ******************************************************************
 // * patch: D3DDevice_InsertFence
 // ******************************************************************
@@ -1750,17 +1366,6 @@ VOID WINAPI EMUPATCH(D3DResource_BlockUntilNotBusy)
 (
     X_D3DResource *pThis
 );
-
-#if 0 // patch DISABLED
-// ******************************************************************
-// * patch: D3DVertexBuffer_GetDesc
-// ******************************************************************
-VOID WINAPI EMUPATCH(D3DVertexBuffer_GetDesc)
-(
-    X_D3DVertexBuffer    *pThis,
-    X_D3DVERTEXBUFFER_DESC *pDesc
-);
-#endif
 
 // ******************************************************************
 // * patch: D3DDevice_SetScissors
@@ -1983,18 +1588,6 @@ VOID WINAPI EMUPATCH(D3DDevice_SetBackMaterial)
 (
 	X_D3DMATERIAL* pMaterial
 );
-
-#if 0 // patch disabled
-// ******************************************************************
-// * patch: D3D_GetAdapterIdentifier
-// ******************************************************************
-HRESULT WINAPI EMUPATCH(D3D_GetAdapterIdentifier)
-(
-	UINT					Adapter,
-	DWORD					Flags,
-	X_D3DADAPTER_IDENTIFIER *pIdentifier
-);
-#endif
 
 // ******************************************************************
 // * patch: D3D::MakeRequestedSpace

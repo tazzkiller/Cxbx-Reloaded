@@ -378,32 +378,6 @@ void NVPB_InlineIndexArray() // 0x1800
 
 		printf("\n");
 
-#if 0
-		// retrieve stream data
-		XTL::IDirect3DVertexBuffer8 *pActiveVB = nullptr;
-		UINT  uiStride;
-
-		// pActiveVB = CxbxUpdateVertexBuffer(Xbox_g_Stream[0].pVertexBuffer);
-		// pActiveVB->AddRef(); // Avoid memory-curruption when this is Release()ed later
-		// uiStride = Xbox_g_Stream[0].Stride;
-		g_pD3DDevice8->GetStreamSource(0, &pActiveVB, &uiStride);
-		// retrieve stream desc
-		D3DVERTEXBUFFER_DESC VBDesc;
-		pActiveVB->GetDesc(&VBDesc);
-		// print out stream data
-		{
-			printf("\n");
-			printf("  Vertex Stream Data (0x%.08X)...\n", pActiveVB);
-			printf("\n");
-			printf("  Format : %d\n", VBDesc.Format);
-			printf("  Size   : %d bytes\n", VBDesc.Size);
-			printf("  FVF    : 0x%.08X\n", VBDesc.FVF);
-			printf("\n");
-		}
-
-		pActiveVB->Release(); // Was absent (thus leaked memory)
-#endif
-
 		DbgDumpMesh(pIndexData, dwCount);
 	}
 #endif
