@@ -181,7 +181,9 @@ static DWORD                        g_dwVertexShaderUsage = 0;
 static DWORD                        g_VertexShaderSlots[136];
 
 // cached palette pointer
+#if 0
 static DWORD *g_pTexturePaletteStages[X_D3DTSS_STAGECOUNT] = { NULL, NULL, NULL, NULL };
+#endif
 
 static XTL::X_D3DSHADERCONSTANTMODE g_VertexShaderConstantMode = XTL::X_D3DSCM_192CONSTANTS;
 
@@ -1029,6 +1031,7 @@ XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
 	return result;
 }
 
+#if 0
 XTL::IDirect3DSurface8 *GetHostSurface(XTL::X_D3DResource *pXboxResource)
 {
 	if (pXboxResource == NULL)
@@ -1039,6 +1042,7 @@ XTL::IDirect3DSurface8 *GetHostSurface(XTL::X_D3DResource *pXboxResource)
 
 	return (XTL::IDirect3DSurface8 *)GetHostResource(pXboxResource);
 }
+#endif
 
 XTL::IDirect3DBaseTexture8 *GetHostBaseTexture(XTL::X_D3DResource *pXboxResource)
 {
@@ -1051,27 +1055,34 @@ XTL::IDirect3DBaseTexture8 *GetHostBaseTexture(XTL::X_D3DResource *pXboxResource
 	return (XTL::IDirect3DBaseTexture8 *)GetHostResource(pXboxResource);
 }
 
+#if 0
 XTL::IDirect3DTexture8 *GetHostTexture(XTL::X_D3DResource *pXboxResource)
 {
 	return (XTL::IDirect3DTexture8 *)GetHostBaseTexture(pXboxResource);
 
 	// TODO : Check for 1 face (and 2 dimensions)?
 }
+#endif
 
+#if 0
 XTL::IDirect3DCubeTexture8 *GetHostCubeTexture(XTL::X_D3DResource *pXboxResource)
 {
 	return (XTL::IDirect3DCubeTexture8 *)GetHostBaseTexture(pXboxResource);
 
 	// TODO : Check for 6 faces (and 2 dimensions)?
 }
+#endif
 
+#if 0
 XTL::IDirect3DVolumeTexture8 *GetHostVolumeTexture(XTL::X_D3DResource *pXboxResource)
 {
 	return (XTL::IDirect3DVolumeTexture8 *)GetHostBaseTexture(pXboxResource);
 
 	// TODO : Check for 3 dimensions?
 }
+#endif
 
+#if 0
 XTL::IDirect3DIndexBuffer8 *GetHostIndexBuffer(XTL::X_D3DResource *pXboxResource)
 {
 	if (pXboxResource == NULL)
@@ -1081,7 +1092,9 @@ XTL::IDirect3DIndexBuffer8 *GetHostIndexBuffer(XTL::X_D3DResource *pXboxResource
 
 	return (XTL::IDirect3DIndexBuffer8 *)GetHostResource(pXboxResource);
 }
+#endif
 
+#if 0
 XTL::IDirect3DVertexBuffer8 *GetHostVertexBuffer(XTL::X_D3DResource *pXboxResource)
 {
 	if (pXboxResource == NULL)
@@ -1091,6 +1104,7 @@ XTL::IDirect3DVertexBuffer8 *GetHostVertexBuffer(XTL::X_D3DResource *pXboxResour
 
 	return (XTL::IDirect3DVertexBuffer8 *)GetHostResource(pXboxResource);
 }
+#endif
 
 void SetHostSurface(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DSurface8 *pHostSurface)
 {
@@ -1505,7 +1519,7 @@ void CxbxUpdateTextureStages()
 
 	for (int Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++) {
 		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = (g_iWireframe == 0)
-			? CxbxUpdateTexture(XTL::GetXboxBaseTexture(Stage), g_pTexturePaletteStages[Stage])
+			? CxbxUpdateTexture(XTL::GetXboxBaseTexture(Stage), Stage)
 			: nullptr;
 
 		HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, pHostBaseTexture);
@@ -1523,7 +1537,7 @@ XTL::IDirect3DSurface8 *CxbxUpdateSurface(const XTL::X_D3DSurface *pXboxSurface)
 		(XTL::IDirect3DSurface8 *)CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pXboxSurface->Parent, NULL);
 
 */
-	return (XTL::IDirect3DSurface8 *)CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pXboxSurface, NULL);
+	return (XTL::IDirect3DSurface8 *)CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pXboxSurface, 0);
 }
 
 void CxbxUpdateActiveRenderTarget()
@@ -4807,7 +4821,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 
 	if(pTexture != NULL)
     {
-		pHostBaseTexture = CxbxUpdateTexture(pTexture, g_pTexturePaletteStages[Stage]);
+		pHostBaseTexture = CxbxUpdateTexture(pTexture, Stage);
 
 #ifdef _DEBUG_DUMP_TEXTURE_SETTEXTURE
         if(pTexture != NULL && (pHostBaseTexture != nullptr))
@@ -5629,10 +5643,16 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 (
 	XTL::X_D3DPixelContainer *pPixelContainer,
-	const DWORD *pPalette
+	int Stage
 )
 {
 	static std::map<xbaddr, ConvertedResource> g_ConvertedTextures;
+
+	// Read active palette from NV2A
+	xbaddr PaletteOffset = NV2AInstance_Registers[NV2A_TX_PALETTE_OFFSET(Stage) / 4];
+	xbaddr PaletteAddr = PaletteOffset & ~(X_D3DPALETTE_ALIGNMENT - 1);
+	//X_D3DPALETTESIZE PaletteSize = (X_D3DPALETTESIZE)((PaletteOffset >> 2) & NV097_SET_TEXTURE_PALETTE_LENGTH_32));
+	const DWORD *pPalette = (DWORD*)(PaletteAddr | MM_SYSTEM_PHYSICAL_MAP);
 
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
@@ -5822,7 +5842,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		// Retrieve the PC resource that represents the parent of this surface,
 		// including it's contents (updated if necessary) :
 		// Samples like CubeMap show that render target formats must be applied to both surface and texture:
-		IDirect3DBaseTexture8 *pHostParentTexture = CxbxUpdateTexture(pSurfaceParent, pPalette);
+		IDirect3DBaseTexture8 *pHostParentTexture = CxbxUpdateTexture(pSurfaceParent, Stage);
 		if (pHostParentTexture != nullptr) {
 			// Determine which face & mipmap level where used in the creation of this Xbox surface, using the Data pointer :
 			UINT Level;
@@ -8867,6 +8887,7 @@ XTL::X_D3DPalette * WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette2)
 }
 #endif
 
+#if 0
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPalette)
 (
     DWORD         Stage,
@@ -8886,9 +8907,11 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPalette)
 	if (Stage < X_D3DTSS_STAGECOUNT)
 		// Cache palette data and size
 		g_pTexturePaletteStages[Stage] = (DWORD *)GetDataFromXboxResource(pPalette);
+		// NV2AInstance_Registers
 
     return D3D_OK;
 }
+#endif
 
 void WINAPI XTL::EMUPATCH(D3DDevice_SetFlickerFilter)
 (
@@ -10183,21 +10206,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_GetAdapterIdentifier)
 
 DWORD PushBuffer[64 * 1024 / sizeof(DWORD)] = { 0 };
 
-void DumpPushBufferContents()
-{
-	// TODO : Document samples that hit this
-	int i = 0;
-	while (PushBuffer[i] != 0)
-	{
-		LOG_TEST_CASE("");
-		// TODO : Convert NV2A methods to readable string, dump arguments, later on: execute commands
-		DbgPrintf("PushBuffer[%4d] : 0x%X\n", i, PushBuffer[i]);
-		i++;
-	}
-
-	memset(PushBuffer, 0, i * sizeof(DWORD));
-}
-
 PDWORD WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 (
 	DWORD MinimumSpace,
@@ -10214,7 +10222,7 @@ PDWORD WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 	// NOTE: This function is ignored, as we currently don't emulate the push buffer
 	LOG_IGNORED();
 
-	DumpPushBufferContents();
+	EmuExecutePushBufferRaw(PushBuffer);
 
 	return PushBuffer; // Return a buffer that will be filled with GPU commands
 

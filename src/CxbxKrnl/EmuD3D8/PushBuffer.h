@@ -61,6 +61,7 @@ extern void DbgDumpPushBuffer
 // primary push buffer
 extern uint32  g_dwPrimaryPBCount;
 extern uint32 *g_pPrimaryPB;
+extern DWORD NV2AInstance_Registers[8192];
 
 // push buffer debugging
 extern bool g_bStepPush;
