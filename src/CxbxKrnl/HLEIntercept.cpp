@@ -220,13 +220,13 @@ void CheckDerivedDevice(xbaddr pFunc, int iCodeOffsetFor_X_pDevice)
 	}
 }
 
-void CheckDerivedRenderState(xbaddr pFunc, int iCodeOffsetFor_X_D3DRS, int XREF_D3DRS_, int X_D3DRS)
+void CheckDerivedRenderState(xbaddr pFunc, int iCodeOffsetFor_X_D3DRS_, int XREF_D3DRS_, int X_D3DRS_)
 {
 	using namespace XTL;
 
 	// Read address of D3DRS_ from function
-	xbaddr DerivedAddr_D3DRS_ = *((xbaddr*)(pFunc + iCodeOffsetFor_X_D3DRS));
-	::DWORD XDK_D3DRS_ = DxbxMapMostRecentToActiveVersion[X_D3DRS];
+	xbaddr DerivedAddr_D3DRS_ = *((xbaddr*)(pFunc + iCodeOffsetFor_X_D3DRS_));
+	::DWORD XDK_D3DRS_ = DxbxMapMostRecentToActiveVersion[X_D3DRS_];
 
 	// Temporary verification - is XREF_D3DRS_ derived correctly?
 	// TODO : Remove this when XREF_D3DRS_ derivation is deemed stable
@@ -282,6 +282,7 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 	XRefDataBase[XREF_D3DRS_CULLMODE] = XREF_ADDR_DERIVE;
 	XRefDataBase[XREF_D3DRS_FILLMODE] = XREF_ADDR_DERIVE;
 	XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] = XREF_ADDR_DERIVE;
+	XRefDataBase[XREF_D3DTSS_BORDERCOLOR] = XREF_ADDR_DERIVE;
 	XRefDataBase[XREF_G_STREAM] = XREF_ADDR_DERIVE;
 	XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES] = XREF_ADDR_DERIVE;
 
@@ -454,44 +455,32 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 	// Try to locate Xbox symbol "D3D__TextureState" and store it's address
 	// via D3DDevice_SetTextureState_BorderColor
 	{
-		extern LOOVPA<13> D3DDevice_SetTextureState_BorderColor_3925;
-		extern LOOVPA<7> D3DDevice_SetTextureState_BorderColor_4034;
-		extern LOOVPA<15> D3DDevice_SetTextureState_BorderColor_4361;
-/*
-D:\Patrick\git\Dxbx\Resources\Patterns\3911d3d8.pat(129):568B35........56E8........8B4C24088BD1C1E20681C2241B040089108B54 0F 270B 0040 _D3DDevice_SetTextureState_BorderColor@8 ^0003D ?g_pDevice@D3D@@3PAVCDevice@1@A ^0009R _XMETAL_StartPush@4 ^002FD _D3D__TextureState+0074 ........5EC20800909090909090909090
-D:\Patrick\git\Dxbx\Resources\Patterns\4361d3d8.pat(132):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 0040 _D3DDevice_SetTextureState_BorderColor@8 ^0003D ?g_pDevice@D3D@@3PAVCDevice@1@A ^000FR ?MakeSpace@D3D@@YGPCKXZ ^0035D _D3D__TextureState+0074 ........5EC20800909090
-D:\Patrick\git\Dxbx\Resources\Patterns\4627d3d8.pat(153):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 0040 _D3DDevice_SetTextureState_BorderColor@8 ^0003D _D3D__pDevice ^000FR ?MakeSpace@D3D@@YGPCKXZ ^0035D _D3D__TextureState+0074 ........5EC20800909090
-D:\Patrick\git\Dxbx\Resources\Patterns\5344d3d8.pat(150):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 0040 _D3DDevice_SetTextureState_BorderColor@8 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0035D _D3D__TextureState+0074 ........5EC20800909090
-D:\Patrick\git\Dxbx\Resources\Patterns\5558d3d8.pat(150):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 003D _D3DDevice_SetTextureState_BorderColor@8 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0035D _D3D__TextureState+0074 ........5EC20800
-D:\Patrick\git\Dxbx\Resources\Patterns\5659d3d8.pat(150):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 003D _D3DDevice_SetTextureState_BorderColor@8 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0035D _D3D__TextureState+0074 ........5EC20800
-D:\Patrick\git\Dxbx\Resources\Patterns\5788d3d8.pat(150):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 003D _D3DDevice_SetTextureState_BorderColor@8 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0035D _D3D__TextureState+0074 ........5EC20800
-D:\Patrick\git\Dxbx\Resources\Patterns\5849d3d8.pat(150):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 003D _D3DDevice_SetTextureState_BorderColor@8 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0035D _D3D__TextureState+0074 ........5EC20800
-D:\Patrick\git\Dxbx\Resources\Patterns\5933d3d8.pat(150):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 003D _D3DDevice_SetTextureState_BorderColor@8 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0035D _D3D__TextureState+0074 ........5EC20800
-*/
+		extern LOOVPA<2 + 24> D3DDevice_SetTextureState_BorderColor_3911;
+		extern LOOVPA<7> D3DDevice_SetTextureState_BorderColor_4034; // TODO : Weak & unverified, recreate OOVPA
+		extern LOOVPA<2 + 24> D3DDevice_SetTextureState_BorderColor_4361;
+
 		xbaddr pFunc = NULL;
-		int iCodeOffsetFor_X_pDevice = 0x09; // verified for 4361
-		int iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x19; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
+		int iCodeOffsetFor_X_pDevice = 0x03; // verified for 3911, 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
+		int iCodeOffsetFor_X_D3DTSS_BORDERCOLOR = 0x35; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
 
 		if (g_BuildVersion >= 4361) {
 			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_BorderColor_4361, lower, upper);
-			iCodeOffsetFor_X_pDevice = 0x09; // verified for 4627, 5344, 5558, 5659, 5788, 5849, 5933
 		}
 		else if (g_BuildVersion >= 4034) {
 			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_BorderColor_4034, lower, upper);
-			iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x18; // unsure
+			iCodeOffsetFor_X_D3DTSS_BORDERCOLOR = 0x2F; // unsure
 		}
 		else {
-			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_BorderColor_3925, lower, upper);
-			iCodeOffsetFor_X_pDevice = 0x11; // verified for 3911
-			iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x11; // verified for 3911
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_BorderColor_3911, lower, upper);
+			iCodeOffsetFor_X_D3DTSS_BORDERCOLOR = 0x2F; // verified for 3911
 		}
 
 		if (pFunc != NULL) {
-			printf("HLE: Located 0x%.08X -> D3DDevice_SetTextureState_TexCoordIndex\n", pFunc);
+			printf("HLE: Located 0x%.08X -> D3DDevice_SetTextureState_BorderColor\n", pFunc);
 
 			CheckDerivedDevice(pFunc, iCodeOffsetFor_X_pDevice);
 
-			CheckDerivedTextureState(pFunc, iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX, XREF_D3DTSS_TEXCOORDINDEX, X_D3DTSS_TEXCOORDINDEX);
+			CheckDerivedTextureState(pFunc, iCodeOffsetFor_X_D3DTSS_BORDERCOLOR, XREF_D3DTSS_BORDERCOLOR, X_D3DTSS_BORDERCOLOR);
 		}
 	}
 

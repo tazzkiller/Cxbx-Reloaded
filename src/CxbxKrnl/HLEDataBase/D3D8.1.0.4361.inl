@@ -465,30 +465,40 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetTextureState_BorderColor
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetTextureState_BorderColor, 4361, 15)
+OOVPA_XREF(D3DDevice_SetTextureState_BorderColor, 4361, 2 + 24,
 
-        // D3DDevice_SetTextureState_BorderColor+0x0C : jb +0x05
-        { 0x0C, 0x72 }, // (Offset,Value)-Pair #1
-        { 0x0D, 0x05 }, // (Offset,Value)-Pair #2
+	XRefNoSaveIndex,
+	XRefTwo)
 
-        // D3DDevice_SetTextureState_BorderColor+0x19 : shl edx, 6
-        { 0x19, 0xC1 }, // (Offset,Value)-Pair #3
-        { 0x1A, 0xE2 }, // (Offset,Value)-Pair #4
-        { 0x1B, 0x06 }, // (Offset,Value)-Pair #5
+	XREF_ENTRY(0x03, XREF_D3DDEVICE), // Derived
+	XREF_ENTRY(0x35, XREF_D3DTSS_BORDERCOLOR), // Derived
 
-        // D3DDevice_SetTextureState_BorderColor+0x2B : add eax, 8; mov [esi], eax; shl ecx, 7
-        { 0x2B, 0x83 }, // (Offset,Value)-Pair #6
-        { 0x2C, 0xC0 }, // (Offset,Value)-Pair #7
-        { 0x2D, 0x08 }, // (Offset,Value)-Pair #8
-        { 0x2E, 0x89 }, // (Offset,Value)-Pair #9
-        { 0x2F, 0x06 }, // (Offset,Value)-Pair #10
-        { 0x30, 0xC1 }, // (Offset,Value)-Pair #11
-        { 0x31, 0xE1 }, // (Offset,Value)-Pair #12
-        { 0x32, 0x07 }, // (Offset,Value)-Pair #13
+		{ 0x00, 0x56 },
+		{ 0x01, 0x8B },
+		{ 0x02, 0x35 },
 
-        // D3DDevice_SetTextureState_BorderColor+0x3A : retn 0x08
-        { 0x3A, 0xC2 }, // (Offset,Value)-Pair #14
-        { 0x3B, 0x08 }, // (Offset,Value)-Pair #15
+		{ 0x07, 0x8B },
+		{ 0x08, 0x06 },
+		{ 0x09, 0x3B },
+		{ 0x0A, 0x46 },
+		{ 0x0B, 0x04 },
+		{ 0x0C, 0x72 },
+		{ 0x0D, 0x05 },
+		{ 0x0E, 0xE8 },
+
+		{ 0x13, 0x8B },
+		{ 0x14, 0x4C },
+		{ 0x15, 0x24 },
+		{ 0x16, 0x08 },
+		{ 0x17, 0x8B },
+		{ 0x18, 0xD1 },
+		{ 0x19, 0xC1 },
+		{ 0x1A, 0xE2 },
+		{ 0x1B, 0x06 },
+		{ 0x1C, 0x81 },
+		{ 0x1D, 0xC2 },
+		{ 0x1E, 0x24 },
+		{ 0x1F, 0x1B },
 OOVPA_END;
 
 // ******************************************************************

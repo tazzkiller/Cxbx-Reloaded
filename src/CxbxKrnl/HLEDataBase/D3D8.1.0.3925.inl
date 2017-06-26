@@ -1328,27 +1328,40 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetTextureState_BorderColor
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetTextureState_BorderColor, 3925, 13)
-        // D3DDevice_SetTextureState_BorderColor+0x13 : shl eax, 0x07
-        { 0x13, 0xC1 }, // (Offset,Value)-Pair #1
-        { 0x14, 0xE2 }, // (Offset,Value)-Pair #2
-        { 0x15, 0x06 }, // (Offset,Value)-Pair #3
+OOVPA_XREF(D3DDevice_SetTextureState_BorderColor, 3911, 2 + 24,
 
-        // D3DDevice_SetTextureState_BorderColor+0x16 : add edx, 0x41B24
-        { 0x16, 0x81 }, // (Offset,Value)-Pair #4
-        { 0x17, 0xC2 }, // (Offset,Value)-Pair #5
-        { 0x18, 0x24 }, // (Offset,Value)-Pair #6
-        { 0x19, 0x1B }, // (Offset,Value)-Pair #7
-        { 0x1A, 0x04 }, // (Offset,Value)-Pair #8
+	XRefNoSaveIndex,
+	XRefTwo)
 
-        // D3DDevice_SetTextureState_BorderColor+0x2A : shl ecx, 7
-        { 0x2A, 0xC1 }, // (Offset,Value)-Pair #9
-        { 0x2B, 0xE1 }, // (Offset,Value)-Pair #10
-        { 0x2C, 0x07 }, // (Offset,Value)-Pair #11
+	XREF_ENTRY(0x03, XREF_D3DDEVICE), // Derived
+	XREF_ENTRY(0x2F, XREF_D3DTSS_BORDERCOLOR), // Derived
 
-        // D3DDevice_SetTextureState_BorderColor+0x34 : retn 0x08
-        { 0x34, 0xC2 }, // (Offset,Value)-Pair #12
-        { 0x35, 0x08 }, // (Offset,Value)-Pair #13
+		{ 0x00, 0x56 },
+		{ 0x01, 0x8B },
+		{ 0x02, 0x35 },
+
+		{ 0x07, 0x56 },
+		{ 0x08, 0xE8 },
+
+		{ 0x0D, 0x8B },
+		{ 0x0E, 0x4C },
+		{ 0x0F, 0x24 },
+		{ 0x10, 0x08 },
+		{ 0x11, 0x8B },
+		{ 0x12, 0xD1 },
+		{ 0x13, 0xC1 },
+		{ 0x14, 0xE2 },
+		{ 0x15, 0x06 },
+		{ 0x16, 0x81 },
+		{ 0x17, 0xC2 },
+		{ 0x18, 0x24 },
+		{ 0x19, 0x1B },
+		{ 0x1A, 0x04 },
+		{ 0x1B, 0x00 },
+		{ 0x1C, 0x89 },
+		{ 0x1D, 0x10 },
+		{ 0x1E, 0x8B },
+		{ 0x1F, 0x54 },
 OOVPA_END;
 
 // ******************************************************************
@@ -4164,7 +4177,7 @@ OOVPATable D3D8_3925[] = {
 	REGISTER_OOVPA(D3DDevice_SetFlickerFilter, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetSoftDisplayFilter, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTextureState_TexCoordIndex, 3911, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetTextureState_BorderColor, 3925, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetTextureState_BorderColor, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_PSTextureModes, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_StencilFail, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_CullMode, 3911, PATCH),
