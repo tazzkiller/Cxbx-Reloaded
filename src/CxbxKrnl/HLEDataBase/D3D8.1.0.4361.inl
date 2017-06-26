@@ -1090,6 +1090,46 @@ OOVPA_XREF(D3DDevice_SetTexture, 4361, 1+28,
 		{ 0x1F, 0x24 },
 OOVPA_END;
 
+
+OOVPA_XREF(D3DDevice_SetRenderState_CullMode, 4361, 2 + 24, // Also for 4627, 5344, 5558, 5659, 5788, 5849, 5933
+
+	XRefNoSaveIndex,
+	XRefTwo)
+
+	XREF_ENTRY(0x03, XREF_D3DDEVICE), // Derived
+	XREF_ENTRY(0x25, XREF_D3DRS_CULLMODE), // Derived
+
+		{ 0x00, 0x56 },
+		{ 0x01, 0x8B },
+		{ 0x02, 0x35 },
+
+		{ 0x07, 0x8B },
+		{ 0x08, 0x06 },
+		{ 0x09, 0x3B },
+		{ 0x0A, 0x46 },
+		{ 0x0B, 0x04 },
+		{ 0x0C, 0x72 },
+		{ 0x0D, 0x05 },
+		{ 0x0E, 0xE8 },
+
+		{ 0x13, 0x8B },
+		{ 0x14, 0x4C },
+		{ 0x15, 0x24 },
+		{ 0x16, 0x08 },
+		{ 0x17, 0x85 },
+		{ 0x18, 0xC9 },
+		{ 0x19, 0xC7 },
+		{ 0x1A, 0x00 },
+		{ 0x1B, 0x08 },
+		{ 0x1C, 0x03 },
+		{ 0x1D, 0x04 },
+		{ 0x1E, 0x00 },
+		{ 0x1F, 0x75 },
+
+OOVPA_END;
+
+#define D3DDevice_SetRenderState_CullMode_5344 D3DDevice_SetRenderState_CullMode_4361
+
 // ******************************************************************
 // * D3D8_4361
 // ******************************************************************
@@ -1142,7 +1182,7 @@ OOVPATable D3D8_4361[] = {
 	REGISTER_OOVPA(D3DDevice_BlockUntilVerticalBlank, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTextureState_TexCoordIndex, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_VertexBlend, 4134, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetRenderState_CullMode, 4034, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetRenderState_CullMode, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_TextureFactor, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_EdgeAntiAlias, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_FillMode, 4134, PATCH),

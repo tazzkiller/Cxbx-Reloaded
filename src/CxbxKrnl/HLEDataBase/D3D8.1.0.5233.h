@@ -36,8 +36,6 @@
 
 #include "OOVPA.h"
 
-extern LOOVPA<2+13> D3DDevice_SetRenderState_CullMode_5233;
-
 extern OOVPATable D3D8_5233[];
 extern uint32     D3D8_5233_SIZE;
 

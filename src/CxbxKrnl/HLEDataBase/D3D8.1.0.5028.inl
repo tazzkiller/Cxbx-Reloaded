@@ -205,7 +205,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetViewport
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetViewport, 5028, 9)
+OOVPA_XREF(D3DDevice_SetViewport, 5028, 1 + 9,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x03, XREF_D3DDEVICE), // Derived
 
         // D3DDevice_SetViewport+0x0A : mov eax, [esi+0x15B4]
         { 0x0A, 0x8B }, // (Offset,Value)-Pair #1
@@ -840,7 +845,7 @@ OOVPATable D3D8_5028[] = {
 	REGISTER_OOVPA(D3DDevice_SetTextureState_BorderColor, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTextureState_ColorKeyColor, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_VertexBlend, 4134, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetRenderState_CullMode, 4034, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetRenderState_CullMode, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_NormalizeNormals, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_NormalizeNormals, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_TextureFactor, 5028, PATCH),

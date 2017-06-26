@@ -106,24 +106,25 @@ void *GetEmuPatchAddr(std::string aFunctionName)
 	return addr;
 }
 
-void VerifySymbolAddressAgainstXRef(char *SymbolName, xbaddr Address, int XRef)
+bool VerifySymbolAddressAgainstXRef(char *SymbolName, xbaddr Address, int XRef)
 {
 	// Temporary verification - is XREF_D3DTSS_TEXCOORDINDEX derived correctly?
 	// TODO : Remove this when XREF_D3DTSS_TEXCOORDINDEX derivation is deemed stable
 	xbaddr XRefAddr = XRefDataBase[XRef];
 	if (XRefAddr == Address)
-		return;
+		return true;
 
 	if (XRefAddr == XREF_ADDR_DERIVE) {
 		printf("HLE: XRef #%d derived 0x%.08X -> %s\n", XRef, Address, SymbolName);
 		XRefDataBase[XRef] = Address;
-		return;
+		return true;
 	}
 
 	char Buffer[256];
 	sprintf(Buffer, "Verification of %s failed : XREF was 0x%p while lookup gave 0x%p", SymbolName, XRefAddr, Address);
 	// For XREF_D3DTSS_TEXCOORDINDEX, Kabuki Warriors hits this case
 	CxbxPopupMessage(Buffer);
+	return false;
 }
 
 void *FindSymbolAddress(char *SymbolName, bool FailWhenNotFound = true)
@@ -202,6 +203,357 @@ void CheckHLEExports()
 						// DbgPrintf("No patch available, but not DISABLED nor XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
 					}
 				}
+			}
+		}
+	}
+}
+
+void CheckDerivedDevice(xbaddr pFunc, int iCodeOffsetFor_X_pDevice)
+{
+	// Read address of "g_pDevice" from D3DDevice_SetViewport
+	xbaddr DerivedAddr_D3DDevice = *((xbaddr*)(pFunc + iCodeOffsetFor_X_pDevice));
+
+	// Temporary verification - is XREF_D3DDEVICE derived correctly?
+	// TODO : Remove this when D3DEVICE derivation is deemed stable
+	if (VerifySymbolAddressAgainstXRef("D3DDEVICE", DerivedAddr_D3DDevice, XREF_D3DDEVICE)) {
+		g_SymbolAddresses["D3DDEVICE"] = DerivedAddr_D3DDevice;
+	}
+}
+
+void CheckDerivedRenderState(xbaddr pFunc, int iCodeOffsetFor_X_D3DRS, int XREF_D3DRS_, int X_D3DRS)
+{
+	using namespace XTL;
+
+	// Read address of D3DRS_ from function
+	xbaddr DerivedAddr_D3DRS_ = *((xbaddr*)(pFunc + iCodeOffsetFor_X_D3DRS));
+	::DWORD XDK_D3DRS_ = DxbxMapMostRecentToActiveVersion[X_D3DRS];
+
+	// Temporary verification - is XREF_D3DRS_ derived correctly?
+	// TODO : Remove this when XREF_D3DRS_ derivation is deemed stable
+	if (VerifySymbolAddressAgainstXRef("D3D__RenderState[D3DRS_]", DerivedAddr_D3DRS_, XREF_D3DRS_)) {
+
+		::DWORD *Derived_D3D_RenderState = ((::DWORD*)DerivedAddr_D3DRS_) - XDK_D3DRS_;
+		g_SymbolAddresses["D3D__RenderState"] = (xbaddr)Derived_D3D_RenderState;
+		printf("HLE: Derived 0x%.08X -> D3D__RenderState\n", Derived_D3D_RenderState);
+
+		// Derive address of Xbox_D3D__RenderState_Deferred from D3DRS_
+		::DWORD *Derived_D3D__RenderState_Deferred = Derived_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
+		g_SymbolAddresses["D3DDeferredRenderState"] = (xbaddr)Derived_D3D__RenderState_Deferred;
+		printf("HLE: Derived 0x%.08X -> D3D__RenderState_Deferred\n", Derived_D3D__RenderState_Deferred);
+
+		// Derive address of a few other deferred render state slots (to help xref-based function location)
+		{
+#define DeriveAndPrint(D3DRS) \
+	XRefDataBase[XREF_##D3DRS] = (xbaddr)(Derived_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_##D3DRS]); \
+	printf("HLE: Derived XREF_"#D3DRS"(%d) 0x%.08X -> D3D__RenderState[%d/*="#D3DRS"]\n", (int)XREF_##D3DRS, XRefDataBase[XREF_##D3DRS], DxbxMapMostRecentToActiveVersion[X_##D3DRS]);
+
+			DeriveAndPrint(D3DRS_CULLMODE);
+			DeriveAndPrint(D3DRS_FILLMODE);
+			DeriveAndPrint(D3DRS_MULTISAMPLERENDERTARGETMODE);
+			DeriveAndPrint(D3DRS_STENCILCULLENABLE);
+			DeriveAndPrint(D3DRS_ROPZCMPALWAYSREAD);
+			DeriveAndPrint(D3DRS_ROPZREAD);
+			DeriveAndPrint(D3DRS_DONOTCULLUNCOMPRESSED);
+#undef DeriveAndPrint
+		}
+	}
+}
+
+void CheckDerivedTextureState(xbaddr pFunc, int iCodeOffsetFor_X_D3DTSS_, int XREF_D3DTSS_, int X_D3DTSS_)
+{
+	using namespace XTL;
+	
+	// Read address of D3DTSS_TEXCOORDINDEX from D3DDevice_SetTextureState_TexCoordIndex
+	xbaddr DerivedAddr_D3DTSS_ = *((xbaddr*)(pFunc + iCodeOffsetFor_X_D3DTSS_));
+	if (VerifySymbolAddressAgainstXRef("D3D__TextureState[/*Stage*/0][D3DTSS_]", DerivedAddr_D3DTSS_, XREF_D3DTSS_)) {
+		// Derive address of D3D_TextureState from D3DTSS_
+		::DWORD *Derived_D3D_TextureState = ((::DWORD*)DerivedAddr_D3DTSS_) - DxbxFromNewVersion_D3DTSS(X_D3DTSS_);
+		g_SymbolAddresses["D3D__TextureState"] = (xbaddr)Derived_D3D_TextureState;
+		printf("HLE: Derived 0x%.08X -> D3D__TextureState\n", Derived_D3D_TextureState);
+	}
+}
+
+void PrescanD3D(Xbe::Header *pXbeHeader)
+{
+	using namespace XTL;
+
+	// Request a few fundamental XRefs to be derived instead of checked
+	XRefDataBase[XREF_D3DDEVICE] = XREF_ADDR_DERIVE;
+	XRefDataBase[XREF_D3DRS_CULLMODE] = XREF_ADDR_DERIVE;
+	XRefDataBase[XREF_D3DRS_FILLMODE] = XREF_ADDR_DERIVE;
+	XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] = XREF_ADDR_DERIVE;
+	XRefDataBase[XREF_G_STREAM] = XREF_ADDR_DERIVE;
+	XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES] = XREF_ADDR_DERIVE;
+
+	DxbxBuildRenderStateMappingTable();
+
+	xbaddr lower = pXbeHeader->dwBaseAddr;
+	xbaddr upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
+
+	// Locate Xbox symbol "D3DDevice_SetViewport" and store it's address
+	// and derive "_D3D__pDevice" (pre-4627 known as "g_pDevice") from it
+	{
+		extern LOOVPA<1 + 28> D3DDevice_SetViewport_3911;
+		extern LOOVPA<1 + 10> D3DDevice_SetViewport_4034;
+		extern LOOVPA<1 + 28> D3DDevice_SetViewport_4627;
+		extern LOOVPA<1 + 9> D3DDevice_SetViewport_5028; // TODO : Recreate OOVPA
+		extern LOOVPA<1 + 8> D3DDevice_SetViewport_5344; // TODO : Recreate OOVPA
+		extern LOOVPA<1 + 8> D3DDevice_SetViewport_5558; // TODO : Recreate OOVPA
+/*
+D:\Patrick\git\Dxbx\Resources\Patterns\3911d3d8.pat(978 ):83EC085355568B35........8B860C0400008D8E502100003BC157750C8D8E68 FF 05CB 0160 _D3DDevice_SetViewport@4 ^0008D ?g_pDevice@D3D@@3PAVCDevice@1@A ^0128R ?UpdateProjectionViewportTransform@D3D@@YGXXZ ^0133R _D3DDevice_SetScissors@12 ^0139R _XMETAL_StartPush@4 ^0142R ?CommonSetViewport@D3D@@YIPAKPAVCDevice@1@PAK@Z 53148996140B0000E8........6A006A006A00E8........56E8........8BD08BCEE8........89068B46085F83C8018946085E5D5B83C408C204009090909090
+D:\Patrick\git\Dxbx\Resources\Patterns\4361d3d8.pat(1052):83EC08568B35........8B86702000003B867C200000750C8B8E80200000894C FF 6C99 0160 _D3DDevice_SetViewport@4 ^0006D ?g_pDevice@D3D@@3PAVCDevice@1@A ^0126R ?UpdateProjectionViewportTransform@D3D@@YGXXZ ^0131R _D3DDevice_SetScissors@12 ^0140R ?MakeSpace@D3D@@YGPCKXZ ^0149R ?CommonSetViewport@D3D@@YIPCKPAVCDevice@1@PCK@Z ^0151D _D3D__DirtyFlags 8996E4090000E8........6A006A006A00E8........8B063B46045F5D5B7205E8........8BD08BCEE8........8906810D........000100005E83C408C20400
+D:\Patrick\git\Dxbx\Resources\Patterns\4627d3d8.pat(1070):83EC08568B35........8B86B42100003B86C0210000750C8B8EC4210000894C FF FFBC 0160 _D3DDevice_SetViewport@4 ^0006D _D3D__pDevice ^0126R ?UpdateProjectionViewportTransform@D3D@@YGXXZ ^0131R _D3DDevice_SetScissors@12 ^0140R ?MakeSpace@D3D@@YGPCKXZ ^0149R ?CommonSetViewport@D3D@@YIPCKPAVCDevice@1@PCK@Z ^0151D _D3D__DirtyFlags 8996A40A0000E8........6A006A006A00E8........8B063B46045F5D5B7205E8........8BD08BCEE8........8906810D........000100005E83C408C20400
+D:\Patrick\git\Dxbx\Resources\Patterns\5344d3d8.pat(1079):83EC08538B5C241085DB578B3D........0F84270100008B87E41500003B87F4 FF 6CD7 0170 _D3DDevice_SetViewport@4 ^000DD _D3D__pDevice ^012ED _D3D__DirtyFlags ^0139D _D3D__DirtyFlags ^0145R _D3DDevice_SetScissors@12 ^014AR ?UpdateProjectionViewportTransform@D3D@@YGXXZ ^0156R _D3DDevice_MakeSpace@0 ^015FR ?CommonSetViewport@D3D@@YIPCKPAVCDevice@1@PCK@Z 8FD00A00008B53148997D40A0000A1........0D000100005EA3........5D6A006A006A00E8........E8........8B073B47047205E8........8BD08BCFE8........89075F5B83C408C20400909090
+D:\Patrick\git\Dxbx\Resources\Patterns\5558d3d8.pat(1083):83EC0C558B6C241485ED568B35........0F84DC0100008B86F41900003B8604 EE 903D 0222 _D3DDevice_SetViewport@4 ^000DD _D3D__pDevice ^010ED __real@4f800000 ^0121D __real@3f000000 ^0129R ?FloatToLong@D3D@@YGJM@Z ^013FD __real@4f800000 ^014ER ?FloatToLong@D3D@@YGJM@Z ^0162D __real@4f800000 ^0175D __real@3f000000 ^017DR ?FloatToLong@D3D@@YGJM@Z ^0193D __real@4f800000 ^01A2R ?FloatToLong@D3D@@YGJM@Z ^01E3D _D3D__DirtyFlags ^01EED _D3D__DirtyFlags ^01FAR _D3DDevice_SetScissors@12 ^01FFR ?UpdateProjectionViewportTransform@D3D@@YGXXZ ^020BR _D3DDevice_MakeSpace@0 ^0214R ?CommonSetViewport@D3D@@YIPCKPAVCDevice@1@PCK@Z ........D88E580900008B9E5009000051D805........D91C24E8........3BC3762385DB895C2410DB4424107D06D805........D8B65809000051D91C24E8........8BE885FF897C2410DB4424107D06D805........D88E5C0900008B9E5409000051D805........D91C24E8........3BC3762385DB895C2410DB4424107D06D805........D8B65C09000051D91C24E8........8BF88B4424148B4C24188986D00E00002BE88B4424202BF989BEDC0E0000898ED40E000089AED80E00008B4810898EE00E00008B50148996E40E0000A1........0D000100005FA3........5B6A006A006A00E8........E8........8B063B46047205E8........8BD08BCEE8........89065E5D83C40CC20400
+D:\Patrick\git\Dxbx\Resources\Patterns\5659d3d8.pat(1083):83EC0C558B6C241485ED568B35........0F84DC0100008B86F41900003B8604 EE 903D 0222 _D3DDevice_SetViewport@4 ^000DD _D3D__pDevice ^010ED __real@4f800000 ^0121D __real@3f000000 ^0129R ?FloatToLong@D3D@@YGJM@Z ^013FD __real@4f800000 ^014ER ?FloatToLong@D3D@@YGJM@Z ^0162D __real@4f800000 ^0175D __real@3f000000 ^017DR ?FloatToLong@D3D@@YGJM@Z ^0193D __real@4f800000 ^01A2R ?FloatToLong@D3D@@YGJM@Z ^01E3D _D3D__DirtyFlags ^01EED _D3D__DirtyFlags ^01FAR _D3DDevice_SetScissors@12 ^01FFR ?UpdateProjectionViewportTransform@D3D@@YGXXZ ^020BR _D3DDevice_MakeSpace@0 ^0214R ?CommonSetViewport@D3D@@YIPCKPAVCDevice@1@PCK@Z ........D88E580900008B9E5009000051D805........D91C24E8........3BC3762385DB895C2410DB4424107D06D805........D8B65809000051D91C24E8........8BE885FF897C2410DB4424107D06D805........D88E5C0900008B9E5409000051D805........D91C24E8........3BC3762385DB895C2410DB4424107D06D805........D8B65C09000051D91C24E8........8BF88B4424148B4C24188986D00E00002BE88B4424202BF989BEDC0E0000898ED40E000089AED80E00008B4810898EE00E00008B50148996E40E0000A1........0D000100005FA3........5B6A006A006A00E8........E8........8B063B46047205E8........8BD08BCEE8........89065E5D83C40CC20400
+D:\Patrick\git\Dxbx\Resources\Patterns\5788d3d8.pat(1083):83EC0C558B6C241485ED568B35........0F84DC0100008B86041A00003B8614 EE 7800 0222 _D3DDevice_SetViewport@4 ^000DD _D3D__pDevice ^010ED __real@4f800000 ^0121D __real@3f000000 ^0129R ?FloatToLong@D3D@@YGJM@Z ^013FD __real@4f800000 ^014ER ?FloatToLong@D3D@@YGJM@Z ^0162D __real@4f800000 ^0175D __real@3f000000 ^017DR ?FloatToLong@D3D@@YGJM@Z ^0193D __real@4f800000 ^01A2R ?FloatToLong@D3D@@YGJM@Z ^01E3D _D3D__DirtyFlags ^01EED _D3D__DirtyFlags ^01FAR _D3DDevice_SetScissors@12 ^01FFR ?UpdateProjectionViewportTransform@D3D@@YGXXZ ^020BR _D3DDevice_MakeSpace@0 ^0214R ?CommonSetViewport@D3D@@YIPCKPAVCDevice@1@PCK@Z ........D88E5C0900008B9E5409000051D805........D91C24E8........3BC3762385DB895C2410DB4424107D06D805........D8B65C09000051D91C24E8........8BE885FF897C2410DB4424107D06D805........D88E600900008B9E5809000051D805........D91C24E8........3BC3762385DB895C2410DB4424107D06D805........D8B66009000051D91C24E8........8BF88B4424148B4C24188986E00E00002BE88B4424202BF989BEEC0E0000898EE40E000089AEE80E00008B4810898EF00E00008B50148996F40E0000A1........0D000100005FA3........5B6A006A006A00E8........E8........8B063B46047205E8........8BD08BCEE8........89065E5D83C40CC20400
+D:\Patrick\git\Dxbx\Resources\Patterns\5849d3d8.pat(1083):83EC0C558B6C241485ED568B35........0F84DC0100008B86041A00003B8614 EE 7800 0222 _D3DDevice_SetViewport@4 ^000DD _D3D__pDevice ^010ED __real@4f800000 ^0121D __real@3f000000 ^0129R ?FloatToLong@D3D@@YGJM@Z ^013FD __real@4f800000 ^014ER ?FloatToLong@D3D@@YGJM@Z ^0162D __real@4f800000 ^0175D __real@3f000000 ^017DR ?FloatToLong@D3D@@YGJM@Z ^0193D __real@4f800000 ^01A2R ?FloatToLong@D3D@@YGJM@Z ^01E3D _D3D__DirtyFlags ^01EED _D3D__DirtyFlags ^01FAR _D3DDevice_SetScissors@12 ^01FFR ?UpdateProjectionViewportTransform@D3D@@YGXXZ ^020BR _D3DDevice_MakeSpace@0 ^0214R ?CommonSetViewport@D3D@@YIPCKPAVCDevice@1@PCK@Z ........D88E5C0900008B9E5409000051D805........D91C24E8........3BC3762385DB895C2410DB4424107D06D805........D8B65C09000051D91C24E8........8BE885FF897C2410DB4424107D06D805........D88E600900008B9E5809000051D805........D91C24E8........3BC3762385DB895C2410DB4424107D06D805........D8B66009000051D91C24E8........8BF88B4424148B4C24188986E00E00002BE88B4424202BF989BEEC0E0000898EE40E000089AEE80E00008B4810898EF00E00008B50148996F40E0000A1........0D000100005FA3........5B6A006A006A00E8........E8........8B063B46047205E8........8BD08BCEE8........89065E5D83C40CC20400
+D:\Patrick\git\Dxbx\Resources\Patterns\5933d3d8.pat(1083):83EC0C558B6C241485ED568B35........0F84DC0100008B86041A00003B8614 EE 7800 0222 _D3DDevice_SetViewport@4 ^000DD _D3D__pDevice ^010ED __real@4f800000 ^0121D __real@3f000000 ^0129R ?FloatToLong@D3D@@YGJM@Z ^013FD __real@4f800000 ^014ER ?FloatToLong@D3D@@YGJM@Z ^0162D __real@4f800000 ^0175D __real@3f000000 ^017DR ?FloatToLong@D3D@@YGJM@Z ^0193D __real@4f800000 ^01A2R ?FloatToLong@D3D@@YGJM@Z ^01E3D _D3D__DirtyFlags ^01EED _D3D__DirtyFlags ^01FAR _D3DDevice_SetScissors@12 ^01FFR ?UpdateProjectionViewportTransform@D3D@@YGXXZ ^020BR _D3DDevice_MakeSpace@0 ^0214R ?CommonSetViewport@D3D@@YIPCKPAVCDevice@1@PCK@Z ........D88E5C0900008B9E5409000051D805........D91C24E8........3BC3762385DB895C2410DB4424107D06D805........D8B65C09000051D91C24E8........8BE885FF897C2410DB4424107D06D805........D88E600900008B9E5809000051D805........D91C24E8........3BC3762385DB895C2410DB4424107D06D805........D8B66009000051D91C24E8........8BF88B4424148B4C24188986E00E00002BE88B4424202BF989BEEC0E0000898EE40E000089AEE80E00008B4810898EF00E00008B50148996F40E0000A1........0D000100005FA3........5B6A006A006A00E8........E8........8B063B46047205E8........8BD08BCEE8........89065E5D83C40CC20400
+*/
+
+		xbaddr pFunc = NULL;
+		int iCodeOffsetFor_X_pDevice = 0x0D; // verified for 5344, 5558, 5659, 5788, 5849, 5933
+
+		if (g_BuildVersion >= 5558)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetViewport_5558, lower, upper);
+		else if (g_BuildVersion >= 5344)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetViewport_5344, lower, upper);
+		else if (g_BuildVersion >= 5028)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetViewport_5028, lower, upper);
+		else if (g_BuildVersion >= 4627) {
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetViewport_4627, lower, upper);
+			iCodeOffsetFor_X_pDevice = 0x06; // verified for 4627
+		}
+		else if (g_BuildVersion >= 4034) {
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetViewport_4034, lower, upper);
+			iCodeOffsetFor_X_pDevice = 0x06; // verified for 4361
+		}
+		else {
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetViewport_3911, lower, upper);
+			iCodeOffsetFor_X_pDevice = 0x08; // verified for 3911
+		}
+
+		if (pFunc != NULL) {
+			printf("HLE: Located 0x%.08X -> D3DDevice_SetViewport\n", pFunc);
+
+			CheckDerivedDevice(pFunc, iCodeOffsetFor_X_pDevice);
+		}
+	}
+
+	// Try to locate Xbox symbol "_D3D_RenderState" and store it's address (and a few derived)
+	// via D3DDevice_SetRenderState_CullMode
+	{
+		extern LOOVPA<2 + 16> D3DDevice_SetRenderState_CullMode_3925;
+		extern LOOVPA<2 + 14> D3DDevice_SetRenderState_CullMode_4034;
+		extern LOOVPA<2 + 24> D3DDevice_SetRenderState_CullMode_4361;
+		extern LOOVPA<2 + 13> D3DDevice_SetRenderState_CullMode_5233;
+		#define D3DDevice_SetRenderState_CullMode_5344 D3DDevice_SetRenderState_CullMode_4361
+
+/*
+D:\Patrick\git\Dxbx\Resources\Patterns\3911d3d8.pat(115):568B35........56E8........8B4C240885C9C70008030400751289480483C0 05 B217 0070 _D3DDevice_SetRenderState_CullMode@4 ^0003D ?g_pDevice@D3D@@3PAVCDevice@1@A ^0009R _XMETAL_StartPush@4 ^0025D _D3D__RenderState+01FC ^0037D _D3D__RenderState+01F8 ^005AD _D3D__RenderState+01FC ........5EC20400C7400401000000578B3D........33D23BCF0F95C2C740089C03040083C0105F81C2040400008950FC8906890D........5EC204009090909090909090909090909090
+D:\Patrick\git\Dxbx\Resources\Patterns\4361d3d8.pat(118):568B35........8B063B46047205E8........8B4C240885C9C7000803040075 0B F94C 0070 _D3DDevice_SetRenderState_CullMode@4 ^0003D ?g_pDevice@D3D@@3PAVCDevice@1@A ^000FR ?MakeSpace@D3D@@YGPCKXZ ^002BD _D3D__RenderState+0200 ^003DD _D3D__RenderState+01FC ^0060D _D3D__RenderState+0200 ........5EC20400C7400401000000578B3D........33D23BCF0F95C2C740089C03040083C0105F81C2040400008950FC8906890D........5EC204009090909090909090
+D:\Patrick\git\Dxbx\Resources\Patterns\4627d3d8.pat(139):568B35........8B063B46047205E8........8B4C240885C9C7000803040075 0B F94C 0070 _D3DDevice_SetRenderState_CullMode@4 ^0003D _D3D__pDevice ^000FR ?MakeSpace@D3D@@YGPCKXZ ^002BD _D3D__RenderState+024C ^003DD _D3D__RenderState+0248 ^0060D _D3D__RenderState+024C ........5EC20400C7400401000000578B3D........33D23BCF0F95C2C740089C03040083C0105F81C2040400008950FC8906890D........5EC204009090909090909090
+D:\Patrick\git\Dxbx\Resources\Patterns\5344d3d8.pat(136):568B35........8B063B46047205E8........8B4C240885C9C7000803040075 0B F94C 0070 _D3DDevice_SetRenderState_CullMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^002BD _D3D__RenderState+024C ^003DD _D3D__RenderState+0248 ^0060D _D3D__RenderState+024C ........5EC20400C7400401000000578B3D........33D23BCF0F95C2C740089C03040083C0105F81C2040400008950FC8906890D........5EC204009090909090909090
+D:\Patrick\git\Dxbx\Resources\Patterns\5558d3d8.pat(136):568B35........8B063B46047205E8........8B4C240885C9C7000803040075 0B F94C 0068 _D3DDevice_SetRenderState_CullMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^002BD _D3D__RenderState+024C ^003DD _D3D__RenderState+0248 ^0060D _D3D__RenderState+024C ........5EC20400C7400401000000578B3D........33D23BCF0F95C2C740089C03040083C0105F81C2040400008950FC8906890D........5EC20400
+D:\Patrick\git\Dxbx\Resources\Patterns\5659d3d8.pat(136):568B35........8B063B46047205E8........8B4C240885C9C7000803040075 0B F94C 0068 _D3DDevice_SetRenderState_CullMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^002BD _D3D__RenderState+024C ^003DD _D3D__RenderState+0248 ^0060D _D3D__RenderState+024C ........5EC20400C7400401000000578B3D........33D23BCF0F95C2C740089C03040083C0105F81C2040400008950FC8906890D........5EC20400
+D:\Patrick\git\Dxbx\Resources\Patterns\5788d3d8.pat(136):568B35........8B063B46047205E8........8B4C240885C9C7000803040075 0B F94C 0068 _D3DDevice_SetRenderState_CullMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^002BD _D3D__RenderState+024C ^003DD _D3D__RenderState+0248 ^0060D _D3D__RenderState+024C ........5EC20400C7400401000000578B3D........33D23BCF0F95C2C740089C03040083C0105F81C2040400008950FC8906890D........5EC20400
+D:\Patrick\git\Dxbx\Resources\Patterns\5849d3d8.pat(136):568B35........8B063B46047205E8........8B4C240885C9C7000803040075 0B F94C 0068 _D3DDevice_SetRenderState_CullMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^002BD _D3D__RenderState+024C ^003DD _D3D__RenderState+0248 ^0060D _D3D__RenderState+024C ........5EC20400C7400401000000578B3D........33D23BCF0F95C2C740089C03040083C0105F81C2040400008950FC8906890D........5EC20400
+D:\Patrick\git\Dxbx\Resources\Patterns\5933d3d8.pat(136):568B35........8B063B46047205E8........8B4C240885C9C7000803040075 0B F94C 0068 _D3DDevice_SetRenderState_CullMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^002BD _D3D__RenderState+024C ^003DD _D3D__RenderState+0248 ^0060D _D3D__RenderState+024C ........5EC20400C7400401000000578B3D........33D23BCF0F95C2C740089C03040083C0105F81C2040400008950FC8906890D........5EC20400
+*/
+		xbaddr pFunc = NULL;
+		int iCodeOffsetFor_X_pDevice = 0x03; // verified for 3911, 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
+		int iCodeOffsetFor_X_D3DRS_CULLMODE = 0x2B; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
+
+		if (g_BuildVersion >= 5344)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_5344, lower, upper);
+		else if (g_BuildVersion >= 5233)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_5233, lower, upper);
+		else if (g_BuildVersion >= 4361)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_4361, lower, upper);
+		else if (g_BuildVersion >= 4034)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_4034, lower, upper);
+		else {
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_3925, lower, upper);
+			iCodeOffsetFor_X_D3DRS_CULLMODE = 0x25; // verified for 3911
+		}
+
+		if (pFunc != NULL) {
+			printf("HLE: Located 0x%.08X -> D3DDevice_SetRenderState_CullMode\n", pFunc);
+
+			// Temporary verification - is XREF_D3DDEVICE derived correctly?
+			// TODO : Remove this when D3DEVICE derivation is deemed stable
+			CheckDerivedDevice(pFunc, iCodeOffsetFor_X_pDevice);
+
+			CheckDerivedRenderState(pFunc, iCodeOffsetFor_X_D3DRS_CULLMODE, XREF_D3DRS_CULLMODE, X_D3DRS_CULLMODE);
+		}
+	}
+
+	// Try to locate Xbox symbol "_D3D_RenderState" and store it's address (and a few derived)
+	// via D3DDevice_SetRenderState_FillMode
+	{
+		extern LOOVPA<11> D3DDevice_SetRenderState_FillMode_3925;
+		extern LOOVPA<7> D3DDevice_SetRenderState_FillMode_4034;
+		extern LOOVPA<11> D3DDevice_SetRenderState_FillMode_4134;
+/*
+D:\Patrick\git\Dxbx\Resources\Patterns\3911d3d8.pat(123):568B35........56E8........8B0D........8B15........85C98B4C240875 16 17AA 0040 _D3DDevice_SetRenderState_FillMode@4 ^0003D ?g_pDevice@D3D@@3PAVCDevice@1@A ^0009R _XMETAL_StartPush@4 ^000FD _D3D__RenderState+01E4 ^0015D _D3D__RenderState+01E0 ^0036D _D3D__RenderState+01DC ........5EC204009090
+D:\Patrick\git\Dxbx\Resources\Patterns\4361d3d8.pat(126):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0050 _D3DDevice_SetRenderState_FillMode@4 ^0003D ?g_pDevice@D3D@@3PAVCDevice@1@A ^000FR ?MakeSpace@D3D@@YGPCKXZ ^0015D _D3D__RenderState+01E8 ^001BD _D3D__RenderState+01E4 ^003CD _D3D__RenderState+01E0 ........5EC20400909090909090909090909090
+D:\Patrick\git\Dxbx\Resources\Patterns\4627d3d8.pat(147):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0050 _D3DDevice_SetRenderState_FillMode@4 ^0003D _D3D__pDevice ^000FR ?MakeSpace@D3D@@YGPCKXZ ^0015D _D3D__RenderState+0234 ^001BD _D3D__RenderState+0230 ^003CD _D3D__RenderState+022C ........5EC20400909090909090909090909090
+D:\Patrick\git\Dxbx\Resources\Patterns\5344d3d8.pat(144):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0050 _D3DDevice_SetRenderState_FillMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0015D _D3D__RenderState+0234 ^001BD _D3D__RenderState+0230 ^003CD _D3D__RenderState+022C ........5EC20400909090909090909090909090
+D:\Patrick\git\Dxbx\Resources\Patterns\5558d3d8.pat(144):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0044 _D3DDevice_SetRenderState_FillMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0015D _D3D__RenderState+0234 ^001BD _D3D__RenderState+0230 ^003CD _D3D__RenderState+022C ........5EC20400
+D:\Patrick\git\Dxbx\Resources\Patterns\5659d3d8.pat(144):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0044 _D3DDevice_SetRenderState_FillMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0015D _D3D__RenderState+0234 ^001BD _D3D__RenderState+0230 ^003CD _D3D__RenderState+022C ........5EC20400
+D:\Patrick\git\Dxbx\Resources\Patterns\5788d3d8.pat(144):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0044 _D3DDevice_SetRenderState_FillMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0015D _D3D__RenderState+0234 ^001BD _D3D__RenderState+0230 ^003CD _D3D__RenderState+022C ........5EC20400
+D:\Patrick\git\Dxbx\Resources\Patterns\5849d3d8.pat(144):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0044 _D3DDevice_SetRenderState_FillMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0015D _D3D__RenderState+0234 ^001BD _D3D__RenderState+0230 ^003CD _D3D__RenderState+022C ........5EC20400
+D:\Patrick\git\Dxbx\Resources\Patterns\5933d3d8.pat(144):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0044 _D3DDevice_SetRenderState_FillMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0015D _D3D__RenderState+0234 ^001BD _D3D__RenderState+0230 ^003CD _D3D__RenderState+022C ........5EC20400
+*/
+		xbaddr pFunc = NULL;
+		int iCodeOffsetFor_X_pDevice = 0x03; // verified for 3911, 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
+		int iCodeOffsetFor_X_D3DRS_FILLMODE = 0x3C; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
+
+		if (g_BuildVersion >= 4134)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_4134, lower, upper);
+		else if (g_BuildVersion >= 4034)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_4034, lower, upper);
+		else {
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_3925, lower, upper);
+			iCodeOffsetFor_X_D3DRS_FILLMODE = 0x36; // verified for 3911
+		}
+
+		if (pFunc != NULL) {
+			printf("HLE: Located 0x%.08X -> D3DDevice_SetRenderState_FillMode\n", pFunc);
+
+			// Temporary verification - is XREF_D3DDEVICE derived correctly?
+			// TODO : Remove this when D3DEVICE derivation is deemed stable
+			CheckDerivedDevice(pFunc, iCodeOffsetFor_X_pDevice);
+
+			CheckDerivedRenderState(pFunc, iCodeOffsetFor_X_D3DRS_FILLMODE, XREF_D3DRS_FILLMODE, X_D3DRS_FILLMODE);
+		}
+	}
+
+	// Try to locate Xbox symbol "D3D__TextureState" and store it's address
+	// via D3DDevice_SetTextureState_TexCoordIndex
+	{
+		extern LOOVPA<1 + 11> D3DDevice_SetTextureState_TexCoordIndex_3925;
+		extern LOOVPA<1 + 10> D3DDevice_SetTextureState_TexCoordIndex_4034;
+		extern LOOVPA<1 + 10> D3DDevice_SetTextureState_TexCoordIndex_4134;
+		extern LOOVPA<1 + 10> D3DDevice_SetTextureState_TexCoordIndex_4361;
+		extern LOOVPA<1 + 10> D3DDevice_SetTextureState_TexCoordIndex_4627;
+/*
+3911d3d8.pat(127):8B4C2408538B5C24088BC3C1E007558988........568B35........81E10000 87 DA9E 00E0 _D3DDevice_SetTextureState_TexCoordIndex@8 ^0011D _D3D__TextureState+0070 ^0018D ?g_pDevice@D3D@@3PAVCDevice@1@A ^00A7R _XMETAL_StartPush@4 ........81C33CC0000089780489780889780CC1E304891883C01089068B46085F0D940100008946085E5D5BC2080090909090909090909090
+4361d3d8.pat(130):538B5C2408558B6C2410568BC3C1E007578B3D........89A8........8B078B 11 1F57 0120 _D3DDevice_SetTextureState_TexCoordIndex@8 ^0013D ?g_pDevice@D3D@@3PAVCDevice@1@A ^0019D _D3D__TextureState+0070 ^0031R ?MakeSpace@D3D@@YGPCKXZ ^00A9D ?g_SlotMapping@D3D@@3PAEA+0009 ^00DAD _D3D__DirtyFlags ^00FDD _D3D__DirtyFlags ^010AD _D3D__DirtyFlags ........81E50000FFFFB901000000745E8D149D641904008910C74004000000FF83C00881FD00000300895C24187727741A81FD000001007407BE00240000EB2E894C2414BE11850000EB23894C2414BE12850000EB1881FD00000400740B894C2414BE02240000EB05BE012400008A54241880C2098893........8D933CC00000C1E204891089700489700889700C83C01089078B875404000085C08B442414750E85C0740A810D........000200008BAF540400008BD18BCBD3E2D3E0F7D223D50BD0899754040000A1........5F5E0D7F0400005DA3........5BC208009090909090909090909090909090
+4627d3d8.pat(151):538B5C240C55568B35........578B7C24148BC7C1E0078998........8B068B 13 4281 0110 _D3DDevice_SetTextureState_TexCoordIndex@8 ^0009D _D3D__pDevice ^0019D _D3D__TextureState+0070 ^0033R ?MakeSpace@D3D@@YGPCKXZ ^00A0D ?g_SlotMapping@D3D@@3PAEA+0009 ^00CDD _D3D__DirtyFlags ^00F1D _D3D__DirtyFlags ^00FDD _D3D__DirtyFlags ........8B54241481E30000FFFFB901000000744F8D2CBD641904008928C74004000000FF83C00881FB00000300897C2418772B741C81FB000001007407BD00240000EB1F894C2414BD118500008BD1EB12894C2414BD128500008BD1EB05BD012400008A5C241880C309889F........8D9F3CC00000C1E304891889680489680889680C83C01089068B861405000085C0750E85D2740A810D........000200008B9E140500008BC18BCFD3E0D3E25FF7D023C30BC2898614050000A1........5E0D7F0400005DA3........5BC208009090909090909090909090
+5344d3d8.pat(148):538B5C240C55568B35........578B7C24148BC7C1E0078998........8B068B 13 4281 0110 _D3DDevice_SetTextureState_TexCoordIndex@8 ^0009D _D3D__pDevice ^0019D _D3D__TextureState+0070 ^0033R _D3DDevice_MakeSpace@0 ^00A0D ?g_SlotMapping@D3D@@3PAEA+0009 ^00CDD _D3D__DirtyFlags ^00F1D _D3D__DirtyFlags ^00FDD _D3D__DirtyFlags ........8B54241481E30000FFFFB901000000744F8D2CBD641904008928C74004000000FF83C00881FB00000300897C2418772B741C81FB000001007407BD00240000EB1F894C2414BD118500008BD1EB12894C2414BD128500008BD1EB05BD012400008A5C241880C309889F........8D9F3CC00000C1E304891889680489680889680C83C01089068B863805000085C0750E85D2740A810D........000200008B9E380500008BC18BCFD3E0D3E25FF7D023C30BC2898638050000A1........5E0D7F0400005DA3........5BC208009090909090909090909090
+5558d3d8.pat(148):538B5C240C55568B35........578B7C24148BC7C1E0078998........8B068B 13 4281 0105 _D3DDevice_SetTextureState_TexCoordIndex@8 ^0009D _D3D__pDevice ^0019D _D3D__TextureState+0070 ^0033R _D3DDevice_MakeSpace@0 ^00A0D ?g_SlotMapping@D3D@@3PAEA+0009 ^00CDD _D3D__DirtyFlags ^00F1D _D3D__DirtyFlags ^00FDD _D3D__DirtyFlags ........8B54241481E30000FFFFB901000000744F8D2CBD641904008928C74004000000FF83C00881FB00000300897C2418772B741C81FB000001007407BD00240000EB1F894C2414BD118500008BD1EB12894C2414BD128500008BD1EB05BD012400008A5C241880C309889F........8D9F3CC00000C1E304891889680489680889680C83C01089068B864C09000085C0750E85D2740A810D........000200008B9E4C0900008BC18BCFD3E0D3E25FF7D023C30BC289864C090000A1........5E0D7F0400005DA3........5BC20800
+5659d3d8.pat(148):538B5C240C55568B35........578B7C24148BC7C1E0078998........8B068B 13 4281 0105 _D3DDevice_SetTextureState_TexCoordIndex@8 ^0009D _D3D__pDevice ^0019D _D3D__TextureState+0070 ^0033R _D3DDevice_MakeSpace@0 ^00A0D ?g_SlotMapping@D3D@@3PAEA+0009 ^00CDD _D3D__DirtyFlags ^00F1D _D3D__DirtyFlags ^00FDD _D3D__DirtyFlags ........8B54241481E30000FFFFB901000000744F8D2CBD641904008928C74004000000FF83C00881FB00000300897C2418772B741C81FB000001007407BD00240000EB1F894C2414BD118500008BD1EB12894C2414BD128500008BD1EB05BD012400008A5C241880C309889F........8D9F3CC00000C1E304891889680489680889680C83C01089068B864C09000085C0750E85D2740A810D........000200008B9E4C0900008BC18BCFD3E0D3E25FF7D023C30BC289864C090000A1........5E0D7F0400005DA3........5BC20800
+5788d3d8.pat(148):538B5C240C55568B35........578B7C24148BC7C1E0078998........8B068B 13 4281 0105 _D3DDevice_SetTextureState_TexCoordIndex@8 ^0009D _D3D__pDevice ^0019D _D3D__TextureState+0070 ^0033R _D3DDevice_MakeSpace@0 ^00A0D ?g_SlotMapping@D3D@@3PAEA+0009 ^00CDD _D3D__DirtyFlags ^00F1D _D3D__DirtyFlags ^00FDD _D3D__DirtyFlags ........8B54241481E30000FFFFB901000000744F8D2CBD641904008928C74004000000FF83C00881FB00000300897C2418772B741C81FB000001007407BD00240000EB1F894C2414BD118500008BD1EB12894C2414BD128500008BD1EB05BD012400008A5C241880C309889F........8D9F3CC00000C1E304891889680489680889680C83C01089068B865009000085C0750E85D2740A810D........000200008B9E500900008BC18BCFD3E0D3E25FF7D023C30BC2898650090000A1........5E0D7F0400005DA3........5BC20800
+5849d3d8.pat(148):538B5C240C55568B35........578B7C24148BC7C1E0078998........8B068B 13 4281 0105 _D3DDevice_SetTextureState_TexCoordIndex@8 ^0009D _D3D__pDevice ^0019D _D3D__TextureState+0070 ^0033R _D3DDevice_MakeSpace@0 ^00A0D ?g_SlotMapping@D3D@@3PAEA+0009 ^00CDD _D3D__DirtyFlags ^00F1D _D3D__DirtyFlags ^00FDD _D3D__DirtyFlags ........8B54241481E30000FFFFB901000000744F8D2CBD641904008928C74004000000FF83C00881FB00000300897C2418772B741C81FB000001007407BD00240000EB1F894C2414BD118500008BD1EB12894C2414BD128500008BD1EB05BD012400008A5C241880C309889F........8D9F3CC00000C1E304891889680489680889680C83C01089068B865009000085C0750E85D2740A810D........000200008B9E500900008BC18BCFD3E0D3E25FF7D023C30BC2898650090000A1........5E0D7F0400005DA3........5BC20800
+5933d3d8.pat(148):538B5C240C55568B35........578B7C24148BC7C1E0078998........8B068B 13 4281 0105 _D3DDevice_SetTextureState_TexCoordIndex@8 ^0009D _D3D__pDevice ^0019D _D3D__TextureState+0070 ^0033R _D3DDevice_MakeSpace@0 ^00A0D ?g_SlotMapping@D3D@@3PAEA+0009 ^00CDD _D3D__DirtyFlags ^00F1D _D3D__DirtyFlags ^00FDD _D3D__DirtyFlags ........8B54241481E30000FFFFB901000000744F8D2CBD641904008928C74004000000FF83C00881FB00000300897C2418772B741C81FB000001007407BD00240000EB1F894C2414BD118500008BD1EB12894C2414BD128500008BD1EB05BD012400008A5C241880C309889F........8D9F3CC00000C1E304891889680489680889680C83C01089068B865009000085C0750E85D2740A810D........000200008B9E500900008BC18BCFD3E0D3E25FF7D023C30BC2898650090000A1........5E0D7F0400005DA3........5BC20800
+*/
+		xbaddr pFunc = NULL;
+		int iCodeOffsetFor_X_pDevice = 0x09; // verified for 4361
+		int iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x19; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
+
+		if (g_BuildVersion >= 4627) {
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4627, lower, upper);
+			iCodeOffsetFor_X_pDevice = 0x09; // verified for 4627, 5344, 5558, 5659, 5788, 5849, 5933
+		}
+		else if (g_BuildVersion >= 4361)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4361, lower, upper);
+		else if (g_BuildVersion >= 4134) {
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4134, lower, upper);
+			iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x18; // unsure
+		}
+		else if (g_BuildVersion >= 4034) {
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4034, lower, upper);
+			iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x18; // unsure
+		}
+		else {
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_3925, lower, upper);
+			iCodeOffsetFor_X_pDevice = 0x11; // verified for 3911
+			iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x11; // verified for 3911
+		}
+
+		if (pFunc != NULL) {
+			printf("HLE: Located 0x%.08X -> D3DDevice_SetTextureState_TexCoordIndex\n", pFunc);
+
+			CheckDerivedDevice(pFunc, iCodeOffsetFor_X_pDevice);
+
+			CheckDerivedTextureState(pFunc, iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX, XREF_D3DTSS_TEXCOORDINDEX, X_D3DTSS_TEXCOORDINDEX);
+		}
+	}
+
+	// Try to locate Xbox symbol "D3D__TextureState" and store it's address
+	// via D3DDevice_SetTextureState_BorderColor
+	{
+		extern LOOVPA<13> D3DDevice_SetTextureState_BorderColor_3925;
+		extern LOOVPA<7> D3DDevice_SetTextureState_BorderColor_4034;
+		extern LOOVPA<15> D3DDevice_SetTextureState_BorderColor_4361;
+/*
+D:\Patrick\git\Dxbx\Resources\Patterns\3911d3d8.pat(129):568B35........56E8........8B4C24088BD1C1E20681C2241B040089108B54 0F 270B 0040 _D3DDevice_SetTextureState_BorderColor@8 ^0003D ?g_pDevice@D3D@@3PAVCDevice@1@A ^0009R _XMETAL_StartPush@4 ^002FD _D3D__TextureState+0074 ........5EC20800909090909090909090
+D:\Patrick\git\Dxbx\Resources\Patterns\4361d3d8.pat(132):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 0040 _D3DDevice_SetTextureState_BorderColor@8 ^0003D ?g_pDevice@D3D@@3PAVCDevice@1@A ^000FR ?MakeSpace@D3D@@YGPCKXZ ^0035D _D3D__TextureState+0074 ........5EC20800909090
+D:\Patrick\git\Dxbx\Resources\Patterns\4627d3d8.pat(153):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 0040 _D3DDevice_SetTextureState_BorderColor@8 ^0003D _D3D__pDevice ^000FR ?MakeSpace@D3D@@YGPCKXZ ^0035D _D3D__TextureState+0074 ........5EC20800909090
+D:\Patrick\git\Dxbx\Resources\Patterns\5344d3d8.pat(150):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 0040 _D3DDevice_SetTextureState_BorderColor@8 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0035D _D3D__TextureState+0074 ........5EC20800909090
+D:\Patrick\git\Dxbx\Resources\Patterns\5558d3d8.pat(150):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 003D _D3DDevice_SetTextureState_BorderColor@8 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0035D _D3D__TextureState+0074 ........5EC20800
+D:\Patrick\git\Dxbx\Resources\Patterns\5659d3d8.pat(150):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 003D _D3DDevice_SetTextureState_BorderColor@8 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0035D _D3D__TextureState+0074 ........5EC20800
+D:\Patrick\git\Dxbx\Resources\Patterns\5788d3d8.pat(150):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 003D _D3DDevice_SetTextureState_BorderColor@8 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0035D _D3D__TextureState+0074 ........5EC20800
+D:\Patrick\git\Dxbx\Resources\Patterns\5849d3d8.pat(150):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 003D _D3DDevice_SetTextureState_BorderColor@8 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0035D _D3D__TextureState+0074 ........5EC20800
+D:\Patrick\git\Dxbx\Resources\Patterns\5933d3d8.pat(150):568B35........8B063B46047205E8........8B4C24088BD1C1E20681C2241B 15 3141 003D _D3DDevice_SetTextureState_BorderColor@8 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0035D _D3D__TextureState+0074 ........5EC20800
+*/
+		xbaddr pFunc = NULL;
+		int iCodeOffsetFor_X_pDevice = 0x09; // verified for 4361
+		int iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x19; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
+
+		if (g_BuildVersion >= 4361) {
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_BorderColor_4361, lower, upper);
+			iCodeOffsetFor_X_pDevice = 0x09; // verified for 4627, 5344, 5558, 5659, 5788, 5849, 5933
+		}
+		else if (g_BuildVersion >= 4034) {
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_BorderColor_4034, lower, upper);
+			iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x18; // unsure
+		}
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_BorderColor_3925, lower, upper);
+			iCodeOffsetFor_X_pDevice = 0x11; // verified for 3911
+			iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x11; // verified for 3911
+		}
+
+		if (pFunc != NULL) {
+			printf("HLE: Located 0x%.08X -> D3DDevice_SetTextureState_TexCoordIndex\n", pFunc);
+
+			CheckDerivedDevice(pFunc, iCodeOffsetFor_X_pDevice);
+
+			CheckDerivedTextureState(pFunc, iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX, XREF_D3DTSS_TEXCOORDINDEX, X_D3DTSS_TEXCOORDINDEX);
+		}
+	}
+
+	// Locate Xbox symbol "g_Stream" and store it's address
+	{
+		extern LOOVPA<1 + 12> D3DDevice_SetStreamSource_3925;
+		extern LOOVPA<1 + 14> D3DDevice_SetStreamSource_4034;
+
+		xbaddr pFunc = NULL;
+		int iCodeOffsetFor_g_Stream = 0x22; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
+
+		if (g_BuildVersion >= 4034)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetStreamSource_4034, lower, upper);
+		else {
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetStreamSource_3925, lower, upper);
+			iCodeOffsetFor_g_Stream = 0x23; // verified for 3911
+		}
+
+		if (pFunc != NULL) {
+			printf("HLE: Located 0x%.08X -> D3DDevice_SetStreamSource\n", pFunc);
+
+			// Read address of Xbox_g_Stream(+8) from D3DDevice_SetStreamSource
+			xbaddr Derived_g_Stream = *((xbaddr*)(pFunc + iCodeOffsetFor_g_Stream));
+
+			// Temporary verification - is XREF_G_STREAM derived correctly?
+			// TODO : Remove this when XREF_G_STREAM derivation is deemed stable
+			if (VerifySymbolAddressAgainstXRef("g_Stream", Derived_g_Stream, XREF_G_STREAM)) {
+
+				// Now that both Derived XREF and OOVPA-based function-contents match,
+				// correct base-address (because "g_Stream" is actually "g_Stream"+8") :
+				Derived_g_Stream -= offsetof(X_Stream, pVertexBuffer);
+				g_SymbolAddresses["g_Stream"] = (xbaddr)Derived_g_Stream;
+				printf("HLE: Derived 0x%.08X -> g_Stream\n", Derived_g_Stream);
 			}
 		}
 	}
@@ -343,13 +695,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 		// Mark all Xrefs initially as undetermined
 		memset((void*)XRefDataBase, XREF_ADDR_UNDETERMINED, sizeof(XRefDataBase));
 
-		// Request a few fundamental XRefs to be derived instead of checked
-		XRefDataBase[XREF_D3DDEVICE] = XREF_ADDR_DERIVE;
-		XRefDataBase[XREF_D3DRS_CULLMODE] = XREF_ADDR_DERIVE;
-		XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] = XREF_ADDR_DERIVE;
-		XRefDataBase[XREF_G_STREAM] = XREF_ADDR_DERIVE;
-		XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES] = XREF_ADDR_DERIVE;
-
 		for(int p=0;UnResolvedXRefs < LastUnResolvedXRefs;p++)
         {
 			printf("HLE: Starting pass #%d...\n", p+1);
@@ -457,136 +802,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 						// Save D3D8 build version
 						g_BuildVersion = BuildVersion;
 
-						XTL::DxbxBuildRenderStateMappingTable();
-
-						xbaddr lower = pXbeHeader->dwBaseAddr;
-						xbaddr upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
-
-						// Locate Xbox symbol "_D3D_RenderState" and store it's address (and a few derived)
-						{
-							xbaddr pFunc = NULL;
-							int iCodeOffsetFor_X_D3DRS_CULLMODE = 0x2B; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
-
-							if (BuildVersion >= 5233)
-								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_5233, lower, upper);
-							else if (BuildVersion >= 4034)
-								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_4034, lower, upper);
-							else {
-								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_CullMode_3925, lower, upper);
-								iCodeOffsetFor_X_D3DRS_CULLMODE = 0x25; // verified for 3911
-							}
-
-							if (pFunc != NULL)
-							{
-								printf("HLE: Located 0x%.08X -> D3DDevice_SetRenderState_CullMode\n", pFunc);
-
-								// Read address of D3DRS_CULLMODE from D3DDevice_SetRenderState_CullMode
-								xbaddr DerivedAddr_D3DRS_CULLMODE = *((xbaddr*)(pFunc + iCodeOffsetFor_X_D3DRS_CULLMODE));
-								::DWORD XDK_D3DRS_CULLMODE = DxbxMapMostRecentToActiveVersion[X_D3DRS_CULLMODE];
-
-								// Temporary verification - is XREF_D3DRS_CULLMODE derived correctly?
-								// TODO : Remove this when XREF_D3DRS_CULLMODE derivation is deemed stable
-								VerifySymbolAddressAgainstXRef("D3D__RenderState[D3DRS_CULLMODE]", DerivedAddr_D3DRS_CULLMODE, XREF_D3DRS_CULLMODE);
-
-								// Temporary verification - is XREF_D3DDEVICE derived correctly?
-								// TODO : Remove this when D3DEVICE derivation is deemed stable
-								{
-									xbaddr DerivedAddr_D3DDevice = *((xbaddr*)(pFunc + 0x03));
-									VerifySymbolAddressAgainstXRef("D3DDEVICE", DerivedAddr_D3DDevice, XREF_D3DDEVICE);
-									g_SymbolAddresses["D3DDEVICE"] = DerivedAddr_D3DDevice;
-								}
-
-
-								::DWORD *Derived_D3D_RenderState = ((::DWORD*)DerivedAddr_D3DRS_CULLMODE) - XDK_D3DRS_CULLMODE;
-								g_SymbolAddresses["D3D__RenderState"] = (xbaddr)Derived_D3D_RenderState;
-								printf("HLE: Derived 0x%.08X -> D3D__RenderState\n", Derived_D3D_RenderState);
-
-								// Derive address of Xbox_D3D__RenderState_Deferred from D3DRS_CULLMODE
-								::DWORD *Derived_D3D__RenderState_Deferred = Derived_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
-								g_SymbolAddresses["D3DDeferredRenderState"] = (xbaddr)Derived_D3D__RenderState_Deferred;
-								printf("HLE: Derived 0x%.08X -> D3D__RenderState_Deferred\n", Derived_D3D__RenderState_Deferred);
-
-								// Derive address of a few other deferred render state slots (to help xref-based function location)
-								{
-#define DeriveAndPrint(D3DRS) \
-									XRefDataBase[XREF_##D3DRS] = (xbaddr)(Derived_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_##D3DRS]); \
-									printf("HLE: Derived XREF_"#D3DRS"(%d) 0x%.08X -> D3D__RenderState[%d/*="#D3DRS"]\n", (int)XREF_##D3DRS, XRefDataBase[XREF_##D3DRS], DxbxMapMostRecentToActiveVersion[X_##D3DRS]);
-
-									DeriveAndPrint(D3DRS_MULTISAMPLERENDERTARGETMODE);
-									DeriveAndPrint(D3DRS_STENCILCULLENABLE);
-									DeriveAndPrint(D3DRS_ROPZCMPALWAYSREAD);
-									DeriveAndPrint(D3DRS_ROPZREAD);
-									DeriveAndPrint(D3DRS_DONOTCULLUNCOMPRESSED);
-#undef DeriveAndPrint
-								}
-							}
-						}
-
-						// Locate Xbox symbol "D3D__TextureState" and store it's address
-                        {
-                            xbaddr pFunc = NULL;
-							int iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x19; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
-
-							if(BuildVersion >= 4627)
-                                pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4627, lower, upper);
-                            else if(BuildVersion >= 4361)
-                                pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4361, lower, upper);
-							else if (BuildVersion >= 4134) {
-								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4134, lower, upper);
-								iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x18; // unsure
-							} else if (BuildVersion >= 4034) {
-								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_4034, lower, upper);
-								iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x18; // unsure
-							} else {
-								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_3925, lower, upper);
-								iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x11; // verified for 3911
-							}
-
-							if (pFunc != NULL)
-							{
-								printf("HLE: Located 0x%.08X -> D3DDevice_SetTextureState_TexCoordIndex\n", pFunc);
-
-								// Read address of D3DTSS_TEXCOORDINDEX from D3DDevice_SetTextureState_TexCoordIndex
-								xbaddr DerivedAddr_D3DTSS_TEXCOORDINDEX = *((xbaddr*)(pFunc + iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX));
-								VerifySymbolAddressAgainstXRef("D3D__TextureState[/*Stage*/0][D3DTSS_TEXCOORDINDEX]", DerivedAddr_D3DTSS_TEXCOORDINDEX, XREF_D3DTSS_TEXCOORDINDEX);
-
-								// Derive address of D3D_TextureState from D3DTSS_TEXCOORDINDEX
-								::DWORD *Derived_D3D_TextureState = ((::DWORD*)DerivedAddr_D3DTSS_TEXCOORDINDEX) - DxbxFromNewVersion_D3DTSS(X_D3DTSS_TEXCOORDINDEX);
-								g_SymbolAddresses["D3D__TextureState"] = (xbaddr)Derived_D3D_TextureState;
-								printf("HLE: Derived 0x%.08X -> D3D__TextureState\n", Derived_D3D_TextureState);
-                            }
-                        }
-
-						// Locate Xbox symbol "g_Stream" and store it's address
-						{
-							xbaddr pFunc = NULL;
-							int iCodeOffsetFor_g_Stream = 0x22; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
-
-							if (BuildVersion >= 4034)
-								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetStreamSource_4034, lower, upper);
-							else {
-								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetStreamSource_3925, lower, upper);
-								iCodeOffsetFor_g_Stream = 0x23; // verified for 3911
-							}
-
-							if (pFunc != NULL)
-							{
-								printf("HLE: Located 0x%.08X -> D3DDevice_SetStreamSource\n", pFunc);
-
-								// Read address of Xbox_g_Stream from D3DDevice_SetStreamSource
-								xbaddr Derived_g_Stream = *((xbaddr*)(pFunc + iCodeOffsetFor_g_Stream));
-
-								// Temporary verification - is XREF_G_STREAM derived correctly?
-								// TODO : Remove this when XREF_G_STREAM derivation is deemed stable
-								VerifySymbolAddressAgainstXRef("g_Stream", Derived_g_Stream, XREF_G_STREAM);
-
-								// Now that both Derived XREF and OOVPA-based function-contents match,
-								// correct base-address (because "g_Stream" is actually "g_Stream"+8") :
-								Derived_g_Stream -= offsetof(X_Stream, pVertexBuffer);
-								g_SymbolAddresses["g_Stream"] = (xbaddr)Derived_g_Stream ;
-								printf("HLE: Derived 0x%.08X -> g_Stream\n", Derived_g_Stream);
-							}
-						}
+						PrescanD3D(pXbeHeader);
 					}
                 }
 

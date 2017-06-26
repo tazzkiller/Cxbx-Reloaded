@@ -228,7 +228,19 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetViewport
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetViewport, 4627, 9)
+OOVPA_XREF(D3DDevice_SetViewport, 4627, 1 + 28,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x03, XREF_D3DDEVICE), // Derived
+
+		{ 0x00, 0x83 },
+		{ 0x01, 0xEC },
+		{ 0x02, 0x08 },
+		{ 0x03, 0x56 },
+		{ 0x04, 0x8B },
+		{ 0x05, 0x35 },
 
         // D3DDevice_SetViewport+0x0A : mov eax, [esi+0x21B4]
         { 0x0A, 0x8B }, // (Offset,Value)-Pair #1
@@ -236,14 +248,24 @@ OOVPA_NO_XREF(D3DDevice_SetViewport, 4627, 9)
         { 0x0C, 0xB4 }, // (Offset,Value)-Pair #3
         { 0x0D, 0x21 }, // (Offset,Value)-Pair #4
 
-        // D3DDevice_SetViewport+0x63 : shl edi, cl
-        { 0x63, 0xD3 }, // (Offset,Value)-Pair #5
-        { 0x64, 0xE7 }, // (Offset,Value)-Pair #6
-
-        // D3DDevice_SetViewport+0xDF : and ecx, 0x0F
-        { 0xDF, 0x83 }, // (Offset,Value)-Pair #7
-        { 0xE0, 0xE1 }, // (Offset,Value)-Pair #8
-        { 0xE1, 0x0F }, // (Offset,Value)-Pair #9
+		{ 0x0E, 0x00 },
+		{ 0x0F, 0x00 },
+		{ 0x10, 0x3B },
+		{ 0x11, 0x86 },
+		{ 0x12, 0xC0 },
+		{ 0x13, 0x21 },
+		{ 0x14, 0x00 },
+		{ 0x15, 0x00 },
+		{ 0x16, 0x75 },
+		{ 0x17, 0x0C },
+		{ 0x18, 0x8B },
+		{ 0x19, 0x8E },
+		{ 0x1A, 0xC4 },
+		{ 0x1B, 0x21 },
+		{ 0x1C, 0x00 },
+		{ 0x1D, 0x00 },
+		{ 0x1E, 0x89 },
+		{ 0x1F, 0x4C },
 OOVPA_END;
 
 // ******************************************************************
@@ -2868,7 +2890,7 @@ OOVPATable D3D8_4627[] = {
 	REGISTER_OOVPA(D3DDevice_SetTextureState_BorderColor, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTextureState_ColorKeyColor, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_VertexBlend, 4134, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetRenderState_CullMode, 4034, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetRenderState_CullMode, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_NormalizeNormals, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_NormalizeNormals, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_TextureFactor, 4134, PATCH),
