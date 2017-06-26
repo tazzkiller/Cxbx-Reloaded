@@ -1132,13 +1132,16 @@ OOVPA_XREF(D3DDevice_SetTexture, 4361, 1+28,
 OOVPA_END;
 
 
+// ******************************************************************
+// * D3DDevice_SetRenderState_CullMode
+// ******************************************************************
 OOVPA_XREF(D3DDevice_SetRenderState_CullMode, 4361, 2 + 24, // Also for 4627, 5344, 5558, 5659, 5788, 5849, 5933
 
 	XRefNoSaveIndex,
 	XRefTwo)
 
 	XREF_ENTRY(0x03, XREF_D3DDEVICE), // Derived
-	XREF_ENTRY(0x25, XREF_D3DRS_CULLMODE), // Derived
+	XREF_ENTRY(0x60, XREF_D3DRS_CULLMODE), // Derived
 
 		{ 0x00, 0x56 },
 		{ 0x01, 0x8B },
