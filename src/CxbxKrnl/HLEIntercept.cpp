@@ -388,30 +388,23 @@ D:\Patrick\git\Dxbx\Resources\Patterns\5933d3d8.pat(136):568B35........8B063B460
 	// Try to locate Xbox symbol "_D3D_RenderState" and store it's address (and a few derived)
 	// via D3DDevice_SetRenderState_FillMode
 	{
-		extern LOOVPA<11> D3DDevice_SetRenderState_FillMode_3925;
-		extern LOOVPA<7> D3DDevice_SetRenderState_FillMode_4034;
-		extern LOOVPA<11> D3DDevice_SetRenderState_FillMode_4134;
-/*
-D:\Patrick\git\Dxbx\Resources\Patterns\3911d3d8.pat(123):568B35........56E8........8B0D........8B15........85C98B4C240875 16 17AA 0040 _D3DDevice_SetRenderState_FillMode@4 ^0003D ?g_pDevice@D3D@@3PAVCDevice@1@A ^0009R _XMETAL_StartPush@4 ^000FD _D3D__RenderState+01E4 ^0015D _D3D__RenderState+01E0 ^0036D _D3D__RenderState+01DC ........5EC204009090
-D:\Patrick\git\Dxbx\Resources\Patterns\4361d3d8.pat(126):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0050 _D3DDevice_SetRenderState_FillMode@4 ^0003D ?g_pDevice@D3D@@3PAVCDevice@1@A ^000FR ?MakeSpace@D3D@@YGPCKXZ ^0015D _D3D__RenderState+01E8 ^001BD _D3D__RenderState+01E4 ^003CD _D3D__RenderState+01E0 ........5EC20400909090909090909090909090
-D:\Patrick\git\Dxbx\Resources\Patterns\4627d3d8.pat(147):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0050 _D3DDevice_SetRenderState_FillMode@4 ^0003D _D3D__pDevice ^000FR ?MakeSpace@D3D@@YGPCKXZ ^0015D _D3D__RenderState+0234 ^001BD _D3D__RenderState+0230 ^003CD _D3D__RenderState+022C ........5EC20400909090909090909090909090
-D:\Patrick\git\Dxbx\Resources\Patterns\5344d3d8.pat(144):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0050 _D3DDevice_SetRenderState_FillMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0015D _D3D__RenderState+0234 ^001BD _D3D__RenderState+0230 ^003CD _D3D__RenderState+022C ........5EC20400909090909090909090909090
-D:\Patrick\git\Dxbx\Resources\Patterns\5558d3d8.pat(144):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0044 _D3DDevice_SetRenderState_FillMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0015D _D3D__RenderState+0234 ^001BD _D3D__RenderState+0230 ^003CD _D3D__RenderState+022C ........5EC20400
-D:\Patrick\git\Dxbx\Resources\Patterns\5659d3d8.pat(144):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0044 _D3DDevice_SetRenderState_FillMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0015D _D3D__RenderState+0234 ^001BD _D3D__RenderState+0230 ^003CD _D3D__RenderState+022C ........5EC20400
-D:\Patrick\git\Dxbx\Resources\Patterns\5788d3d8.pat(144):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0044 _D3DDevice_SetRenderState_FillMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0015D _D3D__RenderState+0234 ^001BD _D3D__RenderState+0230 ^003CD _D3D__RenderState+022C ........5EC20400
-D:\Patrick\git\Dxbx\Resources\Patterns\5849d3d8.pat(144):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0044 _D3DDevice_SetRenderState_FillMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0015D _D3D__RenderState+0234 ^001BD _D3D__RenderState+0230 ^003CD _D3D__RenderState+022C ........5EC20400
-D:\Patrick\git\Dxbx\Resources\Patterns\5933d3d8.pat(144):568B35........8B063B46047205E8........8B0D........8B15........85 1C 5B81 0044 _D3DDevice_SetRenderState_FillMode@4 ^0003D _D3D__pDevice ^000FR _D3DDevice_MakeSpace@0 ^0015D _D3D__RenderState+0234 ^001BD _D3D__RenderState+0230 ^003CD _D3D__RenderState+022C ........5EC20400
-*/
+		extern LOOVPA<2 + 16> D3DDevice_SetRenderState_FillMode_3911;
+		extern LOOVPA<7> D3DDevice_SetRenderState_FillMode_4034; // TODO : Weak & unverified, recreate OOVPA
+		extern LOOVPA<11> D3DDevice_SetRenderState_FillMode_4134; // TODO : Weak & unverified, recreate OOVPA
+		extern LOOVPA<2 + 16> D3DDevice_SetRenderState_FillMode_4361;
+
 		xbaddr pFunc = NULL;
 		int iCodeOffsetFor_X_pDevice = 0x03; // verified for 3911, 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
 		int iCodeOffsetFor_X_D3DRS_FILLMODE = 0x3C; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
 
-		if (g_BuildVersion >= 4134)
+		if (g_BuildVersion >= 4361)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_4361, lower, upper);
+		else if (g_BuildVersion >= 4134)
 			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_4134, lower, upper);
 		else if (g_BuildVersion >= 4034)
 			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_4034, lower, upper);
 		else {
-			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_3925, lower, upper);
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_3911, lower, upper);
 			iCodeOffsetFor_X_D3DRS_FILLMODE = 0x36; // verified for 3911
 		}
 

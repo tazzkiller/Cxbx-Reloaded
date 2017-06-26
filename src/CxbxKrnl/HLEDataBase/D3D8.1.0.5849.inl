@@ -201,7 +201,7 @@ OOVPATable D3D8_5849[] = {
 	REGISTER_OOVPA(D3DDevice_SetRenderState_NormalizeNormals, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_ZBias, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_EdgeAntiAlias, 4134, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetRenderState_FillMode, 4134, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetRenderState_FillMode, 4361, PATCH), // Was 4134
 	REGISTER_OOVPA(D3DDevice_SetRenderState_FogColor, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_Simple, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_ZEnable, 5233, PATCH),

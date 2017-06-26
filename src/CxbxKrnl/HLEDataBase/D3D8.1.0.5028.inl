@@ -851,7 +851,7 @@ OOVPATable D3D8_5028[] = {
 	REGISTER_OOVPA(D3DDevice_SetRenderState_TextureFactor, 5028, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_ZBias, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_EdgeAntiAlias, 4134, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetRenderState_FillMode, 4134, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetRenderState_FillMode, 4361, PATCH), // Was 4134
 	REGISTER_OOVPA(D3DDevice_SetRenderState_BackFillMode, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_FogColor, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_Dxt1NoiseEnable, 5028, PATCH),

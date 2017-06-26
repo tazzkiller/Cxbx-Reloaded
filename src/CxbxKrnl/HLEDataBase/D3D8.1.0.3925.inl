@@ -1498,23 +1498,34 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetRenderState_FillMode
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetRenderState_FillMode, 3925, 11)
-        // D3DDevice_SetRenderState_FillMode+0x23 : mov dword ptr [eax], 0x8038C
-        { 0x23, 0xC7 }, // (Offset,Value)-Pair #1
-        { 0x24, 0x00 }, // (Offset,Value)-Pair #2
-        { 0x25, 0x8C }, // (Offset,Value)-Pair #3
-        { 0x26, 0x03 }, // (Offset,Value)-Pair #4
-        { 0x27, 0x08 }, // (Offset,Value)-Pair #5
-        { 0x28, 0x00 }, // (Offset,Value)-Pair #6
+OOVPA_XREF(D3DDevice_SetRenderState_FillMode, 3911, 2 + 16,
 
-        // D3DDevice_SetRenderState_FillMode+0x2F : add eax, 0x0C
-        { 0x2F, 0x83 }, // (Offset,Value)-Pair #7
-        { 0x30, 0xC0 }, // (Offset,Value)-Pair #8
-        { 0x31, 0x0C }, // (Offset,Value)-Pair #9
+	XRefNoSaveIndex,
+	XRefOne)
 
-        // D3DDevice_SetRenderState_FillMode+0x3B : retn 0x04
-        { 0x3B, 0xC2 }, // (Offset,Value)-Pair #10
-        { 0x3C, 0x04 }, // (Offset,Value)-Pair #11
+		XREF_ENTRY(0x03, XREF_D3DDEVICE), // Derived
+		XREF_ENTRY(0x36, XREF_D3DRS_FILLMODE), // Derived
+
+		{ 0x00, 0x56 },
+		{ 0x01, 0x8B },
+		{ 0x02, 0x35 },
+
+		{ 0x07, 0x56 },
+		{ 0x08, 0xE8 },
+
+		{ 0x0D, 0x8B },
+		{ 0x0E, 0x0D },
+
+		{ 0x13, 0x8B },
+		{ 0x14, 0x15 },
+
+		{ 0x19, 0x85 },
+		{ 0x1A, 0xC9 },
+		{ 0x1B, 0x8B },
+		{ 0x1C, 0x4C },
+		{ 0x1D, 0x24 },
+		{ 0x1E, 0x08 },
+		{ 0x1F, 0x75 },
 OOVPA_END;
 
 // ******************************************************************
@@ -4147,7 +4158,7 @@ OOVPATable D3D8_3925[] = {
 	REGISTER_OOVPA(D3DDevice_SetRenderState_Simple, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTransform, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_FogColor, 3925, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetRenderState_FillMode, 3925, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetRenderState_FillMode, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_StencilEnable, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_Dxt1NoiseEnable, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_ZBias, 3925, PATCH),

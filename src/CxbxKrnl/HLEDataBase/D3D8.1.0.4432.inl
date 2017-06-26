@@ -621,7 +621,7 @@ OOVPATable D3D8_4432[]  {
 	REGISTER_OOVPA(D3DDevice_EndVisibilityTest, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetVisibilityTestResult, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_EdgeAntiAlias, 4134, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetRenderState_FillMode, 4134, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetRenderState_FillMode, 4361, PATCH), // Was 4134
 	REGISTER_OOVPA(D3DDevice_SetRenderState_FogColor, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_Simple, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_StencilEnable, 4134, PATCH),
