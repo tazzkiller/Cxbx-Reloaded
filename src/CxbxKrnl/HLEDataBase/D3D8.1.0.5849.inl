@@ -262,7 +262,7 @@ OOVPATable D3D8_5849[] = {
 	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderTarget, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetShaderConstantMode, 5028, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetViewport, 5558, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetViewport, 5788, PATCH),
 	REGISTER_OOVPA(D3DDevice_BlockUntilVerticalBlank, 5788, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetScreenSpaceOffset, 5849, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_FrontFace, 4134, PATCH),

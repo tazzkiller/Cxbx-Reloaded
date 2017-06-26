@@ -67,6 +67,47 @@ OOVPA_NO_XREF(D3DDevice_GetViewport, 5788, 8)
 OOVPA_END;
 
 // ******************************************************************
+// * D3DDevice_SetViewport
+// ******************************************************************
+OOVPA_XREF(D3DDevice_SetViewport, 5788, 1 + 28, // Also for 5849, 5933
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+	XREF_ENTRY(0x0D, XREF_D3DDEVICE), // Derived
+
+		{ 0x00, 0x83 },
+		{ 0x01, 0xEC },
+		{ 0x02, 0x0C },
+		{ 0x03, 0x55 },
+		{ 0x04, 0x8B },
+		{ 0x05, 0x6C },
+		{ 0x06, 0x24 },
+		{ 0x07, 0x14 },
+		{ 0x08, 0x85 },
+		{ 0x09, 0xED },
+		{ 0x0A, 0x56 },
+		{ 0x0B, 0x8B },
+		{ 0x0C, 0x35 },
+
+		{ 0x11, 0x0F },
+		{ 0x12, 0x84 },
+		{ 0x13, 0xDC },
+		{ 0x14, 0x01 },
+		{ 0x15, 0x00 },
+		{ 0x16, 0x00 },
+		{ 0x17, 0x8B },
+		{ 0x18, 0x86 },
+		{ 0x19, 0x04 },
+		{ 0x1A, 0x1A },
+		{ 0x1B, 0x00 },
+		{ 0x1C, 0x00 },
+		{ 0x1D, 0x3B },
+		{ 0x1E, 0x86 },
+		{ 0x1F, 0x14 },
+OOVPA_END;
+
+// ******************************************************************
 // * D3DDevice_SetBackBufferScale
 // ******************************************************************
 OOVPA_NO_XREF(D3DDevice_SetBackBufferScale, 5788, 7)
@@ -1057,7 +1098,7 @@ OOVPATable D3D8_5788[] = {
 	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderTarget, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetShaderConstantMode, 5028, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetViewport, 5558, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetViewport, 5788, PATCH),
 	REGISTER_OOVPA(D3DDevice_BlockUntilVerticalBlank, 5788, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDeviceCaps, 3925, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_FrontFace, 4134, PATCH),

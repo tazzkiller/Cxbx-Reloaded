@@ -92,7 +92,7 @@ OOVPA_XREF(D3DDevice_SetViewport, 4034, 1 + 10,
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x03, XREF_D3DDEVICE), // Derived
+		XREF_ENTRY(0x06, XREF_D3DDEVICE), // Derived
 
         // D3DDevice_SetViewport+0x00 : sub esp, 0x08
         { 0x00, 0x83 }, // (Offset,Value)-Pair #1

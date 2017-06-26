@@ -422,6 +422,47 @@ OOVPA_NO_XREF(D3DDevice_GetViewport, 4361, 10)
 OOVPA_END;
 
 // ******************************************************************
+// * D3DDevice_SetViewport
+// ******************************************************************
+OOVPA_NO_XREF(D3DDevice_SetViewport, 4361, 1 + 28,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x06, XREF_D3DDEVICE), // Derived
+
+		{ 0x00, 0x83 },
+		{ 0x01, 0xEC },
+		{ 0x02, 0x08 },
+		{ 0x03, 0x56 },
+		{ 0x04, 0x8B },
+		{ 0x05, 0x35 },
+
+		{ 0x0A, 0x8B },
+		{ 0x0B, 0x86 },
+		{ 0x0C, 0x70 },
+		{ 0x0D, 0x20 },
+		{ 0x0E, 0x00 },
+		{ 0x0F, 0x00 },
+		{ 0x10, 0x3B },
+		{ 0x11, 0x86 },
+		{ 0x12, 0x7C },
+		{ 0x13, 0x20 },
+		{ 0x14, 0x00 },
+		{ 0x15, 0x00 },
+		{ 0x16, 0x75 },
+		{ 0x17, 0x0C },
+		{ 0x18, 0x8B },
+		{ 0x19, 0x8E },
+		{ 0x1A, 0x80 },
+		{ 0x1B, 0x20 },
+		{ 0x1C, 0x00 },
+		{ 0x1D, 0x00 },
+		{ 0x1E, 0x89 },
+		{ 0x1F, 0x4C },
+OOVPA_END;
+
+// ******************************************************************
 // * D3DDevice_SetTextureState_BorderColor
 // ******************************************************************
 OOVPA_NO_XREF(D3DDevice_SetTextureState_BorderColor, 4361, 15)
@@ -1164,7 +1205,7 @@ OOVPATable D3D8_4361[] = {
 	REGISTER_OOVPA(D3DDevice_CreatePixelShader, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetPixelShader, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetPixelShaderProgram, 3925, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetViewport, 4034, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetViewport, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetViewport, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTextureState_BumpEnv, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTextureState_BorderColor, 4361, PATCH),
