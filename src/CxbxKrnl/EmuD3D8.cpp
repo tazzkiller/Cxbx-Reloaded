@@ -4658,6 +4658,17 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
     return result;
 }
 
+void *CxbxGetNv2ATextureAddr(int Stage)
+{
+	// Read active texture from NV2A
+	xbaddr TextureOffset = XTL::NV2AInstance_Registers[NV2A_TX_OFFSET(Stage) / 4];
+	if (TextureOffset == 0)
+		return NULL;
+
+	xbaddr TextureAddr = TextureOffset | MM_SYSTEM_PHYSICAL_MAP;
+	return (void*)TextureAddr;
+}
+
 XTL::D3DCOLOR *CxbxGetNv2APalette(int Stage, int &NrPaletteEntries)
 {
 	// Read active palette from NV2A
