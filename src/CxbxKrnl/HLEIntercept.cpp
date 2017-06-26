@@ -210,7 +210,7 @@ void CheckHLEExports()
 
 void CheckDerivedDevice(xbaddr pFunc, int iCodeOffsetFor_X_pDevice)
 {
-	// Read address of "g_pDevice" from D3DDevice_SetViewport
+	// Read address of "_D3D_pDevice" (pre-4627 known as "g_pDevice") from function
 	xbaddr DerivedAddr_D3DDevice = *((xbaddr*)(pFunc + iCodeOffsetFor_X_pDevice));
 
 	// Temporary verification - is XREF_D3DDEVICE derived correctly?
@@ -232,23 +232,24 @@ void CheckDerivedRenderState(xbaddr pFunc, int iCodeOffsetFor_X_D3DRS_, int XREF
 	// TODO : Remove this when XREF_D3DRS_ derivation is deemed stable
 	if (VerifySymbolAddressAgainstXRef("D3D__RenderState[D3DRS_]", DerivedAddr_D3DRS_, XREF_D3DRS_)) {
 
+		// Derive address of Xbox_D3D__RenderState from D3DRS_
 		::DWORD *Derived_D3D_RenderState = ((::DWORD*)DerivedAddr_D3DRS_) - XDK_D3DRS_;
 		g_SymbolAddresses["D3D__RenderState"] = (xbaddr)Derived_D3D_RenderState;
 		printf("HLE: Derived 0x%.08X -> D3D__RenderState\n", Derived_D3D_RenderState);
 
-		// Derive address of Xbox_D3D__RenderState_Deferred from D3DRS_
+		// Derive address of Xbox_D3D__RenderState_Deferred from Xbox_D3D__RenderState
 		::DWORD *Derived_D3D__RenderState_Deferred = Derived_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
 		g_SymbolAddresses["D3DDeferredRenderState"] = (xbaddr)Derived_D3D__RenderState_Deferred;
 		printf("HLE: Derived 0x%.08X -> D3D__RenderState_Deferred\n", Derived_D3D__RenderState_Deferred);
 
-		// Derive address of a few other deferred render state slots (to help xref-based function location)
+		// Derive address of a few deferred render state slots (to help xref-based function location)
 		{
 #define DeriveAndPrint(D3DRS) \
 	XRefDataBase[XREF_##D3DRS] = (xbaddr)(Derived_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_##D3DRS]); \
 	printf("HLE: Derived XREF_"#D3DRS"(%d) 0x%.08X -> D3D__RenderState[%d/*="#D3DRS"]\n", (int)XREF_##D3DRS, XRefDataBase[XREF_##D3DRS], DxbxMapMostRecentToActiveVersion[X_##D3DRS]);
 
-			DeriveAndPrint(D3DRS_CULLMODE);
 			DeriveAndPrint(D3DRS_FILLMODE);
+			DeriveAndPrint(D3DRS_CULLMODE);
 			DeriveAndPrint(D3DRS_MULTISAMPLERENDERTARGETMODE);
 			DeriveAndPrint(D3DRS_STENCILCULLENABLE);
 			DeriveAndPrint(D3DRS_ROPZCMPALWAYSREAD);
@@ -263,7 +264,7 @@ void CheckDerivedTextureState(xbaddr pFunc, int iCodeOffsetFor_X_D3DTSS_, int XR
 {
 	using namespace XTL;
 	
-	// Read address of D3DTSS_TEXCOORDINDEX from D3DDevice_SetTextureState_TexCoordIndex
+	// Read address of D3DTSS_ from function
 	xbaddr DerivedAddr_D3DTSS_ = *((xbaddr*)(pFunc + iCodeOffsetFor_X_D3DTSS_));
 	if (VerifySymbolAddressAgainstXRef("D3D__TextureState[/*Stage*/0][D3DTSS_]", DerivedAddr_D3DTSS_, XREF_D3DTSS_)) {
 		// Derive address of D3D_TextureState from D3DTSS_
@@ -279,8 +280,8 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 
 	// Request a few fundamental XRefs to be derived instead of checked
 	XRefDataBase[XREF_D3DDEVICE] = XREF_ADDR_DERIVE;
-	XRefDataBase[XREF_D3DRS_CULLMODE] = XREF_ADDR_DERIVE;
 	XRefDataBase[XREF_D3DRS_FILLMODE] = XREF_ADDR_DERIVE;
+	XRefDataBase[XREF_D3DRS_CULLMODE] = XREF_ADDR_DERIVE;
 	XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] = XREF_ADDR_DERIVE;
 	XRefDataBase[XREF_D3DTSS_BORDERCOLOR] = XREF_ADDR_DERIVE;
 	XRefDataBase[XREF_G_STREAM] = XREF_ADDR_DERIVE;
@@ -291,8 +292,8 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 	xbaddr lower = pXbeHeader->dwBaseAddr;
 	xbaddr upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
 
-	// Locate Xbox symbol "D3DDevice_SetViewport" and store it's address
-	// and derive "_D3D__pDevice" (pre-4627 known as "g_pDevice") from it
+	// Try to locate Xbox symbol "_D3D__pDevice" (pre-4627 known as "g_pDevice")
+	// via D3DDevice_SetViewport
 	{
 		extern LOOVPA<1 + 28> D3DDevice_SetViewport_3911;
 		extern LOOVPA<1 + 10> D3DDevice_SetViewport_4034; // TODO : Weak & unverified, recreate OOVPA
@@ -338,6 +339,40 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 		}
 	}
 
+	// Try to locate Xbox symbol "_D3D_RenderState"
+	// via D3DDevice_SetRenderState_FillMode
+	{
+		extern LOOVPA<2 + 16> D3DDevice_SetRenderState_FillMode_3911;
+		extern LOOVPA<7> D3DDevice_SetRenderState_FillMode_4034; // TODO : Weak & unverified, recreate OOVPA
+		extern LOOVPA<11> D3DDevice_SetRenderState_FillMode_4134; // TODO : Weak & unverified, recreate OOVPA
+		extern LOOVPA<2 + 16> D3DDevice_SetRenderState_FillMode_4361;
+
+		xbaddr pFunc = NULL;
+		int iCodeOffsetFor_X_pDevice = 0x03; // verified for 3911, 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
+		int iCodeOffsetFor_X_D3DRS_FILLMODE = 0x3C; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
+
+		if (g_BuildVersion >= 4361)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_4361, lower, upper);
+		else if (g_BuildVersion >= 4134)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_4134, lower, upper);
+		else if (g_BuildVersion >= 4034)
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_4034, lower, upper);
+		else {
+			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_3911, lower, upper);
+			iCodeOffsetFor_X_D3DRS_FILLMODE = 0x36; // verified for 3911
+		}
+
+		if (pFunc != NULL) {
+			printf("HLE: Located 0x%.08X -> D3DDevice_SetRenderState_FillMode\n", pFunc);
+
+			// Temporary verification - is XREF_D3DDEVICE derived correctly?
+			// TODO : Remove this when D3DEVICE derivation is deemed stable
+			CheckDerivedDevice(pFunc, iCodeOffsetFor_X_pDevice);
+
+			CheckDerivedRenderState(pFunc, iCodeOffsetFor_X_D3DRS_FILLMODE, XREF_D3DRS_FILLMODE, X_D3DRS_FILLMODE);
+		}
+	}
+
 	// Try to locate Xbox symbol "_D3D_RenderState" and store it's address (and a few derived)
 	// via D3DDevice_SetRenderState_CullMode
 	{
@@ -375,41 +410,7 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 		}
 	}
 
-	// Try to locate Xbox symbol "_D3D_RenderState" and store it's address (and a few derived)
-	// via D3DDevice_SetRenderState_FillMode
-	{
-		extern LOOVPA<2 + 16> D3DDevice_SetRenderState_FillMode_3911;
-		extern LOOVPA<7> D3DDevice_SetRenderState_FillMode_4034; // TODO : Weak & unverified, recreate OOVPA
-		extern LOOVPA<11> D3DDevice_SetRenderState_FillMode_4134; // TODO : Weak & unverified, recreate OOVPA
-		extern LOOVPA<2 + 16> D3DDevice_SetRenderState_FillMode_4361;
-
-		xbaddr pFunc = NULL;
-		int iCodeOffsetFor_X_pDevice = 0x03; // verified for 3911, 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
-		int iCodeOffsetFor_X_D3DRS_FILLMODE = 0x3C; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
-
-		if (g_BuildVersion >= 4361)
-			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_4361, lower, upper);
-		else if (g_BuildVersion >= 4134)
-			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_4134, lower, upper);
-		else if (g_BuildVersion >= 4034)
-			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_4034, lower, upper);
-		else {
-			pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetRenderState_FillMode_3911, lower, upper);
-			iCodeOffsetFor_X_D3DRS_FILLMODE = 0x36; // verified for 3911
-		}
-
-		if (pFunc != NULL) {
-			printf("HLE: Located 0x%.08X -> D3DDevice_SetRenderState_FillMode\n", pFunc);
-
-			// Temporary verification - is XREF_D3DDEVICE derived correctly?
-			// TODO : Remove this when D3DEVICE derivation is deemed stable
-			CheckDerivedDevice(pFunc, iCodeOffsetFor_X_pDevice);
-
-			CheckDerivedRenderState(pFunc, iCodeOffsetFor_X_D3DRS_FILLMODE, XREF_D3DRS_FILLMODE, X_D3DRS_FILLMODE);
-		}
-	}
-
-	// Try to locate Xbox symbol "D3D__TextureState" and store it's address
+	// Try to locate Xbox symbol "D3D__TextureState"
 	// via D3DDevice_SetTextureState_TexCoordIndex
 	{
 		extern LOOVPA<2 + 24> D3DDevice_SetTextureState_TexCoordIndex_3911;
@@ -452,7 +453,7 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 		}
 	}
 
-	// Try to locate Xbox symbol "D3D__TextureState" and store it's address
+	// Try to locate Xbox symbol "D3D__TextureState"
 	// via D3DDevice_SetTextureState_BorderColor
 	{
 		extern LOOVPA<2 + 24> D3DDevice_SetTextureState_BorderColor_3911;
@@ -484,7 +485,7 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 		}
 	}
 
-	// Locate Xbox symbol "g_Stream" and store it's address
+	// Try to locate Xbox symbol "g_Stream"
 	{
 		extern LOOVPA<1 + 12> D3DDevice_SetStreamSource_3925;
 		extern LOOVPA<1 + 14> D3DDevice_SetStreamSource_4034;
@@ -757,8 +758,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 	
 					if(bXRefFirstPass)
 	                {
-						using namespace XTL;
-
 						// Save D3D8 build version
 						g_BuildVersion = BuildVersion;
 
