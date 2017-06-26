@@ -80,9 +80,7 @@ g_VBTrackDisable,
 g_PBTrackTotal, 
 g_PBTrackDisable, 
 g_PBTrackShowOnce,
-g_PatchedStreamsCache, 
-g_DataToTexture
-//, g_AlignCache
+g_PatchedStreamsCache
 ;
 
 struct RTNode

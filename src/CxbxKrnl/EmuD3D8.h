@@ -449,16 +449,6 @@ HRESULT WINAPI EMUPATCH(D3DDevice_SetPixelShader)
 );
 
 // ******************************************************************
-// * patch: D3DDevice_SwitchTexture
-// ******************************************************************
-VOID __fastcall EMUPATCH(D3DDevice_SwitchTexture)
-(
-    DWORD           Method,
-    PVOID           Data,
-    DWORD           Format
-);
-
-// ******************************************************************
 // * patch: D3DDevice_GetDisplayMode
 // ******************************************************************
 HRESULT WINAPI EMUPATCH(D3DDevice_GetDisplayMode)
