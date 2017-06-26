@@ -4658,13 +4658,19 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
     return result;
 }
 
-DWORD *CxbxGetPalette(int Stage)
+XTL::D3DCOLOR *CxbxGetNv2APalette(int Stage, int &NrPaletteEntries)
 {
 	// Read active palette from NV2A
 	xbaddr PaletteOffset = XTL::NV2AInstance_Registers[NV2A_TX_PALETTE_OFFSET(Stage) / 4];
+	if (PaletteOffset == 0)
+		return NULL;
+
+	// Note : X_D3DPALETTESIZE.D3DPALETTE_256 = 0 .. D3DPALETTE_32 = 3
+	NrPaletteEntries = 256 >> (((PaletteOffset >> 2) & 3)); // NV097_SET_TEXTURE_PALETTE_LENGTH_32
+
 	xbaddr PaletteAddr = PaletteOffset & ~(X_D3DPALETTE_ALIGNMENT - 1);
-	//X_D3DPALETTESIZE PaletteSize = (X_D3DPALETTESIZE)((PaletteOffset >> 2) & NV097_SET_TEXTURE_PALETTE_LENGTH_32));
-	return (DWORD*)(PaletteAddr | MM_SYSTEM_PHYSICAL_MAP);
+	PaletteAddr |= MM_SYSTEM_PHYSICAL_MAP;
+	return (XTL::D3DCOLOR*)PaletteAddr;
 }
 
 XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
@@ -4675,7 +4681,8 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 {
 	static std::map<xbaddr, ConvertedResource> g_ConvertedTextures;
 
-	const DWORD *pPalette = CxbxGetPalette(Stage);
+	int NrPaletteEntries;
+	const D3DCOLOR *pPalette = CxbxGetNv2APalette(Stage, NrPaletteEntries);
 
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
@@ -4703,7 +4710,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pPixelContainer);
 	if (X_Format == X_D3DFMT_P8)
 		if (pPalette == NULL)
-			CxbxKrnlCleanup("CxbxUpdateTexture can't handle paletized textures without a given palette!");
+			CxbxKrnlCleanup("CxbxUpdateTexture can't handle paletized textures without an active palette!");
 
 	PVOID pTextureData = GetDataFromXboxResource((X_D3DResource *)pPixelContainer);
 	if (pTextureData == NULL)
@@ -4718,8 +4725,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	uint32_t uiHash = pPixelContainer->Format ^ pPixelContainer->Size; // seed with characteristics
 	uiHash = XXHash32::hash(pTextureData, (uint64_t)Size, uiHash);
 	if (pPalette != NULL)
-		// TODO : Use actual palette size (but how to retrieve?)
-		uiHash = XXHash32::hash((void *)pPalette, (uint64_t)256 * sizeof(D3DCOLOR), uiHash);
+		uiHash = XXHash32::hash((void *)pPalette, (uint64_t)NrPaletteEntries * sizeof(D3DCOLOR), uiHash);
 
 	// Reference the converted texture (when the texture is not present, it's added) :
 	ConvertedResource &convertedTexture = g_ConvertedTextures[(xbaddr)pTextureData];
