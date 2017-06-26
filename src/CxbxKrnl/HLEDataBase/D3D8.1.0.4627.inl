@@ -1247,30 +1247,40 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetTextureState_TexCoordIndex
 // ******************************************************************
-OOVPA_XREF(D3DDevice_SetTextureState_TexCoordIndex, 4627, 1+10,
+OOVPA_XREF(D3DDevice_SetTextureState_TexCoordIndex, 4627, 2 + 24, // Also for 5344, 5558, 5659, 5788, 5849, 5933
 
 	XRefNoSaveIndex,
-	XRefOne)
+	XRefTwo)
 
-		XREF_ENTRY(0x19, XREF_D3DTSS_TEXCOORDINDEX), // Derived
+	XREF_ENTRY(0x09, XREF_D3DDEVICE), // Derived
+	XREF_ENTRY(0x19, XREF_D3DTSS_TEXCOORDINDEX), // Derived
 
-        // D3DDevice_SetTextureState_TexCoordIndex+0x14 : shl eax, 0x07
-        { 0x14, 0xC1 }, // (Offset,Value)-Pair #1
-        { 0x15, 0xE0 }, // (Offset,Value)-Pair #2
-        { 0x16, 0x07 }, // (Offset,Value)-Pair #3
+		{ 0x00, 0x53 },
+		{ 0x01, 0x8B },
+		{ 0x02, 0x5C },
+		{ 0x03, 0x24 },
+		{ 0x04, 0x0C },
+		{ 0x05, 0x55 },
+		{ 0x06, 0x56 },
+		{ 0x07, 0x8B },
+		{ 0x08, 0x35 },
 
-        // D3DDevice_SetTextureState_TexCoordIndex+0x26 : cmp eax, ecx
-        { 0x26, 0x3B }, // (Offset,Value)-Pair #4
-        { 0x27, 0xC1 }, // (Offset,Value)-Pair #5
+		{ 0x0D, 0x57 },
+		{ 0x0E, 0x8B },
+		{ 0x0F, 0x7C },
+		{ 0x10, 0x24 },
+		{ 0x11, 0x14 },
+		{ 0x12, 0x8B },
+		{ 0x13, 0xC7 },
+		{ 0x14, 0xC1 },
+		{ 0x15, 0xE0 },
+		{ 0x16, 0x07 },
+		{ 0x17, 0x89 },
+		{ 0x18, 0x98 },
 
-        // D3DDevice_SetTextureState_TexCoordIndex+0x71 : mov ebp, 0x2400
-        { 0x71, 0xBD }, // (Offset,Value)-Pair #6
-        { 0x73, 0x24 }, // (Offset,Value)-Pair #7
-
-        // D3DDevice_SetTextureState_TexCoordIndex+0xAA : shl ebx, 0x04
-        { 0xAA, 0xC1 }, // (Offset,Value)-Pair #8
-        { 0xAB, 0xE3 }, // (Offset,Value)-Pair #9
-        { 0xAC, 0x04 }, // (Offset,Value)-Pair #10
+		{ 0x1D, 0x8B },
+		{ 0x1E, 0x06 },
+		{ 0x1F, 0x8B },
 OOVPA_END;
 
 // ******************************************************************

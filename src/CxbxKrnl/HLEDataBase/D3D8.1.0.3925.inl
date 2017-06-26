@@ -1288,31 +1288,41 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetTextureState_TexCoordIndex
 // ******************************************************************
-OOVPA_XREF(D3DDevice_SetTextureState_TexCoordIndex, 3925, 1+11,
+OOVPA_XREF(D3DDevice_SetTextureState_TexCoordIndex, 3911, 2 + 24,
 
 	XRefNoSaveIndex,
-	XRefOne)
+	XRefTwo)
 
-		XREF_ENTRY(0x11, XREF_D3DTSS_TEXCOORDINDEX), // Derived
+	XREF_ENTRY(0x11, XREF_D3DTSS_TEXCOORDINDEX), // Derived
+	XREF_ENTRY(0x18, XREF_D3DDEVICE), // Derived
 
-        // D3DDevice_SetTextureState_TexCoordIndex+0x0B : shl eax, 0x07
-        { 0x0B, 0xC1 }, // (Offset,Value)-Pair #1
-        { 0x0C, 0xE0 }, // (Offset,Value)-Pair #2
-        { 0x0D, 0x07 }, // (Offset,Value)-Pair #3
+		{ 0x00, 0x8B },
+		{ 0x01, 0x4C },
+		{ 0x02, 0x24 },
+		{ 0x03, 0x08 },
+		{ 0x04, 0x53 },
+		{ 0x05, 0x8B },
+		{ 0x06, 0x5C },
+		{ 0x07, 0x24 },
+		{ 0x08, 0x08 },
+		{ 0x09, 0x8B },
+		{ 0x0A, 0xC3 },
+		{ 0x0B, 0xC1 },
+		{ 0x0C, 0xE0 },
+		{ 0x0D, 0x07 },
+		{ 0x0E, 0x55 },
+		{ 0x0F, 0x89 },
+		{ 0x10, 0x88 },
 
-        // D3DDevice_SetTextureState_TexCoordIndex+0x24 : cmp eax, 0x20000
-        { 0x24, 0x81 }, // (Offset,Value)-Pair #4
-        { 0x25, 0xF9 }, // (Offset,Value)-Pair #5
-        { 0x28, 0x02 }, // (Offset,Value)-Pair #6
+		{ 0x15, 0x56 },
+		{ 0x16, 0x8B },
+		{ 0x17, 0x35 },
 
-        // D3DDevice_SetTextureState_TexCoordIndex+0x3B : mov edi, 0x8511
-        { 0x3B, 0xBF }, // (Offset,Value)-Pair #7
-        { 0x3C, 0x11 }, // (Offset,Value)-Pair #8
-        { 0x3D, 0x85 }, // (Offset,Value)-Pair #9
+		{ 0x1C, 0x81 },
+		{ 0x1D, 0xE1 },
+		{ 0x1E, 0x00 },
+		{ 0x1F, 0x00 },
 
-        // D3DDevice_SetTextureState_TexCoordIndex+0x97 : shl eax, cl
-        { 0x97, 0xD3 }, // (Offset,Value)-Pair #10
-        { 0x98, 0xE0 }, // (Offset,Value)-Pair #11
 OOVPA_END;
 
 // ******************************************************************
@@ -4153,7 +4163,7 @@ OOVPATable D3D8_3925[] = {
 	REGISTER_OOVPA(D3DDevice_SetVertexShaderConstant, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetFlickerFilter, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetSoftDisplayFilter, 3925, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetTextureState_TexCoordIndex, 3925, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetTextureState_TexCoordIndex, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTextureState_BorderColor, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_PSTextureModes, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_StencilFail, 3925, PATCH),
