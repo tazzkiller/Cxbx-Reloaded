@@ -4086,6 +4086,39 @@ OOVPA_NO_XREF(CMiniport_CreateCtxDmaObject, 3911, 32)
 		{ 0x1F, 0xFC },
 OOVPA_END;
 
+OOVPA_NO_XREF(CMiniport_InitDMAChannel, 3911, 30) // Also for 4361, 4627, 5558, 5659, 5788, 5849, 5933 (NOT 5344!)
+		{ 0x00, 0xBF },
+		{ 0x01, 0x15 },
+		{ 0x02, 0x7F },
+		{ 0x03, 0xF7 },
+		{ 0x04, 0x42 },
+		{ 0x05, 0x41 },
+		{ 0x06, 0x43 },
+		{ 0x07, 0x3C },
+		{ 0x08, 0x08 },
+		{ 0x09, 0x98 },
+		{ 0x0A, 0x60 },
+		{ 0x0B, 0x00 },
+		{ 0x0C, 0x10 },
+		{ 0x0D, 0x00 },
+		{ 0x0E, 0x08 },
+		{ 0x0F, 0x98 },
+		{ 0x10, 0x60 },
+		{ 0x11, 0x40 },
+		{ 0x12, 0x10 },
+		{ 0x13, 0x00 },
+		{ 0x14, 0x08 },
+		{ 0x15, 0x98 },
+		{ 0x16, 0x61 },
+		{ 0x17, 0x00 },
+		{ 0x18, 0x10 },
+		{ 0x19, 0x00 },
+		{ 0x1A, 0x08 },
+		{ 0x1B, 0x98 },
+		{ 0x1C, 0x61 },
+		{ 0x1D, 0x80 },
+OOVPA_END;
+
 // ******************************************************************
 // * D3D_CMiniport_GetDisplayCapabilities
 // ******************************************************************
@@ -4135,6 +4168,7 @@ OOVPATable D3D8_3925[] = {
 
 	REGISTER_OOVPA(CMiniport_InitHardware, 3911, PATCH),
 	REGISTER_OOVPA(CMiniport_CreateCtxDmaObject, 3911, PATCH),
+	REGISTER_OOVPA(CMiniport_InitDMAChannel, 3911, PATCH),
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 3911, DISABLED),
 	REGISTER_OOVPA(Direct3D_CreateDevice, 3911, PATCH), // Was 3925
 	REGISTER_OOVPA(D3DDevice_IsBusy, 3925, PATCH),

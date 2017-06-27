@@ -1020,6 +1020,7 @@ OOVPA_END;
 // ******************************************************************
 OOVPATable D3D8_5344[] = {
 
+	REGISTER_OOVPA(CMiniport_InitDMAChannel, 3911, PATCH),
 	REGISTER_OOVPA(Direct3D_CreateDevice, 5344, PATCH), // Was 5233
 	REGISTER_OOVPA(MakeRequestedSpace, 5344, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDisplayFieldStatus, 5233, PATCH),
