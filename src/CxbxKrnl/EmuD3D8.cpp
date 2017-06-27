@@ -1270,6 +1270,9 @@ void CxbxUpdateNativeD3DResources()
 	DxbxUpdateActiveVertexBufferStreams();
 	DxbxUpdateActiveRenderTarget();
 	*/
+
+	// XTL::EMUPATCH(MakeRequestedSpace)(0, 0); // This would flush the push buffer via EmuExecutePushBufferRaw(PushBuffer);
+
 	CxbxUpdateTextureStages();
 	XTL::DxbxUpdateDeferredStates(); // BeginPush sample shows us that this must come *after* texture update!
 	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
@@ -2520,7 +2523,7 @@ void CxbxUpdateActiveIndexBuffer
 // * Start of all D3D patches
 // ******************************************************************
 
-//#define UNPATCH_CREATEDEVICE
+#define UNPATCH_CREATEDEVICE
 
 // Note on __thiscall vs __fastcall :
 //
@@ -3567,6 +3570,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderConstant)
     }
 }
 
+#if 0
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderConstant)
 (
     INT         Register,
@@ -3659,6 +3663,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetVertexShaderConstantNotInline)
 
 	EMUPATCH(D3DDevice_SetVertexShaderConstant)(Register, pConstantData, ConstantCount / 4);
 }
+#endif
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_DeletePixelShader)
 (
@@ -4670,7 +4675,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		// Was GetXboxD3DResourceType(pPixelContainer)
 		if (decodedFormat.bIsCubeMap)
 			ResourceType = X_D3DRTYPE_CUBETEXTURE;
-		else if (decodedFormat.uiDimensions == 3)
+		else if (decodedFormat.uiDimensions > 2)
 			ResourceType = X_D3DRTYPE_VOLUMETEXTURE;
 		else
 			ResourceType = X_D3DRTYPE_TEXTURE;
@@ -7845,7 +7850,9 @@ PDWORD WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 	DWORD RequestedSpace
 )
 {
+#ifdef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(MinimumSpace)

@@ -555,6 +555,9 @@
     <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8Logging.h">
       <Filter>Emulator</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\CxbxKrnl\Miniport.h">
+      <Filter>Emulator</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\resource\About.jpg">

@@ -362,6 +362,7 @@ VOID WINAPI EMUPATCH(D3DDevice_SetPixelShaderConstant)
     DWORD       ConstantCount
 );
 
+#if 0
 // ******************************************************************
 // * patch: D3DDevice_SetVertexShaderConstant
 // ******************************************************************
@@ -399,6 +400,7 @@ VOID __fastcall EMUPATCH(D3DDevice_SetVertexShaderConstantNotInline)
     CONST PVOID pConstantData,
     DWORD       ConstantCount
 );
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_DeletePixelShader

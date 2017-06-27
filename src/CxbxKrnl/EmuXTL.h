@@ -38,6 +38,7 @@ namespace XTL
 {
     #include "EmuXapi.h"
     #include "EmuD3D8.h"
+    #include "Miniport.h"
     #include "EmuD3D8\Convert.h"
     #include "EmuD3D8\VertexBuffer.h"
     #include "EmuD3D8\PushBuffer.h"

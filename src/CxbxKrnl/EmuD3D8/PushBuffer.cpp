@@ -200,10 +200,64 @@ using namespace XTL;
 
 void EmuNV2A_NOP() // 0x0100
 {
-	// HandledBy = "nop";
 	HandledCount = dwCount;
 
-	// TODO : NOP actually seems to do something on NV2A
+	// NOP, when used with an argument, triggers a software-interrupt on NV2A.
+	// The CPU handles these interrupts via a DMA trigger, but since we don't
+	// emulate these yet, we'll have to emulate them here instead.
+	#define NOP_Argument1 (NV2AInstance_Registers[NV2A_CLEAR_DEPTH_VALUE / 4])
+	#define NOP_Argument2 (NV2AInstance_Registers[NV2A_CLEAR_VALUE / 4])
+	switch (*pdwPushArguments) {
+	case 1: {
+		// TODO : Present();
+		HandledBy = "NOP flip immediate";
+		break;
+	}
+	case 2: {
+		// TODO : Present();
+		HandledBy = "NOP flip synchronized";
+		break;
+	}
+	case 3: {
+		HandledBy = "NOP Pushbuffer run";
+		break;
+	}
+	case 4: {
+		HandledBy = "NOP Pushbuffer fixup";
+		break;
+	}
+	case 5: {
+		HandledBy = "NOP Fence";
+		// TODO : Set event?
+		break;
+	}
+	case 6: {
+		X_D3DCALLBACK Callback = (X_D3DCALLBACK)NOP_Argument1;
+		DWORD Context = NOP_Argument2;
+		Callback(Context);
+		HandledBy = "NOP read callback";
+		break;
+	}
+	case 7: {
+		HandledBy = "NOP write callback";
+		break;
+	}
+	case 8: {
+		HandledBy = "NOP DXT1 noise enable";
+		break;
+	}
+	case 9: {
+		const DWORD Register = NOP_Argument1;
+		const DWORD Value = NOP_Argument2;
+		NV2AInstance_Registers[Register / 4] = Value; // TODO : EmuNV2A_Write32(RegisterBase + Register, Value);
+		HandledBy = "NOP write register";
+		break;
+	}
+	default: {
+		HandledBy = "NOP unknown";
+		break;
+	}
+	}
 }
 
 void NVPB_SetBeginEnd() // 0x000017FC
@@ -421,6 +475,31 @@ void NVPB_InlineIndexArray() // 0x1800
 	}
 }
 
+void NVPB_SetVertexShaderConstantRegister()
+{
+	HandledBy = "SetVertexShaderConstantRegister";
+}
+
+void NVPB_SetVertexShaderConstants()
+{
+	int Register = NV2AInstance_Registers[NV2A_VP_UPLOAD_CONST_ID / 4];
+	void *pConstantData = &(NV2AInstance_Registers[dwMethod / 4]);
+	int ConstantCount = dwCount;
+
+	HRESULT hRet = g_pD3DDevice8->SetVertexShaderConstant
+	(
+		Register,
+		pConstantData,
+		ConstantCount
+	);
+	//DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetVertexShaderConstant");
+
+	HandledCount = dwCount;
+	Register += ConstantCount;
+	// Adjust the current register :
+	NV2AInstance_Registers[NV2A_VP_UPLOAD_CONST_ID / 4] = Register;
+}
+
 char *DxbxXboxMethodToString(DWORD dwMethod)
 {
 	return "UNLABLED"; // TODO
@@ -436,10 +515,14 @@ extern void XTL::EmuExecutePushBufferRaw
 		NV2ACallbacks_Initialized = true;
 		// Set handlers that do more than just store data in registers :
 		NV2ACallbacks[NV2A_NOP / 4] = EmuNV2A_NOP; // 0x0100
-		NV2ACallbacks[NV2A_VERTEX_BEGIN_END / 4] = NVPB_SetBeginEnd; // NV097_SET_BEGIN_END / 0x000017FC
-		NV2ACallbacks[NV2A_VB_ELEMENT_U16 / 4] = NVPB_InlineIndexArray; // NV097_ARRAY_ELEMENT16 / 0x1800
-		NV2ACallbacks[(NV2A_VB_ELEMENT_U16 + 8) / 4] = NVPB_FixLoop; // NV097_ARRAY_ELEMENT32 / 0x1808
-		NV2ACallbacks[NV2A_VERTEX_DATA / 4] = NVPB_InlineVertexArray; // NV097_INLINE_ARRAY / 0x1818
+		NV2ACallbacks[NV2A_VERTEX_BEGIN_END / 4] = NVPB_SetBeginEnd; // NV097_SET_BEGIN_END; // 0x000017FC
+		NV2ACallbacks[NV2A_VB_ELEMENT_U16 / 4] = NVPB_InlineIndexArray; // NV097_ARRAY_ELEMENT16; // 0x1800
+		NV2ACallbacks[(NV2A_VB_ELEMENT_U16 + 8) / 4] = NVPB_FixLoop; // NV097_ARRAY_ELEMENT32; // 0x1808
+		NV2ACallbacks[NV2A_VERTEX_DATA / 4] = NVPB_InlineVertexArray; // NV097_INLINE_ARRAY; // 0x1818
+		// Not really needed, but helps debugging : 
+		NV2ACallbacks[NV2A_VP_UPLOAD_CONST_ID / 4] = NVPB_SetVertexShaderConstantRegister; // NV097_SET_TRANSFORM_CONSTANT_LOAD; // 0x00001EA4
+		for (int i = 0; i < 32; i++)
+			NV2ACallbacks[NV2A_VP_UPLOAD_CONST(i) / 4] = NVPB_SetVertexShaderConstants; // NV097_SET_TRANSFORM_CONSTANT; // 0x00000b80
 	}
 
 	// Test case : XDK Sample BeginPush
@@ -516,8 +599,13 @@ extern void XTL::EmuExecutePushBufferRaw
 		// Skip method DWORD, remember the address of the arguments and skip over the arguments already :
 		pdwPushData++;
 		pdwPushArguments = pdwPushData;
-		pdwPushData += dwCount;
 
+		if (dwCount == 0) {
+			// NOP might get here, but without arguments it's really a no-op
+			continue;
+		}
+
+		pdwPushData += dwCount;
 		// Initialize handled count & name to their default :
 		HandledCount = 1;
 		HandledBy = nullptr;
@@ -540,7 +628,7 @@ extern void XTL::EmuExecutePushBufferRaw
 			// Skip all commands not intended for channel 0 :
 			if (dwSubCh > 0) {
 				HandledCount = dwCount;
-				HandledBy = "*CHANNEL IGNORED*";
+				HandledBy = " *CHANNEL IGNORED*";
 			}
 			else {
 				// Assert(dwMethod < SizeOf(NV2AInstance));
@@ -555,7 +643,7 @@ extern void XTL::EmuExecutePushBufferRaw
 
 //#ifdef DXBX_USE_D3D
 			if (g_pD3DDevice8 == nullptr) {
-				HandledBy = "*NO DEVICE*"; // Don't do anything if we have no device yet (should not occur anymore, but this helps spotting errors)
+				HandledBy = " *NO DEVICE*"; // Don't do anything if we have no device yet (should not occur anymore, but this helps spotting errors)
 				NV2ACallback = nullptr;
 			}
 //#endif
@@ -587,22 +675,28 @@ extern void XTL::EmuExecutePushBufferRaw
 				DbgPrintf("  NV2A > %s\n", HandledBy);
 			}
 
+
 			// Since some instructions use less arguments, we repeat this loop
 			// for the next instruction so any leftover values are handled there :
 			pdwPushArguments += HandledCount;
 			dwCount -= HandledCount;
 			StepNr += HandledCount;
-			// Re-initialize handled count & name to their default, for the next command :
-			HandledCount = 1;
-			HandledBy = nullptr;
 
 			// The no-increment flag applies to method only :
 			if (!bNoInc) {
-				dwMethod += 4; // 1 method further
+				if (HandledCount == 1)
+					dwMethod += 4; // 1 method further
+				else
+					dwMethod += HandledCount * sizeof(DWORD); // TODO : Is this correct?
+
 				// Remember the last two methods, in case we need to differentiate contexts (using SeenRecentMethod):
 				PrevMethod[1] = PrevMethod[0];
 				PrevMethod[0] = dwMethod;
 			}
+
+			// Re-initialize handled count & name to their default, for the next command :
+			HandledCount = 1;
+			HandledBy = nullptr;
 
 			// Fake a read by the Nv2A, by moving the DMA 'Get' location
 			// up to where the pushbuffer is executed, so that the BusyLoop
@@ -614,8 +708,8 @@ extern void XTL::EmuExecutePushBufferRaw
 			//*/*D3DDevice.*/m_pGpuTime = /*D3DDevice.*/*m_pCpuTime -2;
 
 			// TODO : We should register vblank counts somewhere?
-		} // while dwCount > 0 try
-    }
+		} // while (dwCount > 0)
+	} //  while (*pdwPushData != 0)
 
 	// This line is to reset the GPU 'Get' pointer, so that busyloops will terminate :
 	// g_NV2ADMAChannel.Get = pdwPushData;
@@ -636,6 +730,59 @@ extern void XTL::EmuExecutePushBufferRaw
         Sleep(500);
     }
 }
+
+// timing thread procedure
+XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
+{
+	DbgPrintf("EmuD3D8 : NV2A DMA thread is running.\n");
+
+	// DxbxLogPushBufferPointers('NV2AThread');
+
+#ifdef DXBX_USE_OPENGL
+	// The OpenGL context must be created in the same thread that's going to do all drawing
+	// (in this case it's the NV2A push buffer emulator thread doing all the drawing) :
+	InitOpenGLContext();
+#endif
+
+/*
+	UpdateTimer: DxbxTimer;
+	UpdateTimer.InitFPS(100); // 100 updates per second should be enough
+*/
+
+	Pusher *pPusher = (Pusher*)(*((xbaddr *)Xbox_D3D__Device));
+	Nv2AControlDma *NV2ADMAChannel = g_NV2ADMAChannel;
+	DWORD *pNV2AWorkTrigger = (DWORD*)((xbaddr)GPURegisterBase + NV2A_PFB_WC_CACHE);
+
+	// Emulate the GPU engine here, by running the pushbuffer on the correct addresses :
+	while (true) { // TODO -oDxbx: When do we break out of this while loop ?
+
+		Sleep(10); // UpdateTimer.Wait;
+
+		// Check that KickOff() signaled a work flush :
+		if ((*pNV2AWorkTrigger & NV2A_PFB_WC_CACHE_FLUSH_TRIGGER) > 0) {
+			// Reset the flush trigger, so that KickOff() continues :
+			*pNV2AWorkTrigger ^= NV2A_PFB_WC_CACHE_FLUSH_TRIGGER;
+			//	DxbxLogPushBufferPointers('NV2AThread work trigger');
+		}
+
+		// Start at the DMA's 'Put' address, and assume we'll run
+		// up to the end of the pushbuffer (as filled by software) :
+		DWORD *GPUStart = NV2ADMAChannel->Get;
+		if (GPUStart == NULL)
+			GPUStart = NV2ADMAChannel->Put;
+
+		DWORD *GPUEnd = pPusher->m_pPut;
+
+		// See if there's a valid work pointer :
+		if ((GPUStart != NULL) && (GPUEnd != NULL)) {
+			// Execute the instructions, this returns the address where execution stopped :
+			EmuExecutePushBufferRaw(GPUStart);// , GPUEnd);
+		}
+	}
+
+	DbgPrintf("EmuD3D8 : NV2A DMA thread is finished.\n");
+	return 0;
+} // EmuThreadHandleNV2ADMA
 
 #ifdef _DEBUG_TRACK_PB
 void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
