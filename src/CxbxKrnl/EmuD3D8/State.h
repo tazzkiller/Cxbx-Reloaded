@@ -57,6 +57,8 @@ struct X_Stream
 	XTL::X_D3DVertexBuffer *pVertexBuffer;
 };
 
+extern DWORD *Xbox_D3D__Device; // The Xbox1 D3D__Device
+
 extern X_Stream *Xbox_g_Stream; // The Xbox1 g_Stream[16] array
 
 extern DWORD *Xbox_D3D__RenderState_Deferred;

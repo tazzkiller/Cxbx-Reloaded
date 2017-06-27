@@ -153,7 +153,7 @@ void SetGlobalSymbols()
 	}
 
 	// Lookup and set all required global symbols
-	/*ignore*/FindSymbolAddress("D3DDEVICE");
+	XTL::Xbox_D3D__Device = (DWORD *)FindSymbolAddress("D3DDEVICE");
 	XTL::Xbox_D3D__RenderState_Deferred = (DWORD*)FindSymbolAddress("D3DDeferredRenderState");
 	XTL::Xbox_D3D_TextureState = (DWORD*)FindSymbolAddress("D3D__TextureState");
 	XTL::Xbox_g_Stream = (XTL::X_Stream *)FindSymbolAddress("g_Stream", false); // Optional - aerox2 hits this case
