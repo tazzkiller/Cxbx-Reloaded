@@ -2962,15 +2962,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CopyRects)
 	if (pHostDestinationSurface != nullptr)
 		pHostDestinationSurface->UnlockRect(); // remove old lock
 
-    /*
-    static int kthx = 0;
-    char fileName[255];
-
-    sprintf(fileName, "C:\\Aaron\\Textures\\SourceSurface-%d.bmp", kthx++);
-
-    D3DXSaveSurfaceToFile(fileName, D3DXIFF_BMP, pHostSourceSurface, NULL, NULL);
-    //*/
-
     HRESULT hRet = g_pD3DDevice8->CopyRects
     (
 		pHostSourceSurface,
@@ -3087,9 +3078,6 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer2)
             pCachedPrimarySurface = nullptr;
             BackBuffer = 0;
         }
-
-        // Debug: Save this image temporarily
-        // else D3DXSaveSurfaceToFile("C:\\Aaron\\Textures\\FrontBuffer.bmp", D3DXIFF_BMP, pCachedPrimarySurface, NULL, NULL);
     }
 
     if(BackBuffer != -1) {
@@ -7263,30 +7251,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetDepthClipPlanes)
 
     return hRet;
 }
-
-#if 0 // patch disabled
-HRESULT WINAPI XTL::EMUPATCH(D3D_SetPushBufferSize)
-(
-    DWORD PushBufferSize,
-    DWORD KickOffSize
-)
-{
-	FUNC_EXPORTS
-
-	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(PushBufferSize)
-		LOG_FUNC_ARG(KickOffSize)
-		LOG_FUNC_END;
-
-    HRESULT hRet = D3D_OK;
-
-    // This is a Xbox extension, meaning there is no pc counterpart.
-
-    
-
-    return hRet;
-}
-#endif
 
 DWORD WINAPI XTL::EMUPATCH(D3DDevice_InsertFence)()
 {
