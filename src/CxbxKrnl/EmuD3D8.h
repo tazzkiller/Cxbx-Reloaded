@@ -85,29 +85,6 @@ extern void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource);
 XTL::IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, int Stage);
 
 // ******************************************************************
-// * patch: CMiniport_InitHardware
-// ******************************************************************
-BOOL __fastcall EMUPATCH(CMiniport_InitHardware)
-(
-	PVOID This,
-	void *_EDX // __thiscall simulation
-);
-
-// ******************************************************************
-// * patch: CMiniport_CreateCtxDmaObject
-// ******************************************************************
-INT __fastcall EMUPATCH(CMiniport_CreateCtxDmaObject)
-(
-	PVOID This,
-	void * _EDX, // __thiscall simulation
-	ULONG Dma,
-	ULONG ClassNum,
-	PVOID Base,
-	ULONG Limit,
-	PVOID Object
-);
-
-// ******************************************************************
 // * patch: Direct3D_CreateDevice
 // ******************************************************************
 HRESULT WINAPI EMUPATCH(Direct3D_CreateDevice)

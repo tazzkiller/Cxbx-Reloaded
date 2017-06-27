@@ -423,6 +423,7 @@ $(SOLUTIONDIR)Export.bat</Command>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="..\..\src\CxbxKrnl\Miniport.cpp" />
     <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8\PixelShader.cpp" />
     <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8\PushBuffer.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
