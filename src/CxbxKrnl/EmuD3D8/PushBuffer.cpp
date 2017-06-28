@@ -761,14 +761,14 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 	while (true) { // TODO -oDxbx: When do we break out of this while loop ?
 
 		Sleep(10); // UpdateTimer.Wait;
-
+/*
 		// Check that KickOff() signaled a work flush :
 		if ((*pNV2AWorkTrigger & NV2A_PFB_WC_CACHE_FLUSH_TRIGGER) > 0) {
 			// Reset the flush trigger, so that KickOff() continues :
 			*pNV2AWorkTrigger ^= NV2A_PFB_WC_CACHE_FLUSH_TRIGGER;
 			//	DxbxLogPushBufferPointers('NV2AThread work trigger');
 		}
-
+*/
 		// Start at the DMA's 'Put' address, and assume we'll run
 		// up to the end of the pushbuffer (as filled by software) :
 		DWORD *GPUStart = NV2ADMAChannel->Get;

@@ -154,7 +154,7 @@ XTL::Nv2AControlDma *CxbxNV2ADMAChannel()
 
 		// Walk through a few members of the D3D device struct :
 		m_pCPUTime = (xbaddr*)(*((xbaddr *)Xbox_D3D__Device));
-		DbgPrintf("Searching for m_pCPUTime from 0x%0.8x (m_pGPUTime is at 0x%0.8x)", m_pCPUTime, m_pGPUTime);
+		DbgPrintf("Searching for m_pCPUTime from 0x%0.8x (m_pGPUTime is at 0x%0.8x)\n", m_pCPUTime, m_pGPUTime);
 
 		for (int i = 0; i <= 32; i++) {
 			if (i == 32)

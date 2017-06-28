@@ -2693,7 +2693,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_EndPush)(DWORD *pPush)
 	{
 		CxbxUpdateTextureStages();
 
-		EmuExecutePushBufferRaw(g_pPrimaryPB);
+		EmuExecutePushBufferRaw(g_pPrimaryPB); // g_dwPrimaryPBCount
 
 		delete[] g_pPrimaryPB;
 		g_pPrimaryPB = nullptr;
