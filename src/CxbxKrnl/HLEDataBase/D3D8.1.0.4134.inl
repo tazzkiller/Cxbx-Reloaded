@@ -7,12 +7,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->D3D8.1.0.4134.cpp
+// *   CxbxKrnl->HLEDataBase->D3D8.1.0.4134.inl
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -40,7 +40,7 @@ OOVPA_XREF(D3DDevice_SetTextureState_TexCoordIndex, 4134, 1+10,
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x18, XREF_D3DTSS_TEXCOORDINDEX), // Derived
+		XREF_ENTRY(0x18, XREF_D3DTSS_TEXCOORDINDEX), // Derived - TODO : Verify 0x18 (could be 0x11 or 0x13)
 
         // D3DDevice_SetTextureState_TexCoordIndex+0x13 : shl eax, 0x07
         { 0x13, 0xC1 }, // (Offset,Value)-Pair #1
@@ -1790,6 +1790,7 @@ OOVPATable D3D8_4134[] = {
 
 	REGISTER_OOVPA(CMiniport_InitHardware, 3911, PATCH),
 	REGISTER_OOVPA(CMiniport_CreateCtxDmaObject, 3911, PATCH),
+	REGISTER_OOVPA(CMiniport_InitDMAChannel, 3911, PATCH),
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 3911, DISABLED),
 
 	REGISTER_OOVPA(Direct3D_CreateDevice, 3911, PATCH), // Was 3925

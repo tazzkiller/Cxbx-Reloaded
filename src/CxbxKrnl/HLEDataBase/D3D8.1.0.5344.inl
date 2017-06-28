@@ -7,12 +7,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->D3D8.1.0.5344.cpp
+// *   CxbxKrnl->HLEDataBase->D3D8.1.0.5344.inl
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -425,21 +425,42 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetViewport
 // ******************************************************************
-OOVPA_XREF(D3DDevice_SetViewport, 5344, 1 + 8,
+OOVPA_XREF(D3DDevice_SetViewport, 5344, 1 + 28,
 
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x03, XREF_D3DDEVICE), // Derived
+	XREF_ENTRY(0x0D, XREF_D3DDEVICE), // Derived
 
-        { 0x1E, 0x87 },
-        { 0x3E, 0xC0 },
-        { 0x5E, 0x49 },
-        { 0x7E, 0xD6 },
-        { 0x9E, 0xE2 },
-        { 0xBE, 0xC1 },
-        { 0xDE, 0xC9 },
-        { 0xFE, 0x14 },
+		{ 0x00, 0x83 },
+		{ 0x01, 0xEC },
+		{ 0x02, 0x08 },
+		{ 0x03, 0x53 },
+		{ 0x04, 0x8B },
+		{ 0x05, 0x5C },
+		{ 0x06, 0x24 },
+		{ 0x07, 0x10 },
+		{ 0x08, 0x85 },
+		{ 0x09, 0xDB },
+		{ 0x0A, 0x57 },
+		{ 0x0B, 0x8B },
+		{ 0x0C, 0x3D },
+
+		{ 0x11, 0x0F },
+		{ 0x12, 0x84 },
+		{ 0x13, 0x27 },
+		{ 0x14, 0x01 },
+		{ 0x15, 0x00 },
+		{ 0x16, 0x00 },
+		{ 0x17, 0x8B },
+		{ 0x18, 0x87 },
+		{ 0x19, 0xE4 },
+		{ 0x1A, 0x15 },
+		{ 0x1B, 0x00 },
+		{ 0x1C, 0x00 },
+		{ 0x1D, 0x3B },
+		{ 0x1E, 0x87 },
+		{ 0x1F, 0xF4 },
 OOVPA_END;
 
 // ******************************************************************
@@ -999,6 +1020,7 @@ OOVPA_END;
 // ******************************************************************
 OOVPATable D3D8_5344[] = {
 
+	REGISTER_OOVPA(CMiniport_InitDMAChannel, 3911, PATCH),
 	REGISTER_OOVPA(Direct3D_CreateDevice, 5344, PATCH), // Was 5233
 	REGISTER_OOVPA(MakeRequestedSpace, 5344, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetDisplayFieldStatus, 5233, PATCH),
@@ -1050,7 +1072,7 @@ OOVPATable D3D8_5344[] = {
 	REGISTER_OOVPA(D3DDevice_SetRenderState_TextureFactor, 5233, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_ZBias, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_EdgeAntiAlias, 4134, PATCH),
-	REGISTER_OOVPA(D3DDevice_SetRenderState_FillMode, 4134, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetRenderState_FillMode, 4361, PATCH), // Was 4134
 	REGISTER_OOVPA(D3DDevice_SetRenderState_BackFillMode, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_FogColor, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_Dxt1NoiseEnable, 5344, PATCH), // Was 5233

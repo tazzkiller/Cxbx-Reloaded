@@ -9,7 +9,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   CxbxKrnl->EmuKrnlFs.cpp
+// *   CxbxKrnl->Miniport.h
 // *
 // *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
@@ -28,79 +28,79 @@
 // *  If not, write to the Free Software Foundation, Inc.,
 // *  59 Temple Place - Suite 330, Bostom, MA 02111-1307, USA.
 // *
-// *  (c) 2002-2003 Aaron Robinson <caustik@caustik.com>
-// *  CopyRight (c) 2016-2017 Patrick van Logchem <pvanlogchem@gmail.com>
+// *  (c) 2017 Patrick van Logchem <pvanlogchem@gmail.com>
 // *
 // *  All rights reserved
 // *
 // ******************************************************************
-#define _CXBXKRNL_INTERNAL
-#define _XBOXKRNL_DEFEXTRN_
+#ifndef MINIPORT_H
+#define MINIPORT_H
 
-// prevent name collisions
-namespace xboxkrnl
-{
-#include <xboxkrnl/xboxkrnl.h> // For FscGetCacheSize, etc.
-};
+//#include "EmuD3D8Types.h"
+//#include "CxbxKrnl.h"
+//#include "Common/Xbe.h"
+//#include "Emu.h"
 
-#include "Logging.h" // For LOG_FUNC()
-#include "EmuKrnlLogging.h"
+typedef struct {
+	ULONG Handle;
+	USHORT SubChannel;
+	USHORT Engine;
+	ULONG ClassNum;
+	ULONG Instance;
+} OBJECTINFO;
 
-// prevent name collisions
-namespace NtDll
-{
-#include "EmuNtDll.h"
-};
+typedef struct {
+	DWORD Ignored[0x10];
+	xbaddr *Put; // On Xbox1, this field is only written to by the CPU (the GPU uses this as a trigger to start executing from the given address)
+	xbaddr *Get; // On Xbox1, this field is only read from by the CPU (the GPU reflects in here where it is/stopped executing)
+	uint32 Reference;
+	DWORD Ignored2[0x7ED];
+} Nv2AControlDma;
 
-#include "Emu.h" // For EmuWarning()
+#define NV2A_PFB_WC_CACHE 0x00100410 // pbKit
+#define NV2A_PFB_WC_CACHE_FLUSH_TRIGGER 0x00010000 // pbKit
 
-#define FSCACHE_MAXIMUM_NUMBER_OF_CACHE_PAGES 2048
+extern void *GPURegisterBase;
 
-// global variables
-xboxkrnl::LONG g_FscNumberOfCachePages = 16; // 16 = default number of file system cache pages
-
-// ******************************************************************
-// * 0x0023 - FscGetCacheSize()
-// ******************************************************************
-XBSYSAPI EXPORTNUM(35) xboxkrnl::ULONG NTAPI xboxkrnl::FscGetCacheSize()
-{
-	LOG_FUNC();
-
-	RETURN(g_FscNumberOfCachePages);
-}
+extern Nv2AControlDma *g_NV2ADMAChannel;
+extern xbaddr *m_pCPUTime;
+extern xbaddr *m_pGPUTime;
 
 // ******************************************************************
-// * 0x0024 - FscInvalidateIdleBlocks()
+// * patch: CMiniport_InitHardware
 // ******************************************************************
-XBSYSAPI EXPORTNUM(36) xboxkrnl::VOID NTAPI xboxkrnl::FscInvalidateIdleBlocks()
-{
-	LOG_FUNC();
-
-	LOG_UNIMPLEMENTED();
-}
-
-// ******************************************************************
-// * 0x0025 - FscSetCacheSize()
-// ******************************************************************
-XBSYSAPI EXPORTNUM(37) xboxkrnl::NTSTATUS NTAPI xboxkrnl::FscSetCacheSize
+BOOL __fastcall EMUPATCH(CMiniport_InitHardware)
 (
-	ULONG NumberOfCachePages
-)
-{
-	LOG_FUNC_ONE_ARG(NumberOfCachePages);
+	PVOID This,
+	void * _EDX // __thiscall simulation
+);
 
-	NTSTATUS ret = STATUS_SUCCESS;
+// ******************************************************************
+// * patch: CMiniport_CreateCtxDmaObject
+// ******************************************************************
+BOOL __fastcall EMUPATCH(CMiniport_CreateCtxDmaObject)
+(
+	PVOID This,
+	void * _EDX, // __thiscall simulation
+	ULONG Dma,
+	ULONG ClassNum,
+	PVOID Base,
+	ULONG Limit,
+	PVOID Object
+);
 
-	if (NumberOfCachePages > FSCACHE_MAXIMUM_NUMBER_OF_CACHE_PAGES)
-		ret = STATUS_INVALID_PARAMETER;
-	else
-	{
-		// TODO : Actually allocate file system cache pages, for example do something like this :
-		// if (NumberOfCachePages < g_FscNumberOfCachePages) FscShrinkCacheSize(NumberOfCachePages)
-		// if (NumberOfCachePages > g_FscNumberOfCachePages) FscGrowCacheSize(NumberOfCachePages), possibly return STATUS_INSUFFICIENT_RESOURCES
-		g_FscNumberOfCachePages = NumberOfCachePages;
-	}
+// ******************************************************************
+// * patch: CMiniport_InitDMAChannel
+// ******************************************************************
+BOOL __fastcall EMUPATCH(CMiniport_InitDMAChannel)
+(
+	PVOID This,
+	void * _EDX, // __thiscall simulation
+	ULONG Class,
+	OBJECTINFO *ErrorContext,
+	OBJECTINFO *DataContext,
+	ULONG Offset,
+	Nv2AControlDma **ppChannel
+);
 
-	RETURN(ret);
-}
-
+#endif // MINIPORT_H

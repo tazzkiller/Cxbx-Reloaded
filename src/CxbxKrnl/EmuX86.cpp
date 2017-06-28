@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuX86.cpp
+// *   CxbxKrnl->EmuX86.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -30,6 +30,8 @@
 // *
 // *  (c) 2002-2003 Aaron Robinson <caustik@caustik.com>
 // *  (c) 2016 Luke Usher <luke.usher@outlook.com>
+// *  CopyRight (c) 2016-2017 Patrick van Logchem <pvanlogchem@gmail.com>
+// *
 // *  All rights reserved
 // *
 // ******************************************************************
@@ -139,12 +141,7 @@ uint32_t EmuX86_Read32Aligned(xbaddr addr)
 	uint32_t value;
 
 	if (addr >= NV2A_ADDR && addr < NV2A_ADDR + NV2A_SIZE) {
-		if (!bLLE_GPU) {
-			EmuWarning("EmuX86_Read32Aligned(0x%08X) Unexpected NV2A access, missing a HLE patch. " \
-				"Please notify https://github.com/Cxbx-Reloaded/Cxbx-Reloaded which title raised this!", addr);
-		}
-
-		// Access NV2A regardless weither HLE is disabled or not 
+		// Access NV2A regardless weither HLE is disabled or not (ignoring bLLE_GPU)
 		value = EmuNV2A_Read32(addr - NV2A_ADDR);
 		// Note : EmuNV2A_Read32 does it's own logging
 	} else {
@@ -208,12 +205,7 @@ void EmuX86_Write32Aligned(xbaddr addr, uint32_t value)
 	assert((addr & 3) == 0);
 
 	if (addr >= NV2A_ADDR && addr < NV2A_ADDR + NV2A_SIZE) {
-		if (!bLLE_GPU) {
-			EmuWarning("EmuX86_Write32Aligned(0x%08X, 0x%08X) Unexpected NV2A access, missing a HLE patch. " \
-				"Please notify https://github.com/Cxbx-Reloaded/Cxbx-Reloaded which title raised this!", addr);
-		}
-
-		// Access NV2A regardless weither HLE is disabled or not 
+		// Access NV2A regardless weither HLE is disabled or not (ignoring bLLE_GPU)
 		EmuNV2A_Write32(addr - NV2A_ADDR, value);
 		// Note : EmuNV2A_Write32 does it's own logging
 		return;

@@ -7,12 +7,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuD3D8->PushBuffer.h
+// *   CxbxKrnl->EmuD3D8->PushBuffer.h
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -58,9 +58,19 @@ extern void DbgDumpPushBuffer
 	DWORD				  dwSize 
 );
 
+typedef struct {
+	DWORD *m_pPut; // This is the address to where the CPU will write it's next GPU instruction
+	DWORD *m_pThreshold; // This is the upper limit for m_pPut (when it's reached, MakeSpace() is called,
+	// which just forwards the call to MakeRequestedSpace, passing it m_PushSegmentSize/2 as 'minimum space',
+	// and m_PushSegmentSize (without division) as 'requested space')
+} Pusher;
+
+DWORD WINAPI EmuThreadHandleNV2ADMA(LPVOID);
+
 // primary push buffer
 extern uint32  g_dwPrimaryPBCount;
 extern uint32 *g_pPrimaryPB;
+extern DWORD NV2AInstance_Registers[8192];
 
 // push buffer debugging
 extern bool g_bStepPush;
