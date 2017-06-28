@@ -862,7 +862,7 @@ static inline void GetOovpaEntry(OOVPA *oovpa, int index, OUT uint32 &offset, OU
 	value = ((LOOVPA<1>*)oovpa)->Lovp[index].Value;
 }
 
-static boolean CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
+static bool CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
 {
 	// NOTE : Checking offsets uses bytes. Doing that first is probably
 	// faster than first checking (more complex) xrefs.

@@ -876,7 +876,7 @@ XTL::X_D3DRESOURCETYPE GetXboxD3DResourceType(const XTL::X_D3DResource *pXboxRes
 
 // This can be used to determine if resource Data adddresses
 // need the MM_SYSTEM_PHYSICAL_MAP bit set or cleared
-inline boolean IsResourceTypeGPUReadable(const DWORD ResourceType)
+inline bool IsResourceTypeGPUReadable(const DWORD ResourceType)
 {
 	switch (ResourceType) {
 	case X_D3DCOMMON_TYPE_VERTEXBUFFER:
