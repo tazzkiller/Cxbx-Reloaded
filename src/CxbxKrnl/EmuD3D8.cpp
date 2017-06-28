@@ -1217,7 +1217,7 @@ void CxbxUpdateTextureStages()
 		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = nullptr;
 		
 		if (g_iWireframe == 0) { // Not manually disabled?
-//			if (XTL::NV2AInstance_Registers[NV2A_TX_ENABLE(Stage)] & NV2A_TX_ENABLE_ENABLE) { // Not Xbox disabled?
+//			if (NV2AInstance_Registers[NV2A_TX_ENABLE(Stage)] & NV2A_TX_ENABLE_ENABLE) { // Not Xbox disabled?
 				pHostBaseTexture = CxbxUpdateTextureStage(Stage);
 //			}
 		}
@@ -4436,9 +4436,11 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
     return result;
 }
 
+extern DWORD NV2AInstance_Registers[8192];
+
 XTL::D3DCOLOR *CxbxGetNv2APalette(int Stage, int &NrPaletteEntries)
 {
-	xbaddr PaletteOffset = XTL::NV2AInstance_Registers[NV2A_TX_PALETTE_OFFSET(Stage) / 4];
+	xbaddr PaletteOffset = NV2AInstance_Registers[NV2A_TX_PALETTE_OFFSET(Stage) / 4];
 	if (PaletteOffset == 0)
 		return NULL;
 
@@ -4464,8 +4466,6 @@ void *CxbxGetNv2ATextureAddr(int Stage)
 
 void CxbxGetNv2ATextureInfo(int Stage, DWORD &Format, DWORD &Pitch, DWORD &Height, DWORD &Width)
 {
-	using namespace XTL;
-
 	Format = NV2AInstance_Registers[NV2A_TX_FORMAT(Stage) / 4];
 
 	DWORD Swizzle = NV2AInstance_Registers[NV2A_TX_SWIZZLE(Stage) / 4];

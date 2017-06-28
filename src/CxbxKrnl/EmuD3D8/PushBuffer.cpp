@@ -190,13 +190,11 @@ BOOL bNoInc;
 int HandledCount;
 char *HandledBy;
 
-DWORD XTL::NV2AInstance_Registers[8192] = {};
+DWORD NV2AInstance_Registers[8192] = {};
 
 typedef void (*NV2ACallback_t)();
 
 NV2ACallback_t NV2ACallbacks[8192] = {};
-
-using namespace XTL;
 
 void EmuNV2A_NOP() // 0x0100
 {
@@ -232,7 +230,7 @@ void EmuNV2A_NOP() // 0x0100
 		break;
 	}
 	case 6: {
-		X_D3DCALLBACK Callback = (X_D3DCALLBACK)NOP_Argument1;
+		XTL::X_D3DCALLBACK Callback = (XTL::X_D3DCALLBACK)NOP_Argument1;
 		DWORD Context = NOP_Argument2;
 		Callback(Context);
 		HandledBy = "NOP read callback";
@@ -277,13 +275,15 @@ void NVPB_SetBeginEnd() // 0x000017FC
 		}
 #endif
 
-		XboxPrimitiveType = (X_D3DPRIMITIVETYPE)*pdwPushArguments;
+		XboxPrimitiveType = (XTL::X_D3DPRIMITIVETYPE)*pdwPushArguments;
 		HandledBy = "DrawBegin()";
 	}
 }
 
 void NVPB_InlineVertexArray() // 0x1818
 {
+	using namespace XTL;
+
 	HandledBy = "DrawVertices()";
 	HandledCount = dwCount;
 
@@ -344,7 +344,7 @@ void NVPB_InlineVertexArray() // 0x1818
 
 	// render vertices
 	if (dwVertexShader != -1) {
-		UINT VertexCount = (dwCount * sizeof(DWORD)) / dwVertexStride;
+		uint VertexCount = (dwCount * sizeof(::DWORD)) / dwVertexStride;
 		CxbxDrawContext DrawContext = {};
 		DrawContext.XboxPrimitiveType = XboxPrimitiveType;
 		DrawContext.dwVertexCount = VertexCount;
@@ -358,6 +358,8 @@ void NVPB_InlineVertexArray() // 0x1818
 
 void NVPB_FixLoop() // 0x1808
 {
+	using namespace XTL;
+
 	HandledBy = "DrawIndexedVertices()";
 	HandledCount = dwCount;
 
@@ -387,7 +389,7 @@ void NVPB_FixLoop() // 0x1808
 
 	// perform rendering
 	if (pIBMem[0] != 0xFFFF) {
-		UINT uiIndexCount = dwCount + 2;
+		uint uiIndexCount = dwCount + 2;
 #ifdef _DEBUG_TRACK_PB
 		if (!g_PBTrackDisable.exists(pdwOrigPushData))
 #endif
@@ -412,6 +414,8 @@ void NVPB_FixLoop() // 0x1808
 
 void NVPB_InlineIndexArray() // 0x1800
 {
+	using namespace XTL;
+
 	HandledBy = "DrawIndices()";
 	HandledCount = dwCount;
 
@@ -439,7 +443,7 @@ void NVPB_InlineIndexArray() // 0x1800
 
 	// perform rendering
 	{
-		UINT dwIndexCount = dwCount * 2; // Each DWORD data in the pushbuffer carries 2 words
+		uint dwIndexCount = dwCount * 2; // Each DWORD data in the pushbuffer carries 2 words
 
 		// copy index data
 		{

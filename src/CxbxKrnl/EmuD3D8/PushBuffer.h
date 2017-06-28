@@ -43,8 +43,8 @@ extern void CxbxDrawPrimitiveUP(CxbxDrawContext &DrawContext);
 
 extern void EmuExecutePushBuffer
 (
-    X_D3DPushBuffer       *pPushBuffer,
-    X_D3DFixup            *pFixup
+    XTL::X_D3DPushBuffer       *pPushBuffer,
+	XTL::X_D3DFixup            *pFixup
 );
 
 extern void EmuExecutePushBufferRaw
@@ -70,7 +70,6 @@ DWORD WINAPI EmuThreadHandleNV2ADMA(LPVOID);
 // primary push buffer
 extern uint32  g_dwPrimaryPBCount;
 extern uint32 *g_pPrimaryPB;
-extern DWORD NV2AInstance_Registers[8192];
 
 // push buffer debugging
 extern bool g_bStepPush;

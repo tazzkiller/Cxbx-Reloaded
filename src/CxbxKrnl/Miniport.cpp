@@ -142,8 +142,8 @@ XTL::Nv2AControlDma *CxbxNV2ADMAChannel()
 		g_NV2ADMAChannel = (Nv2AControlDma*)CxbxCalloc(1, sizeof(Nv2AControlDma));
 
 		// Create our DMA pushbuffer 'handling' thread :
-		DWORD dwThreadId = 0;
-		HANDLE hThread = CreateThread(nullptr, 0, EmuThreadHandleNV2ADMA, nullptr, 0, &dwThreadId);
+		::DWORD dwThreadId = 0;
+		::HANDLE hThread = CreateThread(nullptr, 0, EmuThreadHandleNV2ADMA, nullptr, 0, &dwThreadId);
 		// Make sure callbacks run on the same core as the one that runs Xbox1 code :
 		SetThreadAffinityMask(hThread, g_CPUXbox);
 		// We set the priority of this thread a bit higher, to assure reliable timing :
