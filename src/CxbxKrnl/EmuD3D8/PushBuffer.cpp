@@ -503,6 +503,7 @@ void NVPB_SetVertexShaderConstants()
 	Register += ConstantCount;
 	// Adjust the current register :
 	NV2AInstance_Registers[NV2A_VP_UPLOAD_CONST_ID / 4] = Register;
+	HandledBy = "SetVertexShaderConstant";
 }
 
 char *DxbxXboxMethodToString(DWORD dwMethod)
@@ -762,7 +763,7 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 
 	Pusher *pPusher = (Pusher*)(*((xbaddr *)Xbox_D3D__Device));
 	Nv2AControlDma *pNV2ADMAChannel = &g_NV2ADMAChannel;
-	DWORD *pNV2AWorkTrigger = (DWORD*)((xbaddr)GPURegisterBase + NV2A_PFB_WC_CACHE);
+	//DWORD *pNV2AWorkTrigger = (DWORD*)((xbaddr)GPURegisterBase + NV2A_PFB_WC_CACHE);
 
 	// Wait until the DMA channel is assigned a starting address :
 	while (pNV2ADMAChannel->Put == NULL)
@@ -772,7 +773,13 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 	while (true) { // TODO -oDxbx: When do we break out of this while loop ?
 
 /*
-		// Check that KickOff() signaled a work flush :
+		// Xbox KickOff() signals a work flush - we ignore that here for now,
+		// and handle all commands as they enter the push buffer.
+		// TODO : We should actually wait for DEVICE_READ32(PFB) case NV_PFB_WBC
+		// sending us a signal, like so : WaitForSingleObject(ghNV2AFlushEvent, 100);
+
+		#define NV2A_PFB_WC_CACHE 0x00100410 // pbKit
+		#define NV2A_PFB_WC_CACHE_FLUSH_TRIGGER 0x00010000 // pbKit
 		if ((*pNV2AWorkTrigger & NV2A_PFB_WC_CACHE_FLUSH_TRIGGER) > 0) {
 			// Reset the flush trigger, so that KickOff() continues :
 			*pNV2AWorkTrigger ^= NV2A_PFB_WC_CACHE_FLUSH_TRIGGER;
@@ -789,7 +796,6 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 			// GPUEnd ^= MM_SYSTEM_PHYSICAL_MAP; // Clearing mask doesn't seem necessary
 			// Signal that DMA has finished by resetting the GPU 'Get' pointer, so that busyloops will terminate
 			// See EmuNV2A.cpp : DEVICE_READ32(USER) and DEVICE_WRITE32(USER)
-			pNV2ADMAChannel->Get = (void*)GPUEnd;
 			pNV2ADMAChannel->Put = (void*)GPUEnd;
 			// Register timestamp (needs an offset - but why?)
 			*m_pGPUTime = *m_pCPUTime - 2;
@@ -797,6 +803,9 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 		}
 		else
 			Sleep(10); // UpdateTimer.Wait;
+
+		// Always set the ending address in DMA, so Xbox HwGet() will see it, breaking the BusyLoop() cycle
+		pNV2ADMAChannel->Get = (void*)GPUEnd;
 	}
 
 	DbgPrintf("EmuD3D8 : NV2A DMA thread is finished.\n");

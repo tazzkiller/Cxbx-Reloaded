@@ -602,19 +602,27 @@ DEBUG_END(USER)
 
 
 
-#define DEBUG_READ32(DEV)            DbgPrintf("EmuX86 Read32 NV2A " #DEV "(0x%08X) = 0x%08X [Handled, %s]\n", addr, result, DebugNV_##DEV##(addr))
-#define DEBUG_READ32_UNHANDLED(DEV)  { DbgPrintf("EmuX86 Read32 NV2A " #DEV "(0x%08X) = 0x%08X [Unhandled, %s]\n", addr, result, DebugNV_##DEV##(addr)); return result; }
+#define DEBUG_READ32_LOG(DEV, msg, ...)  DbgPrintf("EmuX86 Read32 NV2A " #DEV ## "(0x%08X) " ## msg ## "\n", addr, __VA_ARGS__)
+#define DEBUG_WRITE32_LOG(DEV, msg, ...) DbgPrintf("EmuX86 Write32 NV2A " #DEV ## "(0x%08X, 0x%08X) " ## msg ## "\n", addr, value, __VA_ARGS__)
 
-#define DEBUG_WRITE32(DEV)           DbgPrintf("EmuX86 Write32 NV2A " #DEV "(0x%08X, 0x%08X) [Handled, %s]\n", addr, value, DebugNV_##DEV##(addr))
-#define DEBUG_WRITE32_UNHANDLED(DEV) { DbgPrintf("EmuX86 Write32 NV2A " #DEV "(0x%08X, 0x%08X) [Unhandled, %s]\n", addr, value, DebugNV_##DEV##(addr)); return; }
+#define DEBUG_REGNAME(DEV)  DebugNV_##DEV##(addr)
+
+#define DEBUG_READ32(DEV)            DEBUG_READ32_LOG(DEV, "= 0x%08X [Handled, %s]", result, DEBUG_REGNAME(DEV))
+#define DEBUG_READ32_UNHANDLED(DEV)  { DEBUG_READ32_LOG(DEV, "= 0x%08X [Unhandled, %s]", result, DEBUG_REGNAME(DEV)); return result; }
+
+#define DEBUG_WRITE32(DEV)           DEBUG_WRITE32_LOG(DEV, "[Handled, %s]", DEBUG_REGNAME(DEV))
+#define DEBUG_WRITE32_UNHANDLED(DEV) { DEBUG_WRITE32_LOG(DEV, "[Unhandled, %s]", DEBUG_REGNAME(DEV)); return; }
+
+#define DEVICE_REG32_ADDR(DEV, addr) DEV.regs[addr / sizeof(uint32_t)]
+#define DEVICE_REG32(DEV) DEVICE_REG32_ADDR(DEV, addr)
 
 #define DEVICE_READ32(DEV) uint32_t EmuNV2A_##DEV##_Read32(xbaddr addr)
 #define DEVICE_READ32_SWITCH() uint32_t result = 0; switch (addr) 
-#define DEVICE_READ32_REG(dev) result = dev.regs[addr / sizeof(uint32_t)]
+#define DEVICE_READ32_REG(DEV) result = DEVICE_REG32(DEV)
 #define DEVICE_READ32_END(DEV) DEBUG_READ32(DEV); return result
 
 #define DEVICE_WRITE32(DEV) void EmuNV2A_##DEV##_Write32(xbaddr addr, uint32_t value)
-#define DEVICE_WRITE32_REG(dev) dev.regs[addr / sizeof(uint32_t)] = value
+#define DEVICE_WRITE32_REG(DEV) DEVICE_REG32(DEV) = value
 #define DEVICE_WRITE32_END(DEV) DEBUG_WRITE32(DEV)
 
 
@@ -925,12 +933,20 @@ DEVICE_WRITE32(PRMVIO)
 	DEVICE_WRITE32_END(PRMVIO);
 }
 
-
 DEVICE_READ32(PFB)
 {
 	DEVICE_READ32_SWITCH() {
+	case NV_PFB_WBC: // Xbox KickOff() sets this
+		// TODO : SetEvent(ghNV2AFlushEvent);
+		result = DEVICE_REG32(pfb);
+		if (result & NV_PFB_WBC_FLUSH) {
+			DEBUG_READ32_LOG(PFB, "Ignoring FLUSH_PENDING bit"); // This unblocks Xbox FlushWCCache()
+			result ^= NV_PFB_WBC_FLUSH;
+		}
+		break;
 	case NV_PFB_CFG0:
 		result = 3; // = NV_PFB_CFG0_PART_4
+		break;
 	case NV_PFB_CFG1: // fall-through
 	default:
 		DEVICE_READ32_REG(pfb);
@@ -1281,7 +1297,7 @@ static const NV2ABlockInfo regions[] = {{
 	}, {
 		/* aliases VGA sequencer and graphics controller registers */
 		NV_PRMVIO_ADDR, // = 0x0c0000
-		NV_PRMVIO_SIZE, // = 0x001000
+		NV_PRMVIO_SIZE, // = 0x008000 // Was 0x001000
 		EmuNV2A_PRMVIO_Read32,
 		EmuNV2A_PRMVIO_Write32,
 	},{
@@ -1328,16 +1344,22 @@ static const NV2ABlockInfo regions[] = {{
 		EmuNV2A_PRMDIO_Write32,
 	}, {
 		/* RAMIN access */
-		NV_PRAMIN_ADDR, // = 0x710000
+		NV_PRAMIN_ADDR, // = 0x700000 // Was 0x710000
 		NV_PRAMIN_SIZE, // = 0x100000
 		EmuNV2A_PRAMIN_Read32,
 		EmuNV2A_PRAMIN_Write32,
 	},{
 		/* PFIFO MMIO and DMA submission area */
-		NV_USER_ADDR, // = 0x800000,
-		NV_USER_SIZE, // = 0x800000,
+		NV_USER_ADDR, // = 0x800000
+		NV_USER_SIZE, // = 0x400000 // Was 0x800000
 		EmuNV2A_USER_Read32,
 		EmuNV2A_USER_Write32,
+	}, {
+		/* User area remapped? */
+		NV_UREMAP_ADDR, // = 0xC00000
+		NV_UREMAP_SIZE, // = 0x400000
+		EmuNV2A_USER_Read32, // NOTE : Re-used (*not* EmuNV2A_UREMAP_Read32)
+		EmuNV2A_USER_Write32, // NOTE : Re-used (*not* EmuNV2A_UREMAP_Write32)
 	}, {
 		0xFFFFFFFF,
 		0,

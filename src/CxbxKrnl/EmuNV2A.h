@@ -62,7 +62,7 @@
 #define NV_PRMFB_ADDR    0x000A0000
 #define NV_PRMFB_SIZE               0x020000
 #define NV_PRMVIO_ADDR   0x000C0000
-#define NV_PRMVIO_SIZE              0x001000
+#define NV_PRMVIO_SIZE              0x008000 // Was 0x001000
 #define NV_PFB_ADDR      0x00100000
 #define NV_PFB_SIZE                 0x001000
 #define NV_PSTRAPS_ADDR  0x00101000
@@ -77,13 +77,12 @@
 #define NV_PRAMDAC_SIZE             0x001000
 #define NV_PRMDIO_ADDR   0x00681000
 #define NV_PRMDIO_SIZE              0x001000
-#define NV_PRAMIN_ADDR   0x00710000
+#define NV_PRAMIN_ADDR   0x00700000 // Was 0x00710000
 #define NV_PRAMIN_SIZE              0x100000
 #define NV_USER_ADDR     0x00800000
-#define NV_USER_SIZE                0x800000
-
-#define NV2A_PFB_WC_CACHE 0x00100410 // pbKit
-#define NV2A_PFB_WC_CACHE_FLUSH_TRIGGER 0x00010000 // pbKit
+#define NV_USER_SIZE                0x400000 // Was 0x800000
+#define NV_UREMAP_ADDR   0x00C00000 // Looks like a mapping of NV_USER_ADDR
+#define NV_UREMAP_SIZE              0x400000
 
 typedef struct {
 	DWORD Ignored[0x10];

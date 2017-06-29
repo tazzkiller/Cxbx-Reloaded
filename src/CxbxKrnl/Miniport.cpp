@@ -123,9 +123,13 @@ BOOL __fastcall XTL::EMUPATCH(CMiniport_InitHardware)
 	// so instead we allocate a buffer in host virtual memory
 	GPURegisterBase = g_MemoryManager.AllocateZeroed(1, 2 * 1024 * 1024); // PatrickvL : I've seen RegisterBase offsets up to $00100410 so 2 MB should suffice
 #else
-	GPURegisterBase = (void *)0xFD000000; // TODO : using "EmuNV2A.h" // for NV2A_ADDR
+	// New Cxbx-Reloaded approach :
+	// Just use the actual hardware GPU address, as we have EmuX86 calling
+	// into EmuNV2A_Read and EmuNV2A_Write handlers.
+	GPURegisterBase = (void *)NV2A_ADDR;
 #endif
-	 // Put the GPURegisterBase value in the CMiniport::m_RegisterBase field (it's the first field in this object) :
+
+	// Put the GPURegisterBase value in the CMiniport::m_RegisterBase field (it's the first field in this object) :
 	*((void **)This) = GPURegisterBase;
 	DbgPrintf("GPU RegisterBase resides at 0x%.08x\n", GPURegisterBase);
 

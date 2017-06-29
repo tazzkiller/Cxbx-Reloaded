@@ -5686,7 +5686,9 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Simple)
     DWORD Value
 )
 {
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
+#endif
 
 	X_D3DRENDERSTATETYPE XboxRenderState = DxbxXboxMethodToRenderState(Method);
 
