@@ -36,11 +36,6 @@
 #ifndef MINIPORT_H
 #define MINIPORT_H
 
-//#include "EmuD3D8Types.h"
-//#include "CxbxKrnl.h"
-//#include "Common/Xbe.h"
-//#include "Emu.h"
-
 typedef struct {
 	ULONG Handle;
 	USHORT SubChannel;
@@ -49,22 +44,10 @@ typedef struct {
 	ULONG Instance;
 } OBJECTINFO;
 
-typedef struct {
-	DWORD Ignored[0x10];
-	xbaddr *Put; // On Xbox1, this field is only written to by the CPU (the GPU uses this as a trigger to start executing from the given address)
-	xbaddr *Get; // On Xbox1, this field is only read from by the CPU (the GPU reflects in here where it is/stopped executing)
-	uint32 Reference;
-	DWORD Ignored2[0x7ED];
-} Nv2AControlDma;
-
-#define NV2A_PFB_WC_CACHE 0x00100410 // pbKit
-#define NV2A_PFB_WC_CACHE_FLUSH_TRIGGER 0x00010000 // pbKit
-
 extern void *GPURegisterBase;
 
-extern Nv2AControlDma *g_NV2ADMAChannel;
-extern xbaddr *m_pCPUTime;
-extern xbaddr *m_pGPUTime;
+extern volatile xbaddr *m_pCPUTime;
+extern volatile xbaddr *m_pGPUTime;
 
 // ******************************************************************
 // * patch: CMiniport_InitHardware

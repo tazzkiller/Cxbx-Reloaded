@@ -36,7 +36,14 @@
 
 namespace XTL
 {
-    #include "EmuXapi.h"
+	#include "EmuXapi.h"
+}
+
+#include "EmuNV2A.h"
+
+namespace XTL
+{
+	#include "Miniport.h"
     #include "EmuD3D8.h"
     #include "EmuD3D8\Convert.h"
     #include "EmuD3D8\VertexBuffer.h"
@@ -50,7 +57,6 @@ namespace XTL
     #include "EmuXG.h"
 	#include "EmuXactEng.h"
 	#include "EmuXInput.h"
-	#include "Miniport.h"
 }
 
 

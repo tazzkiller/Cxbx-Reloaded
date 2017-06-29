@@ -48,19 +48,19 @@ struct OOVPA
 	// available after casting this OOVPA to LOOVPA.
 	// (This Count INCLUDES optional leading {Offset, XREF_*-enum}-
 	// pairs - see comment at XRefCount.)
-	uint08 Count;
+	u8 Count;
 
 	// This OOVPA field (uint08 XRefCount) contains the number of
 	// {Offset, XREF_*-enum}-pairs that come before all other
 	// {Offset, Value}-pairs.
 	// (The {Offset, XREF_*-enum}-pairs are INCLUDED in OOVPA.Count)
 	// (Also, see comments at XRefZero and XRefOne.)
-	uint08 XRefCount;
+	u8 XRefCount;
 
-	// This OOVPA field (uint16 XRefSaveIndex) contains either an
+	// This OOVPA field (u16 XRefSaveIndex) contains either an
 	// XREF_* enum value, or the XRefNoSaveIndex marker when there's
 	// no XREF_* enum defined for this OOVPA.
-	uint16 XRefSaveIndex;
+	u16 XRefSaveIndex;
 
 	// Define LOVP here to reduce type definition complexity.
 	// (Otherwise, if defined in the template classes, that would mean
@@ -70,19 +70,19 @@ struct OOVPA
 	// {Offset, Value}-pair(s)
 	struct LOVP
 	{
-		uint16 Offset;
-		uint08 Value;
+		u16 Offset;
+		u8 Value;
 	};
 };
 
 // This XRefZero constant, when set in the OOVPA.XRefCount field,
 // indicates there are no {offset, XREF_*-enum} present in the OOVPA.
-const uint08 XRefZero = (uint08)0;
+const u8 XRefZero = (u8)0;
 
 // This XRefOne constant, when set in the OOVPA.XRefCount field,
 // indicates the OOVPA contains one (1) {offset, XREF_* enum} pair.
-const uint08 XRefOne = (uint08)1;
-const uint08 XRefTwo = (uint08)2;
+const u8 XRefOne = (u8)1;
+const u8 XRefTwo = (u8)2;
 
 // Note : Theoretically, there can be more than one {Offset, XREF_*-enum}
 // pair at the start of the OOVPA's, but there are no examples of that yet.
@@ -90,7 +90,7 @@ const uint08 XRefTwo = (uint08)2;
 // This XRefNoSaveIndex constant, when set in the OOVPA.XRefSaveIndex
 // field, functions as a marker indicating there's no XREF_* enum
 // defined for the OOVPA.
-const uint16 XRefNoSaveIndex = (uint16)-1;
+const u16 XRefNoSaveIndex = (u16)-1;
 
 // Macro used for storing an XRef {Offset, XRef}-Pair.
 //
@@ -110,7 +110,7 @@ const uint16 XRefNoSaveIndex = (uint16)-1;
 // ******************************************************************
 // * Large Optimized (Offset,Value)-Pair Array
 // ******************************************************************
-template <uint16 COUNT> struct LOOVPA
+template <u16 COUNT> struct LOOVPA
 {
 	OOVPA Header;
 
@@ -134,13 +134,13 @@ struct OOVPATable
 {
 	OOVPA *Oovpa;
 	char  *szFuncName;
-	uint16_t Version : 13; // 2^13 = 8192, enough to store lowest and higest possible Library Version number in
-	uint16_t Flags : 3;
+	u16    Version : 13; // 2^13 = 8192, enough to store lowest and higest possible Library Version number in
+	u16    Flags : 3;
 };
 
-const uint16_t Flag_DontScan = 1; // Indicates an entry that's currently disabled and thus shouldn't be searched for
-const uint16_t Flag_XRef = 2;	  // Indicates that an entry is an X-Ref
-const uint16_t Flag_DontPatch = 4;// Indicates an entry that's shouldn't be patched (even when it's found)
+const u16 Flag_DontScan = 1; // Indicates an entry that's currently disabled and thus shouldn't be searched for
+const u16 Flag_XRef = 2;	  // Indicates that an entry is an X-Ref
+const u16 Flag_DontPatch = 4;// Indicates an entry that's shouldn't be patched (even when it's found)
 
 #define OOVPA_TABLE_ENTRY_FULL(Oovpa, DebugName, Version, Flags) \
 	{ & Oovpa ## _ ## Version.Header, DebugName, Version, Flags }

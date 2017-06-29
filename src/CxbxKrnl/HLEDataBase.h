@@ -115,9 +115,9 @@ extern const struct HLEData
 {
     const char *Library;
 
-    uint16      BuildVersion;
+    u16         BuildVersion;
     OOVPATable *OovpaTable;
-    uint32      OovpaTableSize;
+    u32         OovpaTableSize;
 }
 HLEDataBase[];
 
@@ -350,7 +350,7 @@ enum XRefDataBaseOffset
 //	XREF_XFreeSectionByHandle,
 
 	XREF_COUNT // XREF_COUNT must always be last.
-	// Also, if XREF_COUNT > sizeof(uint16), enlarge struct OOVPA.XRefSaveIndex (and Value somehow)
+	// Also, if XREF_COUNT > sizeof(u16), enlarge struct OOVPA.XRefSaveIndex (and Value somehow)
 };
 
 #define XREF_ADDR_UNDETERMINED -1

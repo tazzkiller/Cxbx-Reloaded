@@ -54,9 +54,8 @@ namespace xboxkrnl
 namespace XTL {
 	void *GPURegisterBase = NULL; // + NV2A_PFB_WC_CACHE = pNV2AWorkTrigger (see EmuThreadHandleNV2ADMA)
 
-	XTL::Nv2AControlDma *g_NV2ADMAChannel = NULL;
-	xbaddr *m_pCPUTime = NULL;
-	xbaddr *m_pGPUTime = NULL; // See Dxbx XTL_ EmuExecutePushBufferRaw
+	volatile xbaddr *m_pCPUTime = NULL;
+	volatile xbaddr *m_pGPUTime = NULL; // See Dxbx XTL_ EmuExecutePushBufferRaw
 }
 
 /*
@@ -110,7 +109,7 @@ loc_00000008:
 // CMiniport::m_RegisterBase so there's some memory to play with.
 BOOL __fastcall XTL::EMUPATCH(CMiniport_InitHardware)
 (
-	PVOID This,
+	PVOID This, // CMiniport*
 	void * _EDX // __thiscall simulation
 )
 {
@@ -126,24 +125,32 @@ BOOL __fastcall XTL::EMUPATCH(CMiniport_InitHardware)
 #else
 	GPURegisterBase = (void *)0xFD000000; // TODO : using "EmuNV2A.h" // for NV2A_ADDR
 #endif
-										  // And put that in the m_RegisterBase field :
+	 // Put the GPURegisterBase value in the CMiniport::m_RegisterBase field (it's the first field in this object) :
 	*((void **)This) = GPURegisterBase;
-	DbgPrintf("Allocated a block of 2 MB to serve as the GPUs RegisterBase at 0x%.08x\n", GPURegisterBase);
+	DbgPrintf("GPU RegisterBase resides at 0x%.08x\n", GPURegisterBase);
 
 	RETURN(true);
 }
 
-XTL::Nv2AControlDma *CxbxNV2ADMAChannel()
+Nv2AControlDma *CxbxNV2ADMAChannel()
 {
-	using namespace XTL;
+	using namespace XTL; // for XTL::m_pCPUTime, XTL::m_pGPUTime
 
-	if (g_NV2ADMAChannel == nullptr) {
-		// Allocate a fake DMA channel :
-		g_NV2ADMAChannel = (Nv2AControlDma*)CxbxCalloc(1, sizeof(Nv2AControlDma));
+	if (m_pCPUTime == nullptr) {
+
+		// The NV2A DMA channel can be emulated in 3 ways :
+		// 1: Allocate a fake DMA channel :
+		//g_NV2ADMAChannel = (Nv2AControlDma*)CxbxCalloc(1, sizeof(Nv2AControlDma));
+		// 2: Use the actual address
+		//g_NV2ADMAChannel = (Nv2AControlDma*)((ULONG)XTL::GPURegisterBase + NV_USER_ADDR);
+		// 3: Use a global variable
+		//NV2ADMAChannel g_NV2ADMAChannel; // <- this looks like the simplest approach
+		DbgPrintf("CxbxNV2ADMAChannel : NV2A DMA channel is at 0x%0.8x\n", &g_NV2ADMAChannel);
 
 		// Create our DMA pushbuffer 'handling' thread :
-		::DWORD dwThreadId = 0;
-		::HANDLE hThread = CreateThread(nullptr, 0, EmuThreadHandleNV2ADMA, nullptr, 0, &dwThreadId);
+		DbgPrintf("CxbxNV2ADMAChannel : Launching NV2A DMA handler thread\n");
+		DWORD dwThreadId = 0;
+		HANDLE hThread = CreateThread(nullptr, 0, XTL::EmuThreadHandleNV2ADMA, nullptr, 0, &dwThreadId);
 		// Make sure callbacks run on the same core as the one that runs Xbox1 code :
 		SetThreadAffinityMask(hThread, g_CPUXbox);
 		// We set the priority of this thread a bit higher, to assure reliable timing :
@@ -153,8 +160,8 @@ XTL::Nv2AControlDma *CxbxNV2ADMAChannel()
 		// a technique to read members from all g_pDevice (D3DDevice) versions in a generic way);
 
 		// Walk through a few members of the D3D device struct :
-		m_pCPUTime = (xbaddr*)(*((xbaddr *)Xbox_D3D__Device));
-		DbgPrintf("Searching for m_pCPUTime from 0x%0.8x (m_pGPUTime is at 0x%0.8x)\n", m_pCPUTime, m_pGPUTime);
+		m_pCPUTime = (xbaddr*)(*((xbaddr *)XTL::Xbox_D3D__Device));
+		DbgPrintf("CxbxNV2ADMAChannel : Searching for m_pCPUTime from 0x%0.8x (m_pGPUTime is at 0x%0.8x)\n", m_pCPUTime, m_pGPUTime);
 
 		for (int i = 0; i <= 32; i++) {
 			if (i == 32)
@@ -169,9 +176,11 @@ XTL::Nv2AControlDma *CxbxNV2ADMAChannel()
 
 			m_pCPUTime++;
 		}
+
+		DbgPrintf("CxbxNV2ADMAChannel : Found m_pCPUTime at 0x%0.8x\n", m_pCPUTime);
 	}
 
-	return g_NV2ADMAChannel;
+	return &g_NV2ADMAChannel;
 }
 
 // ******************************************************************
@@ -201,8 +210,7 @@ BOOL __fastcall XTL::EMUPATCH(CMiniport_CreateCtxDmaObject)
 
 	switch (Dma) {
 	case 8: { // = notification of semaphore address
-			  // Remember where the semaphore (starting with a GPU Time DWORD) was allocated
-			  // (we could have trapped MmAllocateContiguousMemoryEx too, but this is simpler) :
+		// Remember where the semaphore (starting with a GPU Time DWORD) was allocated
 		m_pGPUTime = (xbaddr*)Base;
 		DbgPrintf("Registered m_pGPUTime at 0x%0.8x\n", m_pGPUTime);
 		break;

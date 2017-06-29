@@ -53,7 +53,7 @@
 #include "CxbxKrnl.h"
 #include "device.h"
 #include "Emu.h"
-#include "EmuNV2A.h"
+#include "EmuNV2A.h" // for NV_*_ADDR, NV_*_SIZE, Nv2AControlDma
 #include "nv2a_int.h" // from https://github.com/espes/xqemu/tree/xbox/hw/xbox
 
 #include <gl\glew.h>
@@ -61,47 +61,6 @@
 #include <gl\GLU.h>
 #include <cassert>
 //#include <gl\glut.h>
-
-#define NV_PMC_ADDR      0x00000000
-#define NV_PMC_SIZE                 0x001000
-#define NV_PBUS_ADDR     0x00001000
-#define NV_PBUS_SIZE                0x001000
-#define NV_PFIFO_ADDR    0x00002000
-#define _NV_PFIFO_SIZE               0x002000 // Underscore prefix to prevent clash with NV_PFIFO_SIZE
-#define NV_PRMA_ADDR     0x00007000
-#define NV_PRMA_SIZE                0x001000
-#define NV_PVIDEO_ADDR   0x00008000
-#define NV_PVIDEO_SIZE              0x001000
-#define NV_PTIMER_ADDR   0x00009000
-#define NV_PTIMER_SIZE              0x001000
-#define NV_PCOUNTER_ADDR 0x0000A000
-#define NV_PCOUNTER_SIZE            0x001000
-#define NV_PVPE_ADDR     0x0000B000
-#define NV_PVPE_SIZE                0x001000
-#define NV_PTV_ADDR      0x0000D000
-#define NV_PTV_SIZE                 0x001000
-#define NV_PRMFB_ADDR    0x000A0000
-#define NV_PRMFB_SIZE               0x020000
-#define NV_PRMVIO_ADDR   0x000C0000
-#define NV_PRMVIO_SIZE              0x001000
-#define NV_PFB_ADDR      0x00100000
-#define NV_PFB_SIZE                 0x001000
-#define NV_PSTRAPS_ADDR  0x00101000
-#define NV_PSTRAPS_SIZE             0x001000
-#define NV_PGRAPH_ADDR   0x00400000
-#define NV_PGRAPH_SIZE              0x002000
-#define NV_PCRTC_ADDR    0x00600000
-#define NV_PCRTC_SIZE               0x001000
-#define NV_PRMCIO_ADDR   0x00601000
-#define NV_PRMCIO_SIZE              0x001000
-#define NV_PRAMDAC_ADDR  0x00680000
-#define NV_PRAMDAC_SIZE             0x001000
-#define NV_PRMDIO_ADDR   0x00681000
-#define NV_PRMDIO_SIZE              0x001000
-#define NV_PRAMIN_ADDR   0x00710000
-#define NV_PRAMIN_SIZE              0x100000
-#define NV_USER_ADDR     0x00800000
-#define NV_USER_SIZE                0x800000
 
 struct {
 	uint32_t pending_interrupts;
@@ -161,6 +120,7 @@ struct {
 	uint32_t regs[NV_PGRAPH_SIZE / sizeof(uint32_t)]; // TODO : union
 } pgraph;
 
+Nv2AControlDma g_NV2ADMAChannel = {}; // TODO : Rename this to nvuser?
 
 static void update_irq()
 {
@@ -1032,7 +992,7 @@ DEVICE_WRITE32(PGRAPH)
 		break;
 	/* TODO : Add CtxTableAddr member to pgraph when required. Receive it here:
 	case NV_PGRAPH_CHANNEL_CTX_TABLE: 
-		pgraph.CtxTableAddr = (value & NV_PGRAPH_CHANNEL_CTX_TABLE_INST) | 0x8000000; // map GPU to CPU
+		pgraph.CtxTableAddr = (value & NV_PGRAPH_CHANNEL_CTX_TABLE_INST) | MM_SYSTEM_PHYSICAL_MAP; // map GPU to CPU (OR with 0x80000000)
 		// break; fall-through?
 	*/
 	default: 
@@ -1213,6 +1173,15 @@ DEVICE_WRITE32(PRAMIN)
 DEVICE_READ32(USER)
 {
 	DEVICE_READ32_SWITCH() {
+	case NV_USER_DMA_GET:		
+		result = (uint32_t)g_NV2ADMAChannel.Get;
+		break;
+	case NV_USER_DMA_PUT:
+		result = (uint32_t)g_NV2ADMAChannel.Put;
+		break;
+	case NV_USER_REF:
+		result = (uint32_t)g_NV2ADMAChannel.Reference;
+		break;
 	default:
 		DEBUG_READ32_UNHANDLED(USER);
 	}
@@ -1223,6 +1192,15 @@ DEVICE_READ32(USER)
 DEVICE_WRITE32(USER)
 {
 	switch (addr) {
+	case NV_USER_DMA_GET:
+		g_NV2ADMAChannel.Get = (void*)value;
+		break;
+	case NV_USER_DMA_PUT:
+		g_NV2ADMAChannel.Put = (void*)value;
+		break;
+	case NV_USER_REF:
+		g_NV2ADMAChannel.Reference = (void*)value;
+		break;
 	default:
 		DEBUG_WRITE32_UNHANDLED(USER);
 	}

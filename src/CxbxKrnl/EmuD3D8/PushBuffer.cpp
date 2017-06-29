@@ -39,6 +39,7 @@
 
 #include "CxbxKrnl/Emu.h"
 #include "CxbxKrnl/EmuXTL.h"
+#include "CxbxKrnl/EmuNV2A.h" // Nv2AControlDma
 #include "CxbxKrnl/EmuD3D8Types.h" // For X_D3DFORMAT
 #include "CxbxKrnl/ResourceTracker.h"
 #include "CxbxKrnl/MemoryManager.h"
@@ -70,7 +71,7 @@ int XTL::DxbxFVF_GetTextureSize(DWORD dwFVF, int aTextureIndex)
 	}
 }
 
-// Dxbx Note: This code is taken from EmuExecutePushBufferRaw and occured
+// Dxbx Note: This code appeared in EmuExecutePushBufferRaw and occured
 // in EmuFlushIVB too, so it's generalize in this single implementation.
 UINT XTL::DxbxFVFToVertexSizeInBytes(DWORD dwFVF, BOOL bIncludeTextures)
 {
@@ -509,9 +510,10 @@ char *DxbxXboxMethodToString(DWORD dwMethod)
 	return "UNLABLED"; // TODO
 }
 
-extern void XTL::EmuExecutePushBufferRaw
+extern DWORD *XTL::EmuExecutePushBufferRaw
 (
     DWORD                 *pdwPushData
+	// TODO DWORD *pdwPushEnd
 )
 {
 	static bool NV2ACallbacks_Initialized = false;
@@ -531,12 +533,12 @@ extern void XTL::EmuExecutePushBufferRaw
 
 	// Test case : XDK Sample BeginPush
 	if (g_bSkipPush) {
-		return;
+		return pdwPushData; // TODO pdwPushEnd;
 	}
 
 	if (pdwPushData == NULL) {
 		EmuWarning("pdwPushData is null");
-		return;
+		return NULL;
 	}
 
     pdwOrigPushData = pdwPushData;
@@ -570,11 +572,20 @@ extern void XTL::EmuExecutePushBufferRaw
 
 	DbgPrintf("  NV2A run from 0x%.08X\n", pdwPushData);
 
-	while (*pdwPushData != 0) {
+	while (true) {
+/* TODO :
+		if (pdwPushData == pdwPushEnd) {
+			break;
+		}
+*/
 		char LogPrefixStr[200];
 		int len = sprintf(LogPrefixStr, "  NV2A Get=$%.08X", pdwPushData);
 
 		DWORD dwPushCommand = *pdwPushData;
+		if (dwPushCommand == 0) {
+			DbgPrintf("%s BREAK at NULL method at 0x%.08X\n", LogPrefixStr, pdwPushData);
+			break;
+		}
 
 		// Handle jumps and/or calls :
 		if (((dwPushCommand & NV2A_JMP_FLAG) > 0)
@@ -705,7 +716,7 @@ extern void XTL::EmuExecutePushBufferRaw
 			// Fake a read by the Nv2A, by moving the DMA 'Get' location
 			// up to where the pushbuffer is executed, so that the BusyLoop
 			// in CDevice.Init finishes cleanly :
-			//g_NV2ADMAChannel.Get = pdwPushData;
+			g_NV2ADMAChannel.Get = (void *)pdwPushData;
 			// TODO : We should probably set g_NV2ADMAChannel.Put to the same value first?
 
 			// We trigger the DMA semaphore by setting GPU time to CPU time - 2 :
@@ -714,12 +725,6 @@ extern void XTL::EmuExecutePushBufferRaw
 			// TODO : We should register vblank counts somewhere?
 		} // while (dwCount > 0)
 	} //  while (*pdwPushData != 0)
-
-	// This line is to reset the GPU 'Get' pointer, so that busyloops will terminate :
-	// g_NV2ADMAChannel.Get = pdwPushData;
-
-	// Clear the handled pushbuffer commands :
-	memset(pdwOrigPushData, 0, (intptr_t)pdwPushData - (intptr_t)pdwOrigPushData);
 
     #ifdef _DEBUG_TRACK_PB
     if (bShowPB) {
@@ -733,6 +738,8 @@ extern void XTL::EmuExecutePushBufferRaw
         g_pD3DDevice8->Present(0,0,0,0);
         Sleep(500);
     }
+
+	return pdwPushData;
 }
 
 // timing thread procedure
@@ -754,13 +761,16 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 */
 
 	Pusher *pPusher = (Pusher*)(*((xbaddr *)Xbox_D3D__Device));
-	Nv2AControlDma *NV2ADMAChannel = g_NV2ADMAChannel;
+	Nv2AControlDma *pNV2ADMAChannel = &g_NV2ADMAChannel;
 	DWORD *pNV2AWorkTrigger = (DWORD*)((xbaddr)GPURegisterBase + NV2A_PFB_WC_CACHE);
+
+	// Wait until the DMA channel is assigned a starting address :
+	while (pNV2ADMAChannel->Put == NULL)
+		Sleep(100);
 
 	// Emulate the GPU engine here, by running the pushbuffer on the correct addresses :
 	while (true) { // TODO -oDxbx: When do we break out of this while loop ?
 
-		Sleep(10); // UpdateTimer.Wait;
 /*
 		// Check that KickOff() signaled a work flush :
 		if ((*pNV2AWorkTrigger & NV2A_PFB_WC_CACHE_FLUSH_TRIGGER) > 0) {
@@ -769,19 +779,24 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 			//	DxbxLogPushBufferPointers('NV2AThread work trigger');
 		}
 */
-		// Start at the DMA's 'Put' address, and assume we'll run
-		// up to the end of the pushbuffer (as filled by software) :
-		DWORD *GPUStart = NV2ADMAChannel->Get;
-		if (GPUStart == NULL)
-			GPUStart = NV2ADMAChannel->Put;
-
-		DWORD *GPUEnd = pPusher->m_pPut;
-
-		// See if there's a valid work pointer :
-		if ((GPUStart != NULL) && (GPUEnd != NULL)) {
+		// Start at the DMA's 'Put' address
+		xbaddr GPUStart = (xbaddr)pNV2ADMAChannel->Put | MM_SYSTEM_PHYSICAL_MAP; // 0x80000000
+		// Run up to the end of the pushbuffer (as filled by software) :
+		xbaddr GPUEnd = (xbaddr)pPusher->m_pPut; // OR with  MM_SYSTEM_PHYSICAL_MAP (0x80000000) doesn't seem necessary
+		if (GPUEnd != GPUStart) {
 			// Execute the instructions, this returns the address where execution stopped :
-			EmuExecutePushBufferRaw(GPUStart);// , GPUEnd);
+			GPUEnd = (xbaddr)EmuExecutePushBufferRaw((DWORD*)GPUStart);// , GPUEnd);
+			// GPUEnd ^= MM_SYSTEM_PHYSICAL_MAP; // Clearing mask doesn't seem necessary
+			// Signal that DMA has finished by resetting the GPU 'Get' pointer, so that busyloops will terminate
+			// See EmuNV2A.cpp : DEVICE_READ32(USER) and DEVICE_WRITE32(USER)
+			pNV2ADMAChannel->Get = (void*)GPUEnd;
+			pNV2ADMAChannel->Put = (void*)GPUEnd;
+			// Register timestamp (needs an offset - but why?)
+			*m_pGPUTime = *m_pCPUTime - 2;
+			// TODO : Count number of handled commands here?
 		}
+		else
+			Sleep(10); // UpdateTimer.Wait;
 	}
 
 	DbgPrintf("EmuD3D8 : NV2A DMA thread is finished.\n");

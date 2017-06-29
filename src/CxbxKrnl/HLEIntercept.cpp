@@ -646,9 +646,9 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 		UnResolvedXRefs = XREF_COUNT; // = sizeof(XRefDataBase) / sizeof(xbaddr)
 
-        uint32 dwLibraryVersions = pXbeHeader->dwLibraryVersions;
-        uint32 LastUnResolvedXRefs = UnResolvedXRefs+1;
-        uint32 OrigUnResolvedXRefs = UnResolvedXRefs;
+		u32 dwLibraryVersions = pXbeHeader->dwLibraryVersions;
+		u32 LastUnResolvedXRefs = UnResolvedXRefs+1;
+		u32 OrigUnResolvedXRefs = UnResolvedXRefs;
 
 		bool bFoundD3D = false;
 
@@ -663,10 +663,10 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
             LastUnResolvedXRefs = UnResolvedXRefs;
 
-            for(uint32 v=0;v<dwLibraryVersions;v++)
+            for(u32 v=0;v<dwLibraryVersions;v++)
             {
-                uint16 BuildVersion = pLibraryVersion[v].wBuildVersion;
-                uint16 OrigBuildVersion = BuildVersion;
+				u16 BuildVersion = pLibraryVersion[v].wBuildVersion;
+				u16 OrigBuildVersion = BuildVersion;
 
                 // Aliases - for testing purposes only
 				// TODO: Remove these and come up with a better way to handle XDKs we don't hve databases for

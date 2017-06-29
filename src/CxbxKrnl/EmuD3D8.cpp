@@ -943,7 +943,7 @@ void *XTL::GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 
 	DWORD dwCommonType = GetXboxCommonResourceType(pXboxResource);
 	if (IsResourceTypeGPUReadable(dwCommonType))
-		pData |= MM_SYSTEM_PHYSICAL_MAP;
+		pData |= MM_SYSTEM_PHYSICAL_MAP; // 0x80000000
 
 	return (uint08*)pData;
 }
@@ -2659,7 +2659,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayFieldStatus)(X_D3DFIELD_STATUS *pF
 
 PDWORD WINAPI XTL::EMUPATCH(D3DDevice_BeginPush)(DWORD Count)
 {
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_ONE_ARG(Count);
 
@@ -2679,7 +2681,9 @@ PDWORD WINAPI XTL::EMUPATCH(D3DDevice_BeginPush)(DWORD Count)
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_EndPush)(DWORD *pPush)
 {
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_ONE_ARG(pPush);
 
@@ -2693,7 +2697,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_EndPush)(DWORD *pPush)
 	{
 		CxbxUpdateTextureStages();
 
-		EmuExecutePushBufferRaw(g_pPrimaryPB); // g_dwPrimaryPBCount
+		EmuExecutePushBufferRaw(g_pPrimaryPB);
 
 		delete[] g_pPrimaryPB;
 		g_pPrimaryPB = nullptr;
@@ -4249,7 +4253,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_RunPushBuffer)
     X_D3DFixup            *pFixup
 )
 {
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pPushBuffer)
@@ -7546,8 +7552,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetProjectionViewportMatrix)
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_KickOff)()
 {
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
-		
+#endif		
 	LOG_FUNC();
 
 	// TODO: Anything (kick off and NOT wait for idle)?
@@ -7563,8 +7570,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_KickOff)()
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_KickPushBuffer)()
 {
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
-
+#endif
 	LOG_FUNC();
 
 	// TODO -oDxbx : Locate the current PushBuffer address, and supply that to RunPushBuffer (without a fixup)
@@ -7757,8 +7765,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginPushBuffer)
 	X_D3DPushBuffer *pPushBuffer
 )
 {
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
-
+#endif
 	LOG_FUNC_ONE_ARG(pPushBuffer);
 
 	// TODO: Implement. Easier said than done with Direct3D, but OpenGL
@@ -7774,8 +7783,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginPushBuffer)
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndPushBuffer)()
 {
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
-
+#endif
 	LOG_FUNC();
 
 	LOG_UNIMPLEMENTED();
@@ -7785,8 +7795,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndPushBuffer)()
 
 void WINAPI XTL::EMUPATCH(XMETAL_StartPush)(void* Unknown)
 {
-// 	FUNC_EXPORTS DISABLED
-
+#ifdef PATCH_PUSHBUFFER
+	// 	FUNC_EXPORTS DISABLED
+#endif
 	LOG_FUNC_ONE_ARG(Unknown);
 
 	// This function is too low level to actually emulate
@@ -7842,7 +7853,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetBackMaterial)
 	g_pBackMaterial = *pMaterial;
 }
 
-DWORD PushBuffer[64 * 1024 / sizeof(DWORD)] = { 0 };
+#define PB_SIZE (64 * 1024 / sizeof(DWORD))
+DWORD PushBuffer[PB_SIZE] = {};
 
 PDWORD WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 (
@@ -7862,7 +7874,13 @@ PDWORD WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 	// NOTE: This function is ignored, as we currently don't emulate the push buffer
 	LOG_IGNORED();
 
-	EmuExecutePushBufferRaw(PushBuffer);
+	DWORD *End = EmuExecutePushBufferRaw(PushBuffer);
+
+	// Clear the handled pushbuffer commands :
+	if (End > PushBuffer) {
+		memset(PushBuffer, 0, (intptr_t)End - (intptr_t)PushBuffer);
+	}
+
 
 	return PushBuffer; // Return a buffer that will be filled with GPU commands
 
@@ -7939,7 +7957,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPushBufferOffset)
 	DWORD *pOffset
 )
 {
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_ONE_ARG(pOffset);
 

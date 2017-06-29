@@ -60,9 +60,6 @@ extern "C" {
 #define TIB_ArbitraryDataSlot 0x14
 #define TIB_LinearSelfAddress 0x18
 
-/*! xbaddr is the type of a physical address */
-typedef uint32 xbaddr;
-
 #define XBADDR_BITS 32
 #define XBADDR_MAX UINT32_MAX
 
@@ -157,7 +154,7 @@ void CxbxRestorePersistentMemoryRegions();
 void ConnectWindowsTimersToThunkTable();
 
 /*! kernel thunk table */
-extern uint32 CxbxKrnl_KernelThunkTable[379];
+extern xbaddr CxbxKrnl_KernelThunkTable[379];
 
 /*! thread local storage structure */
 extern Xbe::TLS *CxbxKrnl_TLS;

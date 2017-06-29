@@ -47,9 +47,9 @@ extern void EmuExecutePushBuffer
 	XTL::X_D3DFixup            *pFixup
 );
 
-extern void EmuExecutePushBufferRaw
+extern DWORD *EmuExecutePushBufferRaw
 (
-    DWORD                 *pdwPushData
+	DWORD                 *pdwPushData
 );
 
 extern void DbgDumpPushBuffer
@@ -59,8 +59,8 @@ extern void DbgDumpPushBuffer
 );
 
 typedef struct {
-	DWORD *m_pPut; // This is the address to where the CPU will write it's next GPU instruction
-	DWORD *m_pThreshold; // This is the upper limit for m_pPut (when it's reached, MakeSpace() is called,
+	volatile DWORD *m_pPut; // This is the address to where the CPU will write it's next GPU instruction
+	volatile DWORD *m_pThreshold; // This is the upper limit for m_pPut (when it's reached, MakeSpace() is called,
 	// which just forwards the call to MakeRequestedSpace, passing it m_PushSegmentSize/2 as 'minimum space',
 	// and m_PushSegmentSize (without division) as 'requested space')
 } Pusher;
@@ -76,4 +76,4 @@ extern bool g_bStepPush;
 extern bool g_bSkipPush;
 extern bool g_bBrkPush;
 
-#endif
+#endif // PUSHBUFFER_H
