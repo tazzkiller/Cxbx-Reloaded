@@ -142,6 +142,13 @@ Nv2AControlDma *CxbxNV2ADMAChannel()
 
 	if (m_pCPUTime == nullptr) {
 
+		ghNV2AFlushEvent = CreateEvent(
+			NULL,                   // default security attributes
+			TRUE,                   // manual-reset event
+			FALSE,                  // initial state is nonsignaled
+			TEXT("NV2AFlushEvent")  // object name
+		);
+
 		// The NV2A DMA channel can be emulated in 3 ways :
 		// 1: Allocate a fake DMA channel :
 		//g_NV2ADMAChannel = (Nv2AControlDma*)CxbxCalloc(1, sizeof(Nv2AControlDma));
@@ -153,8 +160,8 @@ Nv2AControlDma *CxbxNV2ADMAChannel()
 
 		// Create our DMA pushbuffer 'handling' thread :
 		DbgPrintf("CxbxNV2ADMAChannel : Launching NV2A DMA handler thread\n");
-		DWORD dwThreadId = 0;
-		HANDLE hThread = CreateThread(nullptr, 0, XTL::EmuThreadHandleNV2ADMA, nullptr, 0, &dwThreadId);
+		::DWORD dwThreadId = 0;
+		::HANDLE hThread = CreateThread(nullptr, 0, XTL::EmuThreadHandleNV2ADMA, nullptr, 0, &dwThreadId);
 		// Make sure callbacks run on the same core as the one that runs Xbox1 code :
 		SetThreadAffinityMask(hThread, g_CPUXbox);
 		// We set the priority of this thread a bit higher, to assure reliable timing :

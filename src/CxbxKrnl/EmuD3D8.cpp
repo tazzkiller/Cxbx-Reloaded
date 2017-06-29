@@ -3257,8 +3257,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetShaderConstantMode)
     XTL::X_D3DSHADERCONSTANTMODE Mode
 )
 {
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
-
+#endif
 	LOG_FUNC_ONE_ARG(Mode);
 
     g_VertexShaderConstantMode = Mode;

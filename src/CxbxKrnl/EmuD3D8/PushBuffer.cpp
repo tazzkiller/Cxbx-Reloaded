@@ -142,30 +142,6 @@ void XTL::EmuExecutePushBuffer
     return;
 }
 
-#define NV2A_JMP_FLAG          0x00000001
-#define NV2A_CALL_FLAG         0x00000002 // TODO : Should JMP & CALL be switched?
-#define NV2A_ADDR_MASK         0xFFFFFFFC
-#define NV2A_METHOD_MASK       0x00001FFC
-#define NV2A_SUBCH_MASK        0x0000E000
-#define NV2A_COUNT_MASK        0x0FFF0000 // 12 bits
-#define NV2A_NOINCREMENT_FLAG  0x40000000
-// Dxbx note : What do the other bits mean (mask $B0000000) ?
-
-#define NV2A_METHOD_SHIFT 0 // Dxbx note : Not 2, because methods are actually DWORD offsets (and thus defined with increments of 4)
-#define NV2A_SUBCH_SHIFT 12
-#define NV2A_COUNT_SHIFT 18
-
-#define NV2A_METHOD_MAX ((NV2A_METHOD_MASK | 3) >> NV2A_METHOD_SHIFT) // = 8191
-#define NV2A_COUNT_MAX ((NV2A_COUNT_MASK >> NV2A_COUNT_SHIFT) - 1) // = 2047
-
-void D3DPUSH_DECODE(const DWORD dwPushCommand, DWORD &dwMethod, DWORD &dwSubCh, DWORD &dwCount, BOOL &bNoInc)
-{
-	dwMethod = (dwPushCommand & NV2A_METHOD_MASK); // >> NV2A_METHOD_SHIFT;
-	dwSubCh = (dwPushCommand & NV2A_SUBCH_MASK) >> NV2A_SUBCH_SHIFT;
-	dwCount = (dwPushCommand & NV2A_COUNT_MASK) >> NV2A_COUNT_SHIFT;
-	bNoInc = (dwPushCommand & NV2A_NOINCREMENT_FLAG) > 0;
-}
-
 // Globals and controller :
 DWORD *pdwOrigPushData;
 bool bShowPB = false;
@@ -592,10 +568,10 @@ extern DWORD *XTL::EmuExecutePushBufferRaw
 		if (((dwPushCommand & NV2A_JMP_FLAG) > 0)
 			|| ((dwPushCommand & NV2A_CALL_FLAG) > 0)) {
 			// Both 'jump' and 'call' just direct execution to the indicated address :
-			//pdwPushData = (DWORD*)(dwPushCommand & NV2A_ADDR_MASK);
-			DbgPrintf("%s *BREAK* Jump:0x%.08X\n", LogPrefixStr, pdwPushData);
+			pdwPushData = (DWORD*)((dwPushCommand & NV2A_ADDR_MASK) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
+			DbgPrintf("%s Jump:0x%.08X\n", LogPrefixStr, pdwPushData);
 
-			break;// continue;
+			continue;
 		}
 
 		// Decode push buffer contents (inverse of D3DPUSH_ENCODE) :
@@ -756,36 +732,19 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 	InitOpenGLContext();
 #endif
 
-/*
-	UpdateTimer: DxbxTimer;
-	UpdateTimer.InitFPS(100); // 100 updates per second should be enough
-*/
-
 	Pusher *pPusher = (Pusher*)(*((xbaddr *)Xbox_D3D__Device));
 	Nv2AControlDma *pNV2ADMAChannel = &g_NV2ADMAChannel;
-	//DWORD *pNV2AWorkTrigger = (DWORD*)((xbaddr)GPURegisterBase + NV2A_PFB_WC_CACHE);
-
-	// Wait until the DMA channel is assigned a starting address :
-	while (pNV2ADMAChannel->Put == NULL)
-		Sleep(100);
 
 	// Emulate the GPU engine here, by running the pushbuffer on the correct addresses :
-	while (true) { // TODO -oDxbx: When do we break out of this while loop ?
 
-/*
-		// Xbox KickOff() signals a work flush - we ignore that here for now,
-		// and handle all commands as they enter the push buffer.
-		// TODO : We should actually wait for DEVICE_READ32(PFB) case NV_PFB_WBC
-		// sending us a signal, like so : WaitForSingleObject(ghNV2AFlushEvent, 100);
+	// Xbox KickOff() signals a work flush.
+	// We wait for DEVICE_READ32(PFB) case NV_PFB_WBC sending us a signal
+	while (WaitForSingleObject(ghNV2AFlushEvent, INFINITE) == WAIT_OBJECT_0) { // TODO -oDxbx: When do we break out of this while loop ?
 
-		#define NV2A_PFB_WC_CACHE 0x00100410 // pbKit
-		#define NV2A_PFB_WC_CACHE_FLUSH_TRIGGER 0x00010000 // pbKit
-		if ((*pNV2AWorkTrigger & NV2A_PFB_WC_CACHE_FLUSH_TRIGGER) > 0) {
-			// Reset the flush trigger, so that KickOff() continues :
-			*pNV2AWorkTrigger ^= NV2A_PFB_WC_CACHE_FLUSH_TRIGGER;
-			//	DxbxLogPushBufferPointers('NV2AThread work trigger');
+		if (pNV2ADMAChannel->Put == NULL) {
+			continue;
 		}
-*/
+
 		// Start at the DMA's 'Put' address
 		xbaddr GPUStart = (xbaddr)pNV2ADMAChannel->Put | MM_SYSTEM_PHYSICAL_MAP; // 0x80000000
 		// Run up to the end of the pushbuffer (as filled by software) :
@@ -801,8 +760,6 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 			*m_pGPUTime = *m_pCPUTime - 2;
 			// TODO : Count number of handled commands here?
 		}
-		else
-			Sleep(10); // UpdateTimer.Wait;
 
 		// Always set the ending address in DMA, so Xbox HwGet() will see it, breaking the BusyLoop() cycle
 		pNV2ADMAChannel->Get = (void*)GPUEnd;

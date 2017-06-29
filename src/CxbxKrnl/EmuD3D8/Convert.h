@@ -216,7 +216,7 @@ extern void EmuUnswizzleRect
 
 // From : https://www.virtualbox.org/svn/vbox/trunk/src/VBox/Additions/x11/x11include/libdrm-2.4.13/nouveau_class.h
 // Cxbx notes (like Dxbx) :
-// - Changed NV2A_ into NV2A_
+// - Changed NV20TCL_ into NV2A_
 // - Added specific NV2A constants
 // TODO : Add more (especially when they conflict with NV20)
 

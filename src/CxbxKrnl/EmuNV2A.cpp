@@ -62,6 +62,8 @@
 #include <cassert>
 //#include <gl\glut.h>
 
+HANDLE ghNV2AFlushEvent = 0;
+
 struct {
 	uint32_t pending_interrupts;
 	uint32_t enabled_interrupts;
@@ -683,7 +685,6 @@ DEVICE_READ32(PBUS)
 	case NV_PBUS_PCI_NV_2:
 		result = (0x02 << 24) | 161; // PCI_CLASS_DISPLAY_3D (0x02) Rev 161 (0xA1) 
 		break;
-
 	default: 
 		DEBUG_READ32_UNHANDLED(PBUS); // TODO : DEVICE_READ32_REG(pbus);
 	}
@@ -937,10 +938,10 @@ DEVICE_READ32(PFB)
 {
 	DEVICE_READ32_SWITCH() {
 	case NV_PFB_WBC: // Xbox KickOff() sets this
-		// TODO : SetEvent(ghNV2AFlushEvent);
 		result = DEVICE_REG32(pfb);
 		if (result & NV_PFB_WBC_FLUSH) {
-			DEBUG_READ32_LOG(PFB, "Ignoring FLUSH_PENDING bit"); // This unblocks Xbox FlushWCCache()
+			DEBUG_READ32_LOG(PFB, "Triggered FLUSH_PENDING bit"); // This unblocks Xbox FlushWCCache()
+			SetEvent(ghNV2AFlushEvent);
 			result ^= NV_PFB_WBC_FLUSH;
 		}
 		break;

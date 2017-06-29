@@ -94,8 +94,34 @@ typedef struct {
 
 extern Nv2AControlDma g_NV2ADMAChannel;
 
+extern HANDLE ghNV2AFlushEvent;
+
 uint32_t EmuNV2A_Read(xbaddr addr, int size);
 void EmuNV2A_Write(xbaddr addr, uint32_t value, int size);
+
+#define NV2A_JMP_FLAG          0x00000001 // 1 bit
+#define NV2A_CALL_FLAG         0x00000002 // 1 bit TODO : Should JMP & CALL be switched?
+#define NV2A_ADDR_MASK         0xFFFFFFFC // 30 bits
+#define NV2A_METHOD_MASK       0x00001FFC // 12 bits
+#define NV2A_METHOD_SHIFT      0 // Dxbx note : Not 2, because methods are actually DWORD offsets (and thus defined with increments of 4)
+#define NV2A_SUBCH_MASK        0x0000E000 // 3 bits
+#define NV2A_SUBCH_SHIFT       13 // Was 12
+#define NV2A_COUNT_MASK        0x0FFF0000 // 12 bits
+#define NV2A_COUNT_SHIFT       16 // Was 18
+#define NV2A_NOINCREMENT_FLAG  0x40000000 // 1 bit
+// Dxbx note : What do the other bits mean (mask $B0000000) ?
+
+#define NV2A_METHOD_MAX ((NV2A_METHOD_MASK | 3) >> NV2A_METHOD_SHIFT) // = 8191
+#define NV2A_SUBCH_MAX (NV2A_SUBCH_MASK >> NV2A_SUBCH_SHIFT) // = 7
+#define NV2A_COUNT_MAX (NV2A_COUNT_MASK >> NV2A_COUNT_SHIFT) // = 2047
+
+inline void D3DPUSH_DECODE(const DWORD dwPushCommand, DWORD &dwMethod, DWORD &dwSubCh, DWORD &dwCount, BOOL &bNoInc)
+{
+	dwMethod = (dwPushCommand & NV2A_METHOD_MASK); // >> NV2A_METHOD_SHIFT;
+	dwSubCh = (dwPushCommand & NV2A_SUBCH_MASK) >> NV2A_SUBCH_SHIFT;
+	dwCount = (dwPushCommand & NV2A_COUNT_MASK) >> NV2A_COUNT_SHIFT;
+	bNoInc = (dwPushCommand & NV2A_NOINCREMENT_FLAG) > 0;
+}
 
 void InitOpenGLContext();
 
