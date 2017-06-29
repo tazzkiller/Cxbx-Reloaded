@@ -53,8 +53,8 @@
 #include "CxbxKrnl.h"
 #include "device.h"
 #include "Emu.h"
-#include "EmuNV2A.h" // for NV_*_ADDR, NV_*_SIZE, Nv2AControlDma
 #include "nv2a_int.h" // from https://github.com/espes/xqemu/tree/xbox/hw/xbox
+#include "EmuNV2A.h" // for NV_*_ADDR, NV_*_SIZE, Nv2AControlDma
 
 #include <gl\glew.h>
 #include <gl\GL.h>
@@ -702,8 +702,10 @@ DEVICE_READ32(PFIFO)
 	DEVICE_READ32_SWITCH() {
 	case NV_PFIFO_RAMHT:
 		result = 0x03000100; // = NV_PFIFO_RAMHT_SIZE_4K | NV_PFIFO_RAMHT_BASE_ADDRESS(NumberOfPaddingBytes >> 12) | NV_PFIFO_RAMHT_SEARCH_128
+		break;
 	case NV_PFIFO_RAMFC:
 		result = 0x00890110; // = ? | NV_PFIFO_RAMFC_SIZE_2K | ?
+		break;
 	default:
 		DEVICE_READ32_REG(pfifo); // Was : DEBUG_READ32_UNHANDLED(PFIFO);
 	}
