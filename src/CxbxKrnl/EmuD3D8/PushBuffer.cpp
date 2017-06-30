@@ -617,10 +617,17 @@ void NVPB_SetVertexShaderConstants()
 	HandledBy = "SetVertexShaderConstant";
 }
 
-
-char *DxbxXboxMethodToString(DWORD dwMethod)
+char *NV2AMethodToString(DWORD dwMethod)
 {
-	return "UNLABLED"; // TODO
+	switch (dwMethod) {
+
+#define ENUM_NameToString(Name) case Name: return #Name;
+	ENUM_NV2A_METHOD(ENUM_NameToString);
+#undef ENUM_NameToString
+
+	default:
+		return "UNLABLED"; // TODO
+	}
 }
 
 extern DWORD *XTL::EmuExecutePushBufferRaw
@@ -788,7 +795,7 @@ extern DWORD *XTL::EmuExecutePushBufferRaw
 			if (g_bPrintfOn) {
 				printf("[0x%X] ", GetCurrentThreadId());
 				printf(LogPrefixStr, StepNr);
-				printf(" Method=%.04X Data=%.08X %s", dwMethod, *pdwPushArguments, DxbxXboxMethodToString(dwMethod));
+				printf(" Method=%.04X Arg[0]=%.08X %s", dwMethod, *pdwPushArguments, NV2AMethodToString(dwMethod));
 				if (HandledBy != nullptr) {
 					printf(HandledBy);
 				}

@@ -1690,6 +1690,53 @@ extern void EmuUnswizzleRect
 #define  NV2A_VIEWPORT_TRANSLATE_Z							0x00001f08
 #define  NV2A_VIEWPORT_TRANSLATE_W							0x00001f0c
 
+// TODO : Extend this enumeration define with values
+// TODO : Use same technique for other enums
+// TODO : Replace definition with enumeration
+// TODO : Invent a way to repeat an enum X times with a pitch
+// TODO : Invent a way to add value-flags/bitfields per enum
+// TODO : Add macro's to read bitfields
+#define ENUM_NV2A_METHOD(X) \
+	X(NV2A_NOP) \
+	X(NV2A_FLIP_STALL) \
+	X(NV2A_VERTEX_BEGIN_END) \
+	X(NV2A_VB_ELEMENT_U16) \
+	X(NV2A_VERTEX_DATA) \
+	X(NV2A_VP_UPLOAD_CONST_ID) \
+	X(NV2A_VP_UPLOAD_CONST(0)) \
+	X(NV2A_VP_UPLOAD_CONST(1)) \
+	X(NV2A_VP_UPLOAD_CONST(2)) \
+	X(NV2A_VP_UPLOAD_CONST(3)) \
+	X(NV2A_VP_UPLOAD_CONST(4)) \
+	X(NV2A_VP_UPLOAD_CONST(5)) \
+	X(NV2A_VP_UPLOAD_CONST(6)) \
+	X(NV2A_VP_UPLOAD_CONST(7)) \
+	X(NV2A_VP_UPLOAD_CONST(8)) \
+	X(NV2A_VP_UPLOAD_CONST(9)) \
+	X(NV2A_VP_UPLOAD_CONST(10)) \
+	X(NV2A_VP_UPLOAD_CONST(11)) \
+	X(NV2A_VP_UPLOAD_CONST(12)) \
+	X(NV2A_VP_UPLOAD_CONST(13)) \
+	X(NV2A_VP_UPLOAD_CONST(14)) \
+	X(NV2A_VP_UPLOAD_CONST(15)) \
+	X(NV2A_VP_UPLOAD_CONST(16)) \
+	X(NV2A_VP_UPLOAD_CONST(17)) \
+	X(NV2A_VP_UPLOAD_CONST(18)) \
+	X(NV2A_VP_UPLOAD_CONST(19)) \
+	X(NV2A_VP_UPLOAD_CONST(20)) \
+	X(NV2A_VP_UPLOAD_CONST(21)) \
+	X(NV2A_VP_UPLOAD_CONST(22)) \
+	X(NV2A_VP_UPLOAD_CONST(23)) \
+	X(NV2A_VP_UPLOAD_CONST(24)) \
+	X(NV2A_VP_UPLOAD_CONST(25)) \
+	X(NV2A_VP_UPLOAD_CONST(26)) \
+	X(NV2A_VP_UPLOAD_CONST(27)) \
+	X(NV2A_VP_UPLOAD_CONST(28)) \
+	X(NV2A_VP_UPLOAD_CONST(29)) \
+	X(NV2A_VP_UPLOAD_CONST(30)) \
+	X(NV2A_VP_UPLOAD_CONST(31)) \
+	X(NV2A_CLEAR_BUFFERS)
+
 typedef enum _TXBType {
 	xt_Unknown = 0, // Defined as zero, to coincide with default value of DxbxRenderStateInfo.T and DxbxTextureStageStateInfo.T
 
