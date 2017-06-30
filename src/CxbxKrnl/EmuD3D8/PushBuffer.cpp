@@ -386,7 +386,13 @@ void NVPB_InlineVertexArray() // 0x1818
 {
 	using namespace XTL;
 
-	HandledBy = "DrawVertices()";
+	// All Draw*() calls start with NV2A_VERTEX_BEGIN_END(PrimitiveType) and end with NV2A_VERTEX_BEGIN_END(0).
+	// They differ by what they send in between those two commands :
+	// DrawVerticesUP() sends NV2A_VERTEX_DATA(NoInc)+ (it copies vertices as-is)
+	// DrawIndexedVerticesUP() sends NV2A_VERTEX_DATA(NoInc)+ too (it copies vertexes from a vertex-buffer using an index-buffer)
+	// DrawVertices() sends NV2A_VB_VERTEX_BATCH(NoInc), 0x00001400(count|index)+ [we need a define for this]
+	// DrawIndexedVertices() sends NV2A_VB_ELEMENT_U16(NoInc)+, 0x1808(one at most) [we need a define for this, probably NV2A_VB_ELEMENT_U32]
+	HandledBy = "DrawVertices()"; 
 	HandledCount = dwCount;
 
 	pVertexData = (PVOID)pdwPushArguments;
@@ -617,6 +623,11 @@ void NVPB_SetVertexShaderConstants()
 	HandledBy = "SetVertexShaderConstant";
 }
 
+void NVPB_SetVertexData4f()
+{
+	// TODO : Collect g_InlineVertexBuffer_Table here (see EMUPATCH(D3DDevice_SetVertexData4f))
+}
+
 char *NV2AMethodToString(DWORD dwMethod)
 {
 	switch (dwMethod) {
@@ -651,6 +662,10 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 		for (int i = 0; i < 32; i++)
 			NV2ACallbacks[NV2A_VP_UPLOAD_CONST(i) / 4] = NVPB_SetVertexShaderConstants; // NV097_SET_TRANSFORM_CONSTANT; // 0x00000b80
 		NV2ACallbacks[NV2A_CLEAR_BUFFERS / 4] = NVPB_Clear; // 0x00001d94
+		for (int i = 0; i < 16; i++) {
+			NV2ACallbacks[NV2A_VTX_ATTR_4F_X(i) / 4] = NVPB_SetVertexData4f; // 0x00001a00
+			// TODO : Register callbacks for other vertex attribute formats (SetVertexData2f, 2s, 4ub, 4s, Color)
+		}
 	}
 
 	// Test case : XDK Sample BeginPush
