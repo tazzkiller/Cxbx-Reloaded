@@ -395,7 +395,7 @@ void NVPB_InlineVertexArray() // 0x1818
 	HandledBy = "DrawVertices()"; 
 	HandledCount = dwCount;
 
-	pVertexData = (PVOID)pdwPushArguments;
+	pVertexData = (::PVOID)pdwPushArguments;
 
 	// retrieve vertex shader
 	g_pD3DDevice8->GetVertexShader(&dwVertexShader);
@@ -628,6 +628,17 @@ void NVPB_SetVertexData4f()
 	// TODO : Collect g_InlineVertexBuffer_Table here (see EMUPATCH(D3DDevice_SetVertexData4f))
 }
 
+void NVPB_SetTextureState_BorderColor()
+{
+	DWORD Stage = (dwMethod - NV2A_TX_BORDER_COLOR(0)) / 4;
+	DWORD XboxValue = *pdwPushArguments;
+	const XTL::D3DTEXTURESTAGESTATETYPE PCStateType = XTL::D3DSAMP_BORDERCOLOR;
+	DWORD PCValue = 0; // TODO : DxbxTextureStageStateXB2PCCallback[PCStateType](XboxValue);
+
+	HRESULT hRet = g_pD3DDevice8->SetTextureStageState(Stage,  PCStateType, PCValue);
+	//DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTextureStageState");
+}
+
 char *NV2AMethodToString(DWORD dwMethod)
 {
 	switch (dwMethod) {
@@ -659,12 +670,17 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 		NV2ACallbacks[NV2A_VERTEX_DATA / 4] = NVPB_InlineVertexArray; // NV097_INLINE_ARRAY; // 0x1818
 		// Not really needed, but helps debugging : 
 		NV2ACallbacks[NV2A_VP_UPLOAD_CONST_ID / 4] = NVPB_SetVertexShaderConstantRegister; // NV097_SET_TRANSFORM_CONSTANT_LOAD; // 0x00001EA4
-		for (int i = 0; i < 32; i++)
+		for (int i = 0; i < 32; i++) {
 			NV2ACallbacks[NV2A_VP_UPLOAD_CONST(i) / 4] = NVPB_SetVertexShaderConstants; // NV097_SET_TRANSFORM_CONSTANT; // 0x00000b80
+		}
 		NV2ACallbacks[NV2A_CLEAR_BUFFERS / 4] = NVPB_Clear; // 0x00001d94
 		for (int i = 0; i < 16; i++) {
 			NV2ACallbacks[NV2A_VTX_ATTR_4F_X(i) / 4] = NVPB_SetVertexData4f; // 0x00001a00
 			// TODO : Register callbacks for other vertex attribute formats (SetVertexData2f, 2s, 4ub, 4s, Color)
+		}
+		for (int i = 0; i < 4; i++) {
+			NV2ACallbacks[NV2A_TX_BORDER_COLOR(i) / 4] = NVPB_SetTextureState_BorderColor;// NV097_SET_TEXTURE_BORDER_COLOR // 0x00001b24
+			// TODO : Register callbacks for other texture(-stage) related methods
 		}
 	}
 

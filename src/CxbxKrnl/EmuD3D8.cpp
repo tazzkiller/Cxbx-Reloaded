@@ -5159,7 +5159,7 @@ BOOL WINAPI XTL::EMUPATCH(D3DResource_IsBusy)
     return FALSE;
 }
 
-#if 1 // TODO : Can be DISABLED once CreateDevice is unpatched (because this reads Data from the first Xbox FrameBuffer)
+#ifdef PATCH_CREATEDEVICE // Can be DISABLED when CreateDevice is unpatched (because this reads Data from the first Xbox FrameBuffer)
 // Dxbx : Needs a patch because it accesses _D3D__pDevice at some offset,
 // probably comparing the data of this pixelcontainer to the framebuffer
 // and setting the MultiSampleType as a result to either the device's
