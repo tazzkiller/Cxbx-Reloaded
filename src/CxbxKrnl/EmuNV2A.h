@@ -117,7 +117,7 @@ void EmuNV2A_Write(xbaddr addr, uint32_t value, int size);
 #define NV2A_SUBCH_MAX (NV2A_SUBCH_MASK >> NV2A_SUBCH_SHIFT) // = 7
 #define NV2A_COUNT_MAX (NV2A_COUNT_MASK >> NV2A_COUNT_SHIFT) // = 2047
 
-inline void D3DPUSH_DECODE(const DWORD dwPushCommand, DWORD &dwMethod, DWORD &dwSubCh, DWORD &dwCount, BOOL &bNoInc)
+inline void D3DPUSH_DECODE(const DWORD dwPushCommand, DWORD &dwMethod, DWORD &dwSubCh, DWORD &dwCount, bool &bNoInc)
 {
 	dwMethod = (dwPushCommand & NV2A_METHOD_MASK); // >> NV2A_METHOD_SHIFT;
 	dwSubCh = (dwPushCommand & NV2A_SUBCH_MASK) >> NV2A_SUBCH_SHIFT;

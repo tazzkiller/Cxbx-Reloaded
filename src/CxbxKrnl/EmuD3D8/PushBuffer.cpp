@@ -162,7 +162,7 @@ XTL::X_D3DPRIMITIVETYPE  XboxPrimitiveType = XTL::X_D3DPT_INVALID;
 DWORD dwMethod;
 DWORD dwSubCh;
 DWORD dwCount;
-BOOL bNoInc;
+bool bNoInc;
 
 int HandledCount;
 char *HandledBy;
