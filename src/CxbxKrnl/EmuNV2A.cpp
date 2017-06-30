@@ -1002,9 +1002,9 @@ DEVICE_READ32(PFB)
 DEVICE_WRITE32(PFB)
 {
 	switch (addr) {
-	case NV_PFB_WBC: // Xbox KickOff() sets this
+	case NV_PFB_WBC:
 		if (value & NV_PFB_WBC_FLUSH) {
-			DEBUG_READ32_LOG(PFB, "Triggered FLUSH_PENDING bit"); // This unblocks Xbox FlushWCCache()
+			DEBUG_READ32_LOG(PFB, "Xbox KickOff() sets FLUSH bit"); // This unblocks Xbox FlushWCCache()
 			SetEvent(ghNV2AFlushEvent);
 			// TODO : Reset NV_PFB_WBC_FLUSH here, or when reading?
 			value ^= NV_PFB_WBC_FLUSH; 
