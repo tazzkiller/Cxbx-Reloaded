@@ -46,7 +46,7 @@ typedef struct {
 
 extern void *GPURegisterBase;
 
-extern volatile xbaddr *m_pCPUTime;
+extern PPUSH m_pCPUTime;
 
 void CxbxLocateCpuTime();
 

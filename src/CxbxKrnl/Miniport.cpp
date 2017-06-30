@@ -54,7 +54,7 @@ namespace xboxkrnl
 namespace XTL {
 	void *GPURegisterBase = NULL; // + NV2A_PFB_WC_CACHE = pNV2AWorkTrigger (see EmuThreadHandleNV2ADMA)
 
-	volatile xbaddr *m_pCPUTime = NULL;
+	PPUSH m_pCPUTime = NULL;
 }
 
 /*
@@ -260,7 +260,7 @@ void XTL::CxbxLocateCpuTime()
 		// a technique to read members from all g_pDevice (D3DDevice) versions in a generic way);
 
 		// Walk through a few members of the D3D device struct :
-		m_pCPUTime = (xbaddr*)(*((xbaddr *)XTL::Xbox_D3D__Device));
+		m_pCPUTime = (PPUSH)(*((xbaddr *)XTL::Xbox_D3D__Device));
 		DbgPrintf("CxbxLocateCpuTime : Searching for m_pCPUTime (residing at 0x%0.8x) in Xbox_D3D__Device from 0x%0.8x\n", m_pGPUTime, m_pCPUTime);
 
 		for (int i = 0; i <= 32; i++) {

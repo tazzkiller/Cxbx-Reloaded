@@ -134,18 +134,18 @@ void XTL::EmuExecutePushBuffer
         CxbxKrnlCleanup("PushBuffer has fixups\n");
 
 #ifdef _DEBUG_TRACK_PB
-	DbgDumpPushBuffer((DWORD*)pPushBuffer->Data, pPushBuffer->Size);
+	DbgDumpPushBuffer((PPUSH)pPushBuffer->Data, pPushBuffer->Size);
 #endif
 
-    EmuExecutePushBufferRaw((DWORD*)pPushBuffer->Data);
+    EmuExecutePushBufferRaw((PPUSH)pPushBuffer->Data);
 
     return;
 }
 
 // Globals and controller :
-DWORD *pdwOrigPushData;
+PPUSH pdwOrigPushData;
 bool bShowPB = false;
-DWORD* pdwPushArguments;
+PPUSH pdwPushArguments;
 
 DWORD PrevMethod[2] = {};
 XTL::INDEX16 *pIndexData = NULL;
@@ -389,7 +389,7 @@ void NVPB_InlineVertexArray() // 0x1818
 	HandledBy = "DrawVertices()";
 	HandledCount = dwCount;
 
-	pVertexData = pdwPushArguments;
+	pVertexData = (PVOID)pdwPushArguments;
 
 	// retrieve vertex shader
 	g_pD3DDevice8->GetVertexShader(&dwVertexShader);
@@ -493,7 +493,7 @@ void NVPB_FixLoop() // 0x1808
 	if (pIBMem[0] != 0xFFFF) {
 		uint uiIndexCount = dwCount + 2;
 #ifdef _DEBUG_TRACK_PB
-		if (!g_PBTrackDisable.exists(pdwOrigPushData))
+		if (!g_PBTrackDisable.exists((void*)pdwOrigPushData))
 #endif
 			// render indexed vertices
 		{
@@ -560,7 +560,7 @@ void NVPB_InlineIndexArray() // 0x1800
 		}
 
 #ifdef _DEBUG_TRACK_PB
-		if (!g_PBTrackDisable.exists(pdwOrigPushData))
+		if (!g_PBTrackDisable.exists((void*)pdwOrigPushData))
 #endif
 			// render indexed vertices
 		{
@@ -630,9 +630,9 @@ char *NV2AMethodToString(DWORD dwMethod)
 	}
 }
 
-extern DWORD *XTL::EmuExecutePushBufferRaw
+extern PPUSH XTL::EmuExecutePushBufferRaw
 (
-    DWORD                 *pdwPushData
+    PPUSH pdwPushData
 	// TODO DWORD *pdwPushEnd
 )
 {
@@ -682,8 +682,8 @@ extern DWORD *XTL::EmuExecutePushBufferRaw
     #ifdef _DEBUG_TRACK_PB
     bShowPB = false;
 
-    g_PBTrackTotal.insert(pdwPushData);
-    if (g_PBTrackShowOnce.remove(pdwPushData) != NULL) {
+    g_PBTrackTotal.insert((void*)pdwPushData);
+    if (g_PBTrackShowOnce.remove((void*)pdwPushData) != NULL) {
         printf("\n");
         printf("\n");
         printf("  PushBuffer@0x%.08X...\n", pdwPushData);
@@ -711,26 +711,33 @@ extern DWORD *XTL::EmuExecutePushBufferRaw
 		}
 
 		// Handle jumps and/or calls :
-		if (((dwPushCommand & NV2A_JMP_FLAG) > 0)
-			|| ((dwPushCommand & NV2A_CALL_FLAG) > 0)) {
+		DWORD PushType = PUSH_TYPE(dwPushCommand);
+		if ((PushType == PUSH_TYPE_JMP_FAR) || (PushType == PUSH_TYPE_CALL_FAR)) {
 			// Both 'jump' and 'call' just direct execution to the indicated address :
-			pdwPushData = (DWORD*)((dwPushCommand & NV2A_ADDR_MASK) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
-			DbgPrintf("%s Jump:0x%.08X\n", LogPrefixStr, pdwPushData);
-
+			pdwPushData = (PPUSH)(PUSH_ADDR_FAR(dwPushCommand) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
+			DbgPrintf("%s Jump far: 0x%.08X\n", LogPrefixStr, pdwPushData);
 			continue;
 		}
 
-		// Decode push buffer contents (inverse of D3DPUSH_ENCODE) :
-		D3DPUSH_DECODE(dwPushCommand, dwMethod, dwSubCh, dwCount, bNoInc);
+		// Handle instruction
+		DWORD PushInstr = PUSH_INSTR(dwPushCommand);
+		if (PushInstr == PUSH_INSTR_JMP_NEAR) {
+			pdwPushData = (PPUSH)(PUSH_ADDR_NEAR(dwPushCommand) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
+			DbgPrintf("%s Jump near: 0x%.08X\n", LogPrefixStr, pdwPushData);
+			continue;
+		}
 
-		// Remember address of the arguments
-		pdwPushArguments = pdwPushData;
-
+		// Get method, sub channel and count (should normally be at least 1)
+		D3DPUSH_DECODE(dwPushCommand, dwMethod, dwSubCh, dwCount);
 		if (dwCount == 0) {
 			// NOP might get here, but without arguments it's really a no-op
 			continue;
 		}
 
+		// Remember address of the argument(s)
+		pdwPushArguments = pdwPushData;
+
+		bool bNoInc = (PushInstr == PUSH_INSTR_IMM_NOINC);
 		// Append a counter (variable part via %d, count already formatted) :
 //		if (MayLog(lfUnit))
 		{
@@ -755,7 +762,7 @@ extern DWORD *XTL::EmuExecutePushBufferRaw
 		if ((dwSubCh == 0) && (!bNoInc)) {
 			//assert((dwMethod + (dwCount * sizeof(DWORD))) <= sizeof(NV2AInstance_Registers));
 
-			memcpy(&(NV2AInstance_Registers[dwMethod / 4]), pdwPushArguments, dwCount * sizeof(DWORD));
+			memcpy(&(NV2AInstance_Registers[dwMethod / 4]), (void*)pdwPushArguments, dwCount * sizeof(DWORD));
 		}
 
 		// Interpret GPU Instruction(s) :
@@ -841,7 +848,7 @@ extern DWORD *XTL::EmuExecutePushBufferRaw
 	// Fake a read by the Nv2A, by moving the DMA 'Get' location
 	// up to where the pushbuffer is executed, so that the BusyLoop
 	// in CDevice.Init finishes cleanly :
-	g_pNV2ADMAChannel->Get = (void *)pdwPushData;
+	g_pNV2ADMAChannel->Get = (PPUSH)pdwPushData;
 	// TODO : We should probably set g_pNV2ADMAChannel->Put to the same value first?
 
 	// We trigger the DMA semaphore by setting GPU time to CPU time - 2 :
@@ -900,18 +907,18 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 		xbaddr GPUEnd = (xbaddr)pPusher->m_pPut; // OR with  MM_SYSTEM_PHYSICAL_MAP (0x80000000) doesn't seem necessary
 		if (GPUEnd != GPUStart) {
 			// Execute the instructions, this returns the address where execution stopped :
-			GPUEnd = (xbaddr)EmuExecutePushBufferRaw((DWORD*)GPUStart);// , GPUEnd);
+			GPUEnd = (xbaddr)EmuExecutePushBufferRaw((PPUSH)GPUStart);// , GPUEnd);
 			// GPUEnd ^= MM_SYSTEM_PHYSICAL_MAP; // Clearing mask doesn't seem necessary
 			// Signal that DMA has finished by resetting the GPU 'Get' pointer, so that busyloops will terminate
 			// See EmuNV2A.cpp : DEVICE_READ32(USER) and DEVICE_WRITE32(USER)
-			g_pNV2ADMAChannel->Put = (void*)GPUEnd;
+			g_pNV2ADMAChannel->Put = (PPUSH)GPUEnd;
 			// Register timestamp (needs an offset - but why?)
 			*m_pGPUTime = *m_pCPUTime - 2;
 			// TODO : Count number of handled commands here?
 		}
 
 		// Always set the ending address in DMA, so Xbox HwGet() will see it, breaking the BusyLoop() cycle
-		g_pNV2ADMAChannel->Get = (void*)GPUEnd;
+		g_pNV2ADMAChannel->Get = (PPUSH)GPUEnd;
 	}
 
 	DbgPrintf("EmuD3D8 : NV2A DMA thread is finished.\n");
@@ -1023,7 +1030,7 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
     }
 }
 
-void XTL::DbgDumpPushBuffer(DWORD* PBData, DWORD dwSize)
+void XTL::DbgDumpPushBuffer(PPUSH PBData, DWORD dwSize)
 {
 	static int PbNumber = 0;	// Keep track of how many push buffers we've attemted to convert.
 	DWORD dwVertexShader;
@@ -1061,7 +1068,7 @@ void XTL::DbgDumpPushBuffer(DWORD* PBData, DWORD dwSize)
 	// TODO: Cache the 32-bit XXHash32::hash() of each pushbuffer to ensure that the same
 	// pushbuffer is not written twice within a given emulation session.
 	WriteFile(hFile, &g_CurrentVertexShader, sizeof(DWORD), &dwBytesWritten, nullptr);
-	WriteFile(hFile, PBData, dwSize, &dwBytesWritten, nullptr);
+	WriteFile(hFile, (LPCVOID)PBData, dwSize, &dwBytesWritten, nullptr);
 	// Close handle
 	CloseHandle(hFile);
 }

@@ -7861,7 +7861,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetBackMaterial)
 #define PB_SIZE (64 * 1024 / sizeof(DWORD))
 DWORD PushBuffer[PB_SIZE] = {};
 
-PDWORD WINAPI XTL::EMUPATCH(MakeRequestedSpace)
+PPUSH WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 (
 	DWORD MinimumSpace,
 	DWORD RequestedSpace
@@ -7879,7 +7879,7 @@ PDWORD WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 	// NOTE: This function is ignored, as we currently don't emulate the push buffer
 	LOG_IGNORED();
 
-	DWORD *End = EmuExecutePushBufferRaw(PushBuffer);
+	PPUSH End = EmuExecutePushBufferRaw((PPUSH)PushBuffer);
 
 	// Clear the handled pushbuffer commands :
 	if (End > PushBuffer) {
@@ -7887,7 +7887,7 @@ PDWORD WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 	}
 
 
-	return PushBuffer; // Return a buffer that will be filled with GPU commands
+	return (PPUSH)PushBuffer; // Return a buffer that will be filled with GPU commands
 
 	// Note: This should work together with functions like XMETAL_StartPush/
 	// D3DDevice_BeginPush(Buffer)/D3DDevice_EndPush(Buffer) and g_pPrimaryPB

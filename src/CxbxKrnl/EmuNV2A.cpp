@@ -62,7 +62,7 @@
 #include <cassert>
 //#include <gl\glut.h>
 
-volatile xbaddr *m_pGPUTime = NULL; // See Dxbx XTL_ EmuExecutePushBufferRaw
+PPUSH m_pGPUTime = NULL;
 
 HANDLE ghNV2AFlushEvent = 0;
 
@@ -124,8 +124,8 @@ struct {
 	uint32_t regs[NV_PGRAPH_SIZE / sizeof(uint32_t)]; // TODO : union
 } pgraph;
 
-Nv2AControlDma g_NV2ADMAChannel = {}; // TODO : Rename this to nvuser?
-Nv2AControlDma *g_pNV2ADMAChannel = &g_NV2ADMAChannel; // TODO : Rename this to nvuser?
+//Nv2AControlDma g_NV2ADMAChannel = {}; // TODO : Rename this to nvuser?
+Nv2AControlDma *g_pNV2ADMAChannel = NULL;// &g_NV2ADMAChannel; // TODO : Rename this to nvuser?
 
 static void update_irq()
 {
@@ -1276,7 +1276,7 @@ DEVICE_WRITE32(PRAMIN)
 				if (DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_CLASS(DMASlot)) == 0x0002B03D) {
 					// Remember where the semaphore (starting with a GPU Time DWORD) was allocated
 					DWORD Address = DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_ADDRESS(DMASlot));
-					m_pGPUTime = (xbaddr*)((Address & ~3) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
+					m_pGPUTime = (PPUSH)((Address & ~3) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
 					DbgPrintf("Registered m_pGPUTime at 0x%0.8x\n", m_pGPUTime);
 				}
 			}
@@ -1319,13 +1319,13 @@ DEVICE_WRITE32(USER)
 {
 	switch (addr) {
 	case NV_USER_DMA_GET:
-		g_pNV2ADMAChannel->Get = (void*)value;
+		g_pNV2ADMAChannel->Get = (PPUSH)value;
 		break;
 	case NV_USER_DMA_PUT:
-		g_pNV2ADMAChannel->Put = (void*)value;
+		g_pNV2ADMAChannel->Put = (PPUSH)value;
 		break;
 	case NV_USER_REF:
-		g_pNV2ADMAChannel->Reference = (void*)value;
+		g_pNV2ADMAChannel->Reference = (PPUSH)value;
 		break;
 	default:
 		DEBUG_WRITE32_UNHANDLED(USER);

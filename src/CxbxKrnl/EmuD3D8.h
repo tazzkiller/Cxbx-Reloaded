@@ -1562,7 +1562,7 @@ VOID WINAPI EMUPATCH(D3DDevice_SetBackMaterial)
 // ******************************************************************
 // * patch: D3D::MakeRequestedSpace
 // ******************************************************************
-PDWORD WINAPI EMUPATCH(MakeRequestedSpace)
+PPUSH WINAPI EMUPATCH(MakeRequestedSpace)
 (
 	DWORD MinimumSpace,
 	DWORD RequestedSpace
