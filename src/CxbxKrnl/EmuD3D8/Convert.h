@@ -1520,6 +1520,8 @@ extern void EmuUnswizzleRect
 #define   NV2A_CLEAR_BUFFERS_COLOR_R							(1 <<  4)
 #define   NV2A_CLEAR_BUFFERS_STENCIL							(1 <<  1)
 #define   NV2A_CLEAR_BUFFERS_DEPTH							(1 <<  0)
+#define  NV2A_CLEAR_X								0x00001d98
+#define  NV2A_CLEAR_Y								0x00001d9c
 #define  NV2A_RC_COLOR0								0x00001e20
 #define   NV2A_RC_COLOR0_B_SHIFT							0
 #define   NV2A_RC_COLOR0_B_MASK							0x000000ff

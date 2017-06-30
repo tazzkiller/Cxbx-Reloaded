@@ -482,6 +482,64 @@ void NVPB_SetVertexShaderConstants()
 	HandledBy = "SetVertexShaderConstant";
 }
 
+void NVPB_Clear()
+{
+	DWORD Flags = *pdwPushArguments;
+
+	// make adjustments to parameters to make sense with windows d3d
+	DWORD PCFlags = XTL::EmuXB2PC_D3DCLEAR_FLAGS(Flags);
+	{
+		if (Flags & X_D3DCLEAR_TARGET) {
+			// TODO: D3DCLEAR_TARGET_A, *R, *G, *B don't exist on windows
+			if ((Flags & X_D3DCLEAR_TARGET) != X_D3DCLEAR_TARGET)
+				EmuWarning("Unsupported : Partial D3DCLEAR_TARGET flag(s) for D3DDevice_Clear : 0x%.08X", Flags & X_D3DCLEAR_TARGET);
+		}
+
+		/* Do not needlessly clear Z Buffer
+		if (Flags & X_D3DCLEAR_ZBUFFER) {
+			if (!g_bHasDepthBits) {
+				PCFlags &= ~D3DCLEAR_ZBUFFER;
+				EmuWarning("Ignored D3DCLEAR_ZBUFFER flag (there's no Depth component in the DepthStencilSurface)");
+			}
+		}
+
+		// Only clear depth buffer and stencil if present
+		//
+		// Avoids following DirectX Debug Runtime error report
+		//    [424] Direct3D8: (ERROR) :Invalid flag D3DCLEAR_ZBUFFER: no zbuffer is associated with device. Clear failed. 
+		if (Flags & X_D3DCLEAR_STENCIL) {
+			if (!g_bHasStencilBits) {
+				PCFlags &= ~D3DCLEAR_STENCIL;
+				EmuWarning("Ignored D3DCLEAR_STENCIL flag (there's no Stencil component in the DepthStencilSurface)");
+			}
+		}*/
+
+		if (Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL))
+			EmuWarning("Unsupported Flag(s) for D3DDevice_Clear : 0x%.08X", Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL));
+	}
+
+	// Since we filter the flags, make sure there are some left (else, clear isn't necessary) :
+	if (PCFlags > 0)
+	{
+		// Read NV2A clear arguments
+		DWORD Color = NV2AInstance_Registers[NV2A_CLEAR_VALUE / 4];
+		DWORD DepthStencil = NV2AInstance_Registers[NV2A_CLEAR_DEPTH_VALUE / 4];
+		DWORD X12 = NV2AInstance_Registers[NV2A_CLEAR_X / 4];
+		DWORD Y12 = NV2AInstance_Registers[NV2A_CLEAR_Y / 4];
+
+		// Convert NV2A to PC Clear arguments
+		FLOAT Z = (FLOAT)(DepthStencil >> 8) / 65535.0f; // TODO : Use format-dependent divider
+		DWORD Stencil = DepthStencil & 0xFF;
+		XTL::D3DRECT ClearRect = { (X12 & 0xFFFF) + 1, (Y12 & 0xFFFF) + 1, X12 >> 16, Y12 >> 16 };
+
+		// CxbxUpdateActiveRenderTarget(); // TODO : Or should we have to call DxbxUpdateNativeD3DResources ?
+		HRESULT hRet = g_pD3DDevice8->Clear(1, &ClearRect, PCFlags, Color, Z, Stencil);
+		// DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
+	}
+	
+	HandledBy = "Clear";
+}
+
 char *DxbxXboxMethodToString(DWORD dwMethod)
 {
 	return "UNLABLED"; // TODO
@@ -506,6 +564,7 @@ extern DWORD *XTL::EmuExecutePushBufferRaw
 		NV2ACallbacks[NV2A_VP_UPLOAD_CONST_ID / 4] = NVPB_SetVertexShaderConstantRegister; // NV097_SET_TRANSFORM_CONSTANT_LOAD; // 0x00001EA4
 		for (int i = 0; i < 32; i++)
 			NV2ACallbacks[NV2A_VP_UPLOAD_CONST(i) / 4] = NVPB_SetVertexShaderConstants; // NV097_SET_TRANSFORM_CONSTANT; // 0x00000b80
+		NV2ACallbacks[NV2A_CLEAR_BUFFERS / 4] = NVPB_Clear; // 0x00001d94
 	}
 
 	// Test case : XDK Sample BeginPush

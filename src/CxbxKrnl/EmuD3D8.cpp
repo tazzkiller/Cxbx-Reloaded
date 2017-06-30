@@ -4278,8 +4278,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
     DWORD           Stencil
 )
 {
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
-
+#endif
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Count)
 		LOG_FUNC_ARG(pRects)
