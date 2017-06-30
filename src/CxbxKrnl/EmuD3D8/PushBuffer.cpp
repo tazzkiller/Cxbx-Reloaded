@@ -558,9 +558,10 @@ extern DWORD *XTL::EmuExecutePushBufferRaw
 		char LogPrefixStr[200];
 		int len = sprintf(LogPrefixStr, "  NV2A Get=$%.08X", pdwPushData);
 
-		DWORD dwPushCommand = *pdwPushData;
+		// Fetch method DWORD
+		DWORD dwPushCommand = *pdwPushData++;
 		if (dwPushCommand == 0) {
-			DbgPrintf("%s BREAK at NULL method at 0x%.08X\n", LogPrefixStr, pdwPushData);
+			DbgPrintf("%s BREAK at NULL method at 0x%.08X\n", LogPrefixStr, pdwPushData-1);
 			break;
 		}
 
@@ -577,6 +578,14 @@ extern DWORD *XTL::EmuExecutePushBufferRaw
 		// Decode push buffer contents (inverse of D3DPUSH_ENCODE) :
 		D3DPUSH_DECODE(dwPushCommand, dwMethod, dwSubCh, dwCount, bNoInc);
 
+		// Remember address of the arguments
+		pdwPushArguments = pdwPushData;
+
+		if (dwCount == 0) {
+			// NOP might get here, but without arguments it's really a no-op
+			continue;
+		}
+
 		// Append a counter (variable part via %d, count already formatted) :
 //		if (MayLog(lfUnit))
 		{
@@ -588,15 +597,7 @@ extern DWORD *XTL::EmuExecutePushBufferRaw
 				len += sprintf(LogPrefixStr + len, " [NoInc]");
 		}
 
-		// Skip method DWORD, remember the address of the arguments and skip over the arguments already :
-		pdwPushData++;
-		pdwPushArguments = pdwPushData;
-
-		if (dwCount == 0) {
-			// NOP might get here, but without arguments it's really a no-op
-			continue;
-		}
-
+		// Skip fetch-pointer over the arguments already
 		pdwPushData += dwCount;
 		// Initialize handled count & name to their default :
 		HandledCount = 1;
@@ -689,19 +690,19 @@ extern DWORD *XTL::EmuExecutePushBufferRaw
 			// Re-initialize handled count & name to their default, for the next command :
 			HandledCount = 1;
 			HandledBy = nullptr;
-
-			// Fake a read by the Nv2A, by moving the DMA 'Get' location
-			// up to where the pushbuffer is executed, so that the BusyLoop
-			// in CDevice.Init finishes cleanly :
-			g_NV2ADMAChannel.Get = (void *)pdwPushData;
-			// TODO : We should probably set g_NV2ADMAChannel.Put to the same value first?
-
-			// We trigger the DMA semaphore by setting GPU time to CPU time - 2 :
-			//*/*D3DDevice.*/m_pGpuTime = /*D3DDevice.*/*m_pCpuTime -2;
-
-			// TODO : We should register vblank counts somewhere?
 		} // while (dwCount > 0)
-	} //  while (*pdwPushData != 0)
+	} //  while (true)
+
+	// Fake a read by the Nv2A, by moving the DMA 'Get' location
+	// up to where the pushbuffer is executed, so that the BusyLoop
+	// in CDevice.Init finishes cleanly :
+	g_pNV2ADMAChannel->Get = (void *)pdwPushData;
+	// TODO : We should probably set g_pNV2ADMAChannel->Put to the same value first?
+
+	// We trigger the DMA semaphore by setting GPU time to CPU time - 2 :
+	//*/*D3DDevice.*/m_pGpuTime = /*D3DDevice.*/*m_pCpuTime -2;
+
+	// TODO : We should register vblank counts somewhere?
 
     #ifdef _DEBUG_TRACK_PB
     if (bShowPB) {
@@ -733,7 +734,6 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 #endif
 
 	Pusher *pPusher = (Pusher*)(*((xbaddr *)Xbox_D3D__Device));
-	Nv2AControlDma *pNV2ADMAChannel = &g_NV2ADMAChannel;
 
 	// Emulate the GPU engine here, by running the pushbuffer on the correct addresses :
 
@@ -741,12 +741,16 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 	// We wait for DEVICE_READ32(PFB) case NV_PFB_WBC sending us a signal
 	while (WaitForSingleObject(ghNV2AFlushEvent, INFINITE) == WAIT_OBJECT_0) { // TODO -oDxbx: When do we break out of this while loop ?
 
-		if (pNV2ADMAChannel->Put == NULL) {
+		if (m_pCPUTime == NULL)
+			CxbxLocateCpuTime();
+
+		if (g_pNV2ADMAChannel->Put == NULL) {
+			Sleep(50);
 			continue;
 		}
 
 		// Start at the DMA's 'Put' address
-		xbaddr GPUStart = (xbaddr)pNV2ADMAChannel->Put | MM_SYSTEM_PHYSICAL_MAP; // 0x80000000
+		xbaddr GPUStart = (xbaddr)g_pNV2ADMAChannel->Put | MM_SYSTEM_PHYSICAL_MAP; // 0x80000000
 		// Run up to the end of the pushbuffer (as filled by software) :
 		xbaddr GPUEnd = (xbaddr)pPusher->m_pPut; // OR with  MM_SYSTEM_PHYSICAL_MAP (0x80000000) doesn't seem necessary
 		if (GPUEnd != GPUStart) {
@@ -755,14 +759,14 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 			// GPUEnd ^= MM_SYSTEM_PHYSICAL_MAP; // Clearing mask doesn't seem necessary
 			// Signal that DMA has finished by resetting the GPU 'Get' pointer, so that busyloops will terminate
 			// See EmuNV2A.cpp : DEVICE_READ32(USER) and DEVICE_WRITE32(USER)
-			pNV2ADMAChannel->Put = (void*)GPUEnd;
+			g_pNV2ADMAChannel->Put = (void*)GPUEnd;
 			// Register timestamp (needs an offset - but why?)
 			*m_pGPUTime = *m_pCPUTime - 2;
 			// TODO : Count number of handled commands here?
 		}
 
 		// Always set the ending address in DMA, so Xbox HwGet() will see it, breaking the BusyLoop() cycle
-		pNV2ADMAChannel->Get = (void*)GPUEnd;
+		g_pNV2ADMAChannel->Get = (void*)GPUEnd;
 	}
 
 	DbgPrintf("EmuD3D8 : NV2A DMA thread is finished.\n");

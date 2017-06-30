@@ -47,7 +47,8 @@ typedef struct {
 extern void *GPURegisterBase;
 
 extern volatile xbaddr *m_pCPUTime;
-extern volatile xbaddr *m_pGPUTime;
+
+void CxbxLocateCpuTime();
 
 // ******************************************************************
 // * patch: CMiniport_InitHardware

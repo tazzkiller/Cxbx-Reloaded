@@ -62,6 +62,8 @@
 #include <cassert>
 //#include <gl\glut.h>
 
+volatile xbaddr *m_pGPUTime = NULL; // See Dxbx XTL_ EmuExecutePushBufferRaw
+
 HANDLE ghNV2AFlushEvent = 0;
 
 struct {
@@ -123,6 +125,7 @@ struct {
 } pgraph;
 
 Nv2AControlDma g_NV2ADMAChannel = {}; // TODO : Rename this to nvuser?
+Nv2AControlDma *g_pNV2ADMAChannel = &g_NV2ADMAChannel; // TODO : Rename this to nvuser?
 
 static void update_irq()
 {
@@ -593,6 +596,50 @@ DEBUG_START(PRMDIO)
 DEBUG_END(PRMDIO)
 
 DEBUG_START(PRAMIN)
+	DEBUG_CASE(NV_PRAMIN_DMA_CLASS(0));
+	DEBUG_CASE(NV_PRAMIN_DMA_LIMIT(0));
+	DEBUG_CASE(NV_PRAMIN_DMA_START(0));
+	DEBUG_CASE(NV_PRAMIN_DMA_ADDRESS(0));
+	DEBUG_CASE(NV_PRAMIN_DMA_CLASS(1));
+	DEBUG_CASE(NV_PRAMIN_DMA_LIMIT(1));
+	DEBUG_CASE(NV_PRAMIN_DMA_START(1));
+	DEBUG_CASE(NV_PRAMIN_DMA_ADDRESS(1));
+	DEBUG_CASE(NV_PRAMIN_DMA_CLASS(2));
+	DEBUG_CASE(NV_PRAMIN_DMA_LIMIT(2));
+	DEBUG_CASE(NV_PRAMIN_DMA_START(2));
+	DEBUG_CASE(NV_PRAMIN_DMA_ADDRESS(2));
+	DEBUG_CASE(NV_PRAMIN_DMA_CLASS(3));
+	DEBUG_CASE(NV_PRAMIN_DMA_LIMIT(3));
+	DEBUG_CASE(NV_PRAMIN_DMA_START(3));
+	DEBUG_CASE(NV_PRAMIN_DMA_ADDRESS(3));
+	DEBUG_CASE(NV_PRAMIN_DMA_CLASS(4));
+	DEBUG_CASE(NV_PRAMIN_DMA_LIMIT(4));
+	DEBUG_CASE(NV_PRAMIN_DMA_START(4));
+	DEBUG_CASE(NV_PRAMIN_DMA_ADDRESS(4));
+	DEBUG_CASE(NV_PRAMIN_DMA_CLASS(5));
+	DEBUG_CASE(NV_PRAMIN_DMA_LIMIT(5));
+	DEBUG_CASE(NV_PRAMIN_DMA_START(5));
+	DEBUG_CASE(NV_PRAMIN_DMA_ADDRESS(5));
+	DEBUG_CASE(NV_PRAMIN_DMA_CLASS(6));
+	DEBUG_CASE(NV_PRAMIN_DMA_LIMIT(6));
+	DEBUG_CASE(NV_PRAMIN_DMA_START(6));
+	DEBUG_CASE(NV_PRAMIN_DMA_ADDRESS(6));
+	DEBUG_CASE(NV_PRAMIN_DMA_CLASS(7));
+	DEBUG_CASE(NV_PRAMIN_DMA_LIMIT(7));
+	DEBUG_CASE(NV_PRAMIN_DMA_START(7));
+	DEBUG_CASE(NV_PRAMIN_DMA_ADDRESS(7));
+	DEBUG_CASE(NV_PRAMIN_DMA_CLASS(8));
+	DEBUG_CASE(NV_PRAMIN_DMA_LIMIT(8));
+	DEBUG_CASE(NV_PRAMIN_DMA_START(8));
+	DEBUG_CASE(NV_PRAMIN_DMA_ADDRESS(8));
+	DEBUG_CASE(NV_PRAMIN_DMA_CLASS(9));
+	DEBUG_CASE(NV_PRAMIN_DMA_LIMIT(9));
+	DEBUG_CASE(NV_PRAMIN_DMA_START(9));
+	DEBUG_CASE(NV_PRAMIN_DMA_ADDRESS(9));
+	DEBUG_CASE(NV_PRAMIN_DMA_CLASS(10));
+	DEBUG_CASE(NV_PRAMIN_DMA_LIMIT(10));
+	DEBUG_CASE(NV_PRAMIN_DMA_START(10));
+	DEBUG_CASE(NV_PRAMIN_DMA_ADDRESS(10));
 DEBUG_END(PRAMIN)
 
 DEBUG_START(USER)
@@ -615,7 +662,7 @@ DEBUG_END(USER)
 #define DEBUG_WRITE32(DEV)           DEBUG_WRITE32_LOG(DEV, "[Handled, %s]", DEBUG_REGNAME(DEV))
 #define DEBUG_WRITE32_UNHANDLED(DEV) { DEBUG_WRITE32_LOG(DEV, "[Unhandled, %s]", DEBUG_REGNAME(DEV)); return; }
 
-#define DEVICE_REG32_ADDR(DEV, addr) DEV.regs[addr / sizeof(uint32_t)]
+#define DEVICE_REG32_ADDR(DEV, addr) DEV.regs[(addr) / sizeof(uint32_t)]
 #define DEVICE_REG32(DEV) DEVICE_REG32_ADDR(DEV, addr)
 
 #define DEVICE_READ32(DEV) uint32_t EmuNV2A_##DEV##_Read32(xbaddr addr)
@@ -1180,9 +1227,50 @@ DEVICE_READ32(PRAMIN)
 
 DEVICE_WRITE32(PRAMIN)
 {
-	switch (addr) {
-	default:
-		DEVICE_WRITE32_REG(pramin);
+	DEVICE_WRITE32_REG(pramin);
+	
+	int slot = addr >> 4;
+	if (slot < 16) {
+		// don't log zero''s
+		if (value == 0)
+			return;
+
+		switch (addr & 0x0F) {
+		case NV_PRAMIN_DMA_START(0): {
+			if (slot == 0)
+				DbgPrintf("First CMiniport::CreateCtxDmaObject() call\n");
+
+			break;
+		}
+		case NV_PRAMIN_DMA_LIMIT(0): {
+			if (value == 0x0000001F) {
+				if (DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_CLASS(slot)) == 0x0202B003) {
+					// = pusher
+					DWORD Address = DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_ADDRESS(slot));
+					g_pNV2ADMAChannel = (Nv2AControlDma*)((Address & ~3) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
+					DbgPrintf("NV2A Pusher DMA channel is at 0x%0.8x\n", g_pNV2ADMAChannel);
+				}
+			}
+
+			if (value == 0x00000020) {
+				if (DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_CLASS(slot)) == 0x0002B03D) {
+					// = notification of semaphore address
+					// Remember where the semaphore (starting with a GPU Time DWORD) was allocated
+					DWORD Address = DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_ADDRESS(slot));
+					m_pGPUTime = (xbaddr*)((Address & ~3) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
+					DbgPrintf("Registered m_pGPUTime at 0x%0.8x\n", m_pGPUTime);
+				}
+			}
+
+			if (slot > 6) {
+				if (DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_CLASS(slot)) == 0x0000B002) {
+					DbgPrintf("Last CMiniport::CreateCtxDmaObject() call\n");
+				}
+			}
+
+			break;
+		}
+		}
 	}
 
 	DEVICE_WRITE32_END(PRAMIN);
@@ -1193,13 +1281,13 @@ DEVICE_READ32(USER)
 {
 	DEVICE_READ32_SWITCH() {
 	case NV_USER_DMA_GET:		
-		result = (uint32_t)g_NV2ADMAChannel.Get;
+		result = (uint32_t)g_pNV2ADMAChannel->Get;
 		break;
 	case NV_USER_DMA_PUT:
-		result = (uint32_t)g_NV2ADMAChannel.Put;
+		result = (uint32_t)g_pNV2ADMAChannel->Put;
 		break;
 	case NV_USER_REF:
-		result = (uint32_t)g_NV2ADMAChannel.Reference;
+		result = (uint32_t)g_pNV2ADMAChannel->Reference;
 		break;
 	default:
 		DEBUG_READ32_UNHANDLED(USER);
@@ -1212,13 +1300,13 @@ DEVICE_WRITE32(USER)
 {
 	switch (addr) {
 	case NV_USER_DMA_GET:
-		g_NV2ADMAChannel.Get = (void*)value;
+		g_pNV2ADMAChannel->Get = (void*)value;
 		break;
 	case NV_USER_DMA_PUT:
-		g_NV2ADMAChannel.Put = (void*)value;
+		g_pNV2ADMAChannel->Put = (void*)value;
 		break;
 	case NV_USER_REF:
-		g_NV2ADMAChannel.Reference = (void*)value;
+		g_pNV2ADMAChannel->Reference = (void*)value;
 		break;
 	default:
 		DEBUG_WRITE32_UNHANDLED(USER);

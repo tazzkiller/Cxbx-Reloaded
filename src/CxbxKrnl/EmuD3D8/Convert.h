@@ -616,7 +616,6 @@ extern void EmuUnswizzleRect
 #define   NV2A_ALPHA_FUNC_FUNC_EQUAL							0x00000202
 #define   NV2A_ALPHA_FUNC_FUNC_LEQUAL						0x00000203
 #define   NV2A_ALPHA_FUNC_FUNC_GREATER						0x00000204
-#define   NV2A_ALPHA_FUNC_FUNC_GREATER						0x00000204
 #define   NV2A_ALPHA_FUNC_FUNC_NOTEQUAL						0x00000205
 #define   NV2A_ALPHA_FUNC_FUNC_GEQUAL						0x00000206
 #define   NV2A_ALPHA_FUNC_FUNC_ALWAYS						0x00000207
@@ -674,7 +673,6 @@ extern void EmuUnswizzleRect
 #define   NV2A_DEPTH_FUNC_EQUAL							0x00000202
 #define   NV2A_DEPTH_FUNC_LEQUAL							0x00000203
 #define   NV2A_DEPTH_FUNC_GREATER							0x00000204
-#define   NV2A_DEPTH_FUNC_GREATER							0x00000204
 #define   NV2A_DEPTH_FUNC_NOTEQUAL							0x00000205
 #define   NV2A_DEPTH_FUNC_GEQUAL							0x00000206
 #define   NV2A_DEPTH_FUNC_ALWAYS							0x00000207
@@ -690,7 +688,6 @@ extern void EmuUnswizzleRect
 #define   NV2A_STENCIL_FUNC_FUNC_LESS						0x00000201
 #define   NV2A_STENCIL_FUNC_FUNC_EQUAL						0x00000202
 #define   NV2A_STENCIL_FUNC_FUNC_LEQUAL						0x00000203
-#define   NV2A_STENCIL_FUNC_FUNC_GREATER						0x00000204
 #define   NV2A_STENCIL_FUNC_FUNC_GREATER						0x00000204
 #define   NV2A_STENCIL_FUNC_FUNC_NOTEQUAL						0x00000205
 #define   NV2A_STENCIL_FUNC_FUNC_GEQUAL						0x00000206
@@ -1688,8 +1685,6 @@ extern void EmuUnswizzleRect
 #define  NV2A_VIEWPORT_TRANSLATE_Y							0x00001f04
 #define  NV2A_VIEWPORT_TRANSLATE_Z							0x00001f08
 #define  NV2A_VIEWPORT_TRANSLATE_W							0x00001f0c
-
-#define NV2A_METHOD_MASK 0x00001FFC // Cxbx addition
 
 typedef enum _TXBType {
 	xt_Unknown = 0, // Defined as zero, to coincide with default value of DxbxRenderStateInfo.T and DxbxTextureStageStateInfo.T

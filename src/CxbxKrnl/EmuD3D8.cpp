@@ -6960,8 +6960,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetShaderConstantMode)
     DWORD *pMode
 )
 {
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
-
+#endif
 	LOG_FUNC_ONE_ARG(pMode);
         
     if(pMode)

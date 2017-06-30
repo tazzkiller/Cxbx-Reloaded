@@ -55,7 +55,6 @@ namespace XTL {
 	void *GPURegisterBase = NULL; // + NV2A_PFB_WC_CACHE = pNV2AWorkTrigger (see EmuThreadHandleNV2ADMA)
 
 	volatile xbaddr *m_pCPUTime = NULL;
-	volatile xbaddr *m_pGPUTime = NULL; // See Dxbx XTL_ EmuExecutePushBufferRaw
 }
 
 /*
@@ -131,48 +130,37 @@ BOOL __fastcall XTL::EMUPATCH(CMiniport_InitHardware)
 
 	// Put the GPURegisterBase value in the CMiniport::m_RegisterBase field (it's the first field in this object) :
 	*((void **)This) = GPURegisterBase;
-	DbgPrintf("GPU RegisterBase resides at 0x%.08x\n", GPURegisterBase);
+	DbgPrintf("NV2A : GPU RegisterBase resides at 0x%.08x\n", GPURegisterBase);
+
+	DbgPrintf("NV2A : Creating flush event\n");
+	ghNV2AFlushEvent = CreateEvent(
+		NULL,                   // default security attributes
+		TRUE,                   // manual-reset event
+		FALSE,                  // initial state is nonsignaled
+		TEXT("NV2AFlushEvent")  // object name
+	);
+
+	// Create our DMA pushbuffer 'handling' thread :
+	DbgPrintf("NV2A : Launching DMA handler thread\n");
+	::DWORD dwThreadId = 0;
+	::HANDLE hThread = CreateThread(nullptr, 0, XTL::EmuThreadHandleNV2ADMA, nullptr, 0, &dwThreadId);
+	// Make sure callbacks run on the same core as the one that runs Xbox1 code :
+	SetThreadAffinityMask(hThread, g_CPUXbox);
+	// We set the priority of this thread a bit higher, to assure reliable timing :
+	SetThreadPriority(hThread, THREAD_PRIORITY_ABOVE_NORMAL);
 
 	RETURN(true);
 }
 
-Nv2AControlDma *CxbxNV2ADMAChannel()
+void XTL::CxbxLocateCpuTime()
 {
-	using namespace XTL; // for XTL::m_pCPUTime, XTL::m_pGPUTime
-
-	if (m_pCPUTime == nullptr) {
-
-		ghNV2AFlushEvent = CreateEvent(
-			NULL,                   // default security attributes
-			TRUE,                   // manual-reset event
-			FALSE,                  // initial state is nonsignaled
-			TEXT("NV2AFlushEvent")  // object name
-		);
-
-		// The NV2A DMA channel can be emulated in 3 ways :
-		// 1: Allocate a fake DMA channel :
-		//g_NV2ADMAChannel = (Nv2AControlDma*)CxbxCalloc(1, sizeof(Nv2AControlDma));
-		// 2: Use the actual address
-		//g_NV2ADMAChannel = (Nv2AControlDma*)((ULONG)XTL::GPURegisterBase + NV_USER_ADDR);
-		// 3: Use a global variable
-		//NV2ADMAChannel g_NV2ADMAChannel; // <- this looks like the simplest approach
-		DbgPrintf("CxbxNV2ADMAChannel : NV2A DMA channel is at 0x%0.8x\n", &g_NV2ADMAChannel);
-
-		// Create our DMA pushbuffer 'handling' thread :
-		DbgPrintf("CxbxNV2ADMAChannel : Launching NV2A DMA handler thread\n");
-		::DWORD dwThreadId = 0;
-		::HANDLE hThread = CreateThread(nullptr, 0, XTL::EmuThreadHandleNV2ADMA, nullptr, 0, &dwThreadId);
-		// Make sure callbacks run on the same core as the one that runs Xbox1 code :
-		SetThreadAffinityMask(hThread, g_CPUXbox);
-		// We set the priority of this thread a bit higher, to assure reliable timing :
-		SetThreadPriority(hThread, THREAD_PRIORITY_ABOVE_NORMAL);
-
-		// Also, find the address of the CPU Time variable (this is a temporary solution, until we have
+	if (m_pCPUTime == NULL) {
+		// Find the address of the CPU Time variable (this is a temporary solution, until we have
 		// a technique to read members from all g_pDevice (D3DDevice) versions in a generic way);
 
 		// Walk through a few members of the D3D device struct :
 		m_pCPUTime = (xbaddr*)(*((xbaddr *)XTL::Xbox_D3D__Device));
-		DbgPrintf("CxbxNV2ADMAChannel : Searching for m_pCPUTime from 0x%0.8x (m_pGPUTime is at 0x%0.8x)\n", m_pCPUTime, m_pGPUTime);
+		DbgPrintf("CxbxLocateCpuTime : Searching for m_pCPUTime (residing at 0x%0.8x) in Xbox_D3D__Device from 0x%0.8x\n", m_pGPUTime, m_pCPUTime);
 
 		for (int i = 0; i <= 32; i++) {
 			if (i == 32)
@@ -187,12 +175,21 @@ Nv2AControlDma *CxbxNV2ADMAChannel()
 
 			m_pCPUTime++;
 		}
-
-		DbgPrintf("CxbxNV2ADMAChannel : Found m_pCPUTime at 0x%0.8x\n", m_pCPUTime);
 	}
 
-	return &g_NV2ADMAChannel;
+	DbgPrintf("CxbxLocateCpuTime : m_pCPUTime resides at 0x%0.8x\n", m_pCPUTime);
 }
+
+#if 0 // Patch not needed - NV2A RAMIN handlers are sufficient
+// The NV2A DMA channel can be emulated in a few different ways :
+// 1: Allocate a fake DMA channel :
+//g_NV2ADMAChannel = (Nv2AControlDma*)CxbxCalloc(1, sizeof(Nv2AControlDma));
+// 2: Use the actual address
+//g_NV2ADMAChannel = (Nv2AControlDma*)((ULONG)XTL::GPURegisterBase + NV_USER_ADDR);
+// 3: Use a global variable
+//g_pNV2ADMAChannel = &g_NV2ADMAChannel; // <- this looks like the simplest approach
+// 4: Let CMiniport::CreateCtxDmaObject run unpatched - it'll initialize and write it to NV2A_PRAMIN+0x6C
+//DbgPrintf("NV2A DMA channel is at 0x%0.8x\n", g_pNV2ADMAChannel);
 
 // ******************************************************************
 // * patch: CMiniport_CreateCtxDmaObject
@@ -207,36 +204,7 @@ BOOL __fastcall XTL::EMUPATCH(CMiniport_CreateCtxDmaObject)
 	ULONG Limit,
 	PVOID Object
 )
-{
-	FUNC_EXPORTS
-
-	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(This)
-		LOG_FUNC_ARG(Dma)
-		LOG_FUNC_ARG(ClassNum)
-		LOG_FUNC_ARG(Base)
-		LOG_FUNC_ARG(Limit)
-		LOG_FUNC_ARG(Object)
-		LOG_FUNC_END;
-
-	switch (Dma) {
-	case 8: { // = notification of semaphore address
-		// Remember where the semaphore (starting with a GPU Time DWORD) was allocated
-		m_pGPUTime = (xbaddr*)Base;
-		DbgPrintf("Registered m_pGPUTime at 0x%0.8x\n", m_pGPUTime);
-		break;
-	}
-	case 6: { // = pusher
-		CxbxNV2ADMAChannel();
-		break;
-	}
-	default: {
-		LOG_UNIMPLEMENTED();
-	}
-	}
-
-	return TRUE;
-}
+#endif
 
 // ******************************************************************
 // * patch: CMiniport_InitDMAChannel
@@ -264,7 +232,7 @@ BOOL __fastcall XTL::EMUPATCH(CMiniport_InitDMAChannel)
 		LOG_FUNC_END;
 
 	// Return our emulated DMA channel :
-	*ppChannel = CxbxNV2ADMAChannel();
+	*ppChannel = g_pNV2ADMAChannel;
 
 	return TRUE;
 }

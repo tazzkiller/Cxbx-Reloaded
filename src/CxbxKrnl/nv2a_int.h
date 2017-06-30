@@ -1,3 +1,4 @@
+// Source : https://github.com/espes/xqemu/blob/xbox/hw/xbox/nv2a_int.h
 /*
  * QEMU Geforce NV2A internal definitions
  *
@@ -687,6 +688,10 @@
 #define NV_PFB_CPU_RRQ                                   0x00000420
 #define NV_PFB_BYPASS                                    0x00000424
 
+#define NV_PRAMIN_DMA_CLASS(i)                           0x00000000 + (i * 0x10)
+#define NV_PRAMIN_DMA_LIMIT(i)                           0x00000004 + (i * 0x10)
+#define NV_PRAMIN_DMA_START(i)                           0x00000008 + (i * 0x10)
+#define NV_PRAMIN_DMA_ADDRESS(i)                         0x0000000C + (i * 0x10)
 
 #define NV_PRAMDAC_NVPLL_COEFF                           0x00000500
 #   define NV_PRAMDAC_NVPLL_COEFF_MDIV                        0x000000FF
@@ -759,6 +764,7 @@
 #   define NV062_SET_CONTEXT_DMA_IMAGE_DESTIN                 0x00000188
 #   define NV062_SET_COLOR_FORMAT                             0x00000300
 #       define NV062_SET_COLOR_FORMAT_LE_Y8                    0x01
+#       define NV062_SET_COLOR_FORMAT_LE_R5G6B5                0x04
 #       define NV062_SET_COLOR_FORMAT_LE_A8R8G8B8              0x0A
 #   define NV062_SET_PITCH                                    0x00000304
 #   define NV062_SET_OFFSET_SOURCE                            0x00000308

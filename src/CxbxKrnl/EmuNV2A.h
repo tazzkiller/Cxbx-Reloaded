@@ -92,7 +92,9 @@ typedef struct {
 	DWORD Ignored2[0x7ED];
 } Nv2AControlDma;
 
-extern Nv2AControlDma g_NV2ADMAChannel;
+extern Nv2AControlDma *g_pNV2ADMAChannel;
+
+extern volatile xbaddr *m_pGPUTime; // set (to 0x80011000 or something) by DEVICE_WRITE32(PRAMIN) case 0x00000098
 
 extern HANDLE ghNV2AFlushEvent;
 
