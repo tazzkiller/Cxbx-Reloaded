@@ -58,15 +58,116 @@ namespace XTL {
 }
 
 /*
-CMiniport initialization sequence :
-
-InitHardware()
-CreateCtxDmaObject(11 times, does a lot of nv2a access, 8th we need for notification of semaphore address > m_pGPUTime)
-InitDMAChannel(once)
-BindToChannel(11 times)
-CreateGrObject(11 times)
-
-BusyLoop();
+CDevice::Init() // initialization sequence :
+- MmAllocateContiguousMemoryEx() // 96 bytes; a semaphore of 32 bytes, and 4 notifiers of 16 bytes
+- InitializePushBuffer()
+-- MmAllocateContiguousMemoryEx() // 512 KiB; pushbuffer, ends up in 0x800012000
+- CMiniport::InitHardware()
+-- KeInitializeDpc()
+-- KeInitializeEvent() // busy event
+-- KeInitializeEvent() // vertical blank event
+-- MapRegisters()
+--- NV2A_Read32(NV_PBUS_PCI_NV_1) + NV2A_Write32(NV_PBUS_PCI_NV_1) // Disable BUS IRQ
+--- NV2A_Read32(NV_PCRTC_INTR_EN_0) + NV2A_Write32(NV_PCRTC_INTR_EN_0) // Disable CRTC IRQ (vblank?)
+--- NV2A_Write32(NV_PTIMER_INTR_EN_0)
+-- GetGeneralInfo()
+--- NV2A_Read32(NV_PBUS_PCI_NV_0) // Returns VENDOR_ID
+--- NV2A_Read32(NV_PBUS_PCI_NV_2) // Returns REVISION_ID
+--- NV2A_Read32(NV_PFB_CSTATUS)
+-- HalGetInterruptVector() + KeInitializeInterrupt() + KeConnectInterrupt() // Calls HalEnableSystemInterrupt (unimplemented)
+-- HalRegisterShutdownNotification() // unimplemented
+-- InitEngines()
+--- NV2A_Write32(NV_PBUS_PCI_NV_12) // ROM_BASE
+--- NV2A_Read32(NV_PBUS_PCI_NV_3) // LATENCY_TIMER
+--- HalMcControlInit()
+---- NV2A_Read32(NV_PMC_ENABLE) + NV2A_Write32(NV_PMC_ENABLE) // Disable PMC (IRQ?)
+---- NV2A_Read32(NV_PMC_INTR_EN_0) // Returns PMC interrupt 0 enabled flag
+---- NV2A_Write32(NV_PMC_ENABLE) // Enable PMC (IRQ?)
+---- NV2A_Read32(NV_PRAMDAC_MPLL_COEFF)
+---- NV2A_Read32(0x00000505) // Unknown PRAMDAC Address; = NV_PRAMDAC_MPLL_COEFF + 1
+---- NV2A_Read32(NV_PRAMDAC_MPLL_COEFF)
+---- NV2A_Read32(NV_PRAMDAC_VPLL_COEFF)
+---- NV2A_Read32(0x00000509) // Unknown PRAMDAC Address; = NV_PRAMDAC_VPLL_COEFF + 1
+---- NV2A_Read32(NV_PRAMDAC_VPLL_COEFF)
+---- NV2A_Read32(NV_PRAMDAC_NVPLL_COEFF)
+---- NV2A_Read32(0x00000501) // Unknown PRAMDAC Address; = NV_PRAMDAC_NVPLL_COEFF + 1
+---- NV2A_Read32(NV_PRAMDAC_NVPLL_COEFF)
+--- NV2A_Read32(NV_PTIMER_NUMERATOR)
+--- NV2A_Read32(NV_PTIMER_DENOMINATOR)
+--- NV2A_Read32(NV_PTIMER_ALARM_0)
+--- HalFbControlInit()
+---- NV2A_Read32(NV_PFB_CFG0)
+---- NV2A_Read32(NV_PFB_CFG1)
+---- NV2A_Read32(NV_PBUS_FBIO_RAM)
+---- MmClaimGpuInstanceMemory() // Reserves 20 KiB 
+---- NV2A_Write32(NV_PFIFO_RAMHT)
+---- NV2A_Write32(NV_PFIFO_RAMFC)
+---- NV2A_Read32(NV_PFB_NVM) + NV2A_Write32(NV_PFB_NVM)
+---- NV2A_Write32(PRAMIN) // 5120 times, for 20 KiB of writes
+--- HalDacControlInit()
+----- NV2A_Read32(NV_PRMCIO_CRX__COLOR) + NV2A_Write32(NV_PRMCIO_CRX__COLOR) // six times
+----- NV2A_Read32(NV_PVIDEO_DEBUG_2) + NV2A_Write32(NV_PVIDEO_DEBUG_2) // twice
+----- NV2A_Read32(NV_PVIDEO_DEBUG_3) + NV2A_Write32(NV_PVIDEO_DEBUG_3) // twice
+----- NV2A_Read32(NV_PRMCIO_CRX__COLOR) + NV2A_Write32(NV_PRMCIO_CRX__COLOR) // six times
+----- NV2A_Read32(NV_PCRTC_CONFIG) + NV2A_Write32(NV_PCRTC_CONFIG)
+----- NV2A_Read32(NV_PRMCIO_CRX__COLOR) + NV2A_Write32(NV_PRMCIO_CRX__COLOR) // twice
+--- InitGammaRamp()
+--- HalVideoControlInit()
+---- NV2A_Write32(NV_PVIDEO_LUMINANCE(0))
+---- NV2A_Write32(NV_PVIDEO_CHROMINANCE(0))
+---- NV2A_Write32(NV_PVIDEO_DS_DX(0))
+---- NV2A_Write32(NV_PVIDEO_DT_DY(0))
+---- NV2A_Write32(NV_PVIDEO_POINT_IN(0))
+---- NV2A_Write32(NV_PVIDEO_SIZE_IN(0))
+---- NV2A_Write32(NV_PVIDEO_LUMINANCE(1))
+---- NV2A_Write32(NV_PVIDEO_CHROMINANCE(1))
+---- NV2A_Write32(NV_PVIDEO_DS_DX(1))
+---- NV2A_Write32(NV_PVIDEO_DT_DY(1))
+---- NV2A_Write32(NV_PVIDEO_POINT_IN(1))
+---- NV2A_Write32(NV_PVIDEO_SIZE_IN(1))
+--- HalGrControlInit()
+---- NV2A_Write32(NV_PGRAPH_CHANNEL_CTX_TABLE)
+// TODO : Trace
+---- NV2A_Write32(NV_PFIFO_CACHE1_PUT)
+---- NV2A_Write32(NV_PFIFO_CACHE1_GET)
+---- NV2A_Write32(NV_PFIFO_CACHE1_DMA_PUT)
+---- NV2A_Write32(NV_PFIFO_CACHE1_DMA_GET)
+---- NV2A_Write32(NV_PFIFO_CACHE0_HASH)
+---- NV2A_Write32(NV_PFIFO_CACHE1_HASH)
+---- NV2A_Write32(NV_PFIFO_MODE)
+---- NV2A_Write32(NV_PFIFO_DMA)
+---- NV2A_Write32(NV_PFIFO_SIZE)
+---- NV2A_Write32(NV_PFIFO_CACHE1_DMA_STATE)
+---- NV2A_Write32(NV_PFIFO_RUNOUT_PUT_ADDRESS)
+---- NV2A_Write32(NV_PFIFO_RUNOUT_GET_ADDRESS)
+--- HalFifoControlInit()
+-- LoadEngines()
+--- NV2A_Read32(NV_PBUS_PCI_NV_19)
+--- NV2A_Write32(NV_PBUS_PCI_NV_19)
+--- NV2A_Read32(NV_PBUS_PCI_NV_19)
+--- NV2A_Read32(NV_PMC_ENABLE)
+--- HalDacLoad()
+--- KeQuerySystemTime()
+--- NV2A_Write32(NV_PTIMER_TIME_0)
+--- NV2A_Write32(NV_PTIMER_TIME_1)
+--- NV2A_Write32(NV_PGRAPH_FIFO)
+--- HalGrControlLoad()
+--- NV2A_Write32(NV_PGRAPH_INTR)
+--- NV2A_Write32(NV_PGRAPH_INTR_EN)
+--- HalFifoControlLoad()
+--- NV2A_Write32(NV_PFIFO_INTR_0)
+--- NV2A_Write32(NV_PFIFO_INTR_EN_0)
+-CMiniport::CreateCtxDmaObject(11 times, does a lot of nv2a access, 8th we need for notification of semaphore address > m_pGPUTime)
+-CMiniport::InitDMAChannel(once or none)
+-- HalFifoAllocDMA()
+-CMiniport::BindToChannel(11 times)
+-CMiniport::CreateGrObject(11 times)
+-KickOff()
+-HwGet()
+-BusyLoop()
+-InitializeHardware()
+-InitializeFrameBuffers()
+-CMiniport::SetVideoMode()
 
 00024AC0 51                   push        ecx
 00024AC1 C7 44 24 00 90 01 00 00 mov         dword ptr [esp],190h
@@ -187,7 +288,7 @@ void XTL::CxbxLocateCpuTime()
 // 2: Use the actual address
 //g_NV2ADMAChannel = (Nv2AControlDma*)((ULONG)XTL::GPURegisterBase + NV_USER_ADDR);
 // 3: Use a global variable
-//g_pNV2ADMAChannel = &g_NV2ADMAChannel; // <- this looks like the simplest approach
+//g_pNV2ADMAChannel = &g_NV2ADMAChannel; // <- this is a simple approach, but not accurate
 // 4: Let CMiniport::CreateCtxDmaObject run unpatched - it'll initialize and write it to NV2A_PRAMIN+0x6C
 //DbgPrintf("NV2A DMA channel is at 0x%0.8x\n", g_pNV2ADMAChannel);
 
