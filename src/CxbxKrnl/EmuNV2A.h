@@ -86,8 +86,8 @@
 
 typedef struct {
 	DWORD Ignored[0x10];
-	void *Put; // On Xbox1, this field is only written to by the CPU (the GPU uses this as a trigger to start executing from the given address)
-	void *Get; // On Xbox1, this field is only read from by the CPU (the GPU reflects in here where it is/stopped executing)
+	volatile void *Put; // On Xbox1, this field is only written to by the CPU (the GPU uses this as a trigger to start executing from the given address)
+	volatile void *Get; // On Xbox1, this field is only read from by the CPU (the GPU reflects in here where it is/stopped executing)
 	void *Reference;
 	DWORD Ignored2[0x7ED];
 } Nv2AControlDma;
@@ -102,7 +102,7 @@ uint32_t EmuNV2A_Read(xbaddr addr, int size);
 void EmuNV2A_Write(xbaddr addr, uint32_t value, int size);
 
 #define NV2A_JMP_FLAG          0x00000001 // 1 bit
-#define NV2A_CALL_FLAG         0x00000002 // 1 bit TODO : Should JMP & CALL be switched?
+#define NV2A_CALL_FLAG         0x00000002 // 1 bit
 #define NV2A_ADDR_MASK         0xFFFFFFFC // 30 bits
 #define NV2A_METHOD_MASK       0x00001FFC // 12 bits
 #define NV2A_METHOD_SHIFT      0 // Dxbx note : Not 2, because methods are actually DWORD offsets (and thus defined with increments of 4)

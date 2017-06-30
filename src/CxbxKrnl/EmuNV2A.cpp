@@ -650,17 +650,16 @@ DEBUG_END(USER)
 
 
 
+#define DEBUG_REGNAME(DEV) DebugNV_##DEV##(addr)
 
-#define DEBUG_READ32_LOG(DEV, msg, ...)  DbgPrintf("EmuX86 Read32 NV2A " #DEV ## "(0x%08X) " ## msg ## "\n", addr, __VA_ARGS__)
-#define DEBUG_WRITE32_LOG(DEV, msg, ...) DbgPrintf("EmuX86 Write32 NV2A " #DEV ## "(0x%08X, 0x%08X) " ## msg ## "\n", addr, value, __VA_ARGS__)
+#define DEBUG_READ32_LOG(DEV, msg, ...) DbgPrintf("EmuX86 Read32 NV2A " #DEV ## "(0x%08X) [%s] " ## msg ## "\n", addr, DEBUG_REGNAME(DEV),__VA_ARGS__)
+#define DEBUG_WRITE32_LOG(DEV, msg, ...) DbgPrintf("EmuX86 Write32 NV2A " #DEV ## "(0x%08X, 0x%08X) [%s] " ## msg ## "\n", addr, value, DEBUG_REGNAME(DEV), __VA_ARGS__)
 
-#define DEBUG_REGNAME(DEV)  DebugNV_##DEV##(addr)
+#define DEBUG_READ32(DEV) DEBUG_READ32_LOG(DEV, "= 0x%08X [Handled]", result)
+#define DEBUG_READ32_UNHANDLED(DEV)  { DEBUG_READ32_LOG(DEV, "= 0x%08X [Unhandled]", result); return result; }
 
-#define DEBUG_READ32(DEV)            DEBUG_READ32_LOG(DEV, "= 0x%08X [Handled, %s]", result, DEBUG_REGNAME(DEV))
-#define DEBUG_READ32_UNHANDLED(DEV)  { DEBUG_READ32_LOG(DEV, "= 0x%08X [Unhandled, %s]", result, DEBUG_REGNAME(DEV)); return result; }
-
-#define DEBUG_WRITE32(DEV)           DEBUG_WRITE32_LOG(DEV, "[Handled, %s]", DEBUG_REGNAME(DEV))
-#define DEBUG_WRITE32_UNHANDLED(DEV) { DEBUG_WRITE32_LOG(DEV, "[Unhandled, %s]", DEBUG_REGNAME(DEV)); return; }
+#define DEBUG_WRITE32(DEV) DEBUG_WRITE32_LOG(DEV, "[Handled]")
+#define DEBUG_WRITE32_UNHANDLED(DEV) { DEBUG_WRITE32_LOG(DEV, "[Unhandled]"); return; }
 
 #define DEVICE_REG32_ADDR(DEV, addr) DEV.regs[(addr) / sizeof(uint32_t)]
 #define DEVICE_REG32(DEV) DEVICE_REG32_ADDR(DEV, addr)
@@ -1061,11 +1060,15 @@ DEVICE_WRITE32(PGRAPH)
 		pgraph.enabled_interrupts = value;
 		update_irq();
 		break;
-	/* TODO : Add CtxTableAddr member to pgraph when required. Receive it here:
-	case NV_PGRAPH_CHANNEL_CTX_TABLE: 
-		pgraph.CtxTableAddr = (value & NV_PGRAPH_CHANNEL_CTX_TABLE_INST) | MM_SYSTEM_PHYSICAL_MAP; // map GPU to CPU (OR with 0x80000000)
-		// break; fall-through?
-	*/
+	case NV_PGRAPH_CHANNEL_CTX_TABLE: {
+		DEVICE_WRITE32_REG(pgraph);
+
+		xbaddr CtxTableBase = (value & NV_PGRAPH_CHANNEL_CTX_TABLE_INST) | MM_SYSTEM_PHYSICAL_MAP; // map GPU to CPU (OR with 0x80000000)
+		// TODO : Add CtxTableBase member to pgraph when required. Receive it here:
+		// pgraph.CtxTableBase = CtxTableBase;
+		DEBUG_WRITE32_LOG(PGRAPH, "Xbox CMiniport::HalGrControlInit() set CtxTableBase to 0x%08X", CtxTableBase);
+		return;
+		}
 	default: 
 		DEVICE_WRITE32_REG(pgraph); // Was : DEBUG_WRITE32_UNHANDLED(PGRAPH);
 	}
@@ -1233,43 +1236,54 @@ DEVICE_READ32(PRAMIN)
 DEVICE_WRITE32(PRAMIN)
 {
 	DEVICE_WRITE32_REG(pramin);
-	
-	int slot = addr >> 4;
-	if (slot < 16) {
-		// don't log zero''s
-		if (value == 0)
-			return;
 
+	// Prevent too much logging on zero's
+	if (value == 0) {
+		if (addr <= NV_PRAMIN_DMA_ADDRESS(16)) {
+			return;
+		}
+
+		if ((addr >= 0x00010000) && (addr < 0x00010000 + (20 * 1024))) {
+			if (addr == 0x00010000) {
+				DEBUG_WRITE32_LOG(PRAMIN, "Xbox HalFbControlInit() clearing 20 KiB of MmClaimGpuInstanceMemory");
+			}
+
+			return;
+		}
+	}
+	
+	int DMASlot = addr >> 4;
+	if (DMASlot < 16) {
 		switch (addr & 0x0F) {
 		case NV_PRAMIN_DMA_START(0): {
-			if (slot == 0)
-				DbgPrintf("First CMiniport::CreateCtxDmaObject() call\n");
+			if (DMASlot == 0)
+				DbgPrintf("First Xbox CMiniport::CreateCtxDmaObject() call\n");
 
 			break;
 		}
 		case NV_PRAMIN_DMA_LIMIT(0): {
+			// Detect DMA registration of pusher
 			if (value == 0x0000001F) {
-				if (DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_CLASS(slot)) == 0x0202B003) {
-					// = pusher
-					DWORD Address = DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_ADDRESS(slot));
+				if (DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_CLASS(DMASlot)) == 0x0202B003) {
+					DWORD Address = DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_ADDRESS(DMASlot));
 					g_pNV2ADMAChannel = (Nv2AControlDma*)((Address & ~3) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
 					DbgPrintf("NV2A Pusher DMA channel is at 0x%0.8x\n", g_pNV2ADMAChannel);
 				}
 			}
 
+			// Detect DMA registration of semaphore address
 			if (value == 0x00000020) {
-				if (DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_CLASS(slot)) == 0x0002B03D) {
-					// = notification of semaphore address
+				if (DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_CLASS(DMASlot)) == 0x0002B03D) {
 					// Remember where the semaphore (starting with a GPU Time DWORD) was allocated
-					DWORD Address = DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_ADDRESS(slot));
+					DWORD Address = DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_ADDRESS(DMASlot));
 					m_pGPUTime = (xbaddr*)((Address & ~3) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
 					DbgPrintf("Registered m_pGPUTime at 0x%0.8x\n", m_pGPUTime);
 				}
 			}
 
-			if (slot > 6) {
-				if (DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_CLASS(slot)) == 0x0000B002) {
-					DbgPrintf("Last CMiniport::CreateCtxDmaObject() call\n");
+			if (DMASlot > 6) {
+				if (DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_CLASS(DMASlot)) == 0x0000B002) {
+					DbgPrintf("Last Xbox CMiniport::CreateCtxDmaObject() call\n");
 				}
 			}
 
