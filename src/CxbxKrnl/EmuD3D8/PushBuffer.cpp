@@ -235,6 +235,130 @@ void EmuNV2A_NOP() // 0x0100
 	}
 }
 
+float ZScale = 65535.0f; // TODO : Set to format-dependent divider
+
+void NVPB_Clear()
+{
+	DWORD Flags = *pdwPushArguments; // NV2A_CLEAR_FLAGS
+
+	// make adjustments to parameters to make sense with windows d3d
+	DWORD PCFlags = XTL::EmuXB2PC_D3DCLEAR_FLAGS(Flags);
+	{
+		if (Flags & X_D3DCLEAR_TARGET) {
+			// TODO: D3DCLEAR_TARGET_A, *R, *G, *B don't exist on windows
+			if ((Flags & X_D3DCLEAR_TARGET) != X_D3DCLEAR_TARGET)
+				EmuWarning("Unsupported : Partial D3DCLEAR_TARGET flag(s) for D3DDevice_Clear : 0x%.08X", Flags & X_D3DCLEAR_TARGET);
+		}
+
+		/* Do not needlessly clear Z Buffer
+		if (Flags & X_D3DCLEAR_ZBUFFER) {
+		if (!g_bHasDepthBits) {
+		PCFlags &= ~D3DCLEAR_ZBUFFER;
+		EmuWarning("Ignored D3DCLEAR_ZBUFFER flag (there's no Depth component in the DepthStencilSurface)");
+		}
+		}
+
+		// Only clear depth buffer and stencil if present
+		//
+		// Avoids following DirectX Debug Runtime error report
+		//    [424] Direct3D8: (ERROR) :Invalid flag D3DCLEAR_ZBUFFER: no zbuffer is associated with device. Clear failed.
+		if (Flags & X_D3DCLEAR_STENCIL) {
+		if (!g_bHasStencilBits) {
+		PCFlags &= ~D3DCLEAR_STENCIL;
+		EmuWarning("Ignored D3DCLEAR_STENCIL flag (there's no Stencil component in the DepthStencilSurface)");
+		}
+		}*/
+
+		if (Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL))
+			EmuWarning("Unsupported Flag(s) for D3DDevice_Clear : 0x%.08X", Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL));
+	}
+
+	// Since we filter the flags, make sure there are some left (else, clear isn't necessary) :
+	if (PCFlags > 0)
+	{
+		// Read NV2A clear arguments
+		DWORD Color = NV2AInstance_Registers[NV2A_CLEAR_VALUE / 4];
+		DWORD DepthStencil = NV2AInstance_Registers[NV2A_CLEAR_DEPTH_VALUE / 4];
+		DWORD X12 = NV2AInstance_Registers[NV2A_CLEAR_X / 4];
+		DWORD Y12 = NV2AInstance_Registers[NV2A_CLEAR_Y / 4];
+
+		// Convert NV2A to PC Clear arguments
+		XTL::D3DRECT ClearRect = { (X12 & 0xFFFF) + 1, (Y12 & 0xFFFF) + 1, X12 >> 16, Y12 >> 16 };
+		float Z = (FLOAT)(DepthStencil >> 8) / ZScale;
+		DWORD Stencil = DepthStencil & 0xFF;
+
+		// CxbxUpdateActiveRenderTarget(); // TODO : Or should we have to call DxbxUpdateNativeD3DResources ?
+		HRESULT hRet = g_pD3DDevice8->Clear(1, &ClearRect, PCFlags, Color, Z, Stencil);
+		// DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
+	}
+
+	HandledBy = "Clear";
+}
+
+void EmuNV2A_FlipStall()
+{
+//#ifdef DXBX_USE_D3D
+	XTL::CxbxPresent();
+//#endif
+#ifdef DXBX_USE_OPENGL
+	SwapBuffers(g_EmuWindowsDC); // TODO : Use glFlush() when single-buffered?
+#endif
+
+	HandledBy = "Swap";
+}
+
+#if 0 // TODO : Complete this Dxbx back-port
+void EmuNV2A_SetRenderState()
+{
+	XTL::X_D3DRenderStateType XboxRenderState;
+
+#ifdef DXBX_USE_OPENGL
+	DWORD GLFlag = 0;
+	char *FlagName = "";
+
+	XboxRenderState = 0;
+	switch (dwMethod) {
+	case NV2A_LIGHTING_ENABLE: { GLFlag = GL_LIGHTING; FlagName = "GL_LIGHTING"; break; }
+	case NV2A_CULL_FACE_ENABLE: { GLFlag = GL_CULL_FACE; FlagName = "GL_CULL_FACE"; break; }
+	default: {
+#endif
+	XboxRenderState = CxbxXboxMethodToRenderState(dwMethod);
+	if ((int)XboxRenderState < 0)
+		CxbxKrnlCleanup("EmuNV2A_SetRenderState coupled to unknown method?");
+#ifdef DXBX_USE_OPENGL
+	switch (XboxRenderState) {
+	case X_D3DRS_FOGENABLE: { GLFlag = GLFlag = GL_FOG; FlagName = "GL_FOG"; break; }
+	case X_D3DRS_ALPHATESTENABLE: { GLFlag = GLFlag = GL_ALPHA_TEST; FlagName = "GL_ALPHA_TEST"; break; }
+	case X_D3DRS_ALPHABLENDENABLE: { GLFlag = = GL_BLEND; FlagName = "GL_BLEND"; break; }
+	case X_D3DRS_ZENABLE: { GLFlag = GL_DEPTH_TEST; FlagName = "GL_DEPTH_TEST"; break; }
+	case X_D3DRS_DITHERENABLE: { GLFlag = GL_DITHER; FlagName = "GL_DITHER"; break; }
+	case X_D3DRS_STENCILENABLE: { GLFlag = GL_STENCIL_TEST; FlagName = "GL_STENCIL_TEST"; break; }
+	case X_D3DRS_NORMALIZENORMALS: { GLFlag = GL_NORMALIZE; FlagName = "GL_NORMALIZ"; break; }
+	}
+	}
+
+	if (GLFlag > 0) {
+		if (*pdwPushArguments != 0) {
+			glEnable(GLFlag);
+			HandledBy = "glEnable";
+		}
+		else {
+			glDisable(GLFlag);
+			HandledBy = "glDisable";
+		}
+
+		// HandledBy = HandledBy + '(' + FlagName + ')';
+		return;
+	}
+#endif
+
+	HandledBy = sprintf("SetRenderState(%-33s, 0x%.08X {=%s})", 
+		CxbxRenderStateInfo[XboxRenderState].S,
+		*pdwPushArguments,
+		CxbxTypedValueToString(CxbxRenderStateInfo[XboxRenderState].T, *pdwPushArguments));
+}
+#endif
+
 void NVPB_SetBeginEnd() // 0x000017FC
 {
 	if (*pdwPushArguments == 0) {
@@ -253,6 +377,7 @@ void NVPB_SetBeginEnd() // 0x000017FC
 #endif
 
 		XboxPrimitiveType = (XTL::X_D3DPRIMITIVETYPE)*pdwPushArguments;
+
 		HandledBy = "DrawBegin()";
 	}
 }
@@ -463,82 +588,35 @@ void NVPB_SetVertexShaderConstantRegister()
 
 void NVPB_SetVertexShaderConstants()
 {
-	int Register = NV2AInstance_Registers[NV2A_VP_UPLOAD_CONST_ID / 4];
-	void *pConstantData = &(NV2AInstance_Registers[dwMethod / 4]);
-	int ConstantCount = dwCount;
+	//assert(dwCount >= 4); // Input must at least be 1 set of coordinates
+	//assert(dwCount & 3 == 0); // Input must be a multiple of 4
 
-	HRESULT hRet = g_pD3DDevice8->SetVertexShaderConstant
-	(
+	// Make sure we use the correct index if we enter at an offset other than 0 :
+	int Slot = (dwMethod - NV2A_VP_UPLOAD_CONST(0)) / 4;
+	// Since we always start at NV2A_VP_UPLOAD_CONST__0, never handle more than allowed :
+	//assert((Slot + (dwCount / 4)) <= NV2A_VP_UPLOAD_CONST__SIZE);
+
+	// The VP_UPLOAD_CONST_ID GPU register is always pushed before the actual values, and contains the base Register for this batch :
+	DWORD Register = NV2AInstance_Registers[NV2A_VP_UPLOAD_CONST_ID / 4] + Slot;
+	void *pConstantData = &(NV2AInstance_Registers[dwMethod / 4]);
+	DWORD ConstantCount = dwCount;
+
+	// Just set the constants right from the pushbuffer, as they come in batches and won't exceed the native bounds :
+	HRESULT hRet = g_pD3DDevice8->SetVertexShaderConstant(
 		Register,
 		pConstantData,
 		ConstantCount
 	);
 	//DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetVertexShaderConstant");
 
-	HandledCount = dwCount;
-	Register += ConstantCount;
 	// Adjust the current register :
-	NV2AInstance_Registers[NV2A_VP_UPLOAD_CONST_ID / 4] = Register;
+	Register += ConstantCount;
+	NV2AInstance_Registers[NV2A_VP_UPLOAD_CONST_ID / 4] = Register; // TODO : Is this correct?
+
+	HandledCount = dwCount;
 	HandledBy = "SetVertexShaderConstant";
 }
 
-void NVPB_Clear()
-{
-	DWORD Flags = *pdwPushArguments;
-
-	// make adjustments to parameters to make sense with windows d3d
-	DWORD PCFlags = XTL::EmuXB2PC_D3DCLEAR_FLAGS(Flags);
-	{
-		if (Flags & X_D3DCLEAR_TARGET) {
-			// TODO: D3DCLEAR_TARGET_A, *R, *G, *B don't exist on windows
-			if ((Flags & X_D3DCLEAR_TARGET) != X_D3DCLEAR_TARGET)
-				EmuWarning("Unsupported : Partial D3DCLEAR_TARGET flag(s) for D3DDevice_Clear : 0x%.08X", Flags & X_D3DCLEAR_TARGET);
-		}
-
-		/* Do not needlessly clear Z Buffer
-		if (Flags & X_D3DCLEAR_ZBUFFER) {
-			if (!g_bHasDepthBits) {
-				PCFlags &= ~D3DCLEAR_ZBUFFER;
-				EmuWarning("Ignored D3DCLEAR_ZBUFFER flag (there's no Depth component in the DepthStencilSurface)");
-			}
-		}
-
-		// Only clear depth buffer and stencil if present
-		//
-		// Avoids following DirectX Debug Runtime error report
-		//    [424] Direct3D8: (ERROR) :Invalid flag D3DCLEAR_ZBUFFER: no zbuffer is associated with device. Clear failed. 
-		if (Flags & X_D3DCLEAR_STENCIL) {
-			if (!g_bHasStencilBits) {
-				PCFlags &= ~D3DCLEAR_STENCIL;
-				EmuWarning("Ignored D3DCLEAR_STENCIL flag (there's no Stencil component in the DepthStencilSurface)");
-			}
-		}*/
-
-		if (Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL))
-			EmuWarning("Unsupported Flag(s) for D3DDevice_Clear : 0x%.08X", Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL));
-	}
-
-	// Since we filter the flags, make sure there are some left (else, clear isn't necessary) :
-	if (PCFlags > 0)
-	{
-		// Read NV2A clear arguments
-		DWORD Color = NV2AInstance_Registers[NV2A_CLEAR_VALUE / 4];
-		DWORD DepthStencil = NV2AInstance_Registers[NV2A_CLEAR_DEPTH_VALUE / 4];
-		DWORD X12 = NV2AInstance_Registers[NV2A_CLEAR_X / 4];
-		DWORD Y12 = NV2AInstance_Registers[NV2A_CLEAR_Y / 4];
-
-		// Convert NV2A to PC Clear arguments
-		FLOAT Z = (FLOAT)(DepthStencil >> 8) / 65535.0f; // TODO : Use format-dependent divider
-		DWORD Stencil = DepthStencil & 0xFF;
-		XTL::D3DRECT ClearRect = { (X12 & 0xFFFF) + 1, (Y12 & 0xFFFF) + 1, X12 >> 16, Y12 >> 16 };
-
-		// CxbxUpdateActiveRenderTarget(); // TODO : Or should we have to call DxbxUpdateNativeD3DResources ?
-		HRESULT hRet = g_pD3DDevice8->Clear(1, &ClearRect, PCFlags, Color, Z, Stencil);
-		// DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
-	}
-	
-	HandledBy = "Clear";
-}
 
 char *DxbxXboxMethodToString(DWORD dwMethod)
 {
@@ -556,6 +634,7 @@ extern DWORD *XTL::EmuExecutePushBufferRaw
 		NV2ACallbacks_Initialized = true;
 		// Set handlers that do more than just store data in registers :
 		NV2ACallbacks[NV2A_NOP / 4] = EmuNV2A_NOP; // 0x0100
+		NV2ACallbacks[NV2A_FLIP_STALL / 4] = EmuNV2A_FlipStall; // 0x0130 // // TODO : Should we trigger at NV2A_FLIP_INCREMENT_WRITE instead?
 		NV2ACallbacks[NV2A_VERTEX_BEGIN_END / 4] = NVPB_SetBeginEnd; // NV097_SET_BEGIN_END; // 0x000017FC
 		NV2ACallbacks[NV2A_VB_ELEMENT_U16 / 4] = NVPB_InlineIndexArray; // NV097_ARRAY_ELEMENT16; // 0x1800
 		NV2ACallbacks[(NV2A_VB_ELEMENT_U16 + 8) / 4] = NVPB_FixLoop; // NV097_ARRAY_ELEMENT32; // 0x1808

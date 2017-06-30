@@ -224,6 +224,8 @@ extern void EmuUnswizzleRect
 
 #define  NV2A_NOP									0x00000100
 #define  NV2A_NOTIFY									0x00000104
+#define  NV2A_FLIP_INCREMENT_WRITE                  0x0000012C
+#define  NV2A_FLIP_STALL                            0x00000130
 #define  NV2A_DMA_NOTIFY								0x00000180
 #define  NV2A_DMA_TEXTURE0								0x00000184
 #define  NV2A_DMA_TEXTURE1								0x00000188

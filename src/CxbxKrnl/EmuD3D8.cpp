@@ -1919,7 +1919,7 @@ void CxbxGetActiveHostBackBuffer()
 }
 
 // A wrapper for Present() with an extra safeguard to restore 'device lost' errors
-void CxbxPresent()
+void XTL::CxbxPresent()
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
@@ -2313,7 +2313,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				hRet = g_pD3DDevice8->BeginScene();
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
 
-				CxbxPresent();
+				XTL::CxbxPresent();
             }
             else { // !bCreate
                 // release direct3d

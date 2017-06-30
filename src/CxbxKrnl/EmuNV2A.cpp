@@ -986,11 +986,7 @@ DEVICE_READ32(PFB)
 	DEVICE_READ32_SWITCH() {
 	case NV_PFB_WBC: // Xbox KickOff() sets this
 		result = DEVICE_REG32(pfb);
-		if (result & NV_PFB_WBC_FLUSH) {
-			DEBUG_READ32_LOG(PFB, "Triggered FLUSH_PENDING bit"); // This unblocks Xbox FlushWCCache()
-			SetEvent(ghNV2AFlushEvent);
-			result ^= NV_PFB_WBC_FLUSH;
-		}
+		// TODO : Reset NV_PFB_WBC_FLUSH here, or when writing?
 		break;
 	case NV_PFB_CFG0:
 		result = 3; // = NV_PFB_CFG0_PART_4
@@ -1006,6 +1002,15 @@ DEVICE_READ32(PFB)
 DEVICE_WRITE32(PFB)
 {
 	switch (addr) {
+	case NV_PFB_WBC: // Xbox KickOff() sets this
+		if (value & NV_PFB_WBC_FLUSH) {
+			DEBUG_READ32_LOG(PFB, "Triggered FLUSH_PENDING bit"); // This unblocks Xbox FlushWCCache()
+			SetEvent(ghNV2AFlushEvent);
+			// TODO : Reset NV_PFB_WBC_FLUSH here, or when reading?
+			value ^= NV_PFB_WBC_FLUSH; 
+		}
+		DEVICE_REG32(pfb) = value;
+		break;
 	default:
 		DEVICE_WRITE32_REG(pfb);
 	}
