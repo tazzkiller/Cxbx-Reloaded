@@ -919,7 +919,7 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 	Pusher *pPusher = (Pusher*)(*((xbaddr *)Xbox_D3D__Device));
 
 	// Emulate the GPU engine here, by running the pushbuffer on the correct addresses :
-
+		ResetEvent(ghNV2AFlushEvent); // TODO : Must this be done as soon as here, or when setting Get/after handling commands?
 	// Xbox KickOff() signals a work flush.
 	// We wait for DEVICE_READ32(PFB) case NV_PFB_WBC sending us a signal
 	while (WaitForSingleObject(ghNV2AFlushEvent, INFINITE) == WAIT_OBJECT_0) { // TODO -oDxbx: When do we break out of this while loop ?

@@ -4360,8 +4360,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Present)
     PVOID       pDummy2
 )
 {
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
-
+#endif
 	// LOG_FORWARD("D3DDevice_Swap");
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pSourceRect)
@@ -4378,8 +4379,9 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
     DWORD Flags
 )
 {
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
-
+#endif
 	LOG_FUNC_ONE_ARG(Flags);
 
     // TODO: Ensure this flag is always the same across library versions
