@@ -54,12 +54,13 @@ namespace xboxkrnl
 #include "EmuNV2A.h" // For InitOpenGLContext
 #include "HLEIntercept.h"
 #include "ReservedMemory.h" // For virtual_memory_placeholder
-#include "MemoryManager.h"
+#include "MemoryManager.h" // For g_MemoryManager
 
 #include <shlobj.h>
 #include <clocale>
 #include <Shlwapi.h>
 #include <time.h> // For time()
+#include <assert.h> // For assert()
 
 /* prevent name collisions */
 namespace NtDll
@@ -676,12 +677,24 @@ void CxbxKrnlInit
 #ifdef _DEBUG_TRACE
 	// VerifyHLEDataBase();
 #endif
+	// Reserve the first contiguous memory page, as the NV2A will bootstrap from there
+	void *PageZero = g_MemoryManager.AllocateContiguous(PAGE_SIZE, PAGE_SIZE);
+
+	// Reserve a block of 'filler' memory, to end up at XBOX_KERNEL_BASE
+	const int FillerSize = XBE_IMAGE_BASE - PAGE_SIZE;
+	void *Filler = g_MemoryManager.AllocateContiguous(FillerSize, PAGE_SIZE);
+
+	// Allocate space for a fake kernel at XBOX_KERNEL_BASE
+	void *KernelBase = g_MemoryManager.AllocateContiguous(sizeof(DUMMY_KERNEL), PAGE_SIZE);
+	assert((intptr_t)KernelBase == XBOX_KERNEL_BASE);
+	assert(((intptr_t)KernelBase - (intptr_t)PageZero) == XBE_IMAGE_BASE);
+
 	// TODO : The following seems to cause a crash when booting the game "Forza Motorsport",
 	// according to https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/issues/101#issuecomment-277230140
 	{
 		// Create a fake kernel header for XapiRestrictCodeSelectorLimit
 		// Thanks advancingdragon / DirtBox
-		PDUMMY_KERNEL DummyKernel = (PDUMMY_KERNEL)XBOX_KERNEL_BASE;
+		PDUMMY_KERNEL DummyKernel = (PDUMMY_KERNEL)KernelBase;
 		memset(DummyKernel, 0, sizeof(DUMMY_KERNEL));
 
 		// XapiRestrictCodeSelectorLimit only checks these fields.

@@ -927,10 +927,7 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 		if (m_pCPUTime == NULL)
 			CxbxLocateCpuTime();
 
-		if (g_pNV2ADMAChannel->Put == NULL) {
-			Sleep(50);
-			continue;
-		}
+		// DON'T check for (g_pNV2ADMAChannel->Put == NULL), as that's'the initial bootstrap address
 
 		// Start at the DMA's 'Put' address
 		xbaddr GPUStart = (xbaddr)g_pNV2ADMAChannel->Put | MM_SYSTEM_PHYSICAL_MAP; // 0x80000000

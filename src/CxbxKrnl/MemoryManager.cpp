@@ -144,8 +144,8 @@ void* MemoryManager::AllocateContiguous(size_t size, size_t alignment)
 	EnterCriticalSection(&m_CriticalSection);
 	// Is the contiguous allocation table empty?
 	if (m_ContiguousMemoryBlocks.size() == 0) {
-		// Start allocating Contiguous Memory after the Kernel image header to prevent overwriting our dummy Kernel
-		addr = XBOX_KERNEL_BASE + sizeof(DUMMY_KERNEL);
+		// Start allocating Contiguous Memory at 0x80000000
+		addr = MM_SYSTEM_PHYSICAL_MAP;
 		addr = (addr + alignMask) & ~alignMask;
 	} else {
 		// Locate the first available Memory Region with enough space for the requested buffer
