@@ -1254,7 +1254,7 @@ DEVICE_WRITE32(PRAMIN)
 	
 	int DMASlot = addr >> 4;
 	if (DMASlot < 16) {
-		switch (addr & 0x0F) {
+		switch (addr & 0x0F) { // Check methods as if it's the first slot (zero)
 		case NV_PRAMIN_DMA_START(0): {
 			if (DMASlot == 0)
 				DbgPrintf("First Xbox CMiniport::CreateCtxDmaObject() call\n");
