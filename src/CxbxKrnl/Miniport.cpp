@@ -201,6 +201,26 @@ loc_00000008:
 00000012 c3                    ret
 */
 
+void CxbxInitializeNV2ADMA()
+{
+	DbgPrintf("NV2A : Creating flush event\n");
+	ghNV2AFlushEvent = CreateEvent(
+		NULL,                   // default security attributes
+		TRUE,                   // manual-reset event
+		FALSE,                  // initial state is nonsignaled
+		TEXT("NV2AFlushEvent")  // object name
+	);
+
+	// Create our DMA pushbuffer 'handling' thread :
+	DbgPrintf("NV2A : Launching DMA handler thread\n");
+	::DWORD dwThreadId = 0;
+	::HANDLE hThread = CreateThread(nullptr, 0, XTL::EmuThreadHandleNV2ADMA, nullptr, 0, &dwThreadId);
+	// Make sure callbacks run on the same core as the one that runs Xbox1 code :
+	SetThreadAffinityMask(hThread, g_CPUXbox);
+	// We set the priority of this thread a bit higher, to assure reliable timing :
+	SetThreadPriority(hThread, THREAD_PRIORITY_ABOVE_NORMAL);
+}
+
 // ******************************************************************
 // * patch: CMiniport_InitHardware
 // ******************************************************************
@@ -233,22 +253,7 @@ BOOL __fastcall XTL::EMUPATCH(CMiniport_InitHardware)
 	*((void **)This) = GPURegisterBase;
 	DbgPrintf("NV2A : GPU RegisterBase resides at 0x%.08x\n", GPURegisterBase);
 
-	DbgPrintf("NV2A : Creating flush event\n");
-	ghNV2AFlushEvent = CreateEvent(
-		NULL,                   // default security attributes
-		TRUE,                   // manual-reset event
-		FALSE,                  // initial state is nonsignaled
-		TEXT("NV2AFlushEvent")  // object name
-	);
-
-	// Create our DMA pushbuffer 'handling' thread :
-	DbgPrintf("NV2A : Launching DMA handler thread\n");
-	::DWORD dwThreadId = 0;
-	::HANDLE hThread = CreateThread(nullptr, 0, XTL::EmuThreadHandleNV2ADMA, nullptr, 0, &dwThreadId);
-	// Make sure callbacks run on the same core as the one that runs Xbox1 code :
-	SetThreadAffinityMask(hThread, g_CPUXbox);
-	// We set the priority of this thread a bit higher, to assure reliable timing :
-	SetThreadPriority(hThread, THREAD_PRIORITY_ABOVE_NORMAL);
+	CxbxInitializeNV2ADMA();
 
 	RETURN(true);
 }
