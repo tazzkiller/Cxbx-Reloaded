@@ -1375,7 +1375,7 @@ VOID XTL::EmuD3DInit()
 	{
 		DWORD dwThreadId;
 
-		DbgPrintf("EmuD3D8: Launching CreateDevice proxy thread");
+		DbgPrintf("EmuD3D8: Launching CreateDevice proxy thread\n");
 		CreateThread(nullptr, 0, EmuCreateDeviceProxy, nullptr, 0, &dwThreadId);
 		// Ported from Dxbx :
 		// If possible, assign this thread to another core than the one that runs Xbox1 code :
@@ -1576,7 +1576,7 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
     if(!XTL::EmuDInputInit())
         CxbxKrnlCleanup("Could not initialize DirectInput!");
 
-    DbgPrintf("EmuD3D8: Message-Pump thread is running.\n");
+    DbgPrintf("EmuD3D8: Message-Pump thread is running\n");
 
     SetFocus(g_hEmuWindow);
 
@@ -1619,6 +1619,8 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
 
         CxbxKrnlCleanup(nullptr);
     }
+
+	DbgPrintf("EmuD3D8: Message-Pump thread is finished\n");
 
     return 0;
 }

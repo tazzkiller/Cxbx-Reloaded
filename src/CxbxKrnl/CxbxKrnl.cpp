@@ -893,9 +893,9 @@ void CxbxKrnlInit
 	}
 
 	EmuX86_Init();
-    DbgPrintf("EmuMain: Initial thread starting.\n");
+    DbgPrintf("EmuMain: Calling XBE entry point...\n");
 	CxbxLaunchXbe(Entry);
-    DbgPrintf("EmuMain: Initial thread ended.\n");
+    DbgPrintf("EmuMain: XBE entry point returned\n");
     fflush(stdout);
 	EmuShared::Cleanup();
     CxbxKrnlTerminateThread();
