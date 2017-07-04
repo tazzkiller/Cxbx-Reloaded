@@ -145,6 +145,8 @@ inline void D3DPUSH_DECODE(const DWORD dwPushCommand, DWORD &dwMethod, DWORD &dw
 	dwCount = PUSH_COUNT(dwPushCommand);
 }
 
+void CxbxInitializeNV2ADMA();
+
 void InitOpenGLContext();
 
 #endif // EMUNV2A_H

@@ -65,8 +65,6 @@ typedef struct {
 	// and m_PushSegmentSize (without division) as 'requested space')
 } Pusher;
 
-DWORD WINAPI EmuThreadHandleNV2ADMA(LPVOID);
-
 // primary push buffer
 extern uint32  g_dwPrimaryPBCount;
 extern uint32 *g_pPrimaryPB;

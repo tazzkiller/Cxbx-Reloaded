@@ -59,7 +59,7 @@ namespace XTL {
 
 /*
 CDevice::Init() // initialization sequence :
-- MmAllocateContiguousMemoryEx() // 96 bytes; a semaphore of 32 bytes, and 4 notifiers of 16 bytes
+- MmAllocateContiguousMemoryEx() // 96 bytes; a semaphore of 32 bytes, and 4 notifiers of 16 bytes, ends up in 0x800011000
 - InitializePushBuffer()
 -- MmAllocateContiguousMemoryEx() // 512 KiB; pushbuffer, ends up in 0x800012000
 - CMiniport::InitHardware()
@@ -68,8 +68,8 @@ CDevice::Init() // initialization sequence :
 -- KeInitializeEvent() // vertical blank event
 -- MapRegisters()
 --- NV2A_Read32(NV_PBUS_PCI_NV_1) + NV2A_Write32(NV_PBUS_PCI_NV_1) // Disable BUS IRQ
---- NV2A_Read32(NV_PCRTC_INTR_EN_0) + NV2A_Write32(NV_PCRTC_INTR_EN_0) // Disable CRTC IRQ (vblank?)
---- NV2A_Write32(NV_PTIMER_INTR_EN_0)
+--- NV2A_Write32(NV_PCRTC_INTR_EN_0) // Disable CRTC IRQ (vblank?)
+--- NV2A_Write32(NV_PTIMER_INTR_EN_0) // Disable TIMER IRQ
 -- GetGeneralInfo()
 --- NV2A_Read32(NV_PBUS_PCI_NV_0) // Returns VENDOR_ID
 --- NV2A_Read32(NV_PBUS_PCI_NV_2) // Returns REVISION_ID
@@ -157,17 +157,17 @@ CDevice::Init() // initialization sequence :
 --- HalFifoControlLoad()
 --- NV2A_Write32(NV_PFIFO_INTR_0)
 --- NV2A_Write32(NV_PFIFO_INTR_EN_0)
--CMiniport::CreateCtxDmaObject(11 times, does a lot of nv2a access, 8th we need for notification of semaphore address > m_pGPUTime)
--CMiniport::InitDMAChannel(once or none)
+- CMiniport::CreateCtxDmaObject(11 times, does a lot of nv2a access, 8th we need for notification of semaphore address > m_pGPUTime)
+- CMiniport::InitDMAChannel(once or none)
 -- HalFifoAllocDMA()
--CMiniport::BindToChannel(11 times)
--CMiniport::CreateGrObject(11 times)
--KickOff()
--HwGet()
--BusyLoop()
--InitializeHardware()
--InitializeFrameBuffers()
--CMiniport::SetVideoMode()
+- CMiniport::BindToChannel(11 times)
+- CMiniport::CreateGrObject(11 times)
+- KickOff()
+- HwGet()
+- BusyLoop()
+- InitializeHardware()
+- InitializeFrameBuffers()
+- CMiniport::SetVideoMode()
 
 00024AC0 51                   push        ecx
 00024AC1 C7 44 24 00 90 01 00 00 mov         dword ptr [esp],190h
@@ -201,26 +201,6 @@ loc_00000008:
 00000012 c3                    ret
 */
 
-void CxbxInitializeNV2ADMA()
-{
-	DbgPrintf("NV2A : Creating flush event\n");
-	ghNV2AFlushEvent = CreateEvent(
-		NULL,                   // default security attributes
-		TRUE,                   // manual-reset event
-		FALSE,                  // initial state is nonsignaled
-		TEXT("NV2AFlushEvent")  // object name
-	);
-
-	// Create our DMA pushbuffer 'handling' thread :
-	DbgPrintf("NV2A : Launching DMA handler thread\n");
-	::DWORD dwThreadId = 0;
-	::HANDLE hThread = CreateThread(nullptr, 0, XTL::EmuThreadHandleNV2ADMA, nullptr, 0, &dwThreadId);
-	// Make sure callbacks run on the same core as the one that runs Xbox1 code :
-	SetThreadAffinityMask(hThread, g_CPUXbox);
-	// We set the priority of this thread a bit higher, to assure reliable timing :
-	SetThreadPriority(hThread, THREAD_PRIORITY_ABOVE_NORMAL);
-}
-
 // ******************************************************************
 // * patch: CMiniport_InitHardware
 // ******************************************************************
@@ -233,7 +213,8 @@ BOOL __fastcall XTL::EMUPATCH(CMiniport_InitHardware)
 	void * _EDX // __thiscall simulation
 )
 {
-	FUNC_EXPORTS
+
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(This);
 

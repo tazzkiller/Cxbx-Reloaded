@@ -580,6 +580,18 @@ DEBUG_START(PCRTC)
 	DEBUG_CASE(NV_PCRTC_CONFIG);
 DEBUG_END(PCRTC)
 
+#define NV_CIO_CRE_FF_INDEX      0x0000001B
+#define NV_CIO_SR_LOCK_INDEX     0x0000001F
+#define NV_CIO_CRE_FFLWM__INDEX  0x00000020
+#define NV_CIO_CRE_TVOUT_LATENCY 0x00000052
+
+DEBUG_START(CIO)
+	DEBUG_CASE(NV_CIO_CRE_FF_INDEX);
+	DEBUG_CASE(NV_CIO_SR_LOCK_INDEX);
+	DEBUG_CASE(NV_CIO_CRE_FFLWM__INDEX);
+	DEBUG_CASE(NV_CIO_CRE_TVOUT_LATENCY);
+DEBUG_END(CIO)
+
 DEBUG_START(PRMCIO)
 	DEBUG_CASE(NV_PRMCIO_CRX__COLOR);
 	DEBUG_CASE(NV_PRMCIO_CR__COLOR);
@@ -649,6 +661,12 @@ DEBUG_START(USER)
 DEBUG_END(USER)
 
 
+#define READ8(DEV) EmuNV2A_##DEV##_Read8
+#define WRITE8(DEV) EmuNV2A_##DEV##_Write8
+#define READ32(DEV) EmuNV2A_##DEV##_Read32
+#define WRITE32(DEV) EmuNV2A_##DEV##_Write32
+
+#define LOG_FIRST_XBOX_CALL(func) { static bool bFirstTime = true; if(bFirstTime) { bFirstTime = false; DbgPrintf("First Xbox " ## func ## "() call\n");} }
 
 #define DEBUG_REGNAME(DEV) DebugNV_##DEV##(addr)
 
@@ -664,12 +682,14 @@ DEBUG_END(USER)
 #define DEVICE_REG32_ADDR(DEV, addr) DEV.regs[(addr) / sizeof(uint32_t)]
 #define DEVICE_REG32(DEV) DEVICE_REG32_ADDR(DEV, addr)
 
-#define DEVICE_READ32(DEV) uint32_t EmuNV2A_##DEV##_Read32(xbaddr addr)
+#define DEVICE_READ8(DEV) uint8_t READ8(DEV)(xbaddr addr)
+#define DEVICE_READ32(DEV) uint32_t READ32(DEV)(xbaddr addr)
 #define DEVICE_READ32_SWITCH() uint32_t result = 0; switch (addr) 
 #define DEVICE_READ32_REG(DEV) result = DEVICE_REG32(DEV)
 #define DEVICE_READ32_END(DEV) DEBUG_READ32(DEV); return result
 
-#define DEVICE_WRITE32(DEV) void EmuNV2A_##DEV##_Write32(xbaddr addr, uint32_t value)
+#define DEVICE_WRITE8(DEV) void WRITE8(DEV)(xbaddr addr, uint8_t value)
+#define DEVICE_WRITE32(DEV) void WRITE32(DEV)(xbaddr addr, uint32_t value)
 #define DEVICE_WRITE32_REG(DEV) DEVICE_REG32(DEV) = value
 #define DEVICE_WRITE32_END(DEV) DEBUG_WRITE32(DEV)
 
@@ -677,6 +697,11 @@ DEBUG_END(USER)
 DEVICE_READ32(PMC)
 {
 	DEVICE_READ32_SWITCH() {
+	case NV_PMC_ENABLE: {
+		LOG_FIRST_XBOX_CALL("HalMcControlInit");
+		DEVICE_READ32_REG(pmc);
+		break;
+	}
 	case NV_PMC_BOOT_0:	// chipset and stepping: NV2A, A02, Rev 0
 		result = 0x02A000A2;
 		break;
@@ -715,19 +740,27 @@ DEVICE_WRITE32(PMC)
 	DEVICE_WRITE32_END(PMC);
 }
 
-
 DEVICE_READ32(PBUS)
 {
 	DEVICE_READ32_SWITCH() {
+	case NV_PBUS_PCI_NV_19: {
+		LOG_FIRST_XBOX_CALL("LoadEngines");
+		break;
+	}
 	case NV_PBUS_FBIO_RAM:
 		result = NV_PBUS_FBIO_RAM_TYPE_DDR;
 		break;
-	case NV_PBUS_PCI_NV_0:
+	case NV_PBUS_PCI_NV_0: {
+		LOG_FIRST_XBOX_CALL("GetGeneralInfo");
 		result = 0x10de;	// PCI_VENDOR_ID_NVIDIA	(?where to return PCI_DEVICE_ID_NVIDIA_NV2A = 0x01b7)
 		break;
-	case NV_PBUS_PCI_NV_1:
+	}
+	case NV_PBUS_PCI_NV_1: {
+		LOG_FIRST_XBOX_CALL("MapRegisters");
+
 		result = 1; // NV_PBUS_PCI_NV_1_IO_SPACE_ENABLED
 		break;
+	}
 	case NV_PBUS_PCI_NV_2:
 		result = (0x02 << 24) | 161; // PCI_CLASS_DISPLAY_3D (0x02) Rev 161 (0xA1) 
 		break;
@@ -744,6 +777,10 @@ DEVICE_WRITE32(PBUS)
 	case NV_PBUS_PCI_NV_1:
 		// TODO : Handle write on NV_PBUS_PCI_NV_1 with  1 (NV_PBUS_PCI_NV_1_IO_SPACE_ENABLED) + 4 (NV_PBUS_PCI_NV_1_BUS_MASTER_ENABLED)
 		break;
+	case NV_PBUS_PCI_NV_12: {
+		LOG_FIRST_XBOX_CALL("InitEngines");
+		break;
+	}
 	default: 
 		DEBUG_WRITE32_UNHANDLED(PBUS); // TODO : DEVICE_WRITE32_REG(pbus);
 	}
@@ -761,6 +798,11 @@ DEVICE_READ32(PFIFO)
 	case NV_PFIFO_RAMFC:
 		result = 0x00890110; // = ? | NV_PFIFO_RAMFC_SIZE_2K | ?
 		break;
+	case NV_PFIFO_CACHES: {
+		LOG_FIRST_XBOX_CALL("HalFifoAllocDMA");
+		DEVICE_READ32_REG(pfifo);
+		break;
+	}
 	default:
 		DEVICE_READ32_REG(pfifo); // Was : DEBUG_READ32_UNHANDLED(PFIFO);
 	}
@@ -771,8 +813,18 @@ DEVICE_READ32(PFIFO)
 DEVICE_WRITE32(PFIFO)
 {
 	switch(addr) {
-	default: 
-		DEVICE_WRITE32_REG(pfifo); // Was : DEBUG_WRITE32_UNHANDLED(PFIFO);
+	case NV_PFIFO_CACHE1_PUT: {
+		LOG_FIRST_XBOX_CALL("HalFifoControlInit");
+		DEVICE_WRITE32_REG(pfifo);
+		break;
+	}
+	case NV_PFIFO_CACHE1_DMA_FETCH: {
+		LOG_FIRST_XBOX_CALL("HalFifoControlLoad");
+		DEVICE_WRITE32_REG(pfifo);
+		break;
+	}
+	default:
+		DEVICE_WRITE32_REG(pfifo);
 	}
 
 	DEVICE_WRITE32_END(PFIFO);
@@ -803,7 +855,6 @@ DEVICE_WRITE32(PRMA)
 DEVICE_READ32(PVIDEO)
 {
 	DEVICE_READ32_SWITCH() {
-
 	case NV_PVIDEO_STOP:
 		result = 0;
 		break;
@@ -817,6 +868,11 @@ DEVICE_READ32(PVIDEO)
 DEVICE_WRITE32(PVIDEO)
 {
 	switch (addr) {
+	case NV_PVIDEO_LUMINANCE(0): {
+		LOG_FIRST_XBOX_CALL("HalVideoControlInit");
+		DEVICE_WRITE32_REG(pvideo);
+		break;
+	}
 	default:
 		DEVICE_WRITE32_REG(pvideo);
 	}
@@ -983,14 +1039,17 @@ DEVICE_WRITE32(PRMVIO)
 DEVICE_READ32(PFB)
 {
 	DEVICE_READ32_SWITCH() {
-	case NV_PFB_WBC: // Xbox KickOff() sets this
+	case NV_PFB_CFG0: {
+		LOG_FIRST_XBOX_CALL("HalFbControlInit");
+		result = 3; // = NV_PFB_CFG0_PART_4
+		break;
+	}
+	case NV_PFB_WBC: {
+		LOG_FIRST_XBOX_CALL("KickOff");
 		result = DEVICE_REG32(pfb);
 		// TODO : Reset NV_PFB_WBC_FLUSH here, or when writing?
 		break;
-	case NV_PFB_CFG0:
-		result = 3; // = NV_PFB_CFG0_PART_4
-		break;
-	case NV_PFB_CFG1: // fall-through
+	}
 	default:
 		DEVICE_READ32_REG(pfb);
 	}
@@ -1004,6 +1063,10 @@ DEVICE_WRITE32(PFB)
 	case NV_PFB_WBC:
 		if (value & NV_PFB_WBC_FLUSH) {
 			DEBUG_READ32_LOG(PFB, "Xbox KickOff() sets FLUSH bit"); // This unblocks Xbox FlushWCCache()
+			if (ghNV2AFlushEvent == NULL) {
+				CxbxInitializeNV2ADMA();
+			}
+
 			SetEvent(ghNV2AFlushEvent);
 			// TODO : Reset NV_PFB_WBC_FLUSH here, or when reading?
 			value ^= NV_PFB_WBC_FLUSH; 
@@ -1061,6 +1124,7 @@ DEVICE_WRITE32(PGRAPH)
 		update_irq();
 		break;
 	case NV_PGRAPH_CHANNEL_CTX_TABLE: {
+		LOG_FIRST_XBOX_CALL("HalGrControlInit");
 		DEVICE_WRITE32_REG(pgraph);
 
 		xbaddr CtxTableBase = (value & NV_PGRAPH_CHANNEL_CTX_TABLE_INST) | MM_SYSTEM_PHYSICAL_MAP; // map GPU to CPU (OR with 0x80000000)
@@ -1120,15 +1184,32 @@ DEVICE_WRITE32(PCRTC)
 	DEVICE_WRITE32_END(PCRTC);
 }
 
+DEVICE_READ8(CIO)
+{
+	DEVICE_READ32_SWITCH() {
+		// TODO : Implement
+	default:
+		DEBUG_READ32_UNHANDLED(CIO);
+	}
+
+	DEVICE_READ32_END(CIO);
+}
+
+DEVICE_WRITE8(CIO)
+{
+	switch (addr) {
+	default:
+		DEBUG_WRITE32_UNHANDLED(CIO); // TODO : DEVICE_WRITE32_REG(cio);
+	}
+
+	DEVICE_WRITE32_END(CIO);
+}
+
+uint8_t _CIO_Latch = 0;
 
 DEVICE_READ32(PRMCIO)
 {
 	DEVICE_READ32_SWITCH() {
-	/*
-	case NV_PRMCIO_CRX__COLOR:
-	case NV_PRMCIO_CR__COLOR:
-		// TODO : Forward CRT MMIO to VGA device
-	*/
 	default:
 		DEBUG_READ32_UNHANDLED(PRMCIO);
 	}
@@ -1136,14 +1217,48 @@ DEVICE_READ32(PRMCIO)
 	DEVICE_READ32_END(PRMCIO);
 }
 
+DEVICE_READ8(PRMCIO)
+{
+	DEVICE_READ32_SWITCH() {
+	case NV_PRMCIO_CRX__COLOR: {
+		result = _CIO_Latch;
+		break;
+	}
+	case NV_PRMCIO_CR__COLOR: {
+		// Forward CRT MMIO to VGA device
+		result = READ8(CIO)(_CIO_Latch);
+		break;
+	}
+	default:
+		DEBUG_READ32_UNHANDLED(PRMCIO);
+	}
+
+	DEVICE_READ32_END(PRMCIO);
+}
+
+DEVICE_WRITE8(PRMCIO)
+{
+	switch (addr) {
+	case NV_PRMCIO_CRX__COLOR: {
+		LOG_FIRST_XBOX_CALL("HalDacControlInit");
+		_CIO_Latch = value;
+		break;
+	}
+	case NV_PRMCIO_CR__COLOR: {
+		// Forward CRT MMIO to VGA device
+		WRITE8(CIO)(_CIO_Latch, value);
+		break;
+	}
+	default:
+		DEBUG_WRITE32_UNHANDLED(PRMCIO); // TODO : DEVICE_WRITE32_REG(prmcio);
+	}
+
+	DEVICE_WRITE32_END(PRMCIO);
+}
+
 DEVICE_WRITE32(PRMCIO)
 {
 	switch (addr) {
-	/*
-	case NV_PRMCIO_CRX__COLOR:
-	case NV_PRMCIO_CR__COLOR:
-		// TODO : Forward CRT MMIO to VGA device
-	*/
 	default:
 		DEBUG_WRITE32_UNHANDLED(PRMCIO); // TODO : DEVICE_WRITE32_REG(prmcio);
 	}
@@ -1256,9 +1371,9 @@ DEVICE_WRITE32(PRAMIN)
 	if (DMASlot < 16) {
 		switch (addr & 0x0F) { // Check methods as if it's the first slot (zero)
 		case NV_PRAMIN_DMA_START(0): {
-			if (DMASlot == 0)
-				DbgPrintf("First Xbox CMiniport::CreateCtxDmaObject() call\n");
-
+			if (DMASlot == 0) {
+				LOG_FIRST_XBOX_CALL("CMiniport::CreateCtxDmaObject");
+			}
 			break;
 		}
 		case NV_PRAMIN_DMA_LIMIT(0): {
@@ -1338,136 +1453,140 @@ DEVICE_WRITE32(USER)
 typedef struct NV2ABlockInfo {
 		uint32_t offset;
 		uint32_t size;
-		uint32_t(*read)(xbaddr addr);
-		void(*write)(xbaddr addr, uint32_t value);
+		uint32_t(*read32)(xbaddr addr);
+		void(*write32)(xbaddr addr, uint32_t value);
+		uint8_t(*read8)(xbaddr addr);
+		void(*write8)(xbaddr addr, uint8_t value);
 } NV2ABlockInfo;
 
 static const NV2ABlockInfo regions[] = {{
 		/* card master control */
 		NV_PMC_ADDR, // = 0x000000
 		NV_PMC_SIZE, // = 0x001000
-		EmuNV2A_PMC_Read32,
-		EmuNV2A_PMC_Write32,
+		READ32(PMC),
+		WRITE32(PMC),
 	}, {
 		/* bus control */
 		NV_PBUS_ADDR, // = 0x001000
 		NV_PBUS_SIZE, // = 0x001000
-		EmuNV2A_PBUS_Read32,
-		EmuNV2A_PBUS_Write32,
+		READ32(PBUS),
+		WRITE32(PBUS),
 	}, {
 		/* MMIO and DMA FIFO submission to PGRAPH and VPE */
 		NV_PFIFO_ADDR, // = 0x002000
 		_NV_PFIFO_SIZE, // = 0x002000
-		EmuNV2A_PFIFO_Read32,
-		EmuNV2A_PFIFO_Write32,
+		READ32(PFIFO),
+		WRITE32(PFIFO),
 	}, {
 		/* access to BAR0/BAR1 from real mode */
 		NV_PRMA_ADDR, // = 0x007000
 		NV_PRMA_SIZE, // = 0x001000
-		EmuNV2A_PRMA_Read32,
-		EmuNV2A_PRMA_Write32,
+		READ32(PRMA),
+		WRITE32(PRMA),
 	}, {
 		/* video overlay */
 		NV_PVIDEO_ADDR, // = 0x008000
 		NV_PVIDEO_SIZE, // = 0x001000
-		EmuNV2A_PVIDEO_Read32,
-		EmuNV2A_PVIDEO_Write32,
+		READ32(PVIDEO),
+		WRITE32(PVIDEO),
 	}, {
 		/* time measurement and time-based alarms */
 		NV_PTIMER_ADDR, // = 0x009000
 		NV_PTIMER_SIZE, // = 0x001000
-		EmuNV2A_PTIMER_Read32,
-		EmuNV2A_PTIMER_Write32,
+		READ32(PTIMER),
+		WRITE32(PTIMER),
 	}, {
 		/* performance monitoring counters */
 		NV_PCOUNTER_ADDR, // = 0x00a000
 		NV_PCOUNTER_SIZE, // = 0x001000
-		EmuNV2A_PCOUNTER_Read32,
-		EmuNV2A_PCOUNTER_Write32,
+		READ32(PCOUNTER),
+		WRITE32(PCOUNTER),
 	}, {
 		/* MPEG2 decoding engine */
 		NV_PVPE_ADDR, // = 0x00b000
 		NV_PVPE_SIZE, // = 0x001000
-		EmuNV2A_PVPE_Read32,
-		EmuNV2A_PVPE_Write32,
+		READ32(PVPE),
+		WRITE32(PVPE),
 	},	{
 		/* TV encoder */
 		NV_PTV_ADDR, // = 0x00d000
 		NV_PTV_SIZE, // = 0x001000
-		EmuNV2A_PTV_Read32,
-		EmuNV2A_PTV_Write32,
+		READ32(PTV),
+		WRITE32(PTV),
 	}, {
 		/* aliases VGA memory window */
 		NV_PRMFB_ADDR, // = 0x0a0000
 		NV_PRMFB_SIZE, // = 0x020000
-		EmuNV2A_PRMFB_Read32,
-		EmuNV2A_PRMFB_Write32,
+		READ32(PRMFB),
+		WRITE32(PRMFB),
 	}, {
 		/* aliases VGA sequencer and graphics controller registers */
 		NV_PRMVIO_ADDR, // = 0x0c0000
 		NV_PRMVIO_SIZE, // = 0x008000 // Was 0x001000
-		EmuNV2A_PRMVIO_Read32,
-		EmuNV2A_PRMVIO_Write32,
+		READ32(PRMVIO),
+		WRITE32(PRMVIO),
 	},{
 		/* memory interface */
 		NV_PFB_ADDR, // = 0x100000
 		NV_PFB_SIZE, // = 0x001000
-		EmuNV2A_PFB_Read32,
-		EmuNV2A_PFB_Write32,
+		READ32(PFB),
+		WRITE32(PFB),
 	}, {
 		/* straps readout / override */
 		NV_PSTRAPS_ADDR, // = 0x101000
 		NV_PSTRAPS_SIZE, // = 0x001000
-		EmuNV2A_PSTRAPS_Read32,
-		EmuNV2A_PSTRAPS_Write32,
+		READ32(PSTRAPS),
+		WRITE32(PSTRAPS),
 	}, {
 		/* accelerated 2d/3d drawing engine */
 		NV_PGRAPH_ADDR, // = 0x400000
 		NV_PGRAPH_SIZE, // = 0x002000
-		EmuNV2A_PGRAPH_Read32,
-		EmuNV2A_PGRAPH_Write32,
+		READ32(PGRAPH),
+		WRITE32(PGRAPH),
 	}, {
 		/* more CRTC controls */
 		NV_PCRTC_ADDR, // = 0x600000
 		NV_PCRTC_SIZE, // = 0x001000
-		EmuNV2A_PCRTC_Read32,
-		EmuNV2A_PCRTC_Write32,
+		READ32(PCRTC),
+		WRITE32(PCRTC),
 	}, {
 		/* aliases VGA CRTC and attribute controller registers */
 		NV_PRMCIO_ADDR, // = 0x601000
 		NV_PRMCIO_SIZE, // = 0x001000
-		EmuNV2A_PRMCIO_Read32,
-		EmuNV2A_PRMCIO_Write32,
+		READ32(PRMCIO),
+		WRITE32(PRMCIO),
+		READ8(PRMCIO),
+		WRITE8(PRMCIO),
 	}, {
 		/* RAMDAC, cursor, and PLL control */
 		NV_PRAMDAC_ADDR, // = 0x680000
 		NV_PRAMDAC_SIZE, // = 0x001000
-		EmuNV2A_PRAMDAC_Read32,
-		EmuNV2A_PRAMDAC_Write32,
+		READ32(PRAMDAC),
+		WRITE32(PRAMDAC),
 	}, {
 		/* aliases VGA palette registers */
 		NV_PRMDIO_ADDR, // = 0x681000
 		NV_PRMDIO_SIZE, // = 0x001000
-		EmuNV2A_PRMDIO_Read32,
-		EmuNV2A_PRMDIO_Write32,
+		READ32(PRMDIO),
+		WRITE32(PRMDIO),
 	}, {
 		/* RAMIN access */
 		NV_PRAMIN_ADDR, // = 0x700000 // Was 0x710000
 		NV_PRAMIN_SIZE, // = 0x100000
-		EmuNV2A_PRAMIN_Read32,
-		EmuNV2A_PRAMIN_Write32,
+		READ32(PRAMIN),
+		WRITE32(PRAMIN),
 	},{
 		/* PFIFO MMIO and DMA submission area */
 		NV_USER_ADDR, // = 0x800000
 		NV_USER_SIZE, // = 0x400000 // Was 0x800000
-		EmuNV2A_USER_Read32,
-		EmuNV2A_USER_Write32,
+		READ32(USER),
+		WRITE32(USER),
 	}, {
 		/* User area remapped? */
 		NV_UREMAP_ADDR, // = 0xC00000
 		NV_UREMAP_SIZE, // = 0x400000
-		EmuNV2A_USER_Read32, // NOTE : Re-used (*not* EmuNV2A_UREMAP_Read32)
-		EmuNV2A_USER_Write32, // NOTE : Re-used (*not* EmuNV2A_UREMAP_Write32)
+		READ32(USER), // NOTE : Re-used (*not* READ32(UREMAP))
+		WRITE32(USER), // NOTE : Re-used (*not* WRITE32(UREMAP))
 	}, {
 		0xFFFFFFFF,
 		0,
@@ -1482,7 +1601,7 @@ const NV2ABlockInfo* EmuNV2A_Block(xbaddr addr)
 	const NV2ABlockInfo* block = &regions[0];
 	int i = 0;
 
-	while (block->read != nullptr) {
+	while (block->size > 0) {
 		if (addr >= block->offset && addr < block->offset + block->size) {
 			return block;
 		}
@@ -1499,15 +1618,22 @@ uint32_t EmuNV2A_Read(xbaddr addr, int size)
 
 	if (block != nullptr) {
 		switch (size) {
-			case 8:
-				return block->read(addr - block->offset) & 0xFF;
-			case 16:
-				return block->read(addr - block->offset) & 0xFFFF;
-			case 32:
-				return block->read(addr - block->offset);
-			default:
+			case 8: {
+				if (block->read8 != nullptr)
+					return block->read8(addr - block->offset) & 0xFF;
+
+				return block->read32(addr - block->offset) & 0xFF;
+			}
+			case 16: {
+				return block->read32(addr - block->offset) & 0xFFFF;
+			}
+			case 32: {
+				return block->read32(addr - block->offset);
+			}
+			default: {
 				EmuWarning("EmuNV2A_Read: Invalid read size: %d", size);
 				return 0;
+			}
 		}
 	}
 
@@ -1520,37 +1646,41 @@ void EmuNV2A_Write(xbaddr addr, uint32_t value, int size)
 	const NV2ABlockInfo* block = EmuNV2A_Block(addr);
 
 	if (block != nullptr) {
-		int shift = 0;
-		xbaddr aligned_addr = 0;
-		uint32_t aligned_value = 0;
-		uint32_t mask = 0;
 		switch (size) {
-			case 8:
-				shift = (addr & 3) * 8;
-				aligned_addr = addr & ~3;
-				aligned_value = block->read(aligned_addr - block->offset);
-				mask = 0xFF << shift;
+			case 8: {
+				if (block->write8 != nullptr) {
+					return block->write8(addr - block->offset, (uint8_t)value);
+				}
+
+				xbaddr aligned_addr = addr & ~3;
+				int shift = (addr & 3) * 8;
+				uint32_t aligned_value = block->read32(aligned_addr - block->offset);
+				uint32_t mask = 0xFF << shift;
 
 				// TODO : Must the second byte be written to the next DWORD?		
-				block->write(aligned_addr - block->offset, (aligned_value & ~mask) | (value << shift));
+				block->write32(aligned_addr - block->offset, (aligned_value & ~mask) | (value << shift));
 				return;
-			case 16:
+			}
+			case 16: {
 				assert((addr & 1) == 0);
-				
-				shift = (addr & 2) * 16;
-				aligned_addr = addr & ~3;
-				aligned_value = block->read(addr - block->offset);
-				 mask = 0xFFFF << shift;
-				
+
+				int shift = (addr & 2) * 16;
+				xbaddr aligned_addr = addr & ~3;
+				uint32_t aligned_value = block->read32(addr - block->offset);
+				uint32_t mask = 0xFFFF << shift;
+
 				// TODO : Must the second byte be written to the next DWORD?		
-				block->write(aligned_addr - block->offset, (aligned_value & ~mask) | (value << shift));
+				block->write32(aligned_addr - block->offset, (aligned_value & ~mask) | (value << shift));
 				return;
-			case 32:
-				block->write(addr - block->offset, value);
+			}
+			case 32: {
+				block->write32(addr - block->offset, value);
 				return;
-			default:
-				EmuWarning("EmuNV2A_Read: Invalid read size: %d", size);
+			}
+			default: {
+				EmuWarning("EmuNV2A_Write: Invalid read size: %d", size);
 				return;
+			}
 		}
 	}
 

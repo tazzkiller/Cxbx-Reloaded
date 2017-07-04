@@ -904,8 +904,10 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 }
 
 // timing thread procedure
-XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
+XTL::DWORD WINAPI EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 {
+	using namespace XTL;
+
 	DbgPrintf("NV2A : DMA thread started\n");
 
 	// DxbxLogPushBufferPointers('NV2AThread');
@@ -954,6 +956,32 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 	DbgPrintf("NV2A : DMA thread is finished\n");
 	return 0;
 } // EmuThreadHandleNV2ADMA
+
+HANDLE g_hNV2ADMAThread = NULL;
+
+void CxbxInitializeNV2ADMA()
+{
+	if (ghNV2AFlushEvent == NULL) {
+		DbgPrintf("NV2A : Creating flush event\n");
+		ghNV2AFlushEvent = CreateEvent(
+			NULL,                   // default security attributes
+			TRUE,                   // manual-reset event
+			FALSE,                  // initial state is nonsignaled
+			TEXT("NV2AFlushEvent")  // object name
+		);
+	}
+
+	if (g_hNV2ADMAThread == NULL) {
+		// Create our DMA pushbuffer 'handling' thread :
+		DbgPrintf("NV2A : Launching DMA handler thread\n");
+		::DWORD dwThreadId = 0;
+		g_hNV2ADMAThread = CreateThread(nullptr, 0, EmuThreadHandleNV2ADMA, nullptr, 0, &dwThreadId);
+		// Make sure callbacks run on the same core as the one that runs Xbox1 code :
+		SetThreadAffinityMask(g_hNV2ADMAThread, g_CPUXbox);
+		// We set the priority of this thread a bit higher, to assure reliable timing :
+		SetThreadPriority(g_hNV2ADMAThread, THREAD_PRIORITY_ABOVE_NORMAL);
+	}
+}
 
 #ifdef _DEBUG_TRACK_PB
 void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
