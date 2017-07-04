@@ -666,7 +666,9 @@ DEBUG_END(USER)
 #define READ32(DEV) EmuNV2A_##DEV##_Read32
 #define WRITE32(DEV) EmuNV2A_##DEV##_Write32
 
-#define LOG_FIRST_XBOX_CALL(func) { static bool bFirstTime = true; if(bFirstTime) { bFirstTime = false; DbgPrintf("First Xbox " ## func ## "() call\n");} }
+#define LOG_ONCE(msg, ...) { static bool bFirstTime = true; if(bFirstTime) { bFirstTime = false; DbgPrintf(msg, __VA_ARGS__); } }
+
+#define LOG_FIRST_XBOX_CALL(func) LOG_ONCE("First Xbox " ## func ## "() call\n");
 
 #define DEBUG_REGNAME(DEV) DebugNV_##DEV##(addr)
 
@@ -728,11 +730,12 @@ DEVICE_WRITE32(PMC)
 		pmc.pending_interrupts &= ~value;
 		update_irq();
 		break;
-	case NV_PMC_INTR_EN_0:
+	case NV_PMC_INTR_EN_0: {
+		LOG_FIRST_XBOX_CALL("EnableInterrupts");
 		pmc.enabled_interrupts = value;
 		update_irq();
 		break;
-
+	}
 	default: 
 		DEVICE_WRITE32_REG(pmc); // Was : DEBUG_WRITE32_UNHANDLED(PMC);
 	}
@@ -744,7 +747,7 @@ DEVICE_READ32(PBUS)
 {
 	DEVICE_READ32_SWITCH() {
 	case NV_PBUS_PCI_NV_19: {
-		LOG_FIRST_XBOX_CALL("LoadEngines");
+		LOG_FIRST_XBOX_CALL("CMiniport::LoadEngines");
 		break;
 	}
 	case NV_PBUS_FBIO_RAM:
@@ -799,7 +802,7 @@ DEVICE_READ32(PFIFO)
 		result = 0x00890110; // = ? | NV_PFIFO_RAMFC_SIZE_2K | ?
 		break;
 	case NV_PFIFO_CACHES: {
-		LOG_FIRST_XBOX_CALL("HalFifoAllocDMA");
+		LOG_FIRST_XBOX_CALL("HalFifoContextSwitch"); // Was HalFifoAllocDMA
 		DEVICE_READ32_REG(pfifo);
 		break;
 	}
@@ -813,6 +816,14 @@ DEVICE_READ32(PFIFO)
 DEVICE_WRITE32(PFIFO)
 {
 	switch(addr) {
+	case NV_PFIFO_CACHES: {
+		if ((value == 0) && (DEVICE_REG32(pfifo) == 1)) {
+			LOG_ONCE("End of Xbox HalFifoControlLoad() call\n");
+		}
+
+		DEVICE_WRITE32_REG(pfifo);
+		break;
+	}
 	case NV_PFIFO_CACHE1_PUT: {
 		LOG_FIRST_XBOX_CALL("HalFifoControlInit");
 		DEVICE_WRITE32_REG(pfifo);
@@ -822,6 +833,11 @@ DEVICE_WRITE32(PFIFO)
 		LOG_FIRST_XBOX_CALL("HalFifoControlLoad");
 		DEVICE_WRITE32_REG(pfifo);
 		break;
+	}
+	case NV_PFIFO_INTR_EN_0: {
+		if (value == 0x01111111) {
+			LOG_ONCE("End of CMiniport::LoadEngines() call\n"); // Also ends InitHardware(), next should be CreateCtxDmaObject()
+		}
 	}
 	default:
 		DEVICE_WRITE32_REG(pfifo);
@@ -1105,6 +1121,10 @@ DEVICE_WRITE32(PSTRAPS)
 DEVICE_READ32(PGRAPH)
 {
 	DEVICE_READ32_SWITCH() {
+	case NV_PGRAPH_INTR: {
+		LOG_FIRST_XBOX_CALL("HalGrLoadChannelContext");
+		break;
+	}
 	default:
 		DEBUG_READ32_UNHANDLED(PGRAPH);
 	}
@@ -1123,6 +1143,11 @@ DEVICE_WRITE32(PGRAPH)
 		pgraph.enabled_interrupts = value;
 		update_irq();
 		break;
+	case NV_PGRAPH_DEBUG_0: {
+		LOG_FIRST_XBOX_CALL("HalGrControlLoad"); // Actually starts with reading NV_PMC_ENABLE, but that's read before
+		DEVICE_WRITE32_REG(pgraph);
+		break;
+	}
 	case NV_PGRAPH_CHANNEL_CTX_TABLE: {
 		LOG_FIRST_XBOX_CALL("HalGrControlInit");
 		DEVICE_WRITE32_REG(pgraph);
@@ -1132,7 +1157,12 @@ DEVICE_WRITE32(PGRAPH)
 		// pgraph.CtxTableBase = CtxTableBase;
 		DEBUG_WRITE32_LOG(PGRAPH, "Xbox CMiniport::HalGrControlInit() set CtxTableBase to 0x%08X", CtxTableBase);
 		return;
-		}
+	}
+	case NV_PGRAPH_CHANNEL_CTX_POINTER: {
+		LOG_FIRST_XBOX_CALL("HalGrUnloadChannelContext"); // Shouldn't be hit during initalization
+		DEVICE_WRITE32_REG(pgraph);
+		return;
+	}
 	default: 
 		DEVICE_WRITE32_REG(pgraph); // Was : DEBUG_WRITE32_UNHANDLED(PGRAPH);
 	}
@@ -1165,10 +1195,12 @@ DEVICE_WRITE32(PCRTC)
 {
 	switch (addr) {
 
-	case NV_PCRTC_INTR_0:
+	case NV_PCRTC_INTR_0: {
+		LOG_FIRST_XBOX_CALL("HalDacLoad");
 		pcrtc.pending_interrupts &= ~value;
 		update_irq();
 		break;
+	}
 	case NV_PCRTC_INTR_EN_0:
 		pcrtc.enabled_interrupts = value;
 		update_irq();
@@ -1398,7 +1430,7 @@ DEVICE_WRITE32(PRAMIN)
 
 			if (DMASlot > 6) {
 				if (DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_CLASS(DMASlot)) == 0x0000B002) {
-					DbgPrintf("Last Xbox CMiniport::CreateCtxDmaObject() call\n");
+					LOG_ONCE("Last Xbox CMiniport::CreateCtxDmaObject() call\n");
 				}
 			}
 
