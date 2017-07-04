@@ -178,6 +178,8 @@ DWORD __stdcall EmuThreadDpcHandler(LPVOID lpVoid)
 	LONG lWait;
 	xboxkrnl::PKTIMER pktimer;
 
+	DbgPrintf("EmuD3D8: DPC thread is running\n");
+
 	while (true)
 	{
 		// While we're working with the DpcQueue, we need to be thread-safe :
@@ -253,6 +255,8 @@ DWORD __stdcall EmuThreadDpcHandler(LPVOID lpVoid)
 		WaitForSingleObject(g_DpcData.DpcEvent, dwWait);
 	} // while
 
+	DbgPrintf("EmuD3D8: DPC thread is finished\n");
+
 	return S_OK;
 }
 
@@ -263,7 +267,11 @@ void InitDpcAndTimerThread()
 	InitializeCriticalSection(&(g_DpcData.Lock));
 	InitializeListHead(&(g_DpcData.DpcQueue));
 	InitializeListHead(&(g_DpcData.TimerQueue));
+
+	DbgPrintf("EmuD3D8: Creating DPC event\n");
 	g_DpcData.DpcEvent = CreateEvent(/*lpEventAttributes=*/nullptr, /*bManualReset=*/FALSE, /*bInitialState=*/FALSE, /*lpName=*/nullptr);
+
+	DbgPrintf("EmuD3D8: Launching DPC thread\n");
 	g_DpcData.DpcThread = CreateThread(/*lpThreadAttributes=*/nullptr, /*dwStackSize=*/0, (LPTHREAD_START_ROUTINE)&EmuThreadDpcHandler, /*lpParameter=*/nullptr, /*dwCreationFlags=*/0, &dwThreadId);
 	SetThreadPriority(g_DpcData.DpcThread, THREAD_PRIORITY_HIGHEST);
 }

@@ -906,7 +906,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 // timing thread procedure
 XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 {
-	DbgPrintf("EmuD3D8 : NV2A DMA thread is running.\n");
+	DbgPrintf("NV2A : DMA thread started\n");
 
 	// DxbxLogPushBufferPointers('NV2AThread');
 
@@ -918,11 +918,13 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 
 	Pusher *pPusher = (Pusher*)(*((xbaddr *)Xbox_D3D__Device));
 
+	DbgPrintf("NV2A : DMA thread is running\n");
+
 	// Emulate the GPU engine here, by running the pushbuffer on the correct addresses :
-		ResetEvent(ghNV2AFlushEvent); // TODO : Must this be done as soon as here, or when setting Get/after handling commands?
 	// Xbox KickOff() signals a work flush.
 	// We wait for DEVICE_READ32(PFB) case NV_PFB_WBC sending us a signal
 	while (WaitForSingleObject(ghNV2AFlushEvent, INFINITE) == WAIT_OBJECT_0) { // TODO -oDxbx: When do we break out of this while loop ?
+		ResetEvent(ghNV2AFlushEvent); // TODO : Must this be done as soon as here, or when setting Get/after handling commands?
 
 		if (m_pCPUTime == NULL)
 			CxbxLocateCpuTime();
@@ -949,7 +951,7 @@ XTL::DWORD WINAPI XTL::EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 		g_pNV2ADMAChannel->Get = (PPUSH)GPUEnd;
 	}
 
-	DbgPrintf("EmuD3D8 : NV2A DMA thread is finished.\n");
+	DbgPrintf("NV2A : DMA thread is finished\n");
 	return 0;
 } // EmuThreadHandleNV2ADMA
 

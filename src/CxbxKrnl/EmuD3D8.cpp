@@ -530,6 +530,7 @@ VOID XTL::CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize)
     {
         DWORD dwThreadId;
 
+		DbgPrintf("EmuD3D8: Launching timing thread\n");
         HANDLE hThread = CreateThread(nullptr, 0, EmuUpdateTickCount, nullptr, 0, &dwThreadId);
 		// Ported from Dxbx :
         // If possible, assign this thread to another core than the one that runs Xbox1 code :
@@ -562,11 +563,12 @@ VOID XTL::CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize)
 
         g_bRenderWindowActive = false;
 
-        HANDLE hRenderWindowThread = CreateThread(nullptr, 0, EmuRenderWindow, nullptr, 0, &dwThreadId);
+		DbgPrintf("EmuD3D8: Launching Message-Pump thread\n");
+		HANDLE hRenderWindowThread = CreateThread(nullptr, 0, EmuRenderWindow, nullptr, 0, &dwThreadId);
 
 		if (hRenderWindowThread == NULL) {
 			char szBuffer[1024] = { 0 };
-			sprintf(szBuffer, "Creating EmuRenderWindowThread Failed: %08X", GetLastError());
+			sprintf(szBuffer, "Creating Message-Pump thread failed: %08X", GetLastError());
 			CxbxPopupMessage(szBuffer);
 			EmuShared::Cleanup();
 			ExitProcess(0);
@@ -1373,6 +1375,7 @@ VOID XTL::EmuD3DInit()
 	{
 		DWORD dwThreadId;
 
+		DbgPrintf("EmuD3D8: Launching CreateDevice proxy thread");
 		CreateThread(nullptr, 0, EmuCreateDeviceProxy, nullptr, 0, &dwThreadId);
 		// Ported from Dxbx :
 		// If possible, assign this thread to another core than the one that runs Xbox1 code :
@@ -1476,6 +1479,8 @@ static BOOL WINAPI EmuEnumDisplayDevices(GUID FAR *lpGUID, LPSTR lpDriverDescrip
 static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
 {
     char AsciiTitle[MAX_PATH];
+
+	DbgPrintf("EmuD3D8: Message-Pump thread started\n");
 
     // register window class
     {
@@ -1805,15 +1810,17 @@ static LRESULT WINAPI EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
 // timing thread procedure
 static DWORD WINAPI EmuUpdateTickCount(LPVOID)
 {
+	DbgPrintf("EmuD3D8: Timing thread started\n");
+
     // since callbacks come from here
     EmuGenerateFS(CxbxKrnl_TLS, CxbxKrnl_TLSData);
 
-    DbgPrintf("EmuD3D8: Timing thread is running.\n");
-
-    timeBeginPeriod(0);
+    timeBeginPeriod(0); // TODO : This changes the timer frequency of the entire system! Find a better solution for accurate timing.
 
     // current vertical blank count
     int curvb = 0;
+
+    DbgPrintf("EmuD3D8: Timing thread is running\n");
 
     while(true)
     {
@@ -1889,6 +1896,8 @@ static DWORD WINAPI EmuUpdateTickCount(LPVOID)
     }
 
     timeEndPeriod(0);
+
+	DbgPrintf("EmuD3D8: Timing thread is finished\n");
 }
 
 void CxbxReleaseSurface(XTL::IDirect3DSurface8 **ppSurface)
@@ -1955,7 +1964,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 {
 	LOG_FUNC();
 
-    DbgPrintf("EmuD3D8: CreateDevice proxy thread is running.\n");
+    DbgPrintf("EmuD3D8: CreateDevice proxy thread is running\n");
 
     while (true) {
         // if we have been signalled, create the device with cached parameters
@@ -2360,7 +2369,9 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
         Sleep(250); // react within a quarter of a second to a CreateDevice signal
     }
 
-    return 0;
+	DbgPrintf("EmuD3D8: CreateDevice proxy thread is finished\n");
+
+	return 0;
 }
 
 #if 0
