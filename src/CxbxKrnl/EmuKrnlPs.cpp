@@ -290,6 +290,10 @@ XBSYSAPI EXPORTNUM(255) xboxkrnl::NTSTATUS NTAPI xboxkrnl::PsCreateSystemThreadE
 	{
 		DWORD dwThreadId;
 
+		DbgPrintf("EmuKrnl: Launching proxy thread\n");
+
+		HANDLE hStartedEvent = CreateEvent(NULL, FALSE, FALSE, TEXT("PCSTProxyEvent"));
+
 		// PCSTProxy is responsible for cleaning up this pointer
 		::PCSTProxyParam *iPCSTProxyParam = new ::PCSTProxyParam();
 
@@ -297,14 +301,20 @@ XBSYSAPI EXPORTNUM(255) xboxkrnl::NTSTATUS NTAPI xboxkrnl::PsCreateSystemThreadE
 		iPCSTProxyParam->StartContext = StartContext;
 		iPCSTProxyParam->SystemRoutine = SystemRoutine; // NULL, XapiThreadStartup or unknown?
 		iPCSTProxyParam->StartSuspended = CreateSuspended;
-		iPCSTProxyParam->hStartedEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+		iPCSTProxyParam->hStartedEvent = hStartedEvent;
 
+		// TODO : Why _beginthreadex instead of CreateThread? Should all be replaced?
 		*ThreadHandle = (HANDLE)_beginthreadex(NULL, NULL, PCSTProxy, iPCSTProxyParam, NULL, (uint*)&dwThreadId);
 
 		// Make sure Xbox1 code runs on one core :
 		SetThreadAffinityMask(*ThreadHandle, g_CPUXbox);
 
-		WaitForSingleObject(iPCSTProxyParam->hStartedEvent, 1000);
+		DbgPrintf("EmuKrnl: Waiting for proxy to finish\n");
+		WaitForSingleObject(hStartedEvent, 15000); // 15 seconds should be more than enough. TODO : How to handle timeout?
+
+		// Release the event
+		CloseHandle(hStartedEvent);
+		hStartedEvent = NULL;
 
 		//        *ThreadHandle = CreateThread(NULL, NULL, PCSTProxy, iPCSTProxyParam, NULL, &dwThreadId);
 
