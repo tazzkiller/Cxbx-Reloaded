@@ -679,6 +679,7 @@ void CxbxKrnlInit
 #endif
 	// Reserve the first contiguous memory page, as the NV2A will bootstrap from there
 	void *PageZero = g_MemoryManager.AllocateContiguous(PAGE_SIZE, PAGE_SIZE);
+	printf("[0x%X] EmuMain: Allocated NV2A page zero at 0x%.08X\n", GetCurrentThreadId(), PageZero);
 
 	// Reserve a block of 'filler' memory, to end up at XBOX_KERNEL_BASE
 	const int FillerSize = XBE_IMAGE_BASE - PAGE_SIZE;
@@ -686,6 +687,8 @@ void CxbxKrnlInit
 
 	// Allocate space for a fake kernel at XBOX_KERNEL_BASE
 	void *KernelBase = g_MemoryManager.AllocateContiguous(sizeof(DUMMY_KERNEL), PAGE_SIZE);
+	printf("[0x%X] EmuMain: Allocated dummy kernel image at 0x%.08X\n", GetCurrentThreadId(), KernelBase);
+
 	assert((intptr_t)KernelBase == XBOX_KERNEL_BASE);
 	assert(((intptr_t)KernelBase - (intptr_t)PageZero) == XBE_IMAGE_BASE);
 
@@ -703,6 +706,7 @@ void CxbxKrnlInit
 		DummyKernel->FileHeader.NumberOfSections = 1;
 		// as long as this doesn't start with "INIT"
 		strncpy_s((PSTR)DummyKernel->SectionHeader.Name, 8, "DONGS", 8);
+		printf("[0x%X] EmuMain: Initialized dummy kernel image header.\n", GetCurrentThreadId());
 	}
 
 	// Read which components need to be LLE'ed :
@@ -712,15 +716,15 @@ void CxbxKrnlInit
 
 		bLLE_APU = (CxbxLLE_Flags & LLE_APU) > 0;
 		if (bLLE_APU)
-			printf("EmuMain : LLE enabled for APU.\n");
+			printf("[0x%X] EmuMain : LLE enabled for APU.\n", GetCurrentThreadId());
 
 		bLLE_GPU = (CxbxLLE_Flags & LLE_GPU) > 0;
 		if (bLLE_GPU)
-			printf("EmuMain : LLE enabled for GPU.\n");
+			printf("[0x%X] EmuMain : LLE enabled for GPU.\n", GetCurrentThreadId());
 
 		bLLE_JIT = (CxbxLLE_Flags & LLE_JIT) > 0;
 		if (bLLE_JIT)
-			printf("EmuMain : LLE enabled for JIT.\n");
+			printf("[0x%X] EmuMain : LLE enabled for JIT.\n", GetCurrentThreadId());
 	}
 
 	// Process XInput Enabled flag
@@ -729,10 +733,10 @@ void CxbxKrnlInit
 		g_EmuShared->GetXInputEnabled(&XInputEnabled);
 		if (XInputEnabled) {
 			g_XInputEnabled = true;
-			printf("EmuMain : Using XInput\n");
+			printf("[0x%X] EmuMain : Using XInput\n", GetCurrentThreadId());
 		} else {
 			g_XInputEnabled = false;
-			printf("EmuMain : Using DirectInput\n");
+			printf("[0x%X] EmuMain : Using DirectInput\n", GetCurrentThreadId());
 		}
 	}
 
@@ -800,23 +804,23 @@ void CxbxKrnlInit
 		xboxkrnl::XeImageFileName.Buffer = (PCHAR)g_MemoryManager.Allocate(MAX_PATH);
 		sprintf(xboxkrnl::XeImageFileName.Buffer, "%c:\\%s", CxbxDefaultXbeDriveLetter, fileName.c_str());
 		xboxkrnl::XeImageFileName.Length = (USHORT)strlen(xboxkrnl::XeImageFileName.Buffer);
-		printf("EmuMain : XeImageFileName = %s\n", xboxkrnl::XeImageFileName.Buffer);
+		printf("[0x%X] EmuMain : XeImageFileName = %s\n", GetCurrentThreadId(), xboxkrnl::XeImageFileName.Buffer);
 	}
 
 	// Dump Xbe information
 	{
 		// Dump Xbe certificate
 		if (g_pCertificate != NULL) {
-			printf("EmuMain : XBE TitleID : %p\n", g_pCertificate->dwTitleId);
-			printf("EmuMain : XBE TitleName : %ls\n", g_pCertificate->wszTitleName);
-			printf("EmuMain : XBE Region : %s\n", GameRegionToString(g_pCertificate->dwGameRegion));
+			printf("[0x%X] EmuMain : XBE TitleID : %p\n", GetCurrentThreadId(), g_pCertificate->dwTitleId);
+			printf("[0x%X] EmuMain : XBE TitleName : %ls\n", GetCurrentThreadId(), g_pCertificate->wszTitleName);
+			printf("[0x%X] EmuMain : XBE Region : %s\n", GetCurrentThreadId(), GameRegionToString(g_pCertificate->dwGameRegion));
 		}
 
 		// Dump Xbe library build numbers
 		Xbe::LibraryVersion* libVersionInfo = pLibraryVersion;// (LibraryVersion *)(CxbxKrnl_XbeHeader->dwLibraryVersionsAddr);
 		if (libVersionInfo != NULL) {
 			for (uint32 v = 0; v < CxbxKrnl_XbeHeader->dwLibraryVersions; v++) {
-				printf("EmuMain : XBE Library %d : %.8s (version %d)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
+				printf("[0x%X] EmuMain : XBE Library %d : %.8s (version %d)\n", GetCurrentThreadId(), v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
 				libVersionInfo++;
 			}
 		}
