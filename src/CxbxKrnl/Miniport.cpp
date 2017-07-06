@@ -504,19 +504,21 @@ CDevice::Init
 [...]
 
 CMiniport::InitHardware()
-000212A6 55                   push        ebp     // ENTER part 1/2
-000212A7 8B EC                mov         ebp,esp // ENTER part 2/2
 
-000212A9 83 EC 10             sub         esp,10h
-000212AC 53                   push        ebx
-000212AD 56                   push        esi // Here, ESI = 00028060, ESP changes from 0x0978FC7? to 0x0978FC7C (contains ESI = 00028060)
+// ESP = 0968FC98
+000212A6 55                   push        ebp     // ENTER part 1/2, EBP = 0958FED0, ESP changes from 0958FC98 to 0958FC94
+000212A7 8B EC                mov         ebp,esp // ENTER part 2/2, EBP changes from 0958FED0 to 0958FC94
 
-000212AE 8B F1                mov         esi,ecx
-000212B0 56                   push        esi                   // a3 : DeferredContext = 00028060 (:CMiniport)
+000212A9 83 EC 10             sub         esp,10h // ESP changes from 0958FC94 to 0958FC84
+000212AC 53                   push        ebx     // EBX = 00000000, ESP changes from 0958FC84 to 0958FC80
+000212AD 56                   push        esi     // ESI = 00028060, ESP changes from 0968FC80 to 0968FC7C (contains ESI = 00028060)
+
+000212AE 8B F1                mov         esi,ecx               // ESI stays at 00028060
+000212B0 56                   push        esi                   // a3 : DeferredContext = 00028060 (:CMiniport) 
 000212B1 68 60 22 02 00       push        22260h                // a2 : DeferredRoutine = 00022260
 000212B6 8D 86 84 00 00 00    lea         eax,[esi+84h]         // : CMiniport.m_Dpc
 000212BC 50                   push        eax                   // a1 : Dpc = 000280E4 (: CMiniport.m_Dpc)
-000212BD FF 15 80 91 02 00    call        dword ptr ds:[29180h] // xboxkrnl::KeInitializeDpc(a1..a3)
+000212BD FF 15 80 91 02 00    call        dword ptr ds:[29180h] // xboxkrnl::KeInitializeDpc(a1..a3) (ESP returns to 0968FC7C)
 
 000212C3 80 A6 A4 01 00 00 00 and         byte ptr [esi+1A4h],0
 000212CA 80 A6 94 01 00 00 00 and         byte ptr [esi+194h],0
@@ -534,22 +536,24 @@ CMiniport::InitHardware()
 00021304 89 86 A0 01 00 00    mov         dword ptr [esi+1A0h],eax
 0002130A 89 00                mov         dword ptr [eax],eax
 
-0002130C E8 E9 FA FF FF       call        virtual_memory_placeholder+0FDFAh (020DFAh)  // CMiniport::MapRegisters()
+0002130C E8 E9 FA FF FF       call        virtual_memory_placeholder+0FDFAh (020DFAh)  // CMiniport::MapRegisters() (ESP stays at 0968FC7C)
 00021311 85 C0                test        eax,eax
 00021313 75 07                jne         virtual_memory_placeholder+1031Ch (02131Ch)
 00021315 33 C0                xor         eax,eax
 00021317 E9 E8 00 00 00       jmp         virtual_memory_placeholder+10404h (021404h)
 
 0002131C 8B CE                mov         ecx,esi
-0002131E E8 02 FB FF FF       call        virtual_memory_placeholder+0FE25h (020E25h) // CMiniport::GetGeneralInfo()
+0002131E E8 02 FB FF FF       call        virtual_memory_placeholder+0FE25h (020E25h) // CMiniport::GetGeneralInfo() (ESP stays at 0968FC7C)
 00021323 85 C0                test        eax,eax
 00021325 74 EE                je          virtual_memory_placeholder+10315h (021315h)
 
-00021327 57                   push        edi
+00021327 57                   push        edi // <- Why this push? HalGetInterruptVector only requires 2 arguments...???????
+
 00021328 8D 45 F0             lea         eax,[ebp-10h]
 0002132B 50                   push        eax                   // a2 : OUT Irql
 0002132C 6A 03                push        3                     // a1 : BusInterruptLevel = 3
 0002132E FF 15 B8 91 02 00    call        dword ptr ds:[291B8h] // xboxkrnl::HalGetInterruptVector(a1,a2), returns 33 in EAX, sets Irql to 0x18 (see 0x00021337)
+// ESP changes to 0968FC78 - SHOULD HAVE BEEN 0968FC7C !!!!
 
 00021334 53                   push        ebx                   // a7 : ShareVector = 0x01
 00021335 6A 00                push        0                     // a6 : InterruptMode = (KINTERRUPT_MODE)0x0 = LevelSensitive
@@ -559,10 +563,13 @@ CMiniport::InitHardware()
 0002133E 56                   push        esi                   // a3 : ServiceContext = 00028060 (:CMiniport)
 0002133F 68 B0 18 02 00       push        218B0h                // a2 : ServiceRoutine = 000218B0
 00021344 57                   push        edi                   // a1 : OUT Interrupt = 0x28074 (:CMiniport.m_InterruptObject)
-00021345 FF 15 B4 91 02 00    call        dword ptr ds:[291B4h] // xboxkrnl::KeInitializeInterrupt(a1..a7)
+00021345 FF 15 B4 91 02 00    call        dword ptr ds:[291B4h] // xboxkrnl::KeInitializeInterrupt(a1..a7), returns VOID
+// ESP returns to 0968FC78
 
 0002134B 57                   push        edi                   // a1 : InterruptObject = 00028074 (:CMiniport.m_InterruptObject)
 0002134C FF 15 B0 91 02 00    call        dword ptr ds:[291B0h] // xboxkrnl::KeConnectInterrupt(a1), returns 1 in EAX
+// ESP returns to 0968FC78
+
 00021352 84 C0                test        al,al
 00021354 75 07                jne         virtual_memory_placeholder+1035Dh (02135Dh)
 00021356 33 C0                xor         eax,eax
@@ -574,6 +581,7 @@ CMiniport::InitHardware()
 0002136B 50                   push        eax                    // a1 : ShutdownRegistration = 000281C4
 0002136C C7 00 80 1F 02 00    mov         dword ptr [eax],21F80h
 00021372 FF 15 AC 91 02 00    call        dword ptr ds:[291ACh]  // xboxkrnl::HalRegisterShutdownNotification(a1,a2)
+// ESP changes to 0968FC70 - SHOULD HAVE BEEN 0968FC78 (or actually, 0968FC7C)
 
 00021378 8B CE                mov         ecx,esi
 0002137A E8 E7 FA FF FF       call        virtual_memory_placeholder+0FE66h (020E66h) // CMiniport::InitEngines()
@@ -629,11 +637,11 @@ CMiniport::InitHardware()
 000213FD F7 D8                neg         eax
 000213FF 1B C0                sbb         eax,eax
 00021401 F7 D8                neg         eax
-
-00021403 5F                   pop         edi
-00021404 5E                   pop         esi // here, ESI changes from 0x00028060 to 0x00000001 (ESP from 0948FC74 to 0948FC78)-> stack looks unaligned!!!
-00021405 5B                   pop         ebx
-00021406 C9                   leave
+// ESP = 0968FC70
+00021403 5F                   pop         edi // ESP changes from 0968FC70 to 0968FC74, EDI becomes 000281C4
+00021404 5E                   pop         esi // ESP changes from 0948FC74 to 0948FC78, ESI changes from 0x00028060 to 0x00000001-> stack looks unaligned!!!
+00021405 5B                   pop         ebx // ESP changes from 0968FC78 to 0968FC7C, EBX becomes 80011060
+00021406 C9                   leave           //  ESP changes to 0968FC98
 00021407 C3                   ret
 
 MapRegisters
