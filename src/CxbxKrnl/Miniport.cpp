@@ -233,17 +233,21 @@ CDevice::Init() // initialization sequence :
 ----- NV2A_Read32(NV_PFIFO_CACHE1_DMA_SUBROUTINE)
 ---- NV2A_Write32(NV_PFIFO_CACHE1_PUT, 0)
 ---- NV2A_Write32(NV_PFIFO_CACHE1_GET, 0)
----- NV2A_Write32(NV_PFIFO_CACHE1_PULL0)
----- NV2A_Write32(NV_PFIFO_CACHE1_PUSH0)
+---- NV2A_Write32(NV_PFIFO_CACHE1_PULL0, 1)
+---- NV2A_Write32(NV_PFIFO_CACHE1_PUSH0, 1)
 ---- NV2A_Write32(NV_PFIFO_CACHES, 1)
 ---- NV2A_Write32(NV_PFIFO_CACHES, 0)
---- NV2A_Write32(NV_PFIFO_INTR_0)
---- NV2A_Write32(NV_PFIFO_INTR_EN_0)
+--- NV2A_Write32(NV_PFIFO_INTR_0, 0xFFFFFFFF)
+--- NV2A_Write32(NV_PFIFO_INTR_EN_0, 0x01111111)
 -- DumpClocks() DEBUG builds only
 - CMiniport::CreateCtxDmaObject(11 times, does a lot of nv2a access, 8th we need for notification of semaphore address > m_pGPUTime)
+-- NV2A_Write32(NV_PRAMIN_DMA_START(i)) + NV_PRAMIN_DMA_ADDRESS(i) + NV_PRAMIN_DMA_CLASS(i) + NV_PRAMIN_DMA_LIMIT(i) // 11 times, one gives g_pNV2ADMAChannel
+-- NV2A_Read32(NV_PFIFO_CACHES)
 - CMiniport::InitDMAChannel(once or none)
+// TODO : Expand & research
 -- HalFifoAllocDMA()
 - CMiniport::BindToChannel(11 times)
+-- HalFifoHashAdd
 - CMiniport::CreateGrObject(11 times)
 - KickOff()
 - HwGet()
@@ -251,6 +255,9 @@ CDevice::Init() // initialization sequence :
 - InitializeHardware()
 - InitializeFrameBuffers()
 - CMiniport::SetVideoMode()
+
+STATUS : Currently, g_pNV2ADMAChannel isn't set, because PRAMIN writes are above slot 16
+
 
 00024AC0 51                   push        ecx
 00024AC1 C7 44 24 00 90 01 00 00 mov         dword ptr [esp],190h
