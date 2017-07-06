@@ -140,6 +140,7 @@ CDevice::Init() // initialization sequence :
 ---- NV2A_Write32(NV_PFIFO_RUNOUT_PUT_ADDRESS)
 ---- NV2A_Write32(NV_PFIFO_RUNOUT_GET_ADDRESS)
 --- HalFifoControlInit()
+-- out()
 -- HalReadPCISpace()
 -- HalWritePCISpace()
 -- LoadEngines()
@@ -238,7 +239,7 @@ CDevice::Init() // initialization sequence :
 ---- NV2A_Write32(NV_PFIFO_CACHES, 0)
 --- NV2A_Write32(NV_PFIFO_INTR_0)
 --- NV2A_Write32(NV_PFIFO_INTR_EN_0)
-// TODO : Debug, see why EmuX86 starts reading from 0x00000001
+// TODO : Debug, see why EmuX86 starts reading from 0x00000001 - ESI (which should contain CMiniport pThis at 0x00028060) is damaged somewhere above
 -- DumpClocks() DEBUG builds only
 - CMiniport::CreateCtxDmaObject(11 times, does a lot of nv2a access, 8th we need for notification of semaphore address > m_pGPUTime)
 - CMiniport::InitDMAChannel(once or none)
@@ -300,6 +301,8 @@ BOOL __fastcall XTL::EMUPATCH(CMiniport_InitHardware)
 //	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(This);
+
+	// Debug note : This == 0x00028060 here
 
 #if 0 // Old Dxbx approach :
 	// CMiniport::MapRegisters() sets m_RegisterBase (the first member of CMiniport) to 0xFD000000 (NV2A_ADDR)
@@ -388,7 +391,10 @@ BOOL __fastcall XTL::EMUPATCH(CMiniport_CreateCtxDmaObject)
 		LOG_FUNC_ARG(Object)
 		LOG_FUNC_END;
 
-	CxbxPopupMessage("This shouldn't be 0x00000001!"); // TODO : Fix ESI - gets reset somewhere, suspect stack-misalignment
+	if ((DWORD)This <= 0x00010000)
+		CxbxPopupMessage("This is incorrect!"); // TODO : Fix ESI - gets reset somewhere, suspect stack-misalignment
+	else
+		CxbxPopupMessage("This looks fine now"); // TODO : CMiniport_CreateCtxDmaObject patch could be disabled
 /* CreateDevice tutorial :
 
 Direct3D_CreateDevice
@@ -479,46 +485,39 @@ CDevice::Init
 0001AA37 85 C0                test        eax,eax
 0001AA39 0F 8C 94 04 00 00    jl          virtual_memory_placeholder+9ED3h (01AED3h)
 0001AA3F 8B 15 F4 88 02 00    mov         edx,dword ptr ds:[288F4h]
-0001AA45 8B 74 24 08          mov         esi,dword ptr [esp+8]  // = esi, pushed at 0001AA1D
+0001AA45 8B 74 24 08          mov         esi,dword ptr [esp+8]  // = esi, pushed at 0001AA1D, is CDevice pThis
 0001AA49 81 CA 7F 7F 00 00    or          edx,7F7Fh
-0001AA4F 81 C6 C0 23 00 00    add         esi,23C0h
+0001AA4F 81 C6 C0 23 00 00    add         esi,23C0h // esi == 0x00028060 == &CDevice(pThis).m_Miniport
 0001AA55 8B CE                mov         ecx,esi
-0001AA57 89 15 F4 88 02 00    mov         dword ptr ds:[288F4h],edx   // Hier is esi nog goed
+0001AA57 89 15 F4 88 02 00    mov         dword ptr ds:[288F4h],edx // ESI is still intact (equal to 0x00028060) here
 
-EAX = 00000000 EBX = 00000000 ECX = 00028060 EDX = 00007F7F ESI = 00028060 EDI = 80011060 EIP = 0001AA5D ESP = 0948FC9C EBP = 0948FED0 EFL = 00000206
+0001AA5D E8 44 68 00 00       call        virtual_memory_placeholder+102A6h (0212A6h)  CMiniport::InitHardware();
 
-0001AA5D E8 44 68 00 00       call        virtual_memory_placeholder+102A6h (0212A6h)  InitHardware(); // geeft exceptions
-
-EAX = 00000001 EBX = 80011060 ECX = 00000000 EDX = 00000000 ESI = 00000001 EDI = 000281C4 EIP = 0001AA62 ESP = 0948FC9C EBP = 0948FED0 EFL = 00000213
-
-0001AA62 8D 84 24 B0 00 00 00 lea         eax,[esp+0B0h]   // Na exception handling, esi = 0!
+0001AA62 8D 84 24 B0 00 00 00 lea         eax,[esp+0B0h] // After CMiniport::InitHardware() returns here, ESI is pop'ed to 0x00000001 !!!!!
 0001AA69 50                   push        eax
 0001AA6A 68 FF AF FF 07       push        7FFAFFFh
 0001AA6F 6A 00                push        0
 0001AA71 6A 3D                push        3Dh
 0001AA73 6A 03                push        3
-0001AA75 8B CE                mov         ecx,esi   // esi = 1 -> NO GOOD
-0001AA77 E8 5F 65 00 00       call        virtual_memory_placeholder+0FFDBh (020FDBh)  CreateCtxDmaObject(
+0001AA75 8B CE                mov         ecx,esi   // ESI == 1 -> NO GOOD!
+0001AA77 E8 5F 65 00 00       call        virtual_memory_placeholder+0FFDBh (020FDBh)  CMiniport::CreateCtxDmaObject(
+[...]
 
+CMiniport::InitHardware()
+000212A6 55                   push        ebp     // ENTER part 1/2
+000212A7 8B EC                mov         ebp,esp // ENTER part 2/2
 
-InitHardware
-EAX = 00000000 EBX = 00000000 ECX = 00028060 EDX = 00007F7F ESI = 00028060 EDI = 80011060 EIP = 000212A6 ESP = 0948FC98 EBP = 0948FED0 EFL = 00000206
-000212A6 55                   push        ebp
-000212A7 8B EC                mov         ebp,esp
 000212A9 83 EC 10             sub         esp,10h
 000212AC 53                   push        ebx
-EAX = 00000000 EBX = 00000000 ECX = 00028060 EDX = 00007F7F ESI = 00028060 EDI = 80011060 EIP = 000212AD ESP = 0988FC80 EBP = 0988FC94 EFL = 00000206
-000212AD 56                   push        esi
-EAX = 00000000 EBX = 00000000 ECX = 00028060 EDX = 00007F7F ESI = 00028060 EDI = 80011060 EIP = 000212AE ESP = 0948FC7C EBP = 0948FC94 EFL = 00000206
+000212AD 56                   push        esi // Here, ESI = 00028060, ESP changes from 0x0978FC7? to 0x0978FC7C (contains ESI = 00028060)
+
 000212AE 8B F1                mov         esi,ecx
-000212B0 56                   push        esi
-EAX = 00000000 EBX = 00000000 ECX = 00028060 EDX = 00007F7F ESI = 00028060 EDI = 80011060 EIP = 000212B1 ESP = 0948FC78 EBP = 0948FC94 EFL = 00000206
-ESP 0948FC78 : 60 80 02 00 60 80 02 00
-ESP 0958FC78 : 60 80 02 00 00 00 00 00
-000212B1 68 60 22 02 00       push        22260h
-000212B6 8D 86 84 00 00 00    lea         eax,[esi+84h]
-000212BC 50                   push        eax
-000212BD FF 15 80 91 02 00    call        dword ptr ds:[29180h]
+000212B0 56                   push        esi                   // a3 : DeferredContext = 00028060 (:CMiniport)
+000212B1 68 60 22 02 00       push        22260h                // a2 : DeferredRoutine = 00022260
+000212B6 8D 86 84 00 00 00    lea         eax,[esi+84h]         // : CMiniport.m_Dpc
+000212BC 50                   push        eax                   // a1 : Dpc = 000280E4 (: CMiniport.m_Dpc)
+000212BD FF 15 80 91 02 00    call        dword ptr ds:[29180h] // xboxkrnl::KeInitializeDpc(a1..a3)
+
 000212C3 80 A6 A4 01 00 00 00 and         byte ptr [esi+1A4h],0
 000212CA 80 A6 94 01 00 00 00 and         byte ptr [esi+194h],0
 000212D1 8D 86 AC 01 00 00    lea         eax,[esi+1ACh]
@@ -534,47 +533,53 @@ ESP 0958FC78 : 60 80 02 00 00 00 00 00
 000212FE 89 9E 98 01 00 00    mov         dword ptr [esi+198h],ebx
 00021304 89 86 A0 01 00 00    mov         dword ptr [esi+1A0h],eax
 0002130A 89 00                mov         dword ptr [eax],eax
-0002130C E8 E9 FA FF FF       call        virtual_memory_placeholder+0FDFAh (020DFAh)  // MapRegisters
-ESP 0948FC78 : 11 13 02 00 60 80 02 00 <- 1e 2 bytes beschadigd (correct, is return address)
 
+0002130C E8 E9 FA FF FF       call        virtual_memory_placeholder+0FDFAh (020DFAh)  // CMiniport::MapRegisters()
 00021311 85 C0                test        eax,eax
 00021313 75 07                jne         virtual_memory_placeholder+1031Ch (02131Ch)
 00021315 33 C0                xor         eax,eax
 00021317 E9 E8 00 00 00       jmp         virtual_memory_placeholder+10404h (021404h)
+
 0002131C 8B CE                mov         ecx,esi
-0002131E E8 02 FB FF FF       call        virtual_memory_placeholder+0FE25h (020E25h)
+0002131E E8 02 FB FF FF       call        virtual_memory_placeholder+0FE25h (020E25h) // CMiniport::GetGeneralInfo()
 00021323 85 C0                test        eax,eax
 00021325 74 EE                je          virtual_memory_placeholder+10315h (021315h)
+
 00021327 57                   push        edi
 00021328 8D 45 F0             lea         eax,[ebp-10h]
-0002132B 50                   push        eax
-0002132C 6A 03                push        3
-0002132E FF 15 B8 91 02 00    call        dword ptr ds:[291B8h]
-00021334 53                   push        ebx
-00021335 6A 00                push        0
-00021337 FF 75 F0             push        dword ptr [ebp-10h]
-0002133A 8D 7E 14             lea         edi,[esi+14h]
-0002133D 50                   push        eax
-0002133E 56                   push        esi
-0002133F 68 B0 18 02 00       push        218B0h
-00021344 57                   push        edi
-00021345 FF 15 B4 91 02 00    call        dword ptr ds:[291B4h]
-0002134B 57                   push        edi
-0002134C FF 15 B0 91 02 00    call        dword ptr ds:[291B0h]
+0002132B 50                   push        eax                   // a2 : OUT Irql
+0002132C 6A 03                push        3                     // a1 : BusInterruptLevel = 3
+0002132E FF 15 B8 91 02 00    call        dword ptr ds:[291B8h] // xboxkrnl::HalGetInterruptVector(a1,a2), returns 33 in EAX, sets Irql to 0x18 (see 0x00021337)
+
+00021334 53                   push        ebx                   // a7 : ShareVector = 0x01
+00021335 6A 00                push        0                     // a6 : InterruptMode = (KINTERRUPT_MODE)0x0 = LevelSensitive
+00021337 FF 75 F0             push        dword ptr [ebp-10h]   // a5 : Irql = 0x18
+0002133A 8D 7E 14             lea         edi,[esi+14h]         // : CMiniport.m_InterruptObject
+0002133D 50                   push        eax                   // a4 : Vector = 33
+0002133E 56                   push        esi                   // a3 : ServiceContext = 00028060 (:CMiniport)
+0002133F 68 B0 18 02 00       push        218B0h                // a2 : ServiceRoutine = 000218B0
+00021344 57                   push        edi                   // a1 : OUT Interrupt = 0x28074 (:CMiniport.m_InterruptObject)
+00021345 FF 15 B4 91 02 00    call        dword ptr ds:[291B4h] // xboxkrnl::KeInitializeInterrupt(a1..a7)
+
+0002134B 57                   push        edi                   // a1 : InterruptObject = 00028074 (:CMiniport.m_InterruptObject)
+0002134C FF 15 B0 91 02 00    call        dword ptr ds:[291B0h] // xboxkrnl::KeConnectInterrupt(a1), returns 1 in EAX
 00021352 84 C0                test        al,al
 00021354 75 07                jne         virtual_memory_placeholder+1035Dh (02135Dh)
 00021356 33 C0                xor         eax,eax
 00021358 E9 A6 00 00 00       jmp         virtual_memory_placeholder+10403h (021403h)
+
 0002135D 83 A6 68 01 00 00 00 and         dword ptr [esi+168h],0
 00021364 8D 86 64 01 00 00    lea         eax,[esi+164h]
-0002136A 53                   push        ebx
-0002136B 50                   push        eax
+0002136A 53                   push        ebx                    // a2 : Register = 0x01
+0002136B 50                   push        eax                    // a1 : ShutdownRegistration = 000281C4
 0002136C C7 00 80 1F 02 00    mov         dword ptr [eax],21F80h
-00021372 FF 15 AC 91 02 00    call        dword ptr ds:[291ACh]
+00021372 FF 15 AC 91 02 00    call        dword ptr ds:[291ACh]  // xboxkrnl::HalRegisterShutdownNotification(a1,a2)
+
 00021378 8B CE                mov         ecx,esi
-0002137A E8 E7 FA FF FF       call        virtual_memory_placeholder+0FE66h (020E66h)
+0002137A E8 E7 FA FF FF       call        virtual_memory_placeholder+0FE66h (020E66h) // CMiniport::InitEngines()
 0002137F 85 C0                test        eax,eax
 00021381 74 D3                je          virtual_memory_placeholder+10356h (021356h)
+
 00021383 8D 86 DC 02 00 00    lea         eax,[esi+2DCh]
 00021389 89 45 FC             mov         dword ptr [ebp-4],eax
 0002138C C7 45 F4 02 00 00 00 mov         dword ptr [ebp-0Ch],2
@@ -593,37 +598,40 @@ ESP 0948FC78 : 11 13 02 00 60 80 02 00 <- 1e 2 bytes beschadigd (correct, is ret
 000213B6 81 45 FC 00 03 00 00 add         dword ptr [ebp-4],300h
 000213BD FF 4D F4             dec         dword ptr [ebp-0Ch]
 000213C0 75 D6                jne         virtual_memory_placeholder+10398h (021398h)
-000213C2 8B 3D A8 91 02 00    mov         edi,dword ptr ds:[291A8h]
-000213C8 6A 00                push        0
-000213CA 66 BA C0 80          mov         dx,80C0h
-000213CE 8A C3                mov         al,bl
-000213D0 6A 04                push        4
-000213D2 EE                   out         dx,al
+
+000213C2 8B 3D A8 91 02 00    mov         edi,dword ptr ds:[291A8h] // EDI = xboxkrnl::HalReadPCISpace
+000213C8 6A 00                push        0                // a6
+000213CA 66 BA C0 80          mov         dx,80C0h              // OUT
+000213CE 8A C3                mov         al,bl                 // OUT
+000213D0 6A 04                push        4                // a5
+000213D2 EE                   out         dx,al                 // OUT
+
 000213D3 8D 45 F8             lea         eax,[ebp-8]
-000213D6 50                   push        eax
-000213D7 6A 4C                push        4Ch
-000213D9 6A 00                push        0
-000213DB 53                   push        ebx
-000213DC FF D7                call        edi
+000213D6 50                   push        eax              // a4
+000213D7 6A 4C                push        4Ch              // a3
+000213D9 6A 00                push        0                // a2
+000213DB 53                   push        ebx              // a1
+000213DC FF D7                call        edi              // xboxkrnl::HalReadPCISpace(a1..a6) (ESP changes from 0948FC58 to 0948FC70)
+
 000213DE 80 4D FB 1F          or          byte ptr [ebp-5],1Fh
-000213E2 53                   push        ebx
-000213E3 6A 04                push        4
+000213E2 53                   push        ebx              // a6
+000213E3 6A 04                push        4                // a5
 000213E5 8D 45 F8             lea         eax,[ebp-8]
-000213E8 50                   push        eax
-000213E9 6A 4C                push        4Ch
-000213EB 6A 00                push        0
-000213ED 53                   push        ebx
-000213EE FF D7                call        edi
+000213E8 50                   push        eax              // a4
+000213E9 6A 4C                push        4Ch              // a3
+000213EB 6A 00                push        0                // a2
+000213ED 53                   push        ebx              // a1
+000213EE FF D7                call        edi              // xboxkrnl::HalWritePCISpace(a1..a6) (ESP changes from 0948FC58 to 0948FC70)
+
 000213F0 8B CE                mov         ecx,esi
 000213F2 89 9E A0 00 00 00    mov         dword ptr [esi+0A0h],ebx
-000213F8 E8 EC FA FF FF       call        virtual_memory_placeholder+0FEE9h (020EE9h)
+000213F8 E8 EC FA FF FF       call        virtual_memory_placeholder+0FEE9h (020EE9h) // CMiniport::LoadEngines() (ESP stays at 0948FC70)
 000213FD F7 D8                neg         eax
 000213FF 1B C0                sbb         eax,eax
 00021401 F7 D8                neg         eax
+
 00021403 5F                   pop         edi
-00021404 5E                   pop         esi
-ESP 0988FC78 : 60 10 01 80 60 80 02 00
-EAX = 00000001 EBX = 00000001 ECX = 00000000 EDX = 00000000 ESI = 00000001 EDI = 000281C4 EIP = 00021405 ESP = 0988FC78 EBP = 0988FC94 EFL = 00000213
+00021404 5E                   pop         esi // here, ESI changes from 0x00028060 to 0x00000001 (ESP from 0948FC74 to 0948FC78)-> stack looks unaligned!!!
 00021405 5B                   pop         ebx
 00021406 C9                   leave
 00021407 C3                   ret
@@ -765,6 +773,11 @@ BOOL __fastcall XTL::EMUPATCH(CMiniport_InitDMAChannel)
 		LOG_FUNC_ARG(Offset)
 		LOG_FUNC_ARG(ppChannel)
 		LOG_FUNC_END;
+
+	if ((DWORD)This <= 0x00010000)
+		CxbxPopupMessage("This is incorrect!"); // TODO : Fix ESI - gets reset somewhere, suspect stack-misalignment
+	else
+		CxbxPopupMessage("This looks fine now");
 
 	// Return our emulated DMA channel :
 	*ppChannel = g_pNV2ADMAChannel;
