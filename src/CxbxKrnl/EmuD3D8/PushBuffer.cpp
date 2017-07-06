@@ -906,7 +906,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 // timing thread procedure
 XTL::DWORD WINAPI EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 {
-	using namespace XTL;
+	//using namespace XTL;
 
 	DbgPrintf("NV2A : DMA thread started\n");
 
@@ -918,7 +918,7 @@ XTL::DWORD WINAPI EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 	InitOpenGLContext();
 #endif
 
-	Pusher *pPusher = (Pusher*)(*((xbaddr *)Xbox_D3D__Device));
+	XTL::Pusher *pPusher = (XTL::Pusher*)(*((xbaddr *)XTL::Xbox_D3D__Device));
 
 	DbgPrintf("NV2A : DMA thread is running\n");
 
@@ -928,8 +928,8 @@ XTL::DWORD WINAPI EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 	while (WaitForSingleObject(ghNV2AFlushEvent, INFINITE) == WAIT_OBJECT_0) { // TODO -oDxbx: When do we break out of this while loop ?
 		ResetEvent(ghNV2AFlushEvent); // TODO : Must this be done as soon as here, or when setting Get/after handling commands?
 
-		if (m_pCPUTime == NULL)
-			CxbxLocateCpuTime();
+		if (XTL::m_pCPUTime == NULL)
+			XTL::CxbxLocateCpuTime();
 
 		// DON'T check for (g_pNV2ADMAChannel->Put == NULL), as that's'the initial bootstrap address
 
@@ -939,13 +939,13 @@ XTL::DWORD WINAPI EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 		xbaddr GPUEnd = (xbaddr)pPusher->m_pPut; // OR with  MM_SYSTEM_PHYSICAL_MAP (0x80000000) doesn't seem necessary
 		if (GPUEnd != GPUStart) {
 			// Execute the instructions, this returns the address where execution stopped :
-			GPUEnd = (xbaddr)EmuExecutePushBufferRaw((PPUSH)GPUStart);// , GPUEnd);
+			GPUEnd = (xbaddr)XTL::EmuExecutePushBufferRaw((PPUSH)GPUStart);// , GPUEnd);
 			// GPUEnd ^= MM_SYSTEM_PHYSICAL_MAP; // Clearing mask doesn't seem necessary
 			// Signal that DMA has finished by resetting the GPU 'Get' pointer, so that busyloops will terminate
 			// See EmuNV2A.cpp : DEVICE_READ32(USER) and DEVICE_WRITE32(USER)
 			g_pNV2ADMAChannel->Put = (PPUSH)GPUEnd;
 			// Register timestamp (needs an offset - but why?)
-			*m_pGPUTime = *m_pCPUTime - 2;
+			*m_pGPUTime = *XTL::m_pCPUTime - 2;
 			// TODO : Count number of handled commands here?
 		}
 
