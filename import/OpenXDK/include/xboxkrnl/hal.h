@@ -107,7 +107,7 @@ XBSYSAPI EXPORTNUM(46) VOID FASTCALL HalRequestSoftwareInterrupt
 // * Reboot / Shutdown / Etc
 // *
 // ******************************************************************
-XBSYSAPI EXPORTNUM(49) VOID DECLSPEC_NORETURN HalReturnToFirmware
+XBSYSAPI EXPORTNUM(49) VOID DECLSPEC_NORETURN NTAPI HalReturnToFirmware
 (
     RETURN_FIRMWARE Routine
 );
