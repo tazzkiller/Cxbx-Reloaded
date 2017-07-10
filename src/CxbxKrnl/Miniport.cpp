@@ -249,12 +249,29 @@ CDevice::Init() // initialization sequence :
 - CMiniport::BindToChannel(11 times)
 -- HalFifoHashAdd
 - CMiniport::CreateGrObject(11 times)
+-- HalGrInit3d() (only at first call, for KELVIN only)
+--- NV2A_Read32()
+--- NV2A_Write32()
+-- HalGrInitObjectContext()
+--- NV2A_Write32(NV_PRAMIN_CONTEXT_0, ???)
+--- NV2A_Write32(NV_PRAMIN_CONTEXT_1, ???)
+--- NV2A_Write32(NV_PRAMIN_CONTEXT_2, ???)
+--- NV2A_Write32(NV_PRAMIN_CONTEXT_3, 0)
+-- BindToChannel()
+- *(DWORD*)0x80000000 = JUMP 0x800012000 (pushbuffer)
+- asm wbinvd
 - KickOff()
-- HwGet()
-- BusyLoop()
+- HwGet() + BusyLoop()
+- *(DWORD*)0x80000000 = 0xDEADBEEF (once pushbuffer jump has been taken)
 - InitializeHardware()
 - InitializeFrameBuffers()
 - CMiniport::SetVideoMode()
+- SetVertexShader()
+- SetRenderTarget()
+- InitializeD3dState()
+- Clear()
+- D3DDevice_SetFlickerFilter(5)
+- D3DDevice_SetSoftDisplayFilter(0)
 
 STATUS : Currently, g_pNV2ADMAChannel isn't set, because PRAMIN writes are above slot 16
 
