@@ -816,6 +816,46 @@ DEVICE_READ32(PFIFO)
 DEVICE_WRITE32(PFIFO)
 {
 	switch(addr) {
+	case NV_PFIFO_RAMHT: {
+		if (g_bPrintfOn) {
+			// Decode and dump the written value
+			xbaddr HTBaseAddr = (value & NV_PFIFO_RAMHT_BASE_ADDRESS) << 12;
+
+			DbgPrintf("NV_PFIFO_RAMHT_BASE_ADDRESS = 0x%08X", HTBaseAddr);
+			switch ((value & NV_PFIFO_RAMHT_SIZE) >> 16) {
+			case NV_PFIFO_RAMHT_SIZE_4K: printf(" NV_PFIFO_RAMHT_SIZE_4K"); break;
+			case NV_PFIFO_RAMHT_SIZE_8K: printf(" NV_PFIFO_RAMHT_SIZE_8K"); break;
+			case NV_PFIFO_RAMHT_SIZE_16K: printf(" NV_PFIFO_RAMHT_SIZE_16K"); break;
+			case NV_PFIFO_RAMHT_SIZE_32K: printf(" NV_PFIFO_RAMHT_SIZE_32K"); break;
+			}
+			switch ((value & NV_PFIFO_RAMHT_SEARCH) >> 24) {
+			case NV_PFIFO_RAMHT_SEARCH_16: printf(" NV_PFIFO_RAMHT_SEARCH_16\n"); break;
+			case NV_PFIFO_RAMHT_SEARCH_32: printf(" NV_PFIFO_RAMHT_SEARCH_32\n"); break;
+			case NV_PFIFO_RAMHT_SEARCH_64: printf(" NV_PFIFO_RAMHT_SEARCH_64\n"); break;
+			case NV_PFIFO_RAMHT_SEARCH_128: printf(" NV_PFIFO_RAMHT_SEARCH_128\n"); break;
+			}
+		}
+		DEVICE_WRITE32_REG(pfifo);
+		break;
+	}
+	case NV_PFIFO_RAMFC: {
+		if (g_bPrintfOn) {
+			// Decode and dump the written value
+			xbaddr FCBaseAddr1 = NV_PRAMIN_ADDR + ((value & NV_PFIFO_RAMFC_BASE_ADDRESS1) << 10);
+			xbaddr FCBaseAddr2 = NV_PRAMIN_ADDR + (((value & NV_PFIFO_RAMFC_BASE_ADDRESS2) >> 16) << 10);
+
+			DbgPrintf("NV_PFIFO_RAMFC_BASE_ADDRESS1 = 0x%08X", FCBaseAddr1);
+			if (value & NV_PFIFO_RAMFC_SIZE == 0)
+				printf(" NV_PFIFO_RAMFC_SIZE_1K");
+			else
+				printf(" NV_PFIFO_RAMFC_SIZE_2K");
+
+			printf(" NV_PFIFO_RAMFC_BASE_ADDRESS2 = 0x%08X\n", FCBaseAddr2);
+		}
+
+		DEVICE_WRITE32_REG(pfifo);
+		break;
+	}
 	case NV_PFIFO_CACHES: {
 		if ((value == 0) && (DEVICE_REG32(pfifo) == 1)) {
 			LOG_ONCE("End of Xbox HalFifoControlLoad() call\n");
