@@ -100,8 +100,8 @@ CDevice::Init() // initialization sequence :
 ---- NV2A_Read32(NV_PFB_CFG1)
 ---- NV2A_Read32(NV_PBUS_FBIO_RAM)
 ---- MmClaimGpuInstanceMemory() // Reserves 20 KiB 
----- NV2A_Write32(NV_PFIFO_RAMHT)
----- NV2A_Write32(NV_PFIFO_RAMFC)
+---- NV2A_Write32(NV_PFIFO_RAMHT) // Sets (PRAMIN-based) address and size of hash table
+---- NV2A_Write32(NV_PFIFO_RAMFC) // Sets (PRAMIN-based) addresses of context area 1 and 2
 ---- NV2A_Read32(NV_PFB_NVM) + NV2A_Write32(NV_PFB_NVM)
 ---- NV2A_Write32(PRAMIN) // 5120 times, for 20 KiB of writes
 --- HalDacControlInit()
@@ -247,7 +247,7 @@ CDevice::Init() // initialization sequence :
 // TODO : Expand & research
 -- HalFifoAllocDMA()
 - CMiniport::BindToChannel(11 times)
--- HalFifoHashAdd
+-- HalFifoHashAdd()
 - CMiniport::CreateGrObject(11 times)
 -- HalGrInit3d() (only at first call, for KELVIN only)
 --- NV2A_Read32()

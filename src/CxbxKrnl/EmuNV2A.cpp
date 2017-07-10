@@ -608,6 +608,11 @@ DEBUG_START(PRMDIO)
 DEBUG_END(PRMDIO)
 
 DEBUG_START(PRAMIN)
+	default:
+		return "Plain RAM";
+	}
+}
+/*
 	DEBUG_CASE(NV_PRAMIN_DMA_CLASS(0));
 	DEBUG_CASE(NV_PRAMIN_DMA_LIMIT(0));
 	DEBUG_CASE(NV_PRAMIN_DMA_START(0));
@@ -653,6 +658,7 @@ DEBUG_START(PRAMIN)
 	DEBUG_CASE(NV_PRAMIN_DMA_START(10));
 	DEBUG_CASE(NV_PRAMIN_DMA_ADDRESS(10));
 DEBUG_END(PRAMIN)
+*/
 
 DEBUG_START(USER)
 	DEBUG_CASE(NV_USER_DMA_PUT);
@@ -1422,25 +1428,28 @@ DEVICE_READ32(PRAMIN)
 
 DEVICE_WRITE32(PRAMIN)
 {
+	u32 DEVICE_READ32_REG(pramin); // result is the previous value
+
 	DEVICE_WRITE32_REG(pramin);
 
-	// Prevent too much logging on zero's
-	if (value == 0) {
-		if (addr <= NV_PRAMIN_DMA_ADDRESS(16)) {
-			return;
-		}
-
-		if ((addr >= 0x00010000) && (addr < 0x00010000 + (20 * 1024))) {
+	// Prevent logging writes of unchanging values
+	if (value == result) {
+		// Do log when writing initial zero's
+		if (value == 0) {
 			if (addr == 0x00010000) {
 				DEBUG_WRITE32_LOG(PRAMIN, "Xbox HalFbControlInit() clearing 20 KiB of MmClaimGpuInstanceMemory");
 			}
 
-			return;
+			if (addr == 0x00014FFC) {
+				DEBUG_WRITE32_LOG(PRAMIN, "Xbox HalFbControlInit() cleared 20 KiB of MmClaimGpuInstanceMemory");
+			}
 		}
+
+		return;
 	}
 	
-	int DMASlot = addr >> 4;
-	if (DMASlot < 16) {
+	int DMASlot = addr >> 4; // This is bullocks, PRAMIN is just RAM. TODO : Determine g_pNV2ADMAChannel and m_pGPUTime differently (but how?)
+//	if (DMASlot < 16) {
 		switch (addr & 0x0F) { // Check methods as if it's the first slot (zero)
 		case NV_PRAMIN_DMA_START(0): {
 			if (DMASlot == 0) {
@@ -1477,7 +1486,7 @@ DEVICE_WRITE32(PRAMIN)
 			break;
 		}
 		}
-	}
+//	}
 
 	DEVICE_WRITE32_END(PRAMIN);
 }
