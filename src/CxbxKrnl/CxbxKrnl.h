@@ -68,7 +68,7 @@ extern "C" {
 
 // Define virtual base addresses for physical memory windows.
 #define MM_SYSTEM_PHYSICAL_MAP      KSEG0_BASE
-#define MM_HIGHEST_PHYSICAL_PAGE    0x07FFF
+#define MM_HIGHEST_PHYSICAL_PAGE    0x03FFF // DEVKIT should use 0x07FFF for 128 MB
 #define MM_64M_PHYSICAL_PAGE        0x04000
 #define MM_INSTANCE_PHYSICAL_PAGE   0x03FE0 // Chihiro arcade should use 0x07FF0
 #define MM_INSTANCE_PAGE_COUNT      16

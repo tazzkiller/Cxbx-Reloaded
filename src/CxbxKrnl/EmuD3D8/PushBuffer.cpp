@@ -931,6 +931,10 @@ XTL::DWORD WINAPI EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 		if (XTL::m_pCPUTime == NULL)
 			XTL::CxbxLocateCpuTime();
 
+		// Don't process anything as long as the NV2A DMA channel isn't allocated yet (see DEVICE_WRITE32(PRAMIN) case NV_PRAMIN_DMA_LIMIT)
+		if (g_pNV2ADMAChannel == NULL)
+			continue;
+
 		// DON'T check for (g_pNV2ADMAChannel->Put == NULL), as that's'the initial bootstrap address
 
 		// Start at the DMA's 'Put' address

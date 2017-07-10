@@ -100,8 +100,8 @@ CDevice::Init() // initialization sequence :
 ---- NV2A_Read32(NV_PFB_CFG1)
 ---- NV2A_Read32(NV_PBUS_FBIO_RAM)
 ---- MmClaimGpuInstanceMemory() // Reserves 20 KiB 
----- NV2A_Write32(NV_PFIFO_RAMHT)
----- NV2A_Write32(NV_PFIFO_RAMFC)
+---- NV2A_Write32(NV_PFIFO_RAMHT) // Sets (PRAMIN-based) address and size of hash table
+---- NV2A_Write32(NV_PFIFO_RAMFC) // Sets (PRAMIN-based) addresses of context area 1 and 2
 ---- NV2A_Read32(NV_PFB_NVM) + NV2A_Write32(NV_PFB_NVM)
 ---- NV2A_Write32(PRAMIN) // 5120 times, for 20 KiB of writes
 --- HalDacControlInit()
@@ -247,14 +247,31 @@ CDevice::Init() // initialization sequence :
 // TODO : Expand & research
 -- HalFifoAllocDMA()
 - CMiniport::BindToChannel(11 times)
--- HalFifoHashAdd
+-- HalFifoHashAdd()
 - CMiniport::CreateGrObject(11 times)
+-- HalGrInit3d() (only at first call, for KELVIN only)
+--- NV2A_Read32()
+--- NV2A_Write32()
+-- HalGrInitObjectContext()
+--- NV2A_Write32(NV_PRAMIN_CONTEXT_0, ???)
+--- NV2A_Write32(NV_PRAMIN_CONTEXT_1, ???)
+--- NV2A_Write32(NV_PRAMIN_CONTEXT_2, ???)
+--- NV2A_Write32(NV_PRAMIN_CONTEXT_3, 0)
+-- BindToChannel()
+- *(DWORD*)0x80000000 = JUMP 0x800012000 (pushbuffer)
+- asm wbinvd
 - KickOff()
-- HwGet()
-- BusyLoop()
+- HwGet() + BusyLoop()
+- *(DWORD*)0x80000000 = 0xDEADBEEF (once pushbuffer jump has been taken)
 - InitializeHardware()
 - InitializeFrameBuffers()
 - CMiniport::SetVideoMode()
+- SetVertexShader()
+- SetRenderTarget()
+- InitializeD3dState()
+- Clear()
+- D3DDevice_SetFlickerFilter(5)
+- D3DDevice_SetSoftDisplayFilter(0)
 
 STATUS : Currently, g_pNV2ADMAChannel isn't set, because PRAMIN writes are above slot 16
 
