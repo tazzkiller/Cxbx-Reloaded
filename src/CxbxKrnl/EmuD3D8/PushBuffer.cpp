@@ -732,6 +732,12 @@ char *NV2AMethodToString(DWORD dwMethod)
 	}
 }
 
+void UpdateGPUTime()
+{
+	// We trigger the DMA semaphore by setting GPU time to CPU time - 2 :
+	*m_pGPUTime = *XTL::m_pCPUTime - 2;
+}
+
 extern PPUSH XTL::EmuExecutePushBufferRaw
 (
     PPUSH pdwPushData
@@ -963,8 +969,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 	g_pNV2ADMAChannel->Get = (PPUSH)pdwPushData;
 	// TODO : We should probably set g_pNV2ADMAChannel->Put to the same value first?
 
-	// We trigger the DMA semaphore by setting GPU time to CPU time - 2 :
-	//*/*D3DDevice.*/m_pGpuTime = /*D3DDevice.*/*m_pCpuTime -2;
+	UpdateGPUTime();
 
 	// TODO : We should register vblank counts somewhere?
 
@@ -1029,13 +1034,13 @@ XTL::DWORD WINAPI EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 			// Signal that DMA has finished by resetting the GPU 'Get' pointer, so that busyloops will terminate
 			// See EmuNV2A.cpp : DEVICE_READ32(USER) and DEVICE_WRITE32(USER)
 			g_pNV2ADMAChannel->Put = (PPUSH)GPUEnd;
-			// Register timestamp (needs an offset - but why?)
-			*m_pGPUTime = *XTL::m_pCPUTime - 2;
-			// TODO : Count number of handled commands here?
 		}
 
 		// Always set the ending address in DMA, so Xbox HwGet() will see it, breaking the BusyLoop() cycle
 		g_pNV2ADMAChannel->Get = (PPUSH)GPUEnd;
+		// Register timestamp
+		UpdateGPUTime();
+		// TODO : Count number of handled commands here?
 	}
 
 	DbgPrintf("NV2A : DMA thread is finished\n");
