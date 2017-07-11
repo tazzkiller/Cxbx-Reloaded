@@ -7,12 +7,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->EmuKrnlLogging.h
+// *   EmuKrnlLogging.h
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -26,7 +26,7 @@
 // *  If not, write to the Free Software Foundation, Inc.,
 // *  59 Temple Place - Suite 330, Bostom, MA 02111-1307, USA.
 // *
-// *  (c) 2016 Patrick van Logchem <pvanlogchem@gmail.com>
+// *  CopyRight (c) 2016-2017 Patrick van Logchem <pvanlogchem@gmail.com>
 // *
 // *  All rights reserved
 // *
@@ -82,6 +82,7 @@ ENUM2STR_HEADER(XC_VALUE_INDEX)
 // Headers for rendering Xbox kernel types without pointer-to-type :
 LOGRENDER_HEADER_BY_REF(BOOLEAN);
 LOGRENDER_HEADER_BY_REF(PBYTE);
+LOGRENDER_HEADER_BY_REF(PULONG);
 
 // Headers for rendering functions of Xbox kernel type and pointer-to-type :
 

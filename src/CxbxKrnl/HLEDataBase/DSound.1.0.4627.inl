@@ -7,12 +7,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->DSound.1.0.4627.cpp
+// *   CxbxKrnl->HLEDataBase->DSound.1.0.4627.inl
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -120,7 +120,7 @@ OOVPA_XREF(CDirectSound_SetVelocity, 4627, 15,
         { 0x38, 0x7A }, // (Offset,Value)-Pair #7
         { 0x39, 0x44 }, // (Offset,Value)-Pair #8
 
-        // CDirectSound_SetVelocity+0x4C : or byte ptr [eax+0x0x00A4], 0x80
+        // CDirectSound_SetVelocity+0x4C : or byte ptr [eax+....00A4], 0x80
         { 0x4C, 0x80 }, // (Offset,Value)-Pair #9
         { 0x4D, 0x88 }, // (Offset,Value)-Pair #10
         { 0x4E, 0xA4 }, // (Offset,Value)-Pair #11
@@ -1601,7 +1601,7 @@ OOVPATable DSound_4627[] = {
 	REGISTER_OOVPA(CDirectSoundStream_SetOutputBuffer, 4627, PATCH),
 	REGISTER_OOVPA(CDirectSoundVoice_SetRolloffCurve, 4627, XREF),
 	REGISTER_OOVPA(CDirectSoundBuffer_SetRolloffCurve, 4627, XREF),
-	REGISTER_OOVPA(CDirectSoundStream_SetRolloffCurve, 4627, XREF),
+	REGISTER_OOVPA(CDirectSoundStream_SetRolloffCurve, 4627, PATCH), // Was XREF
 	REGISTER_OOVPA(IDirectSoundBuffer_SetRolloffCurve, 4627, PATCH),
 	REGISTER_OOVPA(XFileCreateMediaObjectEx, 4627, PATCH),
 	REGISTER_OOVPA(XWaveFileCreateMediaObject, 4627, PATCH),

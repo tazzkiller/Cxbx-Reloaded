@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->XBController.cpp
+// *   Common->Win32->XBController.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -940,7 +940,7 @@ void XBController::DInputInit(HWND hwnd)
         {
             hRet = m_pDirectInput8->CreateDevice(XTL::GUID_SysKeyboard, &m_InputDevice[m_dwInputDeviceCount].m_Device, NULL);
 
-            if(!FAILED(hRet))
+            if(SUCCEEDED(hRet))
             {
                 m_InputDevice[m_dwInputDeviceCount].m_Flags = DEVICE_FLAG_KEYBOARD;
 
@@ -955,7 +955,7 @@ void XBController::DInputInit(HWND hwnd)
         {
             hRet = m_pDirectInput8->CreateDevice(XTL::GUID_SysMouse, &m_InputDevice[m_dwInputDeviceCount].m_Device, NULL);
 
-            if(!FAILED(hRet))
+            if(SUCCEEDED(hRet))
             {
                 m_InputDevice[m_dwInputDeviceCount].m_Flags = DEVICE_FLAG_MOUSE;
 
@@ -1127,7 +1127,7 @@ BOOL XBController::EnumGameCtrlCallback(XTL::LPCDIDEVICEINSTANCE lpddi)
 
     HRESULT hRet = m_pDirectInput8->CreateDevice(lpddi->guidInstance, &m_InputDevice[m_dwInputDeviceCount].m_Device, NULL);
 
-    if(!FAILED(hRet))
+    if(SUCCEEDED(hRet))
     {
         m_InputDevice[m_dwInputDeviceCount].m_Flags = DEVICE_FLAG_JOYSTICK;
 

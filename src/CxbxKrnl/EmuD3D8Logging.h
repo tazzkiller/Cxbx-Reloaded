@@ -7,12 +7,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->EmuD3D8Logging.h
+// *   EmuD3D8Logging.h
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -40,18 +40,25 @@
 //#include "EmuXTL.h"
 #include "Logging.h"
 
+extern const char *D3DErrorString(HRESULT hResult);
+
 namespace XTL
 {
 #include "EmuD3D8Types.h"
 
 // Additional types, exclusively for logging (not really enums) :
-enum  X_D3DUSAGE;
+enum X_D3DUSAGE;
+enum X_D3DCOMMON_TYPE;
+enum X_D3DRESOURCE_COMMON;
+enum X_D3DRESOURCE_FORMAT;
+enum X_D3DRESOURCE_SIZE;
 
 //
 // Headers for rendering host D3D enum types :
 //
 
 ENUM2STR_HEADER(D3DCUBEMAP_FACES)
+ENUM2STR_HEADER(D3DFORMAT)
 ENUM2STR_HEADER(D3DPOOL)
 
 //
@@ -73,7 +80,6 @@ LOGRENDER_HEADER(RECT);
 //ENUM2STR_HEADER(X_D3DSHADEMODE)
 //ENUM2STR_HEADER(X_D3DSTENCILOP)
 //ENUM2STR_HEADER(X_D3DTEXTURESTAGESTATETYPE)
-//ENUM2STR_HEADER(X_D3DCALLBACK)
 
 ENUM2STR_HEADER(X_D3DCULL)
 ENUM2STR_HEADER(X_D3DFORMAT)
@@ -81,6 +87,15 @@ ENUM2STR_HEADER(X_D3DPRIMITIVETYPE)
 ENUM2STR_HEADER(X_D3DRESOURCETYPE)
 ENUM2STR_HEADER(X_D3DSET_DEPTH_CLIP_PLANES_FLAGS)
 FLAGS2STR_HEADER(X_D3DUSAGE) // Not really an enum
+
+//
+// Cxbx D3D LOGRENDER(Type) implementations
+//
+
+ENUM2STR_HEADER(X_D3DCOMMON_TYPE)
+LOGRENDER_HEADER(X_D3DRESOURCE_COMMON)
+LOGRENDER_HEADER(X_D3DRESOURCE_FORMAT)
+LOGRENDER_HEADER(X_D3DRESOURCE_SIZE)
 
 //
 // Xbox D3D LOGRENDER_HEADER(Type) declarations

@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->CxbxKrnl.cpp
+// *   CxbxKrnl->CxbxKrnl.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -54,12 +54,13 @@ namespace xboxkrnl
 #include "EmuNV2A.h" // For InitOpenGLContext
 #include "HLEIntercept.h"
 #include "ReservedMemory.h" // For virtual_memory_placeholder
-#include "MemoryManager.h"
+#include "MemoryManager.h" // For g_MemoryManager
 
 #include <shlobj.h>
 #include <clocale>
 #include <Shlwapi.h>
 #include <time.h> // For time()
+#include <assert.h> // For assert()
 
 /* prevent name collisions */
 namespace NtDll
@@ -78,6 +79,7 @@ Xbe::Header *CxbxKrnl_XbeHeader = NULL;
 HWND CxbxKrnl_hEmuParent = NULL;
 DebugMode CxbxKrnl_DebugMode = DebugMode::DM_NONE;
 char* CxbxKrnl_DebugFileName = NULL;
+Xbe::Certificate *g_pCertificate = NULL;
 
 /*! thread handles */
 static HANDLE g_hThreads[MAXIMUM_XBOX_THREADS] = { 0 };
@@ -117,13 +119,11 @@ XbeType GetXbeType(Xbe::Header *pXbeHeader)
 
 void ApplyMediaPatches()
 {
-	Xbe::Certificate *pCertificate = (Xbe::Certificate*)CxbxKrnl_XbeHeader->dwCertificateAddr;
-
 	// Patch the XBE Header to allow running from all media types
-	pCertificate->dwAllowedMedia = XBEIMAGE_MEDIA_TYPE_HARD_DISK | XBEIMAGE_MEDIA_TYPE_DVD_CD | XBEIMAGE_MEDIA_TYPE_MEDIA_BOARD;
+	g_pCertificate->dwAllowedMedia = XBEIMAGE_MEDIA_TYPE_HARD_DISK | XBEIMAGE_MEDIA_TYPE_DVD_CD | XBEIMAGE_MEDIA_TYPE_MEDIA_BOARD;
 
 	// Patch the XBE Header to allow running on all regions
-	pCertificate->dwGameRegion = XBEIMAGE_GAME_REGION_MANUFACTURING | XBEIMAGE_GAME_REGION_NA | XBEIMAGE_GAME_REGION_JAPAN | XBEIMAGE_GAME_REGION_RESTOFWORLD;
+	g_pCertificate->dwGameRegion = XBEIMAGE_GAME_REGION_MANUFACTURING | XBEIMAGE_GAME_REGION_NA | XBEIMAGE_GAME_REGION_JAPAN | XBEIMAGE_GAME_REGION_RESTOFWORLD;
 
 	// Generic Media Check Patches (From DVD2XBOX)
 	typedef struct
@@ -167,20 +167,19 @@ void ApplyMediaPatches()
 void SetupPerTitleKeys()
 {
 	// Generate per-title keys from the XBE Certificate
-	Xbe::Certificate *pCertificate = (Xbe::Certificate*)CxbxKrnl_XbeHeader->dwCertificateAddr;
 	UCHAR Digest[20] = {};
 
 	// Set the LAN Key
-	xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, pCertificate->bzLanKey, xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
+	xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, g_pCertificate->bzLanKey, xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
 	memcpy(xboxkrnl::XboxLANKey, Digest, xboxkrnl::XBOX_KEY_LENGTH);
 
 	// Signature Key
-	xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, pCertificate->bzSignatureKey, xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
+	xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, g_pCertificate->bzSignatureKey, xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
 	memcpy(xboxkrnl::XboxSignatureKey, Digest, xboxkrnl::XBOX_KEY_LENGTH);
 
 	// Alternate Signature Keys
 	for (int i = 0; i < xboxkrnl::ALTERNATE_SIGNATURE_COUNT; i++) {
-		xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, pCertificate->bzTitleAlternateSignatureKey[i], xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
+		xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, g_pCertificate->bzTitleAlternateSignatureKey[i], xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
 		memcpy(xboxkrnl::XboxAlternateSignatureKeys[i], Digest, xboxkrnl::XBOX_KEY_LENGTH);
 	}
 
@@ -316,15 +315,38 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 	else
 		DbgPrintf("EmuMain: Loaded contiguous memory.bin\n");
 
+	// Map memory.bin contents into tiled memory too :
+	void *tiled_memory = (void *)MapViewOfFileEx(
+		hFileMapping,
+		FILE_MAP_READ | FILE_MAP_WRITE,
+		/* dwFileOffsetHigh */0,
+		/* dwFileOffsetLow */0,
+		CONTIGUOUS_MEMORY_SIZE,
+		(void *)0xF0000000);
+	if (tiled_memory == NULL)
+	{
+		CxbxKrnlCleanup("CxbxRestoreContiguousMemory: Couldn't map contiguous memory.bin into tiled memory!");
+		return nullptr;
+	}
+
+	DbgPrintf("EmuMain: Mapped contiguous to tiled memory\n");
+
 	return memory;
 }
 
 #pragma optimize("", off)
 
-void CxbxPopupMessage(const char *message)
+void CxbxPopupMessage(const char *message, ...)
 {
-	DbgPrintf("Popup : %s\n", message);
-	MessageBox(NULL, message, "Cxbx-Reloaded", MB_OK | MB_ICONEXCLAMATION);
+	char Buffer[1024];
+	va_list argp;
+
+	va_start(argp, message);
+	vsprintf(Buffer, message, argp);
+	va_end(argp);
+
+	DbgPrintf("Popup : %s\n", Buffer);
+	MessageBox(NULL, Buffer, TEXT("Cxbx-Reloaded"), MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST | MB_SETFOREGROUND);
 }
 
 void CxbxKrnlMain(int argc, char* argv[])
@@ -538,6 +560,28 @@ void LoadXboxKeys(std::string path)
 	EmuWarning("Failed to load Keys.bin. Cxbx-Reloaded will be unable to read Save Data from a real Xbox");
 }
 
+// game region flags for Xbe certificate
+#define XBEIMAGE_GAME_REGION_US_CANADA  XBEIMAGE_GAME_REGION_NA
+#define XBEIMAGE_GAME_REGION_ALL (XBEIMAGE_GAME_REGION_US_CANADA | XBEIMAGE_GAME_REGION_JAPAN | XBEIMAGE_GAME_REGION_RESTOFWORLD)
+#define XBEIMAGE_GAME_REGION_KNOWN (XBEIMAGE_GAME_REGION_ALL | XBEIMAGE_GAME_REGION_MANUFACTURING)
+
+const char *GameRegionToString(DWORD aGameRegion)
+{
+	const char *Regions[] = {
+		"UNKNOWN", "NTSC", "JAP", "NTSC+JAP",
+		"PAL", "PAL+NTSC", "PAL+JAP", "ALL",
+
+		"DEBUG", "NTSC (DEBUG)", "JAP (DEBUG)", "NTSC+JAP (DEBUG)",
+		"PAL (DEBUG)", "PAL+NTSC (DEBUG)", "PAL+JAP (DEBUG)", "ALL (DEBUG)"
+	};
+
+	if ((aGameRegion & ~XBEIMAGE_GAME_REGION_KNOWN) > 0)
+		return "REGION ERROR";
+
+	DWORD index = (aGameRegion & 7) | (aGameRegion & XBEIMAGE_GAME_REGION_MANUFACTURING ? 8 : 0);
+	return Regions[index];
+}
+
 void CxbxKrnlInit
 (
 	HWND                    hwndParent,
@@ -557,6 +601,7 @@ void CxbxKrnlInit
 	CxbxKrnl_hEmuParent = IsWindow(hwndParent) ? hwndParent : NULL;
 	CxbxKrnl_DebugMode = DbgMode;
 	CxbxKrnl_DebugFileName = (char*)szDebugFilename;
+	g_pCertificate = (Xbe::Certificate *)(CxbxKrnl_XbeHeader->dwCertificateAddr);
 	// for unicode conversions
 	setlocale(LC_ALL, "English");
 	g_CurrentProcessHandle = GetCurrentProcess();
@@ -632,12 +677,27 @@ void CxbxKrnlInit
 #ifdef _DEBUG_TRACE
 	// VerifyHLEDataBase();
 #endif
+	// Reserve the first contiguous memory page, as the NV2A will bootstrap from there
+	void *PageZero = g_MemoryManager.AllocateContiguous(PAGE_SIZE, PAGE_SIZE);
+	printf("[0x%X] EmuMain: Allocated NV2A page zero at 0x%.08X\n", GetCurrentThreadId(), PageZero);
+
+	// Reserve a block of 'filler' memory, to end up at XBOX_KERNEL_BASE
+	const int FillerSize = XBE_IMAGE_BASE - PAGE_SIZE;
+	void *Filler = g_MemoryManager.AllocateContiguous(FillerSize, PAGE_SIZE);
+
+	// Allocate space for a fake kernel at XBOX_KERNEL_BASE
+	void *KernelBase = g_MemoryManager.AllocateContiguous(sizeof(DUMMY_KERNEL), PAGE_SIZE);
+	printf("[0x%X] EmuMain: Allocated dummy kernel image at 0x%.08X\n", GetCurrentThreadId(), KernelBase);
+
+	assert((intptr_t)KernelBase == XBOX_KERNEL_BASE);
+	assert(((intptr_t)KernelBase - (intptr_t)PageZero) == XBE_IMAGE_BASE);
+
 	// TODO : The following seems to cause a crash when booting the game "Forza Motorsport",
 	// according to https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/issues/101#issuecomment-277230140
 	{
 		// Create a fake kernel header for XapiRestrictCodeSelectorLimit
 		// Thanks advancingdragon / DirtBox
-		PDUMMY_KERNEL DummyKernel = (PDUMMY_KERNEL)XBOX_KERNEL_BASE;
+		PDUMMY_KERNEL DummyKernel = (PDUMMY_KERNEL)KernelBase;
 		memset(DummyKernel, 0, sizeof(DUMMY_KERNEL));
 
 		// XapiRestrictCodeSelectorLimit only checks these fields.
@@ -646,6 +706,7 @@ void CxbxKrnlInit
 		DummyKernel->FileHeader.NumberOfSections = 1;
 		// as long as this doesn't start with "INIT"
 		strncpy_s((PSTR)DummyKernel->SectionHeader.Name, 8, "DONGS", 8);
+		printf("[0x%X] EmuMain: Initialized dummy kernel image header.\n", GetCurrentThreadId());
 	}
 
 	// Read which components need to be LLE'ed :
@@ -655,15 +716,15 @@ void CxbxKrnlInit
 
 		bLLE_APU = (CxbxLLE_Flags & LLE_APU) > 0;
 		if (bLLE_APU)
-			DbgPrintf("EmuMain : LLE enabled for APU.\n");
+			printf("[0x%X] EmuMain : LLE enabled for APU.\n", GetCurrentThreadId());
 
 		bLLE_GPU = (CxbxLLE_Flags & LLE_GPU) > 0;
 		if (bLLE_GPU)
-			DbgPrintf("EmuMain : LLE enabled for GPU.\n");
+			printf("[0x%X] EmuMain : LLE enabled for GPU.\n", GetCurrentThreadId());
 
 		bLLE_JIT = (CxbxLLE_Flags & LLE_JIT) > 0;
 		if (bLLE_JIT)
-			DbgPrintf("EmuMain : LLE enabled for JIT.\n");
+			printf("[0x%X] EmuMain : LLE enabled for JIT.\n", GetCurrentThreadId());
 	}
 
 	// Process XInput Enabled flag
@@ -672,10 +733,10 @@ void CxbxKrnlInit
 		g_EmuShared->GetXInputEnabled(&XInputEnabled);
 		if (XInputEnabled) {
 			g_XInputEnabled = true;
-			printf("EmuMain : Using XInput\n");
+			printf("[0x%X] EmuMain : Using XInput\n", GetCurrentThreadId());
 		} else {
 			g_XInputEnabled = false;
-			printf("EmuMain : Using DirectInput\n");
+			printf("[0x%X] EmuMain : Using DirectInput\n", GetCurrentThreadId());
 		}
 	}
 
@@ -697,7 +758,7 @@ void CxbxKrnlInit
 	std::string xbeDirectory(szBuffer);
 	CxbxBasePathHandle = CreateFile(CxbxBasePath.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
 	memset(szBuffer, 0, MAX_PATH);
-	sprintf(szBuffer, "%08X", ((Xbe::Certificate*)pXbeHeader->dwCertificateAddr)->dwTitleId);
+	sprintf(szBuffer, "%08X", g_pCertificate->dwTitleId);
 	std::string titleId(szBuffer);
 	// Games may assume they are running from CdRom :
 	CxbxDefaultXbeDriveIndex = CxbxRegisterDeviceHostPath(DeviceCdrom0, xbeDirectory);
@@ -724,7 +785,10 @@ void CxbxKrnlInit
 		// Arrange that the Xbe path can reside outside the partitions, and put it to g_hCurDir :
 		EmuNtSymbolicLinkObject* xbePathSymbolicLinkObject = FindNtSymbolicLinkObjectByDriveLetter(CxbxDefaultXbeDriveLetter);
 		g_hCurDir = xbePathSymbolicLinkObject->RootDirectoryHandle;
-		// Determine Xbox path to XBE and place it in XeImageFileName
+	}
+
+	// Determine Xbox path to XBE and place it in XeImageFileName
+	{
 		std::string fileName(xbePath);
 		// Strip out the path, leaving only the XBE file name
 		// NOTE: we assume that the XBE is always on the root of the D: drive
@@ -740,7 +804,26 @@ void CxbxKrnlInit
 		xboxkrnl::XeImageFileName.Buffer = (PCHAR)g_MemoryManager.Allocate(MAX_PATH);
 		sprintf(xboxkrnl::XeImageFileName.Buffer, "%c:\\%s", CxbxDefaultXbeDriveLetter, fileName.c_str());
 		xboxkrnl::XeImageFileName.Length = (USHORT)strlen(xboxkrnl::XeImageFileName.Buffer);
-		DbgPrintf("EmuMain : XeImageFileName = %s\n", xboxkrnl::XeImageFileName.Buffer);
+		printf("[0x%X] EmuMain : XeImageFileName = %s\n", GetCurrentThreadId(), xboxkrnl::XeImageFileName.Buffer);
+	}
+
+	// Dump Xbe information
+	{
+		// Dump Xbe certificate
+		if (g_pCertificate != NULL) {
+			printf("[0x%X] EmuMain : XBE TitleID : %p\n", GetCurrentThreadId(), g_pCertificate->dwTitleId);
+			printf("[0x%X] EmuMain : XBE TitleName : %ls\n", GetCurrentThreadId(), g_pCertificate->wszTitleName);
+			printf("[0x%X] EmuMain : XBE Region : %s\n", GetCurrentThreadId(), GameRegionToString(g_pCertificate->dwGameRegion));
+		}
+
+		// Dump Xbe library build numbers
+		Xbe::LibraryVersion* libVersionInfo = pLibraryVersion;// (LibraryVersion *)(CxbxKrnl_XbeHeader->dwLibraryVersionsAddr);
+		if (libVersionInfo != NULL) {
+			for (uint32 v = 0; v < CxbxKrnl_XbeHeader->dwLibraryVersions; v++) {
+				printf("[0x%X] EmuMain : XBE Library %d : %.8s (version %d)\n", GetCurrentThreadId(), v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
+				libVersionInfo++;
+			}
+		}
 	}
 
 	// duplicate handle in order to retain Suspend/Resume thread rights from a remote thread
@@ -810,9 +893,9 @@ void CxbxKrnlInit
 	}
 
 	EmuX86_Init();
-    DbgPrintf("EmuMain: Initial thread starting.\n");
+    DbgPrintf("EmuMain: Calling XBE entry point...\n");
 	CxbxLaunchXbe(Entry);
-    DbgPrintf("EmuMain: Initial thread ended.\n");
+    DbgPrintf("EmuMain: XBE entry point returned\n");
     fflush(stdout);
 	EmuShared::Cleanup();
     CxbxKrnlTerminateThread();
@@ -887,21 +970,14 @@ void CxbxKrnlCleanup(const char *szErrorMessage, ...)
     // print out error message (if exists)
     if(szErrorMessage != NULL)
     {
-        char szBuffer1[255];
-        char szBuffer2[255];
-
+        char szBuffer2[1024];
         va_list argp;
-
-        sprintf(szBuffer1, "[0x%X] EmuMain: Received Fatal Message:\n\n* ", GetCurrentThreadId());
 
         va_start(argp, szErrorMessage);
         vsprintf(szBuffer2, szErrorMessage, argp);
         va_end(argp);
 
-        strcat(szBuffer1, szBuffer2);
-        strcat(szBuffer1, "\n");
-
-		CxbxPopupMessage(szBuffer1); // Will also DbgPrintf
+		CxbxPopupMessage("[0x%X] EmuMain: Received Fatal Message:\n\n* %s\n", GetCurrentThreadId(), szBuffer2); // Will also DbgPrintf
     }
 
     printf("CxbxKrnl: Terminating Process\n");

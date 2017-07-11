@@ -7,12 +7,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Cxbx.h
+// *   Common->CxbxUtil.h
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -41,7 +41,11 @@ static uint32 RoundUp(uint32 dwValue, uint32 dwMult)
 {
     if(dwMult == 0) { return dwValue; }
 
-    return dwValue - (dwValue-1)%dwMult + (dwMult - 1);
+	int remainder = dwValue % dwMult;
+	if (remainder == 0)
+		return dwValue;
+
+	return dwValue + dwMult - remainder;
 }
 
 #endif

@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuKrnlKe.cpp
+// *   CxbxKrnl->EmuKrnlKe.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -29,7 +29,7 @@
 // *  59 Temple Place - Suite 330, Bostom, MA 02111-1307, USA.
 // *
 // *  (c) 2002-2003 Aaron Robinson <caustik@caustik.com>
-// *  (c) 2016 Patrick van Logchem <pvanlogchem@gmail.com>
+// *  CopyRight (c) 2016-2017 Patrick van Logchem <pvanlogchem@gmail.com>
 // *
 // *  All rights reserved
 // *
@@ -178,6 +178,8 @@ DWORD __stdcall EmuThreadDpcHandler(LPVOID lpVoid)
 	LONG lWait;
 	xboxkrnl::PKTIMER pktimer;
 
+	DbgPrintf("EmuD3D8: DPC thread is running\n");
+
 	while (true)
 	{
 		// While we're working with the DpcQueue, we need to be thread-safe :
@@ -253,6 +255,8 @@ DWORD __stdcall EmuThreadDpcHandler(LPVOID lpVoid)
 		WaitForSingleObject(g_DpcData.DpcEvent, dwWait);
 	} // while
 
+	DbgPrintf("EmuD3D8: DPC thread is finished\n");
+
 	return S_OK;
 }
 
@@ -263,7 +267,11 @@ void InitDpcAndTimerThread()
 	InitializeCriticalSection(&(g_DpcData.Lock));
 	InitializeListHead(&(g_DpcData.DpcQueue));
 	InitializeListHead(&(g_DpcData.TimerQueue));
+
+	DbgPrintf("EmuD3D8: Creating DPC event\n");
 	g_DpcData.DpcEvent = CreateEvent(/*lpEventAttributes=*/nullptr, /*bManualReset=*/FALSE, /*bInitialState=*/FALSE, /*lpName=*/nullptr);
+
+	DbgPrintf("EmuD3D8: Launching DPC thread\n");
 	g_DpcData.DpcThread = CreateThread(/*lpThreadAttributes=*/nullptr, /*dwStackSize=*/0, (LPTHREAD_START_ROUTINE)&EmuThreadDpcHandler, /*lpParameter=*/nullptr, /*dwCreationFlags=*/0, &dwThreadId);
 	SetThreadPriority(g_DpcData.DpcThread, THREAD_PRIORITY_HIGHEST);
 }
@@ -502,7 +510,7 @@ XBSYSAPI EXPORTNUM(100) xboxkrnl::VOID NTAPI xboxkrnl::KeDisconnectInterrupt
 	LOG_FUNC_ONE_ARG(InterruptObject);
 
 	// Do the reverse of KeConnectInterrupt
-	// Untested (no known test cases) and not thread safe :
+	LOG_TEST_CASE("Untested and not thread safe");
 	if (InterruptObject->Connected)
 	{
 		// Mark InterruptObject as not connected anymore

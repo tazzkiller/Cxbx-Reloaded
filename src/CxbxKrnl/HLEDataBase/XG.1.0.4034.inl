@@ -7,12 +7,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->XG.1.0.4034.inl
+// *   CxbxKrnl->HLEDataBase->XG.1.0.4034.inl
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -37,10 +37,10 @@
 // ******************************************************************
 OOVPATable XG_4034[] = {
 
-	REGISTER_OOVPA(XGIsSwizzledFormat, 3911, PATCH),
+	REGISTER_OOVPA(XGIsSwizzledFormat, 3911, DISABLED),
 	// REGISTER_OOVPA(XGSwizzleRect, 3911, DISABLED), // TODO : Uncomment
     // REGISTER_OOVPA(XGUnswizzleRect, 3911, DISABLED), // TODO : Uncomment
-	REGISTER_OOVPA(XGSwizzleBox, 3911, PATCH),
+	REGISTER_OOVPA(XGSwizzleBox, 3911, DISABLED),
 	// REGISTER_OOVPA(XGWriteSurfaceOrTextureToXPR, 3911, DISABLED),
 };
 

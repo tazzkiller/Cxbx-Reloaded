@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuXapi.cpp
+// *   CxbxKrnl->EmuXapi.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -198,8 +198,13 @@ BOOL WINAPI XTL::EMUPATCH(XGetDeviceChanges)
 	// TitleID 0x49470018 = JSRF NTSC-U
 	// TitleID 0x5345000A = JSRF PAL
 	// ~Luke Usher
-	Xbe::Certificate *pCertificate = (Xbe::Certificate*)CxbxKrnl_XbeHeader->dwCertificateAddr;
-	if (pCertificate->dwTitleId == 0x49470018 || pCertificate->dwTitleId == 0x5345000A) {
+	if (g_pCertificate->dwTitleId == 0x49470018 || g_pCertificate->dwTitleId == 0x5345000A) {
+		RETURN(ret);
+	}
+
+	// TitleID 0x4D57000E = Gauntlet Dark Legacy
+	// ~PatrickvL
+	if (g_pCertificate->dwTitleId == 0x4D57000E) {
 		RETURN(ret);
 	}
 
@@ -897,7 +902,7 @@ DWORD WINAPI XTL::EMUPATCH(QueueUserAPC)
 	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(pfnAPC)
+		LOG_FUNC_ARG_TYPE(PVOID, pfnAPC)
 		LOG_FUNC_ARG(hThread)
 		LOG_FUNC_ARG(dwData)
 		LOG_FUNC_END;
@@ -983,8 +988,7 @@ DWORD WINAPI XTL::EMUPATCH(XLaunchNewImageA)
 		if (xboxkrnl::LaunchDataPage == NULL)
 			xboxkrnl::LaunchDataPage = (xboxkrnl::LAUNCH_DATA_PAGE *)xboxkrnl::MmAllocateContiguousMemory(sizeof(xboxkrnl::LAUNCH_DATA_PAGE));
 
-		Xbe::Certificate *pCertificate = (Xbe::Certificate*)CxbxKrnl_XbeHeader->dwCertificateAddr;
-		xboxkrnl::LaunchDataPage->Header.dwTitleId = pCertificate->dwTitleId;
+		xboxkrnl::LaunchDataPage->Header.dwTitleId = g_pCertificate->dwTitleId;
 		xboxkrnl::LaunchDataPage->Header.dwFlags = 0; // TODO : What to put in here?
 		xboxkrnl::LaunchDataPage->Header.dwLaunchDataType = LDT_TITLE;
 
@@ -1038,11 +1042,13 @@ DWORD WINAPI XTL::EMUPATCH(XGetLaunchInfo)
 )
 {
 	FUNC_EXPORTS
+
 	// TODO : This patch can be removed once we're sure all XAPI library
 	// functions indirectly reference our xboxkrnl::LaunchDataPage variable.
 	// For this, we need a test-case that hits this function, and run that
 	// with and without this patch enabled. Behavior should be identical.
 	// When this is verified, this patch can be removed.
+	LOG_TEST_CASE("Unpatching test needed");
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pdwLaunchDataType)
@@ -1056,10 +1062,8 @@ DWORD WINAPI XTL::EMUPATCH(XGetLaunchInfo)
 		// Note : Here, CxbxRestoreLaunchDataPage() was already called,
 		// which has loaded LaunchDataPage from a binary file (if present).
 
-		Xbe::Certificate *pCertificate = (Xbe::Certificate*)CxbxKrnl_XbeHeader->dwCertificateAddr;
-
 		// A title can pass data only to itself, not another title (unless started from the dashboard, of course) :
-		if (   (xboxkrnl::LaunchDataPage->Header.dwTitleId == pCertificate->dwTitleId)
+		if (   (xboxkrnl::LaunchDataPage->Header.dwTitleId == g_pCertificate->dwTitleId)
 			|| (xboxkrnl::LaunchDataPage->Header.dwLaunchDataType == LDT_FROM_DASHBOARD)
 			|| (xboxkrnl::LaunchDataPage->Header.dwLaunchDataType == LDT_FROM_DEBUGGER_CMDLINE))
 		{
@@ -1134,7 +1138,7 @@ MMRESULT WINAPI XTL::EMUPATCH(timeSetEvent)
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(uDelay)
 		LOG_FUNC_ARG(uResolution)
-		LOG_FUNC_ARG(fptc)
+		LOG_FUNC_ARG_TYPE(PVOID, fptc)
 		LOG_FUNC_ARG(dwUser)
 		LOG_FUNC_ARG(fuEvent)
 		LOG_FUNC_END;

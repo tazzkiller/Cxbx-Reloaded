@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->Cxbx->WndMain.cpp
+// *   Cxbx->WndMain.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -84,7 +84,7 @@ WndMain::WndMain(HINSTANCE x_hInstance) :
 	m_bCreated(false), 
 	m_Xbe(0), 
 	m_bXbeChanged(false), 
-	m_bCanStart(true), 
+	m_bIsStarted(false), 
 	m_hwndChild(NULL), 
 	m_KrnlDebug(DM_NONE), 
 	m_CxbxDebug(DM_NONE), 
@@ -431,20 +431,18 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
             {
                 case VK_F5:
                 {
-                    if(m_Xbe != 0 && (m_hwndChild == NULL) && m_bCanStart)
-                    {
-                        m_bCanStart = false;
-                        StartEmulation(hwnd);
-                    }
+					if (m_Xbe != NULL)
+						if (m_hwndChild == NULL)
+							if(!m_bIsStarted)
+								StartEmulation(hwnd);
                 }
                 break;
 
                 case VK_F6:
                 {
-                    if(m_hwndChild != NULL && !m_bCanStart)
-                    {
-                        StopEmulation();
-                    }
+					if (m_hwndChild != NULL)
+						if(m_bIsStarted)
+							StopEmulation();
                 }
                 break;
 
@@ -1620,14 +1618,14 @@ void WndMain::StartEmulation(HWND hwndParent)
 
         if((int)ShellExecute(NULL, "open", szExeFileName, szArgsBuffer, szBuffer, SW_SHOWDEFAULT) <= 32)
         {
-            m_bCanStart = true;
             MessageBox(m_hwnd, "Emulation failed.\n\n If this message repeats, the Xbe is not supported.", "Cxbx-Reloaded", MB_ICONSTOP | MB_OK);
 
             printf("WndMain: %s shell failed.\n", m_Xbe->m_szAsciiTitle);
         }
         else
         {
-            printf("WndMain: %s emulation started.\n", m_Xbe->m_szAsciiTitle);
+			m_bIsStarted = true;
+			printf("WndMain: %s emulation started.\n", m_Xbe->m_szAsciiTitle);
         }
     }
 }
@@ -1643,5 +1641,5 @@ void WndMain::StopEmulation()
     }
 
     SendMessage(m_hwndChild, WM_CLOSE, 0, 0);
-    m_bCanStart = true;
+    m_bIsStarted = false;
 }

@@ -1,3 +1,5 @@
+// This is an open source non-commercial project. Dear PVS-Studio, please check it.
+// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -7,7 +9,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   CxbxKrnl->HLEDataBase->XOnline.1.0.5028.inl
+// *   CxbxKrnl->Miniport.h
 // *
 // *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
@@ -26,29 +28,63 @@
 // *  If not, write to the Free Software Foundation, Inc.,
 // *  59 Temple Place - Suite 330, Bostom, MA 02111-1307, USA.
 // *
-// *  (c) 2002-2003 Aaron Robinson <caustik@caustik.com>
+// *  (c) 2017 Patrick van Logchem <pvanlogchem@gmail.com>
 // *
 // *  All rights reserved
 // *
 // ******************************************************************
+#ifndef MINIPORT_H
+#define MINIPORT_H
+
+typedef struct {
+	ULONG Handle;
+	USHORT SubChannel;
+	USHORT Engine;
+	ULONG ClassNum;
+	ULONG Instance;
+} OBJECTINFO;
+
+extern void *GPURegisterBase;
+
+extern PPUSH m_pCPUTime;
+
+void CxbxLocateCpuTime();
 
 // ******************************************************************
-// * XOnline_5028
+// * patch: CMiniport_InitHardware
 // ******************************************************************
-OOVPATable XOnline_5028[] ={
-
-	REGISTER_OOVPA(XNetStartup, 4361, PATCH),
-	REGISTER_OOVPA(WSAStartup, 4361, PATCH),
-	REGISTER_OOVPA(XnInit, 4627, XREF),
-	REGISTER_OOVPA(socket, 4361, PATCH),
-	REGISTER_OOVPA(bind, 4361, PATCH),
-	REGISTER_OOVPA(listen, 4361, PATCH),
-	REGISTER_OOVPA(ioctlsocket, 4361, PATCH),
-	REGISTER_OOVPA(XNetGetEthernetLinkStatus, 4627, PATCH),
-	REGISTER_OOVPA(XoUpdateLaunchNewImageInternal, 4627, XREF),
-};
+BOOL __fastcall EMUPATCH(CMiniport_InitHardware)
+(
+	PVOID This,
+	void * _EDX // __thiscall simulation
+);
 
 // ******************************************************************
-// * XOnline_5028_SIZE
+// * patch: CMiniport_CreateCtxDmaObject
 // ******************************************************************
-uint32 XOnline_5028_SIZE = sizeof(XOnline_5028);
+BOOL __fastcall EMUPATCH(CMiniport_CreateCtxDmaObject)
+(
+	PVOID This,
+	void * _EDX, // __thiscall simulation
+	ULONG Dma,
+	ULONG ClassNum,
+	PVOID Base,
+	ULONG Limit,
+	PVOID Object
+);
+
+// ******************************************************************
+// * patch: CMiniport_InitDMAChannel
+// ******************************************************************
+BOOL __fastcall EMUPATCH(CMiniport_InitDMAChannel)
+(
+	PVOID This,
+	void * _EDX, // __thiscall simulation
+	ULONG Class,
+	OBJECTINFO *ErrorContext,
+	OBJECTINFO *DataContext,
+	ULONG Offset,
+	Nv2AControlDma **ppChannel
+);
+
+#endif // MINIPORT_H
