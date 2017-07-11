@@ -851,7 +851,7 @@ DEVICE_WRITE32(PFIFO)
 			xbaddr FCBaseAddr2 = NV_PRAMIN_ADDR + (((value & NV_PFIFO_RAMFC_BASE_ADDRESS2) >> 16) << 10);
 
 			DbgPrintf("NV_PFIFO_RAMFC_BASE_ADDRESS1 = 0x%08X", FCBaseAddr1);
-			if (value & NV_PFIFO_RAMFC_SIZE == 0)
+			if ((value & NV_PFIFO_RAMFC_SIZE) == 0)
 				printf(" NV_PFIFO_RAMFC_SIZE_1K");
 			else
 				printf(" NV_PFIFO_RAMFC_SIZE_2K");
