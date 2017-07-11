@@ -656,12 +656,20 @@ char *NV2AMethodToString(DWORD dwMethod)
 #define ENUM_RANGED_ToString_N(Name, Method, Pitch, N) \
 	case Name(N): return #Name ## "((" #N ")*" #Pitch ## ")";
 
-#define ENUM_RANGED_ToString_4(Name, Method, Pitch) \
-	ENUM_RANGED_ToString_N(Name, Method, Pitch, 0) \
-	ENUM_RANGED_ToString_N(Name, Method, Pitch, 1) \
-	ENUM_RANGED_ToString_N(Name, Method, Pitch, 2) \
-	ENUM_RANGED_ToString_N(Name, Method, Pitch, 3) 
+#define ENUM_RANGED_ToString_1(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 0)
 
+#define ENUM_RANGED_ToString_2(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_1(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 1)
+
+#define ENUM_RANGED_ToString_3(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_2(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 2)
+
+#define ENUM_RANGED_ToString_4(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_3(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 3) 
 
 #define ENUM_RANGED_ToString_6(Name, Method, Pitch) \
 	ENUM_RANGED_ToString_4(Name, Method, Pitch) \
@@ -673,10 +681,13 @@ char *NV2AMethodToString(DWORD dwMethod)
 	ENUM_RANGED_ToString_N(Name, Method, Pitch, 6) \
 	ENUM_RANGED_ToString_N(Name, Method, Pitch, 7)
 
-#define ENUM_RANGED_ToString_16(Name, Method, Pitch) \
+#define ENUM_RANGED_ToString_10(Name, Method, Pitch) \
 	ENUM_RANGED_ToString_8(Name, Method, Pitch) \
 	ENUM_RANGED_ToString_N(Name, Method, Pitch, 8) \
 	ENUM_RANGED_ToString_N(Name, Method, Pitch, 9) \
+
+#define ENUM_RANGED_ToString_16(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_10(Name, Method, Pitch) \
 	ENUM_RANGED_ToString_N(Name, Method, Pitch, 10) \
 	ENUM_RANGED_ToString_N(Name, Method, Pitch, 11) \
 	ENUM_RANGED_ToString_N(Name, Method, Pitch, 12) \
