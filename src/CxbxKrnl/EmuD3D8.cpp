@@ -37,6 +37,7 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 #include "xxhash32.h"
+#include <condition_variable>
 
 // prevent name collisions
 namespace xboxkrnl
@@ -98,9 +99,11 @@ static uint32                       g_XbeHeaderSize = 0;    // XbeHeaderSize
 static HBRUSH                       g_hBgBrush      = NULL; // Background Brush
 static volatile bool                g_bRenderWindowActive = false;
 static XBVideo                      g_XBVideo;
-static XTL::X_D3DVBLANKCALLBACK     g_pVBCallback   = NULL; // Vertical-Blank callback routine
-static XTL::X_D3DSWAPCALLBACK		g_pSwapCallback = NULL;	// Swap/Present callback routine
-static XTL::X_D3DCALLBACK			g_pCallback		= NULL;	// D3DDevice::InsertCallback routine
+static XTL::D3DVBLANKCALLBACK       g_pVBCallback   = NULL; // Vertical-Blank callback routine
+static std::condition_variable		g_VBConditionVariable;	// Used in BlockUntilVerticalBlank
+static std::mutex					g_VBConditionMutex;		// Used in BlockUntilVerticalBlank
+static XTL::D3DSWAPCALLBACK			g_pSwapCallback = NULL;	// Swap/Present callback routine
+static XTL::D3DCALLBACK				g_pCallback		= NULL;	// D3DDevice::InsertCallback routine
 static XTL::X_D3DCALLBACKTYPE		g_CallbackType;			// Callback type
 static DWORD						g_CallbackParam;		// Callback param
 static BOOL                         g_bHasDepthStencilSurface = FALSE; // Does device have a Depth/Stencil surface?
@@ -453,7 +456,7 @@ const char *CxbxGetErrorDescription(HRESULT hResult)
 	case DDERR_NOTLOCKED: return "An attempt was made to unlock a surface that was not locked.";
 	case DDERR_NOTPAGELOCKED: return "An attempt was made to page-unlock a surface with no outstanding page locks.";
 	case DDERR_NOTPALETTIZED: return "The surface being used is not a palette-based surface.";
-	case DDERR_NOVSYNCHW: return "There is no hardware support for vertical blank–synchronized operations.";
+	case DDERR_NOVSYNCHW: return "There is no hardware support for vertical blankÂ–synchronized operations.";
 	case DDERR_NOZBUFFERHW: return "The operation to create a z-buffer in display memory or to perform a blit, using a z-buffer cannot be carried out because there is no hardware support for z-buffers.";
 	case DDERR_NOZOVERLAYHW: return "The overlay surfaces cannot be z-layered, based on the z-order because the hardware does not support z-ordering of overlays.";
 	case DDERR_OUTOFCAPS: return "The hardware needed for the requested operation has already been allocated.";
@@ -1809,6 +1812,16 @@ static LRESULT WINAPI EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
     return D3D_OK; // = 0
 }
 
+static clock_t GetNextVBlankTime()
+{
+	// TODO: Read display frequency from Xbox Display Adapter
+	// This is accessed by calling CMiniport::GetRefreshRate(); 
+	// This reads from the structure located at CMinpPort::m_CurrentAvInfo
+	// This will require at least Direct3D_CreateDevice being unpatched
+	// otherwise, m_CurrentAvInfo will never be initialised!
+	return clock() + (CLOCKS_PER_SEC / 60);
+}
+
 // timing thread procedure
 static DWORD WINAPI EmuUpdateTickCount(LPVOID)
 {
@@ -1817,17 +1830,18 @@ static DWORD WINAPI EmuUpdateTickCount(LPVOID)
     // since callbacks come from here
     EmuGenerateFS(CxbxKrnl_TLS, CxbxKrnl_TLSData);
 
-    timeBeginPeriod(0); // TODO : This changes the timer frequency of the entire system! Find a better solution for accurate timing.
-
     // current vertical blank count
     int curvb = 0;
 
-    DbgPrintf("EmuD3D8: Timing thread is running\n");
+	// Calculate Next VBlank time
+	clock_t nextVBlankTime = GetNextVBlankTime();
+
+  DbgPrintf("EmuD3D8: Timing thread is running\n");
 
     while(true)
     {
-        xboxkrnl::KeTickCount = timeGetTime();
-        Sleep(1);
+        xboxkrnl::KeTickCount = timeGetTime();	
+		SwitchToThread();
 
         //
         // Poll input
@@ -1871,9 +1885,17 @@ static DWORD WINAPI EmuUpdateTickCount(LPVOID)
             }
         }
 
-        // trigger vblank callback
+		// If VBlank Interval has passed, trigger VBlank callback
+        // Note: This whole code block can be removed once NV2A interrupts are implemented
+		// Once that is in place, MiniPort + Direct3D will handle this on it's own!
+		if (clock() > nextVBlankTime)
         {
-            g_VBData.VBlankCounter++;
+			nextVBlankTime = GetNextVBlankTime();
+
+			// Increment the VBlank Counter and Wake all threads there were waiting for the VBlank to occur
+			std::unique_lock<std::mutex> lk(g_VBConditionMutex);
+			g_VBData.VBlankCounter++;
+			g_VBConditionVariable.notify_all();
 
 			// TODO: Fixme.  This may not be right...
 			g_SwapData.SwapVBlank = 1;
@@ -1896,8 +1918,6 @@ static DWORD WINAPI EmuUpdateTickCount(LPVOID)
 			g_SwapData.TimeBetweenSwapVBlanks = 0;
         }
     }
-
-    timeEndPeriod(0);
 
 	DbgPrintf("EmuD3D8: Timing thread is finished\n");
 }
@@ -5485,22 +5505,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_BlockUntilVerticalBlank)()
 
 	LOG_FUNC();
 
-    // segaGT tends to freeze with this on
-//    if(g_XBVideo.GetVSync()) {
-//        HRESULT hRet = g_pDD7->WaitForVerticalBlank(DDWAITVB_BLOCKBEGIN, 0);
-//        DEBUG_D3DRESULT(hRet, "g_pDD7->WaitForVerticalBlank");
-//    }
-
-	// HACK: For many games (when used in mutithreaded code), using 
-	// DDraw::WaitForVerticalBlank will wreak havoc on CPU usage and really
-	// slow things down. This is the case for various SEGA and other Japanese
-	// titles.  On Xbox, it isn't a big deal, but for PC, I can't even
-	// guarantee this is a good idea.  So instead, I'll be "faking" 
-	// the vertical blank thing.
-
-	Sleep( 1000/60 );
-
-	LOG_INCOMPLETE();
+	std::unique_lock<std::mutex> lk(g_VBConditionMutex);
+	g_VBConditionVariable.wait(lk);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVerticalBlankCallback)
