@@ -125,12 +125,12 @@ xboxkrnl::XBOX_EEPROM *CxbxRestoreEEPROM(char *szFilePath_EEPROM_bin)
 
 		// TODO: Make these configurable or autodetect of some sort :
 		EEPROM->UserSettings.Language = 0x01;  // = English
-		EEPROM->UserSettings.VideoFlags = 0x10;  // = Letterbox
+		EEPROM->UserSettings.VideoFlags = (AV_FLAGS_LETTERBOX | AV_FLAGS_60Hz) >> AV_USER_FLAGS_SHIFT; // = 0x10 (Letterbox) + 0x40 (60 Hz)
 		EEPROM->UserSettings.AudioFlags = 0;  // = Stereo, no AC3, no DTS
 		EEPROM->UserSettings.ParentalControlGames = 0; // = XC_PC_ESRB_ALL
 		EEPROM->UserSettings.ParentalControlMovies = 0; // = XC_PC_ESRB_ALL
 		EEPROM->UserSettings.MiscFlags = 0;  // No automatic power down
-		EEPROM->FactorySettings.AVRegion = 0x01; // = NTSC_M
+		EEPROM->FactorySettings.AVRegion = AV_STANDARD_NTSC_M >> AV_STANDARD_SHIFT; // = 0x01 = NTSC_M
 
 		XboxFactoryGameRegion = 1; // = North America - TODO : This should be derived from EncryptedSection somehow
 

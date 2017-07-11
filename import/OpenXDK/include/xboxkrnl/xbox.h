@@ -34,22 +34,22 @@
 #define AV_FLAGS_HDTV_720p                0x00020000
 #define AV_FLAGS_HDTV_1080i               0x00040000
 #define AV_FLAGS_HDTV_480p                0x00080000
-#define AV_HDTV_MODE_MASK                 0x000E0000 // Exclude AV_FLAGS_WIDESCREEN !
+#define AV_HDTV_MODE_MASK                 (AV_FLAGS_HDTV_480i | AV_FLAGS_HDTV_720p | AV_FLAGS_HDTV_1080i | AV_FLAGS_HDTV_480p) // = 0x000E0000 // Exclude AV_FLAGS_WIDESCREEN !
 
 #define AV_FLAGS_WIDESCREEN               0x00010000
 #define AV_FLAGS_LETTERBOX                0x00100000
-#define AV_ASPECT_RATIO_MASK              0x00110000 // = AV_FLAGS_WIDESCREEN | AV_FLAGS_LETTERBOX
+#define AV_ASPECT_RATIO_MASK              (AV_FLAGS_WIDESCREEN | AV_FLAGS_LETTERBOX) // = 0x00110000
 
 #define AV_FLAGS_INTERLACED               0x00200000
 
 #define AV_FLAGS_60Hz                     0x00400000
 #define AV_FLAGS_50Hz                     0x00800000
-#define AV_REFRESH_MASK                   0x00C00000 // = AV_FLAGS_60Hz | AV_FLAGS_50Hz
+#define AV_REFRESH_MASK                   (AV_FLAGS_60Hz | AV_FLAGS_50Hz) // = 0x00C00000
 
 #define AV_FLAGS_FIELD                    0x01000000
 #define AV_FLAGS_10x11PAR                 0x02000000
 
-#define AV_USER_FLAGS_MASK                (AV_HDTV_MODE_MASK | AV_ASPECT_RATIO_MASK | AV_REFRESH_MASK) // TODO : Should AV_REFRESH_MASK be AV_FLAGS_60Hz instead?
+#define AV_USER_FLAGS_MASK                (AV_HDTV_MODE_MASK | AV_ASPECT_RATIO_MASK | AV_REFRESH_MASK) // = 0x000E0000 | 0x00110000 | 0x00C00000 = 0x00DF0000
 #define AV_USER_FLAGS_SHIFT               16
 
 // Options to AvSendTVEncoderOption() :
