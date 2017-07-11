@@ -7953,7 +7953,9 @@ void WINAPI XTL::EMUPATCH(D3D_SetCommonDebugRegisters)()
 
 void WINAPI XTL::EMUPATCH(D3D_BlockOnTime)( DWORD Unknown1, int Unknown2 )
 {
+#ifdef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Unknown1)
@@ -7972,7 +7974,9 @@ void WINAPI XTL::EMUPATCH(D3D_BlockOnTime)( DWORD Unknown1, int Unknown2 )
 
 void WINAPI XTL::EMUPATCH(D3D_BlockOnResource)( X_D3DResource* pResource )
 {
+#ifdef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_ONE_ARG(pResource);
 

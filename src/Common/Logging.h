@@ -278,6 +278,9 @@ extern thread_local std::string _logPrefix;
 // RETURN logs the given result and then returns it (so this should appear last in functions)
 #define RETURN(r) do { LOG_FUNC_RESULT(r) return r; } while (0)
 
+#define LOG_ONCE(msg, ...) { static bool bFirstTime = true; if(bFirstTime) { bFirstTime = false; DbgPrintf(msg, __VA_ARGS__); } }
+
+#define LOG_FIRST_XBOX_CALL(func) LOG_ONCE("First Xbox " ## func ## "() call\n");
 
 //
 // Headers for rendering enums, flags and (pointer-to-)types :

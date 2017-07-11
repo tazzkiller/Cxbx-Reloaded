@@ -43,6 +43,7 @@
 #include "CxbxKrnl/EmuD3D8Types.h" // For X_D3DFORMAT
 #include "CxbxKrnl/ResourceTracker.h"
 #include "CxbxKrnl/MemoryManager.h"
+#include "Logging.h"
 #include "State.h"
 
 uint32  XTL::g_dwPrimaryPBCount = 0;
@@ -591,6 +592,11 @@ void NVPB_InlineIndexArray() // 0x1800
 	}
 }
 
+void NVPB_SemaphoreRelease()
+{
+	LOG_FIRST_XBOX_CALL("SetFence");
+}
+
 void NVPB_SetVertexShaderConstantRegister()
 {
 	HandledBy = "SetVertexShaderConstantRegister";
@@ -742,6 +748,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 		NV2ACallbacks[NV2A_VB_ELEMENT_U16 / 4] = NVPB_InlineIndexArray; // NV097_ARRAY_ELEMENT16; // 0x1800
 		NV2ACallbacks[(NV2A_VB_ELEMENT_U16 + 8) / 4] = NVPB_FixLoop; // NV097_ARRAY_ELEMENT32; // 0x1808
 		NV2ACallbacks[NV2A_VERTEX_DATA / 4] = NVPB_InlineVertexArray; // NV097_INLINE_ARRAY; // 0x1818
+		NV2ACallbacks[NV2A_BACK_END_WRITE_SEMAPHORE_RELEASE / 4] = NVPB_SemaphoreRelease; // 0x1d70
 		// Not really needed, but helps debugging : 
 		NV2ACallbacks[NV2A_VP_UPLOAD_CONST_ID / 4] = NVPB_SetVertexShaderConstantRegister; // NV097_SET_TRANSFORM_CONSTANT_LOAD; // 0x00001EA4
 		for (int i = 0; i < 32; i++) {

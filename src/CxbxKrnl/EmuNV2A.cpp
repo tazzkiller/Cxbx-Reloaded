@@ -53,6 +53,7 @@
 #include "CxbxKrnl.h"
 #include "device.h"
 #include "Emu.h"
+#include "Logging.h"
 #include "nv2a_int.h" // from https://github.com/espes/xqemu/tree/xbox/hw/xbox
 #include "EmuNV2A.h" // for NV_*_ADDR, NV_*_SIZE, Nv2AControlDma
 
@@ -671,10 +672,6 @@ DEBUG_END(USER)
 #define WRITE8(DEV) EmuNV2A_##DEV##_Write8
 #define READ32(DEV) EmuNV2A_##DEV##_Read32
 #define WRITE32(DEV) EmuNV2A_##DEV##_Write32
-
-#define LOG_ONCE(msg, ...) { static bool bFirstTime = true; if(bFirstTime) { bFirstTime = false; DbgPrintf(msg, __VA_ARGS__); } }
-
-#define LOG_FIRST_XBOX_CALL(func) LOG_ONCE("First Xbox " ## func ## "() call\n");
 
 #define DEBUG_REGNAME(DEV) DebugNV_##DEV##(addr)
 
