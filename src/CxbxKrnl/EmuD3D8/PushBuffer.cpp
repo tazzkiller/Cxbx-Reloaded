@@ -175,6 +175,8 @@ NV2ACallback_t NV2ACallbacks[8192] = {};
 
 void EmuNV2A_NOP() // 0x0100
 {
+	using namespace XTL; // for NV2A symbols
+
 	HandledCount = dwCount;
 
 	// NOP, when used with an argument, triggers a software-interrupt on NV2A.
@@ -276,6 +278,8 @@ void NVPB_Clear()
 	// Since we filter the flags, make sure there are some left (else, clear isn't necessary) :
 	if (PCFlags > 0)
 	{
+		using namespace XTL; // for NV2A symbols
+
 		// Read NV2A clear arguments
 		DWORD Color = NV2AInstance_Registers[NV2A_CLEAR_VALUE / 4];
 		DWORD DepthStencil = NV2AInstance_Registers[NV2A_CLEAR_DEPTH_VALUE / 4];
@@ -594,6 +598,8 @@ void NVPB_SetVertexShaderConstantRegister()
 
 void NVPB_SetVertexShaderConstants()
 {
+	using namespace XTL; // for NV2A symbols
+
 	//assert(dwCount >= 4); // Input must at least be 1 set of coordinates
 	//assert(dwCount & 3 == 0); // Input must be a multiple of 4
 
@@ -630,6 +636,8 @@ void NVPB_SetVertexData4f()
 
 void NVPB_SetTextureState_BorderColor()
 {
+	using namespace XTL; // for NV2A symbols
+
 	DWORD Stage = (dwMethod - NV2A_TX_BORDER_COLOR(0)) / 4;
 	DWORD XboxValue = *pdwPushArguments;
 	const XTL::D3DTEXTURESTAGESTATETYPE PCStateType = XTL::D3DSAMP_BORDERCOLOR;
@@ -641,14 +649,9 @@ void NVPB_SetTextureState_BorderColor()
 
 char *NV2AMethodToString(DWORD dwMethod)
 {
+	using namespace XTL; // for NV2A symbols
+
 	switch (dwMethod) {
-#ifndef NV2A_USE_CONSTEXPR
-
-#define ENUM_NameToString(Name) case Name: return #Name;
-	ENUM_NV2A_METHOD(ENUM_NameToString);
-#undef ENUM_NameToString
-
-#else
 
 #define ENUM_RANGED_ToString_N(Name, Method, Pitch, N) \
 	case Name(N): return #Name ## "((" #N ")*" #Pitch ## ")";
@@ -704,8 +707,9 @@ char *NV2AMethodToString(DWORD dwMethod)
 #define ENUM_RANGED_ToString(Name, Method, Pitch, Repeat) ENUM_RANGED_ToString_##Repeat(Name, Method, Pitch)
 #define ENUM_BITFLD_Ignore(Name, Value)
 #define ENUM_VALUE_Ignore(Name, Value)
-		ENUM_NV2A(ENUM_METHOD_ToString, ENUM_RANGED_ToString, ENUM_BITFLD_Ignore, ENUM_VALUE_Ignore)
-#endif
+
+	ENUM_NV2A(ENUM_METHOD_ToString, ENUM_RANGED_ToString, ENUM_BITFLD_Ignore, ENUM_VALUE_Ignore)
+
 	default:
 		return "UNLABLED";
 	}

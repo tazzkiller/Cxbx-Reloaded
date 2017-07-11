@@ -4483,6 +4483,8 @@ extern DWORD NV2AInstance_Registers[8192];
 
 XTL::D3DCOLOR *CxbxGetNv2APalette(int Stage, int &NrPaletteEntries)
 {
+	using namespace XTL; // for NV2A symbols
+
 	xbaddr PaletteOffset = NV2AInstance_Registers[NV2A_TX_PALETTE_OFFSET(Stage) / 4];
 	if (PaletteOffset == 0)
 		return NULL;
@@ -4497,7 +4499,7 @@ XTL::D3DCOLOR *CxbxGetNv2APalette(int Stage, int &NrPaletteEntries)
 
 void *CxbxGetNv2ATextureAddr(int Stage)
 {
-	using namespace XTL;
+	using namespace XTL; // for NV2A symbols
 
 	xbaddr TextureOffset = NV2AInstance_Registers[NV2A_TX_OFFSET(Stage) / 4];
 	if (TextureOffset == 0)
@@ -4509,6 +4511,8 @@ void *CxbxGetNv2ATextureAddr(int Stage)
 
 void CxbxGetNv2ATextureInfo(int Stage, DWORD &Format, DWORD &Pitch, DWORD &Height, DWORD &Width)
 {
+	using namespace XTL; // for NV2A symbols
+
 	Format = NV2AInstance_Registers[NV2A_TX_FORMAT(Stage) / 4];
 
 	DWORD Swizzle = NV2AInstance_Registers[NV2A_TX_SWIZZLE(Stage) / 4];
