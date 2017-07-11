@@ -647,6 +647,13 @@ char *NV2AMethodToString(DWORD dwMethod)
 	ENUM_NV2A_METHOD(ENUM_NameToString);
 #undef ENUM_NameToString
 
+#if 0 // TODO : Get this to compile, instead of the above
+#define ENUM_METHOD_ToString(Name, Method) case Method: return #Name;
+#define ENUM_RANGED_ToString(Name, Method, Repeat, Pitch) case Method(0): return #Name; // TODO : Repeat
+#define ENUM_BITFLD_Ignore(Name, Value)
+#define ENUM_VALUE_Ignore(Name, Value)
+		ENUM_NV2A(ENUM_METHOD_ToString, ENUM_RANGED_ToString, ENUM_BITFLD_Ignore, ENUM_VALUE_Ignore)
+#endif
 	default:
 		return "UNLABLED"; // TODO
 	}
