@@ -642,20 +642,72 @@ void NVPB_SetTextureState_BorderColor()
 char *NV2AMethodToString(DWORD dwMethod)
 {
 	switch (dwMethod) {
+#ifndef NV2A_USE_CONSTEXPR
 
 #define ENUM_NameToString(Name) case Name: return #Name;
 	ENUM_NV2A_METHOD(ENUM_NameToString);
 #undef ENUM_NameToString
 
-#if 0 // TODO : Get this to compile, instead of the above
+#else
+
+#define ENUM_RANGED_ToString_N(Name, Method, Pitch, N) \
+	case Name(N): return #Name ## "((" #N ")*" #Pitch ## ")";
+
+#define ENUM_RANGED_ToString_4(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 0) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 1) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 2) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 3) 
+
+
+#define ENUM_RANGED_ToString_6(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_4(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 4) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 5)
+
+#define ENUM_RANGED_ToString_8(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_6(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 6) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 7)
+
+#define ENUM_RANGED_ToString_16(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_8(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 8) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 9) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 10) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 11) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 12) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 13) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 14) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 15)
+
+#define ENUM_RANGED_ToString_32(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_16(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 16) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 17) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 18) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 19) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 20) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 21) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 22) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 23) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 24) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 25) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 26) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 27) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 28) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 29) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 30) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 31)
+
 #define ENUM_METHOD_ToString(Name, Method) case Method: return #Name;
-#define ENUM_RANGED_ToString(Name, Method, Repeat, Pitch) case Method(0): return #Name; // TODO : Repeat
+#define ENUM_RANGED_ToString(Name, Method, Pitch, Repeat) ENUM_RANGED_ToString_##Repeat(Name, Method, Pitch)
 #define ENUM_BITFLD_Ignore(Name, Value)
 #define ENUM_VALUE_Ignore(Name, Value)
 		ENUM_NV2A(ENUM_METHOD_ToString, ENUM_RANGED_ToString, ENUM_BITFLD_Ignore, ENUM_VALUE_Ignore)
 #endif
 	default:
-		return "UNLABLED"; // TODO
+		return "UNLABLED";
 	}
 }
 
