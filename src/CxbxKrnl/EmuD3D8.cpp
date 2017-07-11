@@ -99,11 +99,11 @@ static uint32                       g_XbeHeaderSize = 0;    // XbeHeaderSize
 static HBRUSH                       g_hBgBrush      = NULL; // Background Brush
 static volatile bool                g_bRenderWindowActive = false;
 static XBVideo                      g_XBVideo;
-static XTL::D3DVBLANKCALLBACK       g_pVBCallback   = NULL; // Vertical-Blank callback routine
+static XTL::X_D3DVBLANKCALLBACK     g_pVBCallback   = NULL; // Vertical-Blank callback routine
 static std::condition_variable		g_VBConditionVariable;	// Used in BlockUntilVerticalBlank
 static std::mutex					g_VBConditionMutex;		// Used in BlockUntilVerticalBlank
-static XTL::D3DSWAPCALLBACK			g_pSwapCallback = NULL;	// Swap/Present callback routine
-static XTL::D3DCALLBACK				g_pCallback		= NULL;	// D3DDevice::InsertCallback routine
+static XTL::X_D3DSWAPCALLBACK		g_pSwapCallback = NULL;	// Swap/Present callback routine
+static XTL::X_D3DCALLBACK			g_pCallback		= NULL;	// D3DDevice::InsertCallback routine
 static XTL::X_D3DCALLBACKTYPE		g_CallbackType;			// Callback type
 static DWORD						g_CallbackParam;		// Callback param
 static BOOL                         g_bHasDepthStencilSurface = FALSE; // Does device have a Depth/Stencil surface?
@@ -1816,7 +1816,7 @@ static clock_t GetNextVBlankTime()
 {
 	// TODO: Read display frequency from Xbox Display Adapter
 	// This is accessed by calling CMiniport::GetRefreshRate(); 
-	// This reads from the structure located at CMinpPort::m_CurrentAvInfo
+	// This reads from the structure located at CMiniport::m_CurrentAvInfo
 	// This will require at least Direct3D_CreateDevice being unpatched
 	// otherwise, m_CurrentAvInfo will never be initialised!
 	return clock() + (CLOCKS_PER_SEC / 60);
