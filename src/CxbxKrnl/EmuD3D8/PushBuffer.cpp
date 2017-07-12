@@ -43,7 +43,7 @@
 #include "CxbxKrnl/EmuD3D8Types.h" // For X_D3DFORMAT
 #include "CxbxKrnl/ResourceTracker.h"
 #include "CxbxKrnl/MemoryManager.h"
-#include "Logging.h"
+#include "Logging.h" // For LOG_FIRST_XBOX_CALL
 #include "State.h"
 
 uint32  XTL::g_dwPrimaryPBCount = 0;
@@ -176,15 +176,13 @@ NV2ACallback_t NV2ACallbacks[8192] = {};
 
 void EmuNV2A_NOP() // 0x0100
 {
-	using namespace XTL; // for NV2A symbols
-
 	HandledCount = dwCount;
 
 	// NOP, when used with an argument, triggers a software-interrupt on NV2A.
 	// The CPU handles these interrupts via a DMA trigger, but since we don't
 	// emulate these yet, we'll have to emulate them here instead.
-	#define NOP_Argument1 (NV2AInstance_Registers[NV2A_CLEAR_DEPTH_VALUE / 4])
-	#define NOP_Argument2 (NV2AInstance_Registers[NV2A_CLEAR_VALUE / 4])
+	#define NOP_Argument1 (NV2AInstance_Registers[XTL::NV2A_CLEAR_DEPTH_VALUE / 4])
+	#define NOP_Argument2 (NV2AInstance_Registers[XTL::NV2A_CLEAR_VALUE / 4])
 	switch (*pdwPushArguments) {
 	case 1: {
 		// TODO : Present();
@@ -279,13 +277,11 @@ void NVPB_Clear()
 	// Since we filter the flags, make sure there are some left (else, clear isn't necessary) :
 	if (PCFlags > 0)
 	{
-		using namespace XTL; // for NV2A symbols
-
 		// Read NV2A clear arguments
-		DWORD Color = NV2AInstance_Registers[NV2A_CLEAR_VALUE / 4];
-		DWORD DepthStencil = NV2AInstance_Registers[NV2A_CLEAR_DEPTH_VALUE / 4];
-		DWORD X12 = NV2AInstance_Registers[NV2A_CLEAR_X / 4];
-		DWORD Y12 = NV2AInstance_Registers[NV2A_CLEAR_Y / 4];
+		DWORD Color = NV2AInstance_Registers[XTL::NV2A_CLEAR_VALUE / 4];
+		DWORD DepthStencil = NV2AInstance_Registers[XTL::NV2A_CLEAR_DEPTH_VALUE / 4];
+		DWORD X12 = NV2AInstance_Registers[XTL::NV2A_CLEAR_X / 4];
+		DWORD Y12 = NV2AInstance_Registers[XTL::NV2A_CLEAR_Y / 4];
 
 		// Convert NV2A to PC Clear arguments
 		XTL::D3DRECT ClearRect = { (X12 & 0xFFFF) + 1, (Y12 & 0xFFFF) + 1, X12 >> 16, Y12 >> 16 };
@@ -604,18 +600,16 @@ void NVPB_SetVertexShaderConstantRegister()
 
 void NVPB_SetVertexShaderConstants()
 {
-	using namespace XTL; // for NV2A symbols
-
 	//assert(dwCount >= 4); // Input must at least be 1 set of coordinates
 	//assert(dwCount & 3 == 0); // Input must be a multiple of 4
 
 	// Make sure we use the correct index if we enter at an offset other than 0 :
-	int Slot = (dwMethod - NV2A_VP_UPLOAD_CONST(0)) / 4;
+	int Slot = (dwMethod - XTL::NV2A_VP_UPLOAD_CONST(0)) / 4;
 	// Since we always start at NV2A_VP_UPLOAD_CONST__0, never handle more than allowed :
 	//assert((Slot + (dwCount / 4)) <= NV2A_VP_UPLOAD_CONST__SIZE);
 
 	// The VP_UPLOAD_CONST_ID GPU register is always pushed before the actual values, and contains the base Register for this batch :
-	DWORD Register = NV2AInstance_Registers[NV2A_VP_UPLOAD_CONST_ID / 4] + Slot;
+	DWORD Register = NV2AInstance_Registers[XTL::NV2A_VP_UPLOAD_CONST_ID / 4] + Slot;
 	void *pConstantData = &(NV2AInstance_Registers[dwMethod / 4]);
 	DWORD ConstantCount = dwCount;
 
@@ -629,7 +623,7 @@ void NVPB_SetVertexShaderConstants()
 
 	// Adjust the current register :
 	Register += ConstantCount;
-	NV2AInstance_Registers[NV2A_VP_UPLOAD_CONST_ID / 4] = Register; // TODO : Is this correct?
+	NV2AInstance_Registers[XTL::NV2A_VP_UPLOAD_CONST_ID / 4] = Register; // TODO : Is this correct?
 
 	HandledCount = dwCount;
 	HandledBy = "SetVertexShaderConstant";
@@ -642,9 +636,7 @@ void NVPB_SetVertexData4f()
 
 void NVPB_SetTextureState_BorderColor()
 {
-	using namespace XTL; // for NV2A symbols
-
-	DWORD Stage = (dwMethod - NV2A_TX_BORDER_COLOR(0)) / 4;
+	DWORD Stage = (dwMethod - XTL::NV2A_TX_BORDER_COLOR(0)) / 4;
 	DWORD XboxValue = *pdwPushArguments;
 	const XTL::D3DTEXTURESTAGESTATETYPE PCStateType = XTL::D3DSAMP_BORDERCOLOR;
 	DWORD PCValue = 0; // TODO : DxbxTextureStageStateXB2PCCallback[PCStateType](XboxValue);

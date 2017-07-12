@@ -4517,14 +4517,14 @@ void CxbxGetNv2ATextureInfo(int Stage, DWORD &Format, DWORD &Pitch, DWORD &Heigh
 
 	Format = NV2AInstance_Registers[NV2A_TX_FORMAT(Stage) / 4];
 
-	DWORD Swizzle = NV2AInstance_Registers[NV2A_TX_SWIZZLE(Stage) / 4];
+	::DWORD Swizzle = NV2AInstance_Registers[NV2A_TX_SWIZZLE(Stage) / 4];
 	Pitch = (Swizzle & NV2A_TX_SWIZZLE_RECT_PITCH_MASK) >> NV2A_TX_SWIZZLE_RECT_PITCH_SHIFT;
 
-	DWORD Size = NV2AInstance_Registers[NV2A_TX_NPOT_SIZE(Stage) / 4];
+	::DWORD Size = NV2AInstance_Registers[NV2A_TX_NPOT_SIZE(Stage) / 4];
 	Height = Size & NV2A_TX_NPOT_SIZE_H_MASK;
 	Width = (Size >> NV2A_TX_NPOT_SIZE_W_SHIFT) & NV2A_TX_NPOT_SIZE_W_MASK;
 
-	DWORD Control = NV2AInstance_Registers[NV2A_TX_ENABLE(Stage)];
+	::DWORD Control = NV2AInstance_Registers[NV2A_TX_ENABLE(Stage)];
 	int ColorKey = (Control & 3);
 	bool bAlphaKill = (Control & 4) > 0;
 	bool bImageField = (Control & 8) > 0;
