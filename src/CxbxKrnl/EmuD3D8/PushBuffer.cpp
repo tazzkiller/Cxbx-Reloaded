@@ -819,12 +819,20 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 		}
 */
 		char LogPrefixStr[200];
-		int len = sprintf(LogPrefixStr, "  NV2A Get=$%.08X", pdwPushData);
+		int len = sprintf(LogPrefixStr, "  NV2A Get=0x%.08X", pdwPushData);
+
+		// Fake a read by the Nv2A, by moving the DMA 'Get' location
+		// up to where the pushbuffer is executed, so that the BusyLoop
+		// in CDevice.Init finishes cleanly :
+		g_pNV2ADMAChannel->Get = (PPUSH)pdwPushData;
+		// TODO : We should probably set g_pNV2ADMAChannel->Put to the same value first?
 
 		// Fetch method DWORD
 		DWORD dwPushCommand = *pdwPushData++;
 		if (dwPushCommand == 0) {
-			DbgPrintf("%s BREAK at NULL method at 0x%.08X\n", LogPrefixStr, pdwPushData-1);
+			// Step back and break
+			pdwPushData--;
+			DbgPrintf("%s BREAK at NULL method at 0x%.08X\n", LogPrefixStr, pdwPushData);
 			break;
 		}
 
@@ -962,12 +970,6 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 			HandledBy = nullptr;
 		} // while (dwCount > 0)
 	} //  while (true)
-
-	// Fake a read by the Nv2A, by moving the DMA 'Get' location
-	// up to where the pushbuffer is executed, so that the BusyLoop
-	// in CDevice.Init finishes cleanly :
-	g_pNV2ADMAChannel->Get = (PPUSH)pdwPushData;
-	// TODO : We should probably set g_pNV2ADMAChannel->Put to the same value first?
 
 	UpdateGPUTime();
 
