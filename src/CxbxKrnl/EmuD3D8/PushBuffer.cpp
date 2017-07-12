@@ -308,10 +308,9 @@ void EmuNV2A_FlipStall()
 	HandledBy = "Swap";
 }
 
-#if 0 // TODO : Complete this Dxbx back-port
 void EmuNV2A_SetRenderState()
 {
-	XTL::X_D3DRenderStateType XboxRenderState;
+	XTL::X_D3DRENDERSTATETYPE XboxRenderState;
 
 #ifdef DXBX_USE_OPENGL
 	DWORD GLFlag = 0;
@@ -323,9 +322,11 @@ void EmuNV2A_SetRenderState()
 	case NV2A_CULL_FACE_ENABLE: { GLFlag = GL_CULL_FACE; FlagName = "GL_CULL_FACE"; break; }
 	default: {
 #endif
-	XboxRenderState = CxbxXboxMethodToRenderState(dwMethod);
-	if ((int)XboxRenderState < 0)
-		CxbxKrnlCleanup("EmuNV2A_SetRenderState coupled to unknown method?");
+	XboxRenderState = XTL::DxbxXboxMethodToRenderState(dwMethod);
+	if ((int)XboxRenderState < 0) {
+		XTL::CxbxKrnlCleanup("EmuNV2A_SetRenderState coupled to unknown method?");
+	}
+
 #ifdef DXBX_USE_OPENGL
 	switch (XboxRenderState) {
 	case X_D3DRS_FOGENABLE: { GLFlag = GLFlag = GL_FOG; FlagName = "GL_FOG"; break; }
@@ -353,12 +354,15 @@ void EmuNV2A_SetRenderState()
 	}
 #endif
 
+	XTL::Dxbx_SetRenderState((XTL::X_D3DRENDERSTATETYPE)XboxRenderState, *pdwPushArguments);
+	HandledBy = "SetRenderState";
+#if 0
 	HandledBy = sprintf("SetRenderState(%-33s, 0x%.8X {=%s})", 
 		CxbxRenderStateInfo[XboxRenderState].S,
 		*pdwPushArguments,
 		CxbxTypedValueToString(CxbxRenderStateInfo[XboxRenderState].T, *pdwPushArguments));
-}
 #endif
+}
 
 void NVPB_SetBeginEnd() // 0x000017FC
 {
@@ -760,6 +764,14 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 		for (int i = 0; i < 4; i++) {
 			NV2ACallbacks[NV2A_TX_BORDER_COLOR(i) / 4] = NVPB_SetTextureState_BorderColor;// NV097_SET_TEXTURE_BORDER_COLOR // 0x00001b24
 			// TODO : Register callbacks for other texture(-stage) related methods
+		}
+
+		// Attach SetRenderState to all Xbox render states that have a 1-on-1 mapping to Windows Direct3D :
+		for (int i = X_D3DRS_FIRST; i <= X_D3DRS_LAST; i++) {
+			const XTL::RenderStateInfo &Info = XTL::GetDxbxRenderStateInfo(i);
+			if ((Info.M != 0) && (Info.PC != D3DRS_UNSUPPORTED)) {
+				NV2ACallbacks[Info.M / 4] = EmuNV2A_SetRenderState;
+			}
 		}
 	}
 
