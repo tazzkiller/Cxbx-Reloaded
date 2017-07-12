@@ -43,6 +43,7 @@
 #include "EmuFS.h"
 #include "EmuXTL.h"
 #include "EmuShared.h"
+#include "Logging.h" // For hexstring32
 #include "HLEDataBase.h"
 #include "HLEIntercept.h"
 #include "xxhash32.h"
@@ -579,7 +580,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 				xbaddr location = (*it).second;
 
 				std::stringstream output;
-				output << "HLECache: 0x" << std::setfill('0') << std::setw(8) << std::hex << location
+				output << "HLECache: " << hexstring32 << location
 					<< " -> " << functionName;
 				void* pFunc = GetEmuPatchAddr(functionName);
 				if (pFunc != nullptr)
@@ -1068,7 +1069,7 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 
 		// Output some details
 		std::stringstream output;
-		output << "HLE: 0x" << std::setfill('0') << std::setw(8) << std::hex << pFunc
+		output << "HLE: " << hexstring32 << pFunc
 			<< " -> " << OovpaTable[a].szFuncName << " " << std::dec << OovpaTable[a].Version;
 
 		bool IsXRef = (OovpaTable[a].Flags & Flag_XRef) > 0;

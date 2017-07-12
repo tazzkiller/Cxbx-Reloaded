@@ -139,8 +139,8 @@ LOG_SANITIZE(sanitized_wchar_pointer, wchar_t *);
 // Function (and argument) logging defines
 //
 
-#define LOG_ARG_START "\n   " << std::setw(20) << std::left 
-#define LOG_ARG_OUT_START "\n OUT " << std::setw(18) << std::left 
+#define LOG_ARG_START "\n   " << std::setfill(' ') << std::setw(20) << std::left 
+#define LOG_ARG_OUT_START "\n OUT " << std::setfill(' ') << std::setw(18) << std::left 
 
 #ifdef _DEBUG_TRACE
 
@@ -324,11 +324,34 @@ extern thread_local std::string _logPrefix;
 // Macro to ease declaration of two render functions, for type and pointer-to-type :
 #define LOGRENDER_HEADER(Type) LOGRENDER_HEADER_BY_PTR(Type); LOGRENDER_HEADER_BY_REF(Type);
 
+// Traits to switch ostreams to our preferred rendering of hexadecimal values
+template <class _CharT, class _Traits>
+std::basic_ostream<_CharT, _Traits>&
+hexstring8(std::basic_ostream<_CharT, _Traits>&os)
+{
+	// std::noshowbase is not neccessary to set (it's the default, and we never use std::showbase)
+	return os << "0x" << std::setfill('0') << std::setw(2) << std::hex << std::uppercase;
+}
+
+template <class _CharT, class _Traits>
+std::basic_ostream<_CharT, _Traits>&
+hexstring16(std::basic_ostream<_CharT, _Traits>&os)
+{
+	return os << "0x" << std::setfill('0') << std::setw(4) << std::hex << std::uppercase;
+}
+
+template <class _CharT, class _Traits>
+std::basic_ostream<_CharT, _Traits>&
+hexstring32(std::basic_ostream<_CharT, _Traits>&os)
+{
+	return os << "0x" << std::setfill('0') << std::setw(8) << std::hex << std::uppercase;
+}
+
 // Macro combining pointer-to-type implementation and type rendering header :
 #define LOGRENDER(Type)                                         \
 LOGRENDER_HEADER_BY_PTR(Type)                                   \
 {                                                               \
-	os << "0x" << std::hex << std::uppercase << (void*)(value); \
+	os << hexstring32 << (void*)(value);                        \
 	if (value)                                                  \
 		os << " -> "#Type"* {" << *value << "}";                \
                                                                 \
