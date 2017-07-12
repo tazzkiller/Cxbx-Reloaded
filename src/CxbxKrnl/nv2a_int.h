@@ -90,21 +90,30 @@
 #   define NV_PFIFO_INTR_EN_0_SEMAPHORE                        (1 << 20)
 #   define NV_PFIFO_INTR_EN_0_ACQUIRE_TIMEOUT                  (1 << 24)
 #define NV_PFIFO_RAMHT                                   0x00000210
-#   define NV_PFIFO_RAMHT_BASE_ADDRESS                        0x000001F0
-#   define NV_PFIFO_RAMHT_SIZE                                0x00030000
+#   define NV_PFIFO_RAMHT_BASE_ADDRESS_MASK                   0x000001F0
+#   define NV_PFIFO_RAMHT_BASE_ADDRESS_SHIFT                  0
+#   define NV_PFIFO_RAMHT_BASE_ADDRESS_MOVE                   12
+#   define NV_PFIFO_RAMHT_SIZE_SHIFT                          16
+#   define NV_PFIFO_RAMHT_SIZE_MASK                           0x00030000
 #       define NV_PFIFO_RAMHT_SIZE_4K                             0
 #       define NV_PFIFO_RAMHT_SIZE_8K                             1
 #       define NV_PFIFO_RAMHT_SIZE_16K                            2
 #       define NV_PFIFO_RAMHT_SIZE_32K                            3
-#   define NV_PFIFO_RAMHT_SEARCH                              0x03000000
+#   define NV_PFIFO_RAMHT_SEARCH_SHIFT                        24
+#   define NV_PFIFO_RAMHT_SEARCH_MASK                         0x03000000
 #       define NV_PFIFO_RAMHT_SEARCH_16                           0
 #       define NV_PFIFO_RAMHT_SEARCH_32                           1
 #       define NV_PFIFO_RAMHT_SEARCH_64                           2
 #       define NV_PFIFO_RAMHT_SEARCH_128                          3
 #define NV_PFIFO_RAMFC                                   0x00000214
 #   define NV_PFIFO_RAMFC_BASE_ADDRESS1                       0x000001FC
-#   define NV_PFIFO_RAMFC_SIZE                                0x00010000
-#   define NV_PFIFO_RAMFC_BASE_ADDRESS2                       0x00FE0000
+#   define NV_PFIFO_RAMFC_BASE_ADDRESS1_MOVE                  10
+#   define NV_PFIFO_RAMFC_SIZE_MASK                           0x00010000
+#   define NV_PFIFO_RAMFC_SIZE_1K                             0x00000000
+#   define NV_PFIFO_RAMFC_SIZE_2K                             0x00010000
+#   define NV_PFIFO_RAMFC_BASE_ADDRESS2_SHIFT                 16 // TODO : Is it 16 or 17?
+#   define NV_PFIFO_RAMFC_BASE_ADDRESS2_MASK                  0x00FE0000
+#   define NV_PFIFO_RAMFC_BASE_ADDRESS2_MOVE                  10
 #define NV_PFIFO_RAMRO                                   0x00000218
 #   define NV_PFIFO_RAMRO_BASE_ADDRESS                        0x000001FE
 #   define NV_PFIFO_RAMRO_SIZE                                0x00010000
@@ -153,7 +162,10 @@
 #       define NV_PFIFO_CACHE1_DMA_STATE_ERROR_RESERVED_CMD       4
 #       define NV_PFIFO_CACHE1_DMA_STATE_ERROR_PROTECTION         6
 #define NV_PFIFO_CACHE1_DMA_INSTANCE                     0x0000122C
-#   define NV_PFIFO_CACHE1_DMA_INSTANCE_ADDRESS               0x0000FFFF
+#   define NV_PFIFO_CACHE1_DMA_INSTANCE_ADDRESS_MASK          0x0000FFFF
+#   define NV_PFIFO_CACHE1_DMA_INSTANCE_ADDRESS_SHIFT         0
+#   define NV_PFIFO_CACHE1_DMA_INSTANCE_ADDRESS_MOVE          4
+#define NV_PFIFO_CACHE1_DMA_CTL                          0x00001230
 #define NV_PFIFO_CACHE1_DMA_PUT                          0x00001240
 #define NV_PFIFO_CACHE1_DMA_GET                          0x00001244
 #define NV_PFIFO_CACHE1_REF                              0x00001248

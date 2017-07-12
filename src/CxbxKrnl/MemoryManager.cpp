@@ -145,7 +145,7 @@ void* MemoryManager::AllocateContiguous(size_t size, size_t alignment)
 	// Is the contiguous allocation table empty?
 	if (m_ContiguousMemoryBlocks.size() == 0) {
 		// Start allocating Contiguous Memory at 0x80000000
-		addr = MM_SYSTEM_PHYSICAL_MAP;
+		addr = CONTIGUOUS_MEMORY_BASE;
 		addr = (addr + alignMask) & ~alignMask;
 	} else {
 		// Locate the first available Memory Region with enough space for the requested buffer
@@ -175,7 +175,7 @@ void* MemoryManager::AllocateContiguous(size_t size, size_t alignment)
 		}
 	}
 	
-	if (addr + size > MM_SYSTEM_PHYSICAL_MAP + CONTIGUOUS_MEMORY_SIZE)  {
+	if (addr + size > CONTIGUOUS_MEMORY_BASE + CONTIGUOUS_MEMORY_SIZE)  {
 		EmuWarning("MemoryManager::AllocateContiguous exhausted it's allowed memory buffer");
 		addr = NULL;	
 	}

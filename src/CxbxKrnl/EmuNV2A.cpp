@@ -256,6 +256,7 @@ DEBUG_START(PFIFO)
 	DEBUG_CASE(NV_PFIFO_CACHE1_DMA_FETCH);
 	DEBUG_CASE(NV_PFIFO_CACHE1_DMA_STATE);
 	DEBUG_CASE(NV_PFIFO_CACHE1_DMA_INSTANCE);
+	DEBUG_CASE(NV_PFIFO_CACHE1_DMA_CTL);
 	DEBUG_CASE(NV_PFIFO_CACHE1_DMA_PUT);
 	DEBUG_CASE(NV_PFIFO_CACHE1_DMA_GET);
 	DEBUG_CASE(NV_PFIFO_CACHE1_REF);
@@ -698,6 +699,9 @@ DEBUG_END(USER)
 #define DEVICE_WRITE32_REG(DEV) DEVICE_REG32(DEV) = value
 #define DEVICE_WRITE32_END(DEV) DEBUG_WRITE32(DEV)
 
+#define DEVAddrPrintFmt(DEV) #DEV "(0x%08X) = CPU(0x%08X)"
+#define DEVAddrPrintArg(DEV, addr) addr, (NV_ ## DEV ## _ADDR + (addr)) | MM_SYSTEM_PHYSICAL_MAP // map GPU to CPU (OR with 0x80000000)
+#define DbgPrintDEVAddr(msg, DEV, addr) DbgPrintf("%s " DEVAddrPrintFmt(DEV) "\n", msg, DEVAddrPrintArg(DEV, addr));
 
 DEVICE_READ32(PMC)
 {
@@ -739,10 +743,9 @@ DEVICE_WRITE32(PMC)
 		update_irq();
 		break;
 	}
-	default: 
-		DEVICE_WRITE32_REG(pmc); // Was : DEBUG_WRITE32_UNHANDLED(PMC);
 	}
 
+	DEVICE_WRITE32_REG(pmc);
 	DEVICE_WRITE32_END(PMC);
 }
 
@@ -788,9 +791,10 @@ DEVICE_WRITE32(PBUS)
 		break;
 	}
 	default: 
-		DEBUG_WRITE32_UNHANDLED(PBUS); // TODO : DEVICE_WRITE32_REG(pbus);
+		DEBUG_WRITE32_UNHANDLED(PBUS);
 	}
-
+		
+	// TODO : DEVICE_WRITE32_REG(pbus);
 	DEVICE_WRITE32_END(PBUS);
 }
 
@@ -799,7 +803,7 @@ DEVICE_READ32(PFIFO)
 {
 	DEVICE_READ32_SWITCH() {
 	case NV_PFIFO_RAMHT:
-		result = 0x03000100; // = NV_PFIFO_RAMHT_SIZE_4K | NV_PFIFO_RAMHT_BASE_ADDRESS(NumberOfPaddingBytes >> 12) | NV_PFIFO_RAMHT_SEARCH_128
+		result = 0x03000100; // = (NV_PFIFO_RAMHT_SIZE_4K < NV_PFIFO_RAMHT_SIZE_SHIFT) | (((NumberOfPaddingBytes >> NV_PFIFO_RAMHT_BASE_ADDRESS_MOVE) & NV_PFIFO_RAMHT_BASE_ADDRESS_MASK) << NV_PFIFO_RAMHT_BASE_ADDRESS_SHIFT) | (NV_PFIFO_RAMHT_SEARCH_128 << NV_PFIFO_RAMHT_SEARCH_SHIFT)
 		break;
 	case NV_PFIFO_RAMFC:
 		result = 0x00890110; // = ? | NV_PFIFO_RAMFC_SIZE_2K | ?
@@ -822,41 +826,46 @@ DEVICE_WRITE32(PFIFO)
 	case NV_PFIFO_RAMHT: {
 		if (g_bPrintfOn) {
 			// Decode and dump the written value
-			xbaddr HTBaseAddr = (value & NV_PFIFO_RAMHT_BASE_ADDRESS) << 12;
+			xbaddr HTBaseAddr = (value & NV_PFIFO_RAMHT_BASE_ADDRESS_MASK) << NV_PFIFO_RAMHT_BASE_ADDRESS_MOVE;
 
-			DbgPrintf("NV_PFIFO_RAMHT_BASE_ADDRESS = 0x%08X", HTBaseAddr);
-			switch ((value & NV_PFIFO_RAMHT_SIZE) >> 16) {
-			case NV_PFIFO_RAMHT_SIZE_4K: printf(" NV_PFIFO_RAMHT_SIZE_4K"); break;
-			case NV_PFIFO_RAMHT_SIZE_8K: printf(" NV_PFIFO_RAMHT_SIZE_8K"); break;
-			case NV_PFIFO_RAMHT_SIZE_16K: printf(" NV_PFIFO_RAMHT_SIZE_16K"); break;
-			case NV_PFIFO_RAMHT_SIZE_32K: printf(" NV_PFIFO_RAMHT_SIZE_32K"); break;
+			DbgPrintf("NV_PFIFO_RAMHT: ");
+			switch ((value & NV_PFIFO_RAMHT_SIZE_MASK) >> NV_PFIFO_RAMHT_SIZE_SHIFT) {
+			case NV_PFIFO_RAMHT_SIZE_4K: printf("NV_PFIFO_RAMHT_SIZE_4K, "); break;
+			case NV_PFIFO_RAMHT_SIZE_8K: printf("NV_PFIFO_RAMHT_SIZE_8K, "); break;
+			case NV_PFIFO_RAMHT_SIZE_16K: printf("NV_PFIFO_RAMHT_SIZE_16K, "); break;
+			case NV_PFIFO_RAMHT_SIZE_32K: printf("NV_PFIFO_RAMHT_SIZE_32K, "); break;
 			}
-			switch ((value & NV_PFIFO_RAMHT_SEARCH) >> 24) {
-			case NV_PFIFO_RAMHT_SEARCH_16: printf(" NV_PFIFO_RAMHT_SEARCH_16\n"); break;
-			case NV_PFIFO_RAMHT_SEARCH_32: printf(" NV_PFIFO_RAMHT_SEARCH_32\n"); break;
-			case NV_PFIFO_RAMHT_SEARCH_64: printf(" NV_PFIFO_RAMHT_SEARCH_64\n"); break;
-			case NV_PFIFO_RAMHT_SEARCH_128: printf(" NV_PFIFO_RAMHT_SEARCH_128\n"); break;
+
+			switch ((value & NV_PFIFO_RAMHT_SEARCH_MASK) >> NV_PFIFO_RAMHT_SEARCH_SHIFT) {
+			case NV_PFIFO_RAMHT_SEARCH_16: printf("NV_PFIFO_RAMHT_SEARCH_16, "); break;
+			case NV_PFIFO_RAMHT_SEARCH_32: printf("NV_PFIFO_RAMHT_SEARCH_32, "); break;
+			case NV_PFIFO_RAMHT_SEARCH_64: printf("NV_PFIFO_RAMHT_SEARCH_64, "); break;
+			case NV_PFIFO_RAMHT_SEARCH_128: printf("NV_PFIFO_RAMHT_SEARCH_128, "); break;
 			}
+
+			printf("NV_PFIFO_RAMHT_BASE_ADDRESS = " DEVAddrPrintFmt(PRAMIN) "\n", DEVAddrPrintArg(PRAMIN, HTBaseAddr));
 		}
-		DEVICE_WRITE32_REG(pfifo);
+
 		break;
 	}
 	case NV_PFIFO_RAMFC: {
 		if (g_bPrintfOn) {
 			// Decode and dump the written value
-			xbaddr FCBaseAddr1 = NV_PRAMIN_ADDR + ((value & NV_PFIFO_RAMFC_BASE_ADDRESS1) << 10);
-			xbaddr FCBaseAddr2 = NV_PRAMIN_ADDR + (((value & NV_PFIFO_RAMFC_BASE_ADDRESS2) >> 16) << 10);
+			xbaddr FCBaseAddr1 = (value & NV_PFIFO_RAMFC_BASE_ADDRESS1) << NV_PFIFO_RAMFC_BASE_ADDRESS1_MOVE;
+			xbaddr FCBaseAddr2 = ((value & NV_PFIFO_RAMFC_BASE_ADDRESS2_MASK) >> NV_PFIFO_RAMFC_BASE_ADDRESS2_SHIFT) << NV_PFIFO_RAMFC_BASE_ADDRESS2_MOVE;
 
-			DbgPrintf("NV_PFIFO_RAMFC_BASE_ADDRESS1 = 0x%08X", FCBaseAddr1);
-			if ((value & NV_PFIFO_RAMFC_SIZE) == 0)
-				printf(" NV_PFIFO_RAMFC_SIZE_1K");
-			else
-				printf(" NV_PFIFO_RAMFC_SIZE_2K");
+			DbgPrintf("NV_PFIFO_RAMFC: ");
+			printf("NV_PFIFO_RAMFC_BASE_ADDRESS1 = " DEVAddrPrintFmt(PRAMIN) ", ", DEVAddrPrintArg(PRAMIN, FCBaseAddr1));
+			if ((value & NV_PFIFO_RAMFC_SIZE_MASK) == NV_PFIFO_RAMFC_SIZE_1K) {
+				printf("NV_PFIFO_RAMFC_SIZE_1K, ");
+			}
+			else {
+				printf("NV_PFIFO_RAMFC_SIZE_2K, ");
+			}
 
-			printf(" NV_PFIFO_RAMFC_BASE_ADDRESS2 = 0x%08X\n", FCBaseAddr2);
+			printf("NV_PFIFO_RAMFC_BASE_ADDRESS2 = " DEVAddrPrintFmt(PRAMIN) "\n", DEVAddrPrintArg(PRAMIN, FCBaseAddr2));
 		}
 
-		DEVICE_WRITE32_REG(pfifo);
 		break;
 	}
 	case NV_PFIFO_CACHES: {
@@ -864,17 +873,14 @@ DEVICE_WRITE32(PFIFO)
 			LOG_ONCE("End of Xbox HalFifoControlLoad() call\n");
 		}
 
-		DEVICE_WRITE32_REG(pfifo);
 		break;
 	}
 	case NV_PFIFO_CACHE1_PUT: {
 		LOG_FIRST_XBOX_CALL("HalFifoControlInit");
-		DEVICE_WRITE32_REG(pfifo);
 		break;
 	}
 	case NV_PFIFO_CACHE1_DMA_FETCH: {
 		LOG_FIRST_XBOX_CALL("HalFifoControlLoad");
-		DEVICE_WRITE32_REG(pfifo);
 		break;
 	}
 	case NV_PFIFO_MODE: {
@@ -882,18 +888,26 @@ DEVICE_WRITE32(PFIFO)
 			LOG_FIRST_XBOX_CALL("HalFifoAllocDMA");
 		}
 
-		DEVICE_WRITE32_REG(pfifo);
 		break;
 	}
 	case NV_PFIFO_INTR_EN_0: {
 		if (value == 0x01111111) {
 			LOG_ONCE("End of CMiniport::LoadEngines() call\n"); // Also ends InitHardware(), next should be CreateCtxDmaObject()
 		}
+
+		break;
 	}
-	default:
-		DEVICE_WRITE32_REG(pfifo);
+	case NV_PFIFO_CACHE1_DMA_INSTANCE: {
+		if (value > NULL) {
+			xbaddr DmaInstance = ((value & NV_PFIFO_CACHE1_DMA_INSTANCE_ADDRESS_MASK) >> NV_PFIFO_CACHE1_DMA_INSTANCE_ADDRESS_SHIFT) << NV_PFIFO_CACHE1_DMA_INSTANCE_ADDRESS_MOVE;
+			DbgPrintDEVAddr("NV_PFIFO_CACHE1_DMA_INSTANCE: Set DMA Instance to", PRAMIN, DmaInstance);
+		}
+
+		break;
+	}
 	}
 
+	DEVICE_WRITE32_REG(pfifo);
 	DEVICE_WRITE32_END(PFIFO);
 }
 
@@ -912,9 +926,10 @@ DEVICE_WRITE32(PRMA)
 {
 	switch(addr) {
 	default: 
-		DEBUG_WRITE32_UNHANDLED(PRMA); // TODO : DEVICE_WRITE32_REG(prma);
+		DEBUG_WRITE32_UNHANDLED(PRMA);
 	}
 
+	// TODO : DEVICE_WRITE32_REG(prma);
 	DEVICE_WRITE32_END(PRMA);
 }
 
@@ -937,13 +952,11 @@ DEVICE_WRITE32(PVIDEO)
 	switch (addr) {
 	case NV_PVIDEO_LUMINANCE(0): {
 		LOG_FIRST_XBOX_CALL("HalVideoControlInit");
-		DEVICE_WRITE32_REG(pvideo);
 		break;
 	}
-	default:
-		DEVICE_WRITE32_REG(pvideo);
 	}
 
+	DEVICE_WRITE32_REG(pvideo);
 	DEVICE_WRITE32_END(PVIDEO);
 }
 
@@ -961,9 +974,10 @@ DEVICE_WRITE32(PCOUNTER)
 {
 	switch (addr) {
 	default:
-		DEBUG_WRITE32_UNHANDLED(PCOUNTER); // TODO : DEVICE_WRITE32_REG(pcounter);
+		DEBUG_WRITE32_UNHANDLED(PCOUNTER);
 	}
 
+	// TODO : DEVICE_WRITE32_REG(pcounter);
 	DEVICE_WRITE32_END(PCOUNTER);
 }
 
@@ -1010,11 +1024,10 @@ DEVICE_WRITE32(PTIMER)
 	case NV_PTIMER_ALARM_0:
 		ptimer.alarm_time = value;
 		break;
-
-	default: 
-		DEVICE_WRITE32_REG(ptimer); // Was : DEBUG_WRITE32_UNHANDLED(PTIMER);
+	// Was : default: DEBUG_WRITE32_UNHANDLED(PTIMER);
 	}
 
+	DEVICE_WRITE32_REG(ptimer);
 	DEVICE_WRITE32_END(PTIMER);
 }
 
@@ -1034,9 +1047,10 @@ DEVICE_WRITE32(PVPE)
 {
 	switch (addr) {
 	default:
-		DEBUG_WRITE32_UNHANDLED(PVPE); // TODO : DEVICE_WRITE32_REG(pvpe);
+		DEBUG_WRITE32_UNHANDLED(PVPE);
 	}
 
+	// TODO : DEVICE_WRITE32_REG(pvpe);
 	DEVICE_WRITE32_END(PVPE);
 }
 
@@ -1055,9 +1069,10 @@ DEVICE_WRITE32(PTV)
 {
 	switch (addr) {
 	default:
-		DEBUG_WRITE32_UNHANDLED(PTV); // TODO : DEVICE_WRITE32_REG(ptv);
+		DEBUG_WRITE32_UNHANDLED(PTV);
 	}
 
+	// TODO : DEVICE_WRITE32_REG(ptv);
 	DEVICE_WRITE32_END(PTV);
 }
 
@@ -1076,9 +1091,10 @@ DEVICE_WRITE32(PRMFB)
 {
 	switch (addr) {
 	default:
-		DEBUG_WRITE32_UNHANDLED(PRMFB); // TODO : DEVICE_WRITE32_REG(prmfb);
+		DEBUG_WRITE32_UNHANDLED(PRMFB);
 	}
 
+	// TODO : DEVICE_WRITE32_REG(prmfb);
 	DEVICE_WRITE32_END(PRMFB);
 }
 
@@ -1097,9 +1113,10 @@ DEVICE_WRITE32(PRMVIO)
 {
 	switch (addr) {
 	default:
-		DEBUG_WRITE32_UNHANDLED(PRMVIO); // TODO : DEVICE_WRITE32_REG(prmvio);
+		DEBUG_WRITE32_UNHANDLED(PRMVIO);
 	}
 
+	// TODO : DEVICE_WRITE32_REG(prmvio);
 	DEVICE_WRITE32_END(PRMVIO);
 }
 
@@ -1138,12 +1155,10 @@ DEVICE_WRITE32(PFB)
 			// TODO : Reset NV_PFB_WBC_FLUSH here, or when reading?
 			value ^= NV_PFB_WBC_FLUSH; 
 		}
-		DEVICE_REG32(pfb) = value;
 		break;
-	default:
-		DEVICE_WRITE32_REG(pfb);
 	}
 
+	DEVICE_WRITE32_REG(pfb);
 	DEVICE_WRITE32_END(PFB);
 }
 
@@ -1165,6 +1180,7 @@ DEVICE_WRITE32(PSTRAPS)
 		DEBUG_WRITE32_UNHANDLED(PSTRAPS);
 	}
 
+	// TODO : DEVICE_WRITE32_REG(pstraps);
 	DEVICE_WRITE32_END(PSTRAPS);
 }
 
@@ -1196,28 +1212,25 @@ DEVICE_WRITE32(PGRAPH)
 		break;
 	case NV_PGRAPH_DEBUG_0: {
 		LOG_FIRST_XBOX_CALL("HalGrControlLoad"); // Actually starts with reading NV_PMC_ENABLE, but that's read before
-		DEVICE_WRITE32_REG(pgraph);
 		break;
 	}
 	case NV_PGRAPH_CHANNEL_CTX_TABLE: {
 		LOG_FIRST_XBOX_CALL("HalGrControlInit");
-		DEVICE_WRITE32_REG(pgraph);
 
-		xbaddr CtxTableBase = (value & NV_PGRAPH_CHANNEL_CTX_TABLE_INST) | MM_SYSTEM_PHYSICAL_MAP; // map GPU to CPU (OR with 0x80000000)
+		xbaddr CtxTableBase = value & NV_PGRAPH_CHANNEL_CTX_TABLE_INST;
 		// TODO : Add CtxTableBase member to pgraph when required. Receive it here:
 		// pgraph.CtxTableBase = CtxTableBase;
-		DEBUG_WRITE32_LOG(PGRAPH, "Xbox CMiniport::HalGrControlInit() set CtxTableBase to 0x%08X", CtxTableBase);
-		return;
+		DbgPrintDEVAddr("Xbox CMiniport::HalGrControlInit() set CtxTableBase to", PRAMIN, CtxTableBase);
+		break;
 	}
 	case NV_PGRAPH_CHANNEL_CTX_POINTER: {
 		LOG_FIRST_XBOX_CALL("HalGrUnloadChannelContext"); // Shouldn't be hit during initalization
-		DEVICE_WRITE32_REG(pgraph);
-		return;
+		break;
 	}
-	default: 
-		DEVICE_WRITE32_REG(pgraph); // Was : DEBUG_WRITE32_UNHANDLED(PGRAPH);
+	// Was : default: DEBUG_WRITE32_UNHANDLED(PGRAPH);
 	}
 
+	DEVICE_WRITE32_REG(pgraph);
 	DEVICE_WRITE32_END(PGRAPH);
 }
 
@@ -1260,10 +1273,10 @@ DEVICE_WRITE32(PCRTC)
 		pcrtc.start = value &= 0x07FFFFFF;
 		break;
 
-	default: 
-		DEVICE_WRITE32_REG(pcrtc); // Was : DEBUG_WRITE32_UNHANDLED(PCRTC);
+	// Was : default: DEBUG_WRITE32_UNHANDLED(PCRTC);
 	}
 
+	DEVICE_WRITE32_REG(pcrtc);
 	DEVICE_WRITE32_END(PCRTC);
 }
 
@@ -1282,9 +1295,10 @@ DEVICE_WRITE8(CIO)
 {
 	switch (addr) {
 	default:
-		DEBUG_WRITE32_UNHANDLED(CIO); // TODO : DEVICE_WRITE32_REG(cio);
+		DEBUG_WRITE32_UNHANDLED(CIO);
 	}
 
+	// TODO : DEVICE_WRITE32_REG(cio);
 	DEVICE_WRITE32_END(CIO);
 }
 
@@ -1333,9 +1347,10 @@ DEVICE_WRITE8(PRMCIO)
 		break;
 	}
 	default:
-		DEBUG_WRITE32_UNHANDLED(PRMCIO); // TODO : DEVICE_WRITE32_REG(prmcio);
+		DEBUG_WRITE32_UNHANDLED(PRMCIO);
 	}
 
+	// TODO : DEVICE_WRITE32_REG(prmcio);
 	DEVICE_WRITE32_END(PRMCIO);
 }
 
@@ -1343,9 +1358,10 @@ DEVICE_WRITE32(PRMCIO)
 {
 	switch (addr) {
 	default:
-		DEBUG_WRITE32_UNHANDLED(PRMCIO); // TODO : DEVICE_WRITE32_REG(prmcio);
+		DEBUG_WRITE32_UNHANDLED(PRMCIO);
 	}
 
+	// TODO : DEVICE_WRITE32_REG(prmcio);
 	DEVICE_WRITE32_END(PRMCIO);
 }
 
@@ -1392,10 +1408,10 @@ DEVICE_WRITE32(PRAMDAC)
 		pramdac.video_clock_coeff = value;
 		break;
 
-	default: 
-		DEVICE_WRITE32_REG(pramdac); // Was : DEBUG_WRITE32_UNHANDLED(PRAMDAC);
+	// Was : default: DEBUG_WRITE32_UNHANDLED(PRAMDAC);
 	}
 
+	DEVICE_WRITE32_REG(pramdac);
 	DEVICE_WRITE32_END(PRAMDAC);
 }
 
@@ -1417,6 +1433,7 @@ DEVICE_WRITE32(PRMDIO)
 		DEBUG_WRITE32_UNHANDLED(PRMDIO);
 	}
 
+	// TODO : DEVICE_WRITE32_REG(prmdio);
 	DEVICE_WRITE32_END(PRMDIO);
 }
 
@@ -1433,27 +1450,33 @@ DEVICE_READ32(PRAMIN)
 
 DEVICE_WRITE32(PRAMIN)
 {
-	u32 DEVICE_READ32_REG(pramin); // result is the previous value
+	u32 DEVICE_READ32_REG(pramin); // result = current value
 
 	DEVICE_WRITE32_REG(pramin);
 
-	// Prevent logging writes of unchanging values
+	// Is an unchanged value written?
 	if (value == result) {
-		// Do log when writing initial zero's
+		// Log when writing initial zero's
 		if (value == 0) {
 			if (addr == 0x00010000) {
-				DEBUG_WRITE32_LOG(PRAMIN, "Xbox HalFbControlInit() clearing 20 KiB of MmClaimGpuInstanceMemory");
+				LOG_FIRST_XBOX_CALL("Xbox HalFbControlInit() clearing 20 KiB of PRAMIN MmClaimGpuInstanceMemory");
 			}
 
 			if (addr == 0x00014FFC) {
-				DEBUG_WRITE32_LOG(PRAMIN, "Xbox HalFbControlInit() cleared 20 KiB of MmClaimGpuInstanceMemory");
+				LOG_FIRST_XBOX_CALL("Xbox HalFbControlInit() cleared 20 KiB of PRAMIN MmClaimGpuInstanceMemory");
 			}
 		}
 
+		// Prevent logging writes of unchanged values
 		return;
 	}
 	
-	int DMASlot = addr >> 4; // This is bullocks, PRAMIN is just RAM. TODO : Determine g_pNV2ADMAChannel and m_pGPUTime differently (but how?)
+	// Detecting 'slots' is not the correct way to go at this, PRAMIN is just RAM. 
+	// TODO : Determine g_pNV2ADMAChannel and m_pGPUTime differently (but how?)
+	// TODO : Once the above works, change the pramin memory region into commited memory
+	//        via VirtualAllocEx, either upfront in CxbxReserveNV2AMemory, or after
+	//        the 'cleared' message is logged above (pramin.regs[] contents must be copied)
+	int DMASlot = addr >> 4;
 //	if (DMASlot < 16) {
 		switch (addr & 0x0F) { // Check methods as if it's the first slot (zero)
 		case NV_PRAMIN_DMA_START(0): {
@@ -1461,6 +1484,7 @@ DEVICE_WRITE32(PRAMIN)
 				LOG_FIRST_XBOX_CALL("CMiniport::CreateCtxDmaObject");
 			}
 			break;
+
 		}
 		case NV_PRAMIN_DMA_LIMIT(0): {
 			// Detect DMA registration of pusher
@@ -1532,6 +1556,7 @@ DEVICE_WRITE32(USER)
 		DEBUG_WRITE32_UNHANDLED(USER);
 	}
 
+	// TODO : DEVICE_WRITE32_REG(user);
 	DEVICE_WRITE32_END(USER);
 }
 

@@ -67,12 +67,17 @@ extern "C" {
 #define KSEG0_BASE                  0x80000000
 
 // Define virtual base addresses for physical memory windows.
-#define MM_SYSTEM_PHYSICAL_MAP      KSEG0_BASE
+#define MM_SYSTEM_PHYSICAL_MAP      KSEG0_BASE // = 0x80000000
 #define MM_HIGHEST_PHYSICAL_PAGE    0x03FFF // DEVKIT should use 0x07FFF for 128 MB
 #define MM_64M_PHYSICAL_PAGE        0x04000
 #define MM_INSTANCE_PHYSICAL_PAGE   0x03FE0 // Chihiro arcade should use 0x07FF0
 #define MM_INSTANCE_PAGE_COUNT      16
+#define CONTIGUOUS_MEMORY_BASE MM_SYSTEM_PHYSICAL_MAP // = 0x80000000
 #define CONTIGUOUS_MEMORY_SIZE (64 * ONE_MB)
+#define TILED_MEMORY_BASE 0xF0000000 // Tiled memory is a mirror of contiguous memory, residing at 0xF0000000
+#define TILED_MEMORY_SIZE CONTIGUOUS_MEMORY_SIZE
+#define NV2A_MEMORY_BASE 0xFD000000 // See NV2A_ADDR
+#define NV2A_MEMORY_SIZE 0x01000000 // See NV2A_SIZE
 
 /*! memory size per system */
 #define XBOX_MEMORY_SIZE (64 * ONE_MB)
