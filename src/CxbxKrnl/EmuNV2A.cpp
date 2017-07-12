@@ -805,7 +805,7 @@ DEVICE_READ32(PFIFO)
 		result = 0x00890110; // = ? | NV_PFIFO_RAMFC_SIZE_2K | ?
 		break;
 	case NV_PFIFO_CACHES: {
-		LOG_FIRST_XBOX_CALL("HalFifoContextSwitch"); // Was HalFifoAllocDMA
+		LOG_FIRST_XBOX_CALL("HalFifoContextSwitch");
 		DEVICE_READ32_REG(pfifo);
 		break;
 	}
@@ -874,6 +874,14 @@ DEVICE_WRITE32(PFIFO)
 	}
 	case NV_PFIFO_CACHE1_DMA_FETCH: {
 		LOG_FIRST_XBOX_CALL("HalFifoControlLoad");
+		DEVICE_WRITE32_REG(pfifo);
+		break;
+	}
+	case NV_PFIFO_MODE: {
+		if (value > 0) {
+			LOG_FIRST_XBOX_CALL("HalFifoAllocDMA");
+		}
+
 		DEVICE_WRITE32_REG(pfifo);
 		break;
 	}
