@@ -2874,8 +2874,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SelectVertexShader)
 
 VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle)()
 {
+#ifndef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
-
+#endif
 	LOG_FUNC();
 
     // TODO: Actually do something here?
@@ -2885,8 +2886,9 @@ VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle)()
 
 VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle2)(DWORD dwDummy1, DWORD dwDummy2)
 {
+#ifndef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
-
+#endif
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(dwDummy1)
 		LOG_FUNC_ARG(dwDummy2)
@@ -5505,8 +5507,9 @@ BOOL WINAPI XTL::EMUPATCH(D3DDevice_GetOverlayUpdateStatus)()
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_BlockUntilVerticalBlank)()
 {
+#ifndef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
-
+#endif
 	LOG_FUNC();
 
 	std::unique_lock<std::mutex> lk(g_VBConditionMutex);
@@ -6867,7 +6870,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
     X_D3DSurface    *pNewZStencil
 )
 {
+#ifndef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pRenderTarget)
@@ -7892,7 +7897,7 @@ PPUSH WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 	DWORD RequestedSpace
 )
 {
-#ifdef UNPATCH_CREATEDEVICE
+#ifndef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 
@@ -7953,7 +7958,7 @@ void WINAPI XTL::EMUPATCH(D3D_SetCommonDebugRegisters)()
 
 void WINAPI XTL::EMUPATCH(D3D_BlockOnTime)( DWORD Unknown1, int Unknown2 )
 {
-#ifdef UNPATCH_CREATEDEVICE
+#ifndef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 
@@ -7974,7 +7979,7 @@ void WINAPI XTL::EMUPATCH(D3D_BlockOnTime)( DWORD Unknown1, int Unknown2 )
 
 void WINAPI XTL::EMUPATCH(D3D_BlockOnResource)( X_D3DResource* pResource )
 {
-#ifdef UNPATCH_CREATEDEVICE
+#ifndef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 
