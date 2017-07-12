@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuD3D8->VertexShader.cpp
+// *   CxbxKrnl->EmuD3D8->VertexShader.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -30,6 +30,7 @@
 // *
 // *  (c) 2002-2004 Aaron Robinson <caustik@caustik.com>
 // *                Kingofc <kingofc@freenet.de>
+// *  CopyRight (c) 2016-2017 Patrick van Logchem <pvanlogchem@gmail.com>
 // *
 // *  All rights reserved
 // *
@@ -243,7 +244,7 @@ typedef struct _VSH_PARAMETER
     VSH_PARAMETER_TYPE  ParameterType;   // Parameter type, R, V or C
     boolean             Neg;             // TRUE if negated, FALSE if not
     VSH_SWIZZLE         Swizzle[4];      // The four swizzles
-    int16               Address;         // Register address
+	i16                 Address;         // Register address
 }
 VSH_PARAMETER;
 
@@ -253,7 +254,7 @@ typedef struct _VSH_OUTPUT
     VSH_OUTPUT_MUX      OutputMux;       // MAC or ILU used as output
 	VSH_OUTPUT_TYPE     OutputType;      // C or O
     boolean             OutputMask[4];
-    int16               OutputAddress;
+	i16                 OutputAddress;
     // MAC output R register
     boolean             MACRMask[4];
     boolean             MACRAddress;
@@ -287,7 +288,7 @@ typedef struct _VSH_IMD_OUTPUT
 {
     VSH_IMD_OUTPUT_TYPE Type;
     boolean             Mask[4];
-    int16               Address;
+	i16                 Address;
 }
 VSH_IMD_OUTPUT;
 
@@ -327,8 +328,8 @@ VSH_FIELDMAPPING;
 
 typedef struct _VSH_XBOX_SHADER
 {
-    XTL::VSH_SHADER_HEADER       ShaderHeader;
-    uint16                  IntermediateCount;
+    XTL::VSH_SHADER_HEADER  ShaderHeader;
+	u16                     IntermediateCount;
     VSH_INTERMEDIATE_FORMAT Intermediate[VSH_MAX_INTERMEDIATE_COUNT];
 }
 VSH_XBOX_SHADER;
@@ -551,7 +552,7 @@ static inline int VshGetFromToken(uint32 *pShaderToken,
 }
 
 // Converts the C register address to disassembly format
-static inline int16 ConvertCRegister(const int16 CReg)
+static inline i16 ConvertCRegister(const i16 CReg)
 {
     return ((((CReg >> 5) & 7) - 3) * 32) + (CReg & 31);
 }
@@ -940,7 +941,7 @@ static VSH_INTERMEDIATE_FORMAT *VshNewIntermediate(VSH_XBOX_SHADER *pShader)
 
 static void VshInsertIntermediate(VSH_XBOX_SHADER         *pShader,
                                   VSH_INTERMEDIATE_FORMAT *pIntermediate,
-                                  uint16                  Pos)
+                                  u16                      Pos)
 {
     VshVerifyBufferBounds(pShader);
 
@@ -953,7 +954,7 @@ static void VshInsertIntermediate(VSH_XBOX_SHADER         *pShader,
 }
 
 static void VshDeleteIntermediate(VSH_XBOX_SHADER *pShader,
-                                  uint16          Pos)
+                                  u16              Pos)
 {
     for (int i = Pos; i < (pShader->IntermediateCount - 1); i++)
     {
@@ -1250,7 +1251,7 @@ static inline void VshSetOutputMask(VSH_IMD_OUTPUT* pOutput,
 */
 static void VshRemoveScreenSpaceInstructions(VSH_XBOX_SHADER *pShader)
 {
-    int16 PosC38    = -1;
+	i16 PosC38    = -1;
     int deleted     = 0;
 
     for (int i = 0; i < pShader->IntermediateCount; i++)
@@ -1517,7 +1518,7 @@ static boolean VshConvertShader(VSH_XBOX_SHADER *pShader,
             i++;
         }
     }
-    int16 R12Replacement = -1;
+	i16 R12Replacement = -1;
     if(RUsage[12])
     {
         // Sigh, they absolutely had to use r12, didn't they?
@@ -2268,7 +2269,7 @@ void XTL::FreeVertexDynamicPatch(CxbxVertexShader *pHostVertexShader)
     pHostVertexShader->VertexShaderDynamicPatch.NbrStreams = 0;
 }
 
-boolean XTL::IsValidCurrentShader(void)
+bool XTL::IsValidCurrentShader(void)
 {
 	// Dxbx addition : There's no need to call
 	// XTL::EmuIDirect3DDevice_GetVertexShader, just check g_CurrentVertexShader :
@@ -2276,7 +2277,7 @@ boolean XTL::IsValidCurrentShader(void)
 }
 
 // Checks for failed vertex shaders, and shaders that would need patching
-boolean XTL::VshHandleIsValidShader(DWORD Handle)
+bool XTL::VshHandleIsValidShader(DWORD Handle)
 {
 	//printf( "VS = 0x%.08X\n", Handle );
 

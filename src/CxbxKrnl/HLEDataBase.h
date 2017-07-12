@@ -7,12 +7,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->HLEDataBase.h
+// *   CxbxKrnl->HLEDataBase.h
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -27,6 +27,7 @@
 // *  59 Temple Place - Suite 330, Bostom, MA 02111-1307, USA.
 // *
 // *  (c) 2002-2003 Aaron Robinson <caustik@caustik.com>
+// *  CopyRight (c) 2016-2017 Patrick van Logchem <pvanlogchem@gmail.com>
 // *
 // *  All rights reserved
 // *
@@ -114,9 +115,9 @@ extern const struct HLEData
 {
     const char *Library;
 
-    uint16      BuildVersion;
+    u16         BuildVersion;
     OOVPATable *OovpaTable;
-    uint32      OovpaTableSize;
+    u32         OovpaTableSize;
 }
 HLEDataBase[];
 
@@ -133,6 +134,7 @@ enum XRefDataBaseOffset
     XREF_D3DDEVICE=0, // initially set to XREF_ADDR_DERIVE
     XREF_SETRENDERSTATE_CULLMODE,
 	XREF_D3DRS_CULLMODE, // initially set to XREF_ADDR_DERIVE
+	XREF_D3DRS_FILLMODE, // initially set to XREF_ADDR_DERIVE
     //XREF_D3DRS_MULTISAMPLEMODE, // Avoid; It replaced to X_D3DRS_MULTISAMPLETYPE around XDK 4361
     XREF_D3DRS_MULTISAMPLERENDERTARGETMODE,
     XREF_D3DRS_ROPZCMPALWAYSREAD,
@@ -140,6 +142,7 @@ enum XRefDataBaseOffset
     XREF_D3DRS_DONOTCULLUNCOMPRESSED,
     XREF_D3DRS_STENCILCULLENABLE,
 	XREF_D3DTSS_TEXCOORDINDEX, // initially set to XREF_ADDR_DERIVE
+	XREF_D3DTSS_BORDERCOLOR, // initially set to XREF_ADDR_DERIVE
 	XREF_G_STREAM, // initially set to XREF_ADDR_DERIVE
 	XREF_OFFSET_D3DDEVICE_M_TEXTURES, // initially set to XREF_ADDR_DERIVE
     XREF_D3DCD_LAZYSETSTATEVB,
@@ -347,7 +350,7 @@ enum XRefDataBaseOffset
 //	XREF_XFreeSectionByHandle,
 
 	XREF_COUNT // XREF_COUNT must always be last.
-	// Also, if XREF_COUNT > sizeof(uint16), enlarge struct OOVPA.XRefSaveIndex (and Value somehow)
+	// Also, if XREF_COUNT > sizeof(u16), enlarge struct OOVPA.XRefSaveIndex (and Value somehow)
 };
 
 #define XREF_ADDR_UNDETERMINED -1

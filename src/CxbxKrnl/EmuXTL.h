@@ -7,12 +7,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuXTL.h
+// *   CxbxKrnl->EmuXTL.h
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -36,7 +36,14 @@
 
 namespace XTL
 {
-    #include "EmuXapi.h"
+	#include "EmuXapi.h"
+}
+
+#include "EmuNV2A.h"
+
+namespace XTL
+{
+	#include "Miniport.h"
     #include "EmuD3D8.h"
     #include "EmuD3D8\Convert.h"
     #include "EmuD3D8\VertexBuffer.h"
@@ -51,6 +58,7 @@ namespace XTL
 	#include "EmuXactEng.h"
 	#include "EmuXInput.h"
 }
+
 
 extern XTL::LPDIRECT3DDEVICE8   g_pD3DDevice8;
 extern DWORD                    g_CurrentVertexShader;

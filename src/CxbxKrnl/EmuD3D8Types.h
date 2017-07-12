@@ -7,12 +7,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuD3D8Types.h
+// *   CxbxKrnl->EmuD3D8Types.h
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -27,6 +27,7 @@
 // *  59 Temple Place - Suite 330, Bostom, MA 02111-1307, USA.
 // *
 // *  (c) 2002-2003 Aaron Robinson <caustik@caustik.com>
+// *  CopyRight (c) 2016-2017 Patrick van Logchem <pvanlogchem@gmail.com>
 // *
 // *  All rights reserved
 // *
@@ -854,6 +855,7 @@ struct X_D3DPixelContainer : public X_D3DResource
 #define X_D3D_RENDER_MEMORY_ALIGNMENT     64
 
 #define X_D3DSURFACE_ALIGNMENT            X_D3D_RENDER_MEMORY_ALIGNMENT
+#define X_D3DPALETTE_ALIGNMENT            X_D3D_RENDER_MEMORY_ALIGNMENT
 #define X_D3DTEXTURE_ALIGNMENT            (2 * X_D3D_RENDER_MEMORY_ALIGNMENT)
 #define X_D3DTEXTURE_CUBEFACE_ALIGNMENT   (2 * X_D3D_RENDER_MEMORY_ALIGNMENT)
 #define X_D3DTEXTURE_PITCH_ALIGNMENT      X_D3D_RENDER_MEMORY_ALIGNMENT

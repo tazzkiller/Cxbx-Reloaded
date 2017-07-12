@@ -214,6 +214,7 @@ $(SOLUTIONDIR)Export.bat</Command>
     <ClInclude Include="..\..\src\CxbxKrnl\EmuKrnlLogging.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuNtDll.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuNV2A.h" />
+    <ClInclude Include="..\..\src\CxbxKrnl\EmuNVNet.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuSha.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuX86.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuXactEng.h" />
@@ -284,6 +285,7 @@ $(SOLUTIONDIR)Export.bat</Command>
     <ClInclude Include="..\..\src\CxbxKrnl\HLEIntercept.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\LibRc4.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\MemoryManager.h" />
+    <ClInclude Include="..\..\src\CxbxKrnl\Miniport.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\nv2a_int.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\OOVPA.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\ReservedMemory.h" />
@@ -423,6 +425,7 @@ $(SOLUTIONDIR)Export.bat</Command>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="..\..\src\CxbxKrnl\Miniport.cpp" />
     <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8\PixelShader.cpp" />
     <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8\PushBuffer.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -502,6 +505,7 @@ $(SOLUTIONDIR)Export.bat</Command>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="..\..\src\CxbxKrnl\EmuNV2A.cpp" />
+    <ClCompile Include="..\..\src\CxbxKrnl\EmuNVNet.cpp" />
     <ClCompile Include="..\..\src\CxbxKrnl\EmuSha.cpp" />
     <ClCompile Include="..\..\src\CxbxKrnl\EmuX86.cpp" />
     <ClCompile Include="..\..\src\CxbxKrnl\EmuXactEng.cpp" />

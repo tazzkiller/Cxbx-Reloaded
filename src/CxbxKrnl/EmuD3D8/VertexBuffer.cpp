@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuD3D8->VertexBuffer.cpp
+// *   CxbxKrnl->EmuD3D8->VertexBuffer.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -30,6 +30,7 @@
 // *
 // *  (c) 2002-2004 Aaron Robinson <caustik@caustik.com>
 // *                Kingofc <kingofc@freenet.de>
+// *  CopyRight (c) 2016-2017 Patrick van Logchem <pvanlogchem@gmail.com>
 // *
 // *  All rights reserved
 // *
@@ -687,7 +688,7 @@ VOID XTL::EmuFlushIVB()
 	XTL::DxbxUpdateDeferredStates();
 
     // Parse IVB table with current FVF shader if possible.
-    boolean bFVF = VshHandleIsFVF(g_CurrentVertexShader);
+    bool bFVF = VshHandleIsFVF(g_CurrentVertexShader);
     DWORD dwCurFVF;
     if (bFVF && ((g_CurrentVertexShader & D3DFVF_POSITION_MASK) != D3DFVF_XYZRHW)) {
         dwCurFVF = g_CurrentVertexShader;

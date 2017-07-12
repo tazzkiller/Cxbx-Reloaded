@@ -7,12 +7,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   CxbxKrnl->HLEDataBase->Xapi.1.0.3911.h
+// *   Cxbx->Win32->CxbxKrnl->EmuNVNet.h
 // *
-// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
+// *  This file is part of the Cxbx project.
 // *
-// *  Cxbx-Reloaded is free software; you can redistribute it
-// *  and/or modify it under the terms of the GNU General Public
+// *  Cxbx and Cxbe are free software; you can redistribute them
+// *  and/or modify them under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -27,16 +27,17 @@
 // *  59 Temple Place - Suite 330, Bostom, MA 02111-1307, USA.
 // *
 // *  (c) 2002-2003 Aaron Robinson <caustik@caustik.com>
-// *
+// *  (c) 2017 Luke Usher <luke.usher@outlook.com>
 // *  All rights reserved
 // *
 // ******************************************************************
-#ifndef XAPI_3911_H
-#define XAPI_3911_H
+#ifndef EMUNVNET_H
+#define EMUNVNET_H
 
-#include "OOVPA.h"
+#define NVNET_ADDR  0xFEF00000 
+#define NVNET_SIZE  0x00000400
 
-extern OOVPATable   XAPI_3911[];
-extern uint32       XAPI_3911_SIZE;
+uint32_t EmuNVNet_Read(xbaddr addr, int size);
+void EmuNVNet_Write(xbaddr addr, uint32_t value, int size);
 
 #endif

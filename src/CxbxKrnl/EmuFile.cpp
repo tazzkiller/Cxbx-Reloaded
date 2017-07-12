@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuFile.cpp
+// *   CxbxKrnl->EmuFile.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -439,6 +439,14 @@ NTSTATUS EmuNtSymbolicLinkObject::Init(std::string aSymbolicLinkName, std::strin
 		{
 			// Look up the partition in the list of pre-registered devices :
 			result = STATUS_DEVICE_DOES_NOT_EXIST; // TODO : Is this the correct error?
+
+			// If aFullPath starts with a Drive letter, find the originating path and substitute that
+			if (aFullPath[1] == ':' && aFullPath[0] >= 'A' && aFullPath[0] <= 'Z') {
+				EmuNtSymbolicLinkObject* DriveLetterLink = FindNtSymbolicLinkObjectByDriveLetter(aFullPath[0]);
+				if (DriveLetterLink != NULL) {
+					aFullPath = DriveLetterLink->XboxSymbolicLinkPath;
+				}
+			}
 
  		    // Make a distinction between Xbox paths (starting with '\Device'...) and host paths :
 			IsHostBasedPath = _strnicmp(aFullPath.c_str(), DevicePrefix.c_str(), DevicePrefix.length()) != 0;

@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuKrnlHal.cpp
+// *   CxbxKrnl->EmuKrnlHal.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -29,7 +29,7 @@
 // *  59 Temple Place - Suite 330, Bostom, MA 02111-1307, USA.
 // *
 // *  (c) 2002-2003 Aaron Robinson <caustik@caustik.com>
-// *  (c) 2016 Patrick van Logchem <pvanlogchem@gmail.com>
+// *  CopyRight (c) 2016-2017 Patrick van Logchem <pvanlogchem@gmail.com>
 // *
 // *  All rights reserved
 // *
@@ -139,7 +139,7 @@ XBSYSAPI EXPORTNUM(42) xboxkrnl::PANSI_STRING xboxkrnl::HalDiskSerialNumber = 0;
 // ******************************************************************
 // * 0x002B - HalEnableSystemInterrupt()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(43) xboxkrnl::BOOLEAN NTAPI xboxkrnl::HalEnableSystemInterrupt
+XBSYSAPI EXPORTNUM(43) xboxkrnl::VOID NTAPI xboxkrnl::HalEnableSystemInterrupt
 (
 	IN ULONG BusInterruptLevel,
 	IN KINTERRUPT_MODE InterruptMode
@@ -151,8 +151,6 @@ XBSYSAPI EXPORTNUM(43) xboxkrnl::BOOLEAN NTAPI xboxkrnl::HalEnableSystemInterrup
 		LOG_FUNC_END;
 
 	LOG_UNIMPLEMENTED(); // TODO : Once thread-switching works, make system interrupts work too
-
-	RETURN(FALSE);
 }
 
 #ifdef _DEBUG_TRACE
@@ -375,7 +373,7 @@ XBSYSAPI EXPORTNUM(46) xboxkrnl::VOID NTAPI xboxkrnl::HalReadWritePCISpace
 // ******************************************************************
 // * 0x002F - HalRegisterShutdownNotification()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(47) xboxkrnl::VOID xboxkrnl::HalRegisterShutdownNotification
+XBSYSAPI EXPORTNUM(47) xboxkrnl::VOID NTAPI xboxkrnl::HalRegisterShutdownNotification
 (
 	IN PHAL_SHUTDOWN_REGISTRATION ShutdownRegistration,
 	IN BOOLEAN Register
@@ -406,7 +404,7 @@ XBSYSAPI EXPORTNUM(48) xboxkrnl::VOID FASTCALL xboxkrnl::HalRequestSoftwareInter
 // ******************************************************************
 // * 0x0031 - HalReturnToFirmware()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(49) xboxkrnl::VOID DECLSPEC_NORETURN xboxkrnl::HalReturnToFirmware
+XBSYSAPI EXPORTNUM(49) xboxkrnl::VOID DECLSPEC_NORETURN NTAPI xboxkrnl::HalReturnToFirmware
 (
 	RETURN_FIRMWARE Routine
 )

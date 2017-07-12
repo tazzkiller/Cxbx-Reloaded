@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->CxbxKrnl.cpp
+// *   CxbxKrnl->CxbxKrnl.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -54,12 +54,13 @@ namespace xboxkrnl
 #include "EmuNV2A.h" // For InitOpenGLContext
 #include "HLEIntercept.h"
 #include "ReservedMemory.h" // For virtual_memory_placeholder
-#include "MemoryManager.h"
+#include "MemoryManager.h" // For g_MemoryManager
 
 #include <shlobj.h>
 #include <clocale>
 #include <Shlwapi.h>
 #include <time.h> // For time()
+#include <assert.h> // For assert()
 
 /* prevent name collisions */
 namespace NtDll
@@ -676,12 +677,27 @@ void CxbxKrnlInit
 #ifdef _DEBUG_TRACE
 	// VerifyHLEDataBase();
 #endif
+	// Reserve the first contiguous memory page, as the NV2A will bootstrap from there
+	void *PageZero = g_MemoryManager.AllocateContiguous(PAGE_SIZE, PAGE_SIZE);
+	printf("[0x%X] EmuMain: Allocated NV2A page zero at 0x%.08X\n", GetCurrentThreadId(), PageZero);
+
+	// Reserve a block of 'filler' memory, to end up at XBOX_KERNEL_BASE
+	const int FillerSize = XBE_IMAGE_BASE - PAGE_SIZE;
+	void *Filler = g_MemoryManager.AllocateContiguous(FillerSize, PAGE_SIZE);
+
+	// Allocate space for a fake kernel at XBOX_KERNEL_BASE
+	void *KernelBase = g_MemoryManager.AllocateContiguous(sizeof(DUMMY_KERNEL), PAGE_SIZE);
+	printf("[0x%X] EmuMain: Allocated dummy kernel image at 0x%.08X\n", GetCurrentThreadId(), KernelBase);
+
+	assert((intptr_t)KernelBase == XBOX_KERNEL_BASE);
+	assert(((intptr_t)KernelBase - (intptr_t)PageZero) == XBE_IMAGE_BASE);
+
 	// TODO : The following seems to cause a crash when booting the game "Forza Motorsport",
 	// according to https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/issues/101#issuecomment-277230140
 	{
 		// Create a fake kernel header for XapiRestrictCodeSelectorLimit
 		// Thanks advancingdragon / DirtBox
-		PDUMMY_KERNEL DummyKernel = (PDUMMY_KERNEL)XBOX_KERNEL_BASE;
+		PDUMMY_KERNEL DummyKernel = (PDUMMY_KERNEL)KernelBase;
 		memset(DummyKernel, 0, sizeof(DUMMY_KERNEL));
 
 		// XapiRestrictCodeSelectorLimit only checks these fields.
@@ -690,6 +706,7 @@ void CxbxKrnlInit
 		DummyKernel->FileHeader.NumberOfSections = 1;
 		// as long as this doesn't start with "INIT"
 		strncpy_s((PSTR)DummyKernel->SectionHeader.Name, 8, "DONGS", 8);
+		printf("[0x%X] EmuMain: Initialized dummy kernel image header.\n", GetCurrentThreadId());
 	}
 
 	// Read which components need to be LLE'ed :
@@ -699,15 +716,15 @@ void CxbxKrnlInit
 
 		bLLE_APU = (CxbxLLE_Flags & LLE_APU) > 0;
 		if (bLLE_APU)
-			printf("EmuMain : LLE enabled for APU.\n");
+			printf("[0x%X] EmuMain : LLE enabled for APU.\n", GetCurrentThreadId());
 
 		bLLE_GPU = (CxbxLLE_Flags & LLE_GPU) > 0;
 		if (bLLE_GPU)
-			printf("EmuMain : LLE enabled for GPU.\n");
+			printf("[0x%X] EmuMain : LLE enabled for GPU.\n", GetCurrentThreadId());
 
 		bLLE_JIT = (CxbxLLE_Flags & LLE_JIT) > 0;
 		if (bLLE_JIT)
-			printf("EmuMain : LLE enabled for JIT.\n");
+			printf("[0x%X] EmuMain : LLE enabled for JIT.\n", GetCurrentThreadId());
 	}
 
 	// Process XInput Enabled flag
@@ -716,10 +733,10 @@ void CxbxKrnlInit
 		g_EmuShared->GetXInputEnabled(&XInputEnabled);
 		if (XInputEnabled) {
 			g_XInputEnabled = true;
-			printf("EmuMain : Using XInput\n");
+			printf("[0x%X] EmuMain : Using XInput\n", GetCurrentThreadId());
 		} else {
 			g_XInputEnabled = false;
-			printf("EmuMain : Using DirectInput\n");
+			printf("[0x%X] EmuMain : Using DirectInput\n", GetCurrentThreadId());
 		}
 	}
 
@@ -787,23 +804,23 @@ void CxbxKrnlInit
 		xboxkrnl::XeImageFileName.Buffer = (PCHAR)g_MemoryManager.Allocate(MAX_PATH);
 		sprintf(xboxkrnl::XeImageFileName.Buffer, "%c:\\%s", CxbxDefaultXbeDriveLetter, fileName.c_str());
 		xboxkrnl::XeImageFileName.Length = (USHORT)strlen(xboxkrnl::XeImageFileName.Buffer);
-		printf("EmuMain : XeImageFileName = %s\n", xboxkrnl::XeImageFileName.Buffer);
+		printf("[0x%X] EmuMain : XeImageFileName = %s\n", GetCurrentThreadId(), xboxkrnl::XeImageFileName.Buffer);
 	}
 
 	// Dump Xbe information
 	{
 		// Dump Xbe certificate
 		if (g_pCertificate != NULL) {
-			printf("EmuMain : XBE TitleID : %p\n", g_pCertificate->dwTitleId);
-			printf("EmuMain : XBE TitleName : %ls\n", g_pCertificate->wszTitleName);
-			printf("EmuMain : XBE Region : %s\n", GameRegionToString(g_pCertificate->dwGameRegion));
+			printf("[0x%X] EmuMain : XBE TitleID : %p\n", GetCurrentThreadId(), g_pCertificate->dwTitleId);
+			printf("[0x%X] EmuMain : XBE TitleName : %ls\n", GetCurrentThreadId(), g_pCertificate->wszTitleName);
+			printf("[0x%X] EmuMain : XBE Region : %s\n", GetCurrentThreadId(), GameRegionToString(g_pCertificate->dwGameRegion));
 		}
 
 		// Dump Xbe library build numbers
 		Xbe::LibraryVersion* libVersionInfo = pLibraryVersion;// (LibraryVersion *)(CxbxKrnl_XbeHeader->dwLibraryVersionsAddr);
 		if (libVersionInfo != NULL) {
 			for (uint32 v = 0; v < CxbxKrnl_XbeHeader->dwLibraryVersions; v++) {
-				printf("EmuMain : XBE Library %d : %.8s (version %d)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
+				printf("[0x%X] EmuMain : XBE Library %d : %.8s (version %d)\n", GetCurrentThreadId(), v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
 				libVersionInfo++;
 			}
 		}
@@ -876,9 +893,9 @@ void CxbxKrnlInit
 	}
 
 	EmuX86_Init();
-    DbgPrintf("EmuMain: Initial thread starting.\n");
+    DbgPrintf("EmuMain: Calling XBE entry point...\n");
 	CxbxLaunchXbe(Entry);
-    DbgPrintf("EmuMain: Initial thread ended.\n");
+    DbgPrintf("EmuMain: XBE entry point returned\n");
     fflush(stdout);
 	EmuShared::Cleanup();
     CxbxKrnlTerminateThread();

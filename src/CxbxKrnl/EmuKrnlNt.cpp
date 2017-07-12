@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuKrnlNt.cpp
+// *   CxbxKrnl->EmuKrnlNt.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -29,7 +29,7 @@
 // *  59 Temple Place - Suite 330, Bostom, MA 02111-1307, USA.
 // *
 // *  (c) 2002-2003 Aaron Robinson <caustik@caustik.com>
-// *  (c) 2016 Patrick van Logchem <pvanlogchem@gmail.com>
+// *  CopyRight (c) 2016-2017 Patrick van Logchem <pvanlogchem@gmail.com>
 // *
 // *  All rights reserved
 // *
@@ -383,6 +383,26 @@ XBSYSAPI EXPORTNUM(190) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtCreateFile
 		CreateDisposition,
 		CreateOptions,
 		0);
+}
+
+XBSYSAPI EXPORTNUM(191) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtCreateIoCompletion
+(
+	OUT PHANDLE IoCompletionHandle,
+	IN ACCESS_MASK DesiredAccess,
+	IN POBJECT_ATTRIBUTES ObjectAttributes,
+	IN ULONG Count
+)
+{
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG_OUT(IoCompletionHandle)
+		LOG_FUNC_ARG(DesiredAccess)
+		LOG_FUNC_ARG(ObjectAttributes)
+		LOG_FUNC_ARG(Count)
+	LOG_FUNC_END;
+
+	LOG_UNIMPLEMENTED();
+
+	RETURN(STATUS_NOT_IMPLEMENTED);
 }
 
 // ******************************************************************
@@ -1678,7 +1698,7 @@ XBSYSAPI EXPORTNUM(228) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtSetSystemTime
 // ******************************************************************
 // * 0x00E5 - NtSetTimerEx()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(229) xboxkrnl::NTSTATUS xboxkrnl::NtSetTimerEx
+XBSYSAPI EXPORTNUM(229) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtSetTimerEx
 (
 	IN HANDLE TimerHandle,
 	IN PLARGE_INTEGER DueTime,

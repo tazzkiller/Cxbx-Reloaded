@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuD3D8->Convert.cpp
+// *   CxbxKrnl->EmuD3D8->Convert.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -30,6 +30,7 @@
 // *
 // *  (c) 2002-2004 Aaron Robinson <caustik@caustik.com>
 // *                Kingofc <kingofc@freenet.de>
+// *  CopyRight (c) 2016-2017 Patrick van Logchem <pvanlogchem@gmail.com>
 // *
 // *  All rights reserved
 // *
@@ -1471,7 +1472,7 @@ XTL::X_D3DRENDERSTATETYPE XTL::DxbxXboxMethodToRenderState(const NV2AMETHOD aMet
 	// TODO : The list below is incomplete - use DxbxRenderStateInfo to complete this.
 
 	// Dxbx note : Let the compiler sort this out, should be much quicker :
-	switch (aMethod & NV2A_METHOD_MASK)
+	switch (PUSH_METHOD(aMethod))
 	{
 	// case /*0x00000100*/NV2A_NOP: return X_D3DRS_PS_RESERVED; // XDK 3424 uses 0x00000100 (NOP), while 3911 onwards uses 0x00001d90 (SET_COLOR_CLEAR_VALUE)
 	// Actually, NV2A_NOP is (ab)used as a callback mechanism by InsertCallback, with one argument :

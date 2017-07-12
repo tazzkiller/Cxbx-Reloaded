@@ -7,12 +7,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->CxbxKrnl.h
+// *   CxbxKrnl->CxbxKrnl.h
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -60,9 +60,6 @@ extern "C" {
 #define TIB_ArbitraryDataSlot 0x14
 #define TIB_LinearSelfAddress 0x18
 
-/*! xbaddr is the type of a physical address */
-typedef uint32 xbaddr;
-
 #define XBADDR_BITS 32
 #define XBADDR_MAX UINT32_MAX
 
@@ -71,7 +68,7 @@ typedef uint32 xbaddr;
 
 // Define virtual base addresses for physical memory windows.
 #define MM_SYSTEM_PHYSICAL_MAP      KSEG0_BASE
-#define MM_HIGHEST_PHYSICAL_PAGE    0x07FFF
+#define MM_HIGHEST_PHYSICAL_PAGE    0x03FFF // DEVKIT should use 0x07FFF for 128 MB
 #define MM_64M_PHYSICAL_PAGE        0x04000
 #define MM_INSTANCE_PHYSICAL_PAGE   0x03FE0 // Chihiro arcade should use 0x07FF0
 #define MM_INSTANCE_PAGE_COUNT      16
@@ -157,7 +154,7 @@ void CxbxRestorePersistentMemoryRegions();
 void ConnectWindowsTimersToThunkTable();
 
 /*! kernel thunk table */
-extern uint32 CxbxKrnl_KernelThunkTable[379];
+extern xbaddr CxbxKrnl_KernelThunkTable[379];
 
 /*! thread local storage structure */
 extern Xbe::TLS *CxbxKrnl_TLS;

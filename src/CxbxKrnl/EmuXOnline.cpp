@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuXOnline.cpp
+// *   CxbxKrnl->EmuXOnline.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -88,21 +88,6 @@ INT WINAPI XTL::EMUPATCH(XNetStartup)
 
 	// Fake Successfull...hehehe...sucker...hehehehehe
 	INT ret = 0;
-
-	RETURN(ret);
-}
-
-// ******************************************************************
-// * patch: XNetGetEthernetLinkStatus
-// ******************************************************************
-DWORD WINAPI XTL::EMUPATCH(XNetGetEthernetLinkStatus)()
-{
-	FUNC_EXPORTS
-
-	LOG_FUNC();
-
-	// for now, no ethernet connection is available
-	DWORD ret = XNET_ETHERNET_LINK_ACTIVE | XNET_ETHERNET_LINK_100MBPS;
 
 	RETURN(ret);
 }

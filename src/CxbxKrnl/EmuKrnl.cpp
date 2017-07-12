@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuKrnl.cpp
+// *   CxbxKrnl->EmuKrnl.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -50,6 +50,7 @@ namespace xboxkrnl
 #include "Logging.h"
 #include "EmuKrnlLogging.h"
 #include "CxbxKrnl.h"
+#include "EmuXTL.h"
 
 // prevent name collisions
 namespace NtDll
@@ -344,16 +345,14 @@ XBSYSAPI EXPORTNUM(163) xboxkrnl::VOID FASTCALL xboxkrnl::KiUnlockDispatcherData
 // ******************************************************************
 // * 0x00FC - PhyGetLinkState()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(252) xboxkrnl::NTSTATUS NTAPI xboxkrnl::PhyGetLinkState
+XBSYSAPI EXPORTNUM(252) xboxkrnl::DWORD NTAPI xboxkrnl::PhyGetLinkState
 (
 	IN ULONG	Mode
 )
 {
 	LOG_FUNC_ONE_ARG(Mode);
 
-	LOG_UNIMPLEMENTED();
-
-	RETURN(S_OK);
+	return XNET_ETHERNET_LINK_ACTIVE | XNET_ETHERNET_LINK_100MBPS | XNET_ETHERNET_LINK_FULL_DUPLEX;
 }
 
 // ******************************************************************

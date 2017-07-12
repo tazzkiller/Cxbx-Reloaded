@@ -7,12 +7,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->DSound.1.0.5233.cpp
+// *   CxbxKrnl->HLEDataBase->DSound.1.0.5233.inl
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -371,6 +371,8 @@ OOVPATable DSound_5233[] = {
 	REGISTER_OOVPA(CDirectSoundBuffer_SetMixBins, 4134, XREF),
 	REGISTER_OOVPA(IDirectSoundBuffer_SetMixBins, 4134, PATCH),
 	REGISTER_OOVPA(CDirectSoundStream_SetMixBins, 5233, PATCH),
+	REGISTER_OOVPA(CDirectSound_SetMixBinHeadroom, 4627, XREF),
+	REGISTER_OOVPA(IDirectSound_SetMixBinHeadroom, 4627, PATCH),
 	REGISTER_OOVPA(CDirectSound_SetPositionA, 4627, XREF),
 	REGISTER_OOVPA(IDirectSound_SetPosition, 3936, PATCH),
 	REGISTER_OOVPA(DirectSoundCreateBuffer, 4627, PATCH),
@@ -449,6 +451,8 @@ OOVPATable DSound_5233[] = {
 	REGISTER_OOVPA(CDirectSoundVoice_SetDistanceFactor, 4134, XREF),
 	REGISTER_OOVPA(CDirectSoundBuffer_SetDistanceFactor, 4134, XREF),
 	REGISTER_OOVPA(IDirectSoundBuffer_SetDistanceFactor, 4134, PATCH),
+	REGISTER_OOVPA(CDirectSoundBuffer_SetNotificationPositions, 4627, XREF),
+	REGISTER_OOVPA(IDirectSoundBuffer_SetNotificationPositions, 4627, PATCH)
 };
 
 // ******************************************************************

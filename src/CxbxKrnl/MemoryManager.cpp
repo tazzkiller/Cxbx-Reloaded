@@ -9,12 +9,12 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->MemoryManager.cpp
+// *   CxbxKrnl->MemoryManager.cpp
 // *
-// *  This file is part of the Cxbx project.
+// *  This file is part of the Cxbx-Reloaded project, a fork of Cxbx.
 // *
-// *  Cxbx and Cxbe are free software; you can redistribute them
-// *  and/or modify them under the terms of the GNU General Public
+// *  Cxbx-Reloaded is free software; you can redistribute it
+// *  and/or modify it under the terms of the GNU General Public
 // *  License as published by the Free Software Foundation; either
 // *  version 2 of the license, or (at your option) any later version.
 // *
@@ -144,8 +144,8 @@ void* MemoryManager::AllocateContiguous(size_t size, size_t alignment)
 	EnterCriticalSection(&m_CriticalSection);
 	// Is the contiguous allocation table empty?
 	if (m_ContiguousMemoryBlocks.size() == 0) {
-		// Start allocating Contiguous Memory after the Kernel image header to prevent overwriting our dummy Kernel
-		addr = XBOX_KERNEL_BASE + sizeof(DUMMY_KERNEL);
+		// Start allocating Contiguous Memory at 0x80000000
+		addr = MM_SYSTEM_PHYSICAL_MAP;
 		addr = (addr + alignMask) & ~alignMask;
 	} else {
 		// Locate the first available Memory Region with enough space for the requested buffer
