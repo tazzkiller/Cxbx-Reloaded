@@ -146,11 +146,11 @@ Xbe::Xbe(const char *x_szFilename)
 
         for(uint32 v=0;v<m_Header.dwSections;v++)
         {
-            printf("Xbe::Xbe: Reading Section Header 0x%.04X...", v);
+            printf("Xbe::Xbe: Reading Section Header 0x%.4X...", v);
 
             if(fread(&m_SectionHeader[v], sizeof(*m_SectionHeader), 1, XbeFile) != 1)
             {
-                sprintf(szBuffer, "Unexpected end of file while reading Xbe Section Header %d (%Xh)", v, v);
+                sprintf(szBuffer, "Unexpected end of file while reading Xbe Section Header %d (0x%X)", v, v);
                 SetFatalError(szBuffer);
                 goto cleanup;
             }
@@ -166,7 +166,7 @@ Xbe::Xbe(const char *x_szFilename)
         m_szSectionName = new char[m_Header.dwSections][9];
         for(uint32 v=0;v<m_Header.dwSections;v++)
         {
-            printf("Xbe::Xbe: Reading Section Name 0x%.04X...", v);
+            printf("Xbe::Xbe: Reading Section Name 0x%.4X...", v);
 
             uint08 *sn = GetAddr(m_SectionHeader[v].dwSectionNameAddr);
 
@@ -198,11 +198,11 @@ Xbe::Xbe(const char *x_szFilename)
 
         for(uint32 v=0;v<m_Header.dwLibraryVersions;v++)
         {
-            printf("Xbe::Xbe: Reading Library Version 0x%.04X...", v);
+            printf("Xbe::Xbe: Reading Library Version 0x%.4X...", v);
 
             if(fread(&m_LibraryVersion[v], sizeof(*m_LibraryVersion), 1, XbeFile) != 1)
             {
-                sprintf(szBuffer, "Unexpected end of file while reading Xbe Library Version %d (%Xh)", v, v);
+                sprintf(szBuffer, "Unexpected end of file while reading Xbe Library Version %d (0x%X)", v, v);
                 SetFatalError(szBuffer);
                 goto cleanup;
             }
@@ -267,7 +267,7 @@ Xbe::Xbe(const char *x_szFilename)
 
         for(uint32 v=0;v<m_Header.dwSections;v++)
         {
-            printf("Xbe::Xbe: Reading Section 0x%.04X...", v);
+            printf("Xbe::Xbe: Reading Section 0x%.4X...", v);
 
             uint32 RawSize = m_SectionHeader[v].dwSizeofRaw;
             uint32 RawAddr = m_SectionHeader[v].dwRawAddr;
@@ -284,7 +284,7 @@ Xbe::Xbe(const char *x_szFilename)
 
             if(fread(m_bzSection[v], RawSize, 1, XbeFile) != 1)
             {
-                sprintf(szBuffer, "Unexpected end of file while reading Xbe Section %d (%Xh) (%s)", v, v, m_szSectionName[v]);
+                sprintf(szBuffer, "Unexpected end of file while reading Xbe Section %d (0x%X) (%s)", v, v, m_szSectionName[v]);
                 SetFatalError(szBuffer);
                 goto cleanup;
             }
@@ -413,11 +413,11 @@ void Xbe::Export(const char *x_szXbeFilename)
 
         for(uint32 v=0;v<m_Header.dwSections;v++)
         {
-            printf("Xbe::Export: Writing Section Header 0x%.04X...", v);
+            printf("Xbe::Export: Writing Section Header 0x%.4X...", v);
 
             if(fwrite(&m_SectionHeader[v], sizeof(*m_SectionHeader), 1, XbeFile) != 1)
             {
-                sprintf(szBuffer, "Unexpected write error while writing Xbe Section %d (%Xh)", v, v);
+                sprintf(szBuffer, "Unexpected write error while writing Xbe Section %d (0x%X)", v, v);
                 SetError(szBuffer);
                 goto cleanup;
             }
@@ -432,7 +432,7 @@ void Xbe::Export(const char *x_szXbeFilename)
 
         for(uint32 v=0;v<m_Header.dwSections;v++)
         {
-            printf("Xbe::Export: Writing Section 0x%.04X (%s)...", v, m_szSectionName[v]);
+            printf("Xbe::Export: Writing Section 0x%.4X (%s)...", v, m_szSectionName[v]);
 
             uint32 RawSize = m_SectionHeader[v].dwSizeofRaw;
             uint32 RawAddr = m_SectionHeader[v].dwRawAddr;
@@ -447,7 +447,7 @@ void Xbe::Export(const char *x_szXbeFilename)
 
             if(fwrite(m_bzSection[v], RawSize, 1, XbeFile) != 1)
             {
-                sprintf(szBuffer, "Unexpected write error while writing Xbe Section %d (%Xh) (%s)", v, v, m_szSectionName[v]);
+                sprintf(szBuffer, "Unexpected write error while writing Xbe Section %d (0x%X) (%s)", v, v, m_szSectionName[v]);
                 SetError(szBuffer);
                 goto cleanup;
             }
@@ -545,23 +545,23 @@ void Xbe::DumpInformation(FILE *x_file)
         {
             fprintf(x_file, "\n                                   ");
             for(int x=0;x<16;x++)
-                fprintf(x_file, "%.02X", m_Header.pbDigitalSignature[y*16+x]);
+                fprintf(x_file, "%.2X", m_Header.pbDigitalSignature[y*16+x]);
         }
         fprintf(x_file, "\n                                   </Hex Dump>\n");
     }
 
-    fprintf(x_file, "Base Address                     : 0x%.08X\n", m_Header.dwBaseAddr);
-    fprintf(x_file, "Size of Headers                  : 0x%.08X\n", m_Header.dwSizeofHeaders);
-    fprintf(x_file, "Size of Image                    : 0x%.08X\n", m_Header.dwSizeofImage);
-    fprintf(x_file, "Size of Image Header             : 0x%.08X\n", m_Header.dwSizeofImageHeader);
-    fprintf(x_file, "TimeDate Stamp                   : 0x%.08X (%s)\n", m_Header.dwTimeDate, BetterTime(m_Header.dwTimeDate));
-    fprintf(x_file, "Certificate Address              : 0x%.08X\n", m_Header.dwCertificateAddr);
-    fprintf(x_file, "Number of Sections               : 0x%.08X\n", m_Header.dwSections);
-    fprintf(x_file, "Section Headers Address          : 0x%.08X\n", m_Header.dwSectionHeadersAddr);
+    fprintf(x_file, "Base Address                     : 0x%.8X\n", m_Header.dwBaseAddr);
+    fprintf(x_file, "Size of Headers                  : 0x%.8X\n", m_Header.dwSizeofHeaders);
+    fprintf(x_file, "Size of Image                    : 0x%.8X\n", m_Header.dwSizeofImage);
+    fprintf(x_file, "Size of Image Header             : 0x%.8X\n", m_Header.dwSizeofImageHeader);
+    fprintf(x_file, "TimeDate Stamp                   : 0x%.8X (%s)\n", m_Header.dwTimeDate, BetterTime(m_Header.dwTimeDate));
+    fprintf(x_file, "Certificate Address              : 0x%.8X\n", m_Header.dwCertificateAddr);
+    fprintf(x_file, "Number of Sections               : 0x%.8X\n", m_Header.dwSections);
+    fprintf(x_file, "Section Headers Address          : 0x%.8X\n", m_Header.dwSectionHeadersAddr);
 
     // print init flags
     {
-        fprintf(x_file, "Init Flags                       : 0x%.08X ", m_Header.dwInitFlags.bMountUtilityDrive);
+        fprintf(x_file, "Init Flags                       : 0x%.8X ", m_Header.dwInitFlags.bMountUtilityDrive);
 
         if(m_Header.dwInitFlags.bMountUtilityDrive)
             fprintf(x_file, "[Mount Utility Drive] ");
@@ -589,32 +589,32 @@ void Xbe::DumpInformation(FILE *x_file)
     else
         AsciiFilename[0] = '\0';
 
-    fprintf(x_file, "Entry Point                      : 0x%.08X (Retail: 0x%.08X, Debug: 0x%.08X)\n", m_Header.dwEntryAddr, m_Header.dwEntryAddr ^ XOR_EP_RETAIL, m_Header.dwEntryAddr ^ XOR_EP_DEBUG);
-    fprintf(x_file, "TLS Address                      : 0x%.08X\n", m_Header.dwTLSAddr);
-    fprintf(x_file, "(PE) Stack Commit                : 0x%.08X\n", m_Header.dwPeStackCommit);
-    fprintf(x_file, "(PE) Heap Reserve                : 0x%.08X\n", m_Header.dwPeHeapReserve);
-    fprintf(x_file, "(PE) Heap Commit                 : 0x%.08X\n", m_Header.dwPeHeapCommit);
-    fprintf(x_file, "(PE) Base Address                : 0x%.08X\n", m_Header.dwPeBaseAddr);
-    fprintf(x_file, "(PE) Size of Image               : 0x%.08X\n", m_Header.dwPeSizeofImage);
-    fprintf(x_file, "(PE) Checksum                    : 0x%.08X\n", m_Header.dwPeChecksum);
-    fprintf(x_file, "(PE) TimeDate Stamp              : 0x%.08X (%s)\n", m_Header.dwPeTimeDate, BetterTime(m_Header.dwPeTimeDate));
-    fprintf(x_file, "Debug Pathname Address           : 0x%.08X (\"%s\")\n", m_Header.dwDebugPathnameAddr, GetAddr(m_Header.dwDebugPathnameAddr));
-    fprintf(x_file, "Debug Filename Address           : 0x%.08X (\"%s\")\n", m_Header.dwDebugFilenameAddr, GetAddr(m_Header.dwDebugFilenameAddr));
-    fprintf(x_file, "Debug Unicode filename Address   : 0x%.08X (L\"%s\")\n", m_Header.dwDebugUnicodeFilenameAddr, AsciiFilename);
-    fprintf(x_file, "Kernel Image Thunk Address       : 0x%.08X (Retail: 0x%.08X, Debug: 0x%.08X)\n", m_Header.dwKernelImageThunkAddr, m_Header.dwKernelImageThunkAddr ^ XOR_KT_RETAIL, m_Header.dwKernelImageThunkAddr ^ XOR_KT_DEBUG);
-    fprintf(x_file, "NonKernel Import Dir Address     : 0x%.08X\n", m_Header.dwNonKernelImportDirAddr);
-    fprintf(x_file, "Library Versions                 : 0x%.08X\n", m_Header.dwLibraryVersions);
-    fprintf(x_file, "Library Versions Address         : 0x%.08X\n", m_Header.dwLibraryVersionsAddr);
-    fprintf(x_file, "Kernel Library Version Address   : 0x%.08X\n", m_Header.dwKernelLibraryVersionAddr);
-    fprintf(x_file, "XAPI Library Version Address     : 0x%.08X\n", m_Header.dwXAPILibraryVersionAddr);
-    fprintf(x_file, "Logo Bitmap Address              : 0x%.08X\n", m_Header.dwLogoBitmapAddr);
-    fprintf(x_file, "Logo Bitmap Size                 : 0x%.08X\n", m_Header.dwSizeofLogoBitmap);
+    fprintf(x_file, "Entry Point                      : 0x%.8X (Retail: 0x%.8X, Debug: 0x%.8X)\n", m_Header.dwEntryAddr, m_Header.dwEntryAddr ^ XOR_EP_RETAIL, m_Header.dwEntryAddr ^ XOR_EP_DEBUG);
+    fprintf(x_file, "TLS Address                      : 0x%.8X\n", m_Header.dwTLSAddr);
+    fprintf(x_file, "(PE) Stack Commit                : 0x%.8X\n", m_Header.dwPeStackCommit);
+    fprintf(x_file, "(PE) Heap Reserve                : 0x%.8X\n", m_Header.dwPeHeapReserve);
+    fprintf(x_file, "(PE) Heap Commit                 : 0x%.8X\n", m_Header.dwPeHeapCommit);
+    fprintf(x_file, "(PE) Base Address                : 0x%.8X\n", m_Header.dwPeBaseAddr);
+    fprintf(x_file, "(PE) Size of Image               : 0x%.8X\n", m_Header.dwPeSizeofImage);
+    fprintf(x_file, "(PE) Checksum                    : 0x%.8X\n", m_Header.dwPeChecksum);
+    fprintf(x_file, "(PE) TimeDate Stamp              : 0x%.8X (%s)\n", m_Header.dwPeTimeDate, BetterTime(m_Header.dwPeTimeDate));
+    fprintf(x_file, "Debug Pathname Address           : 0x%.8X (\"%s\")\n", m_Header.dwDebugPathnameAddr, GetAddr(m_Header.dwDebugPathnameAddr));
+    fprintf(x_file, "Debug Filename Address           : 0x%.8X (\"%s\")\n", m_Header.dwDebugFilenameAddr, GetAddr(m_Header.dwDebugFilenameAddr));
+    fprintf(x_file, "Debug Unicode filename Address   : 0x%.8X (L\"%s\")\n", m_Header.dwDebugUnicodeFilenameAddr, AsciiFilename);
+    fprintf(x_file, "Kernel Image Thunk Address       : 0x%.8X (Retail: 0x%.8X, Debug: 0x%.8X)\n", m_Header.dwKernelImageThunkAddr, m_Header.dwKernelImageThunkAddr ^ XOR_KT_RETAIL, m_Header.dwKernelImageThunkAddr ^ XOR_KT_DEBUG);
+    fprintf(x_file, "NonKernel Import Dir Address     : 0x%.8X\n", m_Header.dwNonKernelImportDirAddr);
+    fprintf(x_file, "Library Versions                 : 0x%.8X\n", m_Header.dwLibraryVersions);
+    fprintf(x_file, "Library Versions Address         : 0x%.8X\n", m_Header.dwLibraryVersionsAddr);
+    fprintf(x_file, "Kernel Library Version Address   : 0x%.8X\n", m_Header.dwKernelLibraryVersionAddr);
+    fprintf(x_file, "XAPI Library Version Address     : 0x%.8X\n", m_Header.dwXAPILibraryVersionAddr);
+    fprintf(x_file, "Logo Bitmap Address              : 0x%.8X\n", m_Header.dwLogoBitmapAddr);
+    fprintf(x_file, "Logo Bitmap Size                 : 0x%.8X\n", m_Header.dwSizeofLogoBitmap);
     fprintf(x_file, "\n");
     fprintf(x_file, "Dumping XBE Certificate...\n");
     fprintf(x_file, "\n");
-    fprintf(x_file, "Size of Certificate              : 0x%.08X\n", m_Certificate.dwSize);
-    fprintf(x_file, "TimeDate Stamp                   : 0x%.08X (%s)\n", m_Certificate.dwTimeDate, BetterTime(m_Certificate.dwTimeDate));
-    fprintf(x_file, "Title ID                         : 0x%.08X\n", m_Certificate.dwTitleId);
+    fprintf(x_file, "Size of Certificate              : 0x%.8X\n", m_Certificate.dwSize);
+    fprintf(x_file, "TimeDate Stamp                   : 0x%.8X (%s)\n", m_Certificate.dwTimeDate, BetterTime(m_Certificate.dwTimeDate));
+    fprintf(x_file, "Title ID                         : 0x%.8X\n", m_Certificate.dwTitleId);
     fprintf(x_file, "Title                            : L\"%s\"\n", m_szAsciiTitle);
 
     // print alternate title IDs
@@ -625,7 +625,7 @@ void Xbe::DumpInformation(FILE *x_file)
         {
             if(v != 0)
                 fprintf(x_file, "                                   ");
-            fprintf(x_file, "0x%.08X", m_Certificate.dwAlternateTitleId[v]);
+            fprintf(x_file, "0x%.8X", m_Certificate.dwAlternateTitleId[v]);
             if(v != 0x0F)
                 fprintf(x_file, "\n");
         }
@@ -633,17 +633,17 @@ void Xbe::DumpInformation(FILE *x_file)
         fprintf(x_file, "\n");
     }
 
-    fprintf(x_file, "Allowed Media                    : 0x%.08X\n", m_Certificate.dwAllowedMedia);
-    fprintf(x_file, "Game Region                      : 0x%.08X\n", m_Certificate.dwGameRegion);
-    fprintf(x_file, "Game Ratings                     : 0x%.08X\n", m_Certificate.dwGameRatings);
-    fprintf(x_file, "Disk Number                      : 0x%.08X\n", m_Certificate.dwDiskNumber);
-    fprintf(x_file, "Version                          : 0x%.08X\n", m_Certificate.dwVersion);
+    fprintf(x_file, "Allowed Media                    : 0x%.8X\n", m_Certificate.dwAllowedMedia);
+    fprintf(x_file, "Game Region                      : 0x%.8X\n", m_Certificate.dwGameRegion);
+    fprintf(x_file, "Game Ratings                     : 0x%.8X\n", m_Certificate.dwGameRatings);
+    fprintf(x_file, "Disk Number                      : 0x%.8X\n", m_Certificate.dwDiskNumber);
+    fprintf(x_file, "Version                          : 0x%.8X\n", m_Certificate.dwVersion);
 
     // print LAN key
     {
         fprintf(x_file, "LAN Key                          : ");
         for(int x=0;x<16;x++)
-            fprintf(x_file, "%.02X", m_Certificate.bzLanKey[x]);
+            fprintf(x_file, "%.2X", m_Certificate.bzLanKey[x]);
         fprintf(x_file, "\n");
     }
 
@@ -651,7 +651,7 @@ void Xbe::DumpInformation(FILE *x_file)
     {
         fprintf(x_file, "Signature Key                    : ");
         for(int x=0;x<16;x++)
-            fprintf(x_file, "%.02X", m_Certificate.bzSignatureKey[x]);
+            fprintf(x_file, "%.2X", m_Certificate.bzSignatureKey[x]);
         fprintf(x_file, "\n");
     }
 
@@ -662,7 +662,7 @@ void Xbe::DumpInformation(FILE *x_file)
         {
             fprintf(x_file, "\n                                   ");
             for(int x=0;x<16;x++)
-                fprintf(x_file, "%.02X", m_Certificate.bzTitleAlternateSignatureKey[y][x]);
+                fprintf(x_file, "%.2X", m_Certificate.bzTitleAlternateSignatureKey[y][x]);
         }
         fprintf(x_file, "\n                                   </Hex Dump>\n");
     }
@@ -675,11 +675,11 @@ void Xbe::DumpInformation(FILE *x_file)
     {
         for(uint32 v=0;v<m_Header.dwSections;v++)
         {
-            fprintf(x_file, "Section Name                     : 0x%.08X (\"%s\")\n", m_SectionHeader[v].dwSectionNameAddr, m_szSectionName[v]);
+            fprintf(x_file, "Section Name                     : 0x%.8X (\"%s\")\n", m_SectionHeader[v].dwSectionNameAddr, m_szSectionName[v]);
 
             // print flags
             {
-                fprintf(x_file, "Flags                            : 0x%.08X ", m_SectionHeader[v].dwFlags.bWritable);
+                fprintf(x_file, "Flags                            : 0x%.8X ", m_SectionHeader[v].dwFlags.bWritable);
 
                 if(m_SectionHeader[v].dwFlags.bWritable)
                     fprintf(x_file, "(Writable) ");
@@ -702,20 +702,20 @@ void Xbe::DumpInformation(FILE *x_file)
                 fprintf(x_file, "\n");
             }
 
-            fprintf(x_file, "Virtual Address                  : 0x%.08X\n", m_SectionHeader[v].dwVirtualAddr);
-            fprintf(x_file, "Virtual Size                     : 0x%.08X\n", m_SectionHeader[v].dwVirtualSize);
-            fprintf(x_file, "Raw Address                      : 0x%.08X\n", m_SectionHeader[v].dwRawAddr);
-            fprintf(x_file, "Size of Raw                      : 0x%.08X\n", m_SectionHeader[v].dwSizeofRaw);
-            fprintf(x_file, "Section Name Address             : 0x%.08X\n", m_SectionHeader[v].dwSectionNameAddr);
-            fprintf(x_file, "Section Reference Count          : 0x%.08X\n", m_SectionHeader[v].dwSectionRefCount);
-            fprintf(x_file, "Head Shared Reference Count Addr : 0x%.08X\n", m_SectionHeader[v].dwHeadSharedRefCountAddr);
-            fprintf(x_file, "Tail Shared Reference Count Addr : 0x%.08X\n", m_SectionHeader[v].dwTailSharedRefCountAddr);
+            fprintf(x_file, "Virtual Address                  : 0x%.8X\n", m_SectionHeader[v].dwVirtualAddr);
+            fprintf(x_file, "Virtual Size                     : 0x%.8X\n", m_SectionHeader[v].dwVirtualSize);
+            fprintf(x_file, "Raw Address                      : 0x%.8X\n", m_SectionHeader[v].dwRawAddr);
+            fprintf(x_file, "Size of Raw                      : 0x%.8X\n", m_SectionHeader[v].dwSizeofRaw);
+            fprintf(x_file, "Section Name Address             : 0x%.8X\n", m_SectionHeader[v].dwSectionNameAddr);
+            fprintf(x_file, "Section Reference Count          : 0x%.8X\n", m_SectionHeader[v].dwSectionRefCount);
+            fprintf(x_file, "Head Shared Reference Count Addr : 0x%.8X\n", m_SectionHeader[v].dwHeadSharedRefCountAddr);
+            fprintf(x_file, "Tail Shared Reference Count Addr : 0x%.8X\n", m_SectionHeader[v].dwTailSharedRefCountAddr);
 
             // print section digest
             {
                 fprintf(x_file, "Section Digest                   : ");
                 for(int s=0;s<20;s++)
-                    fprintf(x_file, "%.02X", m_SectionHeader[v].bzSectionDigest[s]);
+                    fprintf(x_file, "%.2X", m_SectionHeader[v].bzSectionDigest[s]);
                 fprintf(x_file, "\n");
             }
 
@@ -751,7 +751,7 @@ void Xbe::DumpInformation(FILE *x_file)
                 {
                     fprintf(x_file, "Flags                            : ");
 
-                    fprintf(x_file, "QFEVersion : 0x%.04X, ", m_LibraryVersion[v].dwFlags.QFEVersion);
+                    fprintf(x_file, "QFEVersion : 0x%.4X, ", m_LibraryVersion[v].dwFlags.QFEVersion);
 
                     if(m_LibraryVersion[v].dwFlags.bDebugBuild)
                         fprintf(x_file, "Debug, ");
@@ -785,12 +785,12 @@ void Xbe::DumpInformation(FILE *x_file)
     // print thread local storage
     if(m_TLS != 0)
     {
-        fprintf(x_file, "Data Start Address               : 0x%.08X\n", m_TLS->dwDataStartAddr);
-        fprintf(x_file, "Data End Address                 : 0x%.08X\n", m_TLS->dwDataEndAddr);
-        fprintf(x_file, "TLS Index Address                : 0x%.08X\n", m_TLS->dwTLSIndexAddr);
-        fprintf(x_file, "TLS Callback Address             : 0x%.08X\n", m_TLS->dwTLSCallbackAddr);
-        fprintf(x_file, "Size of Zero Fill                : 0x%.08X\n", m_TLS->dwSizeofZeroFill);
-        fprintf(x_file, "Characteristics                  : 0x%.08X\n", m_TLS->dwCharacteristics);
+        fprintf(x_file, "Data Start Address               : 0x%.8X\n", m_TLS->dwDataStartAddr);
+        fprintf(x_file, "Data End Address                 : 0x%.8X\n", m_TLS->dwDataEndAddr);
+        fprintf(x_file, "TLS Index Address                : 0x%.8X\n", m_TLS->dwTLSIndexAddr);
+        fprintf(x_file, "TLS Callback Address             : 0x%.8X\n", m_TLS->dwTLSCallbackAddr);
+        fprintf(x_file, "Size of Zero Fill                : 0x%.8X\n", m_TLS->dwSizeofZeroFill);
+        fprintf(x_file, "Characteristics                  : 0x%.8X\n", m_TLS->dwCharacteristics);
     }
     else
     {

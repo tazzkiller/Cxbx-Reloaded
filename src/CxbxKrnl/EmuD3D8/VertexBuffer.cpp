@@ -142,7 +142,7 @@ void XTL::CxbxVertexBufferConverter::DumpCache(void)
         if (pStreamCacheEntry != nullptr)
         {
             // TODO: Write nicer dump presentation
-            printf("Key: 0x%.08X Cache Hits: %d IsUP: %s OrigStride: %d NewStride: %d HashCount: %d HashFreq: %d Length: %d Hash: 0x%.08X\n",
+            printf("Key: 0x%.8X Cache Hits: %d IsUP: %s OrigStride: %d NewStride: %d HashCount: %d HashFreq: %d Length: %d Hash: 0x%.8X\n",
                    pNode->pKey, pStreamCacheEntry->uiCacheHitCount, pStreamCacheEntry->Stream.bCacheIsStreamZeroDrawUP ? "YES" : "NO",
                    pStreamCacheEntry->Stream.uiCachedXboxVertexStride, pStreamCacheEntry->Stream.uiCachedHostVertexStride,
                    pStreamCacheEntry->uiCheckCount, pStreamCacheEntry->uiCheckFrequency,
@@ -403,7 +403,7 @@ bool XTL::CxbxVertexBufferConverter::ConvertStream
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateVertexBuffer");
 
 		if (SUCCEEDED(hRet))
-			DbgPrintf("CxbxVertexBufferConverter::ConvertStream : Successfully Created VertexBuffer (0x%.08X)\n", pNewHostVertexBuffer);
+			DbgPrintf("CxbxVertexBufferConverter::ConvertStream : Successfully Created VertexBuffer (0x%.8X)\n", pNewHostVertexBuffer);
 
 		hRet = pNewHostVertexBuffer->Lock(0, 0, &pHostVertexData, D3DLOCK_DISCARD);
 		DEBUG_D3DRESULT(hRet, "pNewHostVertexBuffer->Lock");
@@ -614,7 +614,7 @@ bool XTL::CxbxVertexBufferConverter::ConvertStream
 void XTL::CxbxVertexBufferConverter::Apply(CxbxDrawContext *pDrawContext)
 {
 	if ((pDrawContext->XboxPrimitiveType < X_D3DPT_POINTLIST) || (pDrawContext->XboxPrimitiveType > X_D3DPT_POLYGON))
-		CxbxKrnlCleanup("Unknown primitive type: 0x%.02X\n", pDrawContext->XboxPrimitiveType);
+		CxbxKrnlCleanup("Unknown primitive type: 0x%.2X\n", pDrawContext->XboxPrimitiveType);
 
 	bool bFatalError = false;
 
@@ -756,7 +756,7 @@ VOID XTL::EmuFlushIVB()
 				DbgPrintf("IVB Position := {%f, %f, %f, %f, %f, %f, %f}\n", g_InlineVertexBuffer_Table[v].Position.x, g_InlineVertexBuffer_Table[v].Position.y, g_InlineVertexBuffer_Table[v].Position.z, g_InlineVertexBuffer_Table[v].Blend1, g_InlineVertexBuffer_Table[v].Blend2, g_InlineVertexBuffer_Table[v].Blend3, g_InlineVertexBuffer_Table[v].Blend4);
 			}
 			else { // 0 or D3DFVF_XYZB5
-				CxbxKrnlCleanup("Unsupported Position Mask (FVF := 0x%.08X dwPos := 0x%.08X)", dwCurFVF, dwPos);
+				CxbxKrnlCleanup("Unsupported Position Mask (FVF := 0x%.8X dwPos := 0x%.8X)", dwCurFVF, dwPos);
 			}
 
 			if (dwCurFVF & D3DFVF_NORMAL) {
@@ -770,18 +770,18 @@ VOID XTL::EmuFlushIVB()
 #if 0 // TODO : Was this support on Xbox from some point in time (pun intended)?
 		if (dwCurFVF & D3DFVF_PSIZE) {
 			*(DWORD*)pVertexBufferData++ = g_InlineVertexBuffer_Table[v].PointSize;
-			DbgPrintf("IVB PointSize := 0x%.08X\n", g_InlineVertexBuffer_Table[v].PointSize);
+			DbgPrintf("IVB PointSize := 0x%.8X\n", g_InlineVertexBuffer_Table[v].PointSize);
 		}
 #endif
 
         if (dwCurFVF & D3DFVF_DIFFUSE) {
             *(DWORD*)pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Diffuse;
-            DbgPrintf("IVB Diffuse := 0x%.08X\n", g_InlineVertexBuffer_Table[v].Diffuse);
+            DbgPrintf("IVB Diffuse := 0x%.8X\n", g_InlineVertexBuffer_Table[v].Diffuse);
         }
 
         if (dwCurFVF & D3DFVF_SPECULAR) {
             *(DWORD*)pVertexBufferData++ = g_InlineVertexBuffer_Table[v].Specular;
-            DbgPrintf("IVB Specular := 0x%.08X\n", g_InlineVertexBuffer_Table[v].Specular);
+            DbgPrintf("IVB Specular := 0x%.8X\n", g_InlineVertexBuffer_Table[v].Specular);
         }
 
 		// TODO -oDxbx : Handle other sizes than D3DFVF_TEXCOORDSIZE2 too!

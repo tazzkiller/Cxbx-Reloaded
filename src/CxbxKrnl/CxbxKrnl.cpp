@@ -314,7 +314,7 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 		return nullptr;
 	}
 
-	printf("[0x%X] EmuMain: Mapped %d MiB of Xbox contiguous memory at 0x%08X to 0x%08X\n",
+	printf("[0x%X] EmuMain: Mapped %d MiB of Xbox contiguous memory at 0x%.8X to 0x%.8X\n",
 		GetCurrentThreadId(), CONTIGUOUS_MEMORY_SIZE / ONE_MB, CONTIGUOUS_MEMORY_BASE, CONTIGUOUS_MEMORY_BASE + CONTIGUOUS_MEMORY_SIZE - 1);
 
 	if (NeedsInitialization)
@@ -339,7 +339,7 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 		return nullptr;
 	}
 
-	printf("[0x%X] EmuMain: Mapped contiguous memory to Xbox tiled memory at 0x%08X to 0x%08X\n",
+	printf("[0x%X] EmuMain: Mapped contiguous memory to Xbox tiled memory at 0x%.8X to 0x%.8X\n",
 		GetCurrentThreadId(), TILED_MEMORY_BASE, TILED_MEMORY_BASE + TILED_MEMORY_SIZE - 1);
 
 	return memory;
@@ -359,7 +359,7 @@ void CxbxReserveNV2AMemory()
 		return;
 	}
 
-	printf("[0x%X] EmuMain: Reserved %d MiB of Xbox NV2A memory at 0x%08X to 0x%08X\n", 
+	printf("[0x%X] EmuMain: Reserved %d MiB of Xbox NV2A memory at 0x%.8X to 0x%.8X\n", 
 		GetCurrentThreadId(), NV2A_MEMORY_SIZE / ONE_MB, NV2A_MEMORY_BASE, NV2A_MEMORY_BASE + NV2A_MEMORY_SIZE - 1);
 }
 
@@ -693,15 +693,15 @@ void CxbxKrnlInit
 #ifdef _DEBUG_TRACE
 		printf("[0x%X] EmuMain: CxbxKrnlInit\n"
 			"(\n"
-			"   hwndParent          : 0x%.08X\n"
-			"   pTLSData            : 0x%.08X\n"
-			"   pTLS                : 0x%.08X\n"
-			"   pLibraryVersion     : 0x%.08X\n"
-			"   DebugConsole        : 0x%.08X\n"
+			"   hwndParent          : 0x%.8X\n"
+			"   pTLSData            : 0x%.8X\n"
+			"   pTLS                : 0x%.8X\n"
+			"   pLibraryVersion     : 0x%.8X\n"
+			"   DebugConsole        : 0x%.8X\n"
 			"   DebugFilename       : \"%s\"\n"
-			"   pXBEHeader          : 0x%.08X\n"
-			"   pXBEHeaderSize      : 0x%.08X\n"
-			"   Entry               : 0x%.08X\n"
+			"   pXBEHeader          : 0x%.8X\n"
+			"   pXBEHeaderSize      : 0x%.8X\n"
+			"   Entry               : 0x%.8X\n"
 			");\n",
 			GetCurrentThreadId(), hwndParent, pTLSData, pTLS, pLibraryVersion, DbgMode, szDebugFilename, pXbeHeader, dwXbeHeaderSize, Entry);
 #endif
@@ -712,7 +712,7 @@ void CxbxKrnlInit
 #endif
 	// Reserve the first contiguous memory page, as the NV2A will bootstrap from there
 	void *PageZero = g_MemoryManager.AllocateContiguous(PAGE_SIZE, PAGE_SIZE);
-	printf("[0x%X] EmuMain: Allocated contiguous page zero at 0x%.08X (to bootstrap NV2A)\n", GetCurrentThreadId(), PageZero);
+	printf("[0x%X] EmuMain: Allocated contiguous page zero at 0x%.8X (to bootstrap NV2A)\n", GetCurrentThreadId(), PageZero);
 
 	// Reserve a block of 'filler' memory, to end up at XBOX_KERNEL_BASE
 	const int FillerSize = XBE_IMAGE_BASE - PAGE_SIZE;
@@ -720,7 +720,7 @@ void CxbxKrnlInit
 
 	// Allocate space for a fake kernel at XBOX_KERNEL_BASE
 	void *KernelBase = g_MemoryManager.AllocateContiguous(sizeof(DUMMY_KERNEL), PAGE_SIZE);
-	printf("[0x%X] EmuMain: Allocated dummy kernel image at 0x%.08X\n", GetCurrentThreadId(), KernelBase);
+	printf("[0x%X] EmuMain: Allocated dummy kernel image at 0x%.8X\n", GetCurrentThreadId(), KernelBase);
 
 	assert((intptr_t)KernelBase == XBOX_KERNEL_BASE);
 	assert(((intptr_t)KernelBase - (intptr_t)PageZero) == XBE_IMAGE_BASE);
@@ -791,7 +791,7 @@ void CxbxKrnlInit
 	std::string xbeDirectory(szBuffer);
 	CxbxBasePathHandle = CreateFile(CxbxBasePath.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
 	memset(szBuffer, 0, MAX_PATH);
-	sprintf(szBuffer, "%08X", g_pCertificate->dwTitleId);
+	sprintf(szBuffer, "%.8X", g_pCertificate->dwTitleId);
 	std::string titleId(szBuffer);
 	// Games may assume they are running from CdRom :
 	CxbxDefaultXbeDriveIndex = CxbxRegisterDeviceHostPath(DeviceCdrom0, xbeDirectory);

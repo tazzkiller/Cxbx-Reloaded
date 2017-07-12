@@ -94,7 +94,7 @@ XBSYSAPI EXPORTNUM(184) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtAllocateVirtualMemo
 	ULONG_PTR RequestedBaseAddress = (ULONG_PTR)*BaseAddress;
 	ULONG RequestedAllocationSize = *AllocationSize;
 
-	DbgPrintf("NtAllocateVirtualMemory requested range : 0x%.08X - 0x%.08X\n", RequestedBaseAddress, RequestedBaseAddress + RequestedAllocationSize);
+	DbgPrintf("NtAllocateVirtualMemory requested range : 0x%.8X - 0x%.8X\n", RequestedBaseAddress, RequestedBaseAddress + RequestedAllocationSize);
 
 	// Don't allow base address to exceed highest virtual address
 	if (RequestedBaseAddress > MM_HIGHEST_VAD_ADDRESS)
@@ -152,7 +152,7 @@ XBSYSAPI EXPORTNUM(184) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtAllocateVirtualMemo
 			ULONG_PTR ResultingBaseAddress = (ULONG_PTR)*BaseAddress;
 			ULONG ResultingAllocationSize = *AllocationSize;
 
-			DbgPrintf("NtAllocateVirtualMemory resulting range : 0x%.08X - 0x%.08X\n", ResultingBaseAddress, ResultingBaseAddress + ResultingAllocationSize);
+			DbgPrintf("NtAllocateVirtualMemory resulting range : 0x%.8X - 0x%.8X\n", ResultingBaseAddress, ResultingBaseAddress + ResultingAllocationSize);
 		}
 		else
 			if (ret == STATUS_INVALID_PARAMETER_5) // = 0xC00000F3
@@ -267,7 +267,7 @@ XBSYSAPI EXPORTNUM(188) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtCreateDirectoryObje
 	if (FAILED(ret))
 		EmuWarning("NtCreateDirectoryObject Failed!");
 	else
-		DbgPrintf("EmuKrnl: NtCreateDirectoryObject DirectoryHandle = 0x%.08X\n", *DirectoryHandle);
+		DbgPrintf("EmuKrnl: NtCreateDirectoryObject DirectoryHandle = 0x%.8X\n", *DirectoryHandle);
 
 	RETURN(ret);
 }
@@ -344,10 +344,10 @@ XBSYSAPI EXPORTNUM(189) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtCreateEvent
 		if(FAILED(ret))
 			EmuWarning("NtCreateEvent Failed!");
 		else
-			DbgPrintf("EmuKrnl: NtCreateEvent EventHandle = 0x%.08X\n", *EventHandle);
+			DbgPrintf("EmuKrnl: NtCreateEvent EventHandle = 0x%.8X\n", *EventHandle);
 	}
 	else
-		DbgPrintf("EmuKrnl: NtCreateEvent EventHandle = 0x%.08X\n", *EventHandle);
+		DbgPrintf("EmuKrnl: NtCreateEvent EventHandle = 0x%.8X\n", *EventHandle);
 
 	RETURN(ret);
 }
@@ -469,10 +469,10 @@ XBSYSAPI EXPORTNUM(192) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtCreateMutant
 		if(FAILED(ret))
 			EmuWarning("NtCreateMutant Failed!");
 		else
-			DbgPrintf("EmuKrnl: NtCreateMutant MutantHandle = 0x%.08X\n", *MutantHandle);
+			DbgPrintf("EmuKrnl: NtCreateMutant MutantHandle = 0x%.8X\n", *MutantHandle);
 	}
 	else
-		DbgPrintf("EmuKrnl: NtCreateMutant MutantHandle = 0x%.08X\n", *MutantHandle);
+		DbgPrintf("EmuKrnl: NtCreateMutant MutantHandle = 0x%.8X\n", *MutantHandle);
 
 	RETURN(ret);
 }
@@ -544,10 +544,10 @@ XBSYSAPI EXPORTNUM(193) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtCreateSemaphore
 		if(FAILED(ret))
 			EmuWarning("NtCreateSemaphore failed!");
 		else
-			DbgPrintf("EmuKrnl: NtCreateSemaphore SemaphoreHandle = 0x%.08X\n", *SemaphoreHandle);
+			DbgPrintf("EmuKrnl: NtCreateSemaphore SemaphoreHandle = 0x%.8X\n", *SemaphoreHandle);
 	}
 	else
-		DbgPrintf("EmuKrnl: NtCreateSemaphore SemaphoreHandle = 0x%.08X\n", *SemaphoreHandle);
+		DbgPrintf("EmuKrnl: NtCreateSemaphore SemaphoreHandle = 0x%.8X\n", *SemaphoreHandle);
 
 	RETURN(ret);
 }
@@ -607,7 +607,7 @@ XBSYSAPI EXPORTNUM(194) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtCreateTimer
 	if (FAILED(ret))
 		EmuWarning("NtCreateTimer failed!");
 	else
-		DbgPrintf("EmuKrnl: NtCreateTimer TimerHandle = 0x%.08X\n", *TimerHandle);
+		DbgPrintf("EmuKrnl: NtCreateTimer TimerHandle = 0x%.8X\n", *TimerHandle);
 
 	RETURN(ret);
 }
@@ -923,7 +923,7 @@ XBSYSAPI EXPORTNUM(203) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtOpenSymbolicLinkObj
 	if (ret != STATUS_SUCCESS)
 		EmuWarning("NtOpenSymbolicLinkObject failed! (%s)", NtStatusToString(ret));
 	else
-		DbgPrintf("EmuKrnl : NtOpenSymbolicLinkObject LinkHandle^ = 0x%.08X", *LinkHandle);
+		DbgPrintf("EmuKrnl : NtOpenSymbolicLinkObject LinkHandle^ = 0x%.8X", *LinkHandle);
 
 	RETURN(ret);
 }
@@ -1138,7 +1138,7 @@ XBSYSAPI EXPORTNUM(210) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtQueryFullAttributes
 	NTToXboxFileInformation(&nativeNetOpenInfo, Attributes, FileNetworkOpenInformation, sizeof(xboxkrnl::FILE_NETWORK_OPEN_INFORMATION));
 
 	if (FAILED(ret))
-		EmuWarning("NtQueryFullAttributesFile failed! (0x%.08X)", ret);
+		EmuWarning("NtQueryFullAttributesFile failed! (0x%.8X)", ret);
 
 	RETURN(ret);
 }
@@ -1229,7 +1229,7 @@ XBSYSAPI EXPORTNUM(211) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtQueryInformationFil
 	free(ntFileInfo);
 
 	if (FAILED(ret))
-		EmuWarning("NtQueryInformationFile failed! (0x%.08X)", ret);
+		EmuWarning("NtQueryInformationFile failed! (0x%.8X)", ret);
 
 	// Prioritize the buffer overflow over real return code,
 	// in case the Xbox program decides to follow the same procedure above
@@ -1514,7 +1514,7 @@ XBSYSAPI EXPORTNUM(219) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtReadFile
 		/*Key=*/nullptr);
 
 	if (FAILED(ret))
-		EmuWarning("NtReadFile Failed! (0x%.08X)", ret);
+		EmuWarning("NtReadFile Failed! (0x%.8X)", ret);
 	else
 		Sleep(10); // HACK : This prevents Turok from skipping it's intro-movie
 
@@ -1914,7 +1914,7 @@ XBSYSAPI EXPORTNUM(236) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtWriteFile
 		/*Key=*/nullptr);
 
 	if (FAILED(ret))
-		EmuWarning("NtWriteFile Failed! (0x%.08X)", ret);
+		EmuWarning("NtWriteFile Failed! (0x%.8X)", ret);
 
 	RETURN(ret);
 }

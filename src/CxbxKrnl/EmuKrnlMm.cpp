@@ -179,7 +179,7 @@ XBSYSAPI EXPORTNUM(168) xboxkrnl::PVOID NTAPI xboxkrnl::MmClaimGpuInstanceMemory
 		*NumberOfPaddingBytes = MI_CONVERT_PFN_TO_PHYSICAL(MM_64M_PHYSICAL_PAGE) -
 		MI_CONVERT_PFN_TO_PHYSICAL(MM_INSTANCE_PHYSICAL_PAGE + MM_INSTANCE_PAGE_COUNT);
 
-	DbgPrintf("MmClaimGpuInstanceMemory : *NumberOfPaddingBytes = 0x%08X\n", *NumberOfPaddingBytes);
+	DbgPrintf("MmClaimGpuInstanceMemory : *NumberOfPaddingBytes = 0x%.8X\n", *NumberOfPaddingBytes);
 
 #ifdef _DEBUG_TRACE
 	if (NumberOfBytes != MAXULONG_PTR)
@@ -549,21 +549,21 @@ XBSYSAPI EXPORTNUM(181) xboxkrnl::NTSTATUS NTAPI xboxkrnl::MmQueryStatistics
 		// MemoryStatistics->StackPagesCommitted = [ ];
 		// MemoryStatistics->ImagePagesCommitted = [ ];
 
-		DbgPrintf("   MemoryStatistics->Length                      = 0x%.08X\n", MemoryStatistics->Length);
-		DbgPrintf("   MemoryStatistics->TotalPhysicalPages          = 0x%.08X\n", MemoryStatistics->TotalPhysicalPages);
-		DbgPrintf("   MemoryStatistics->AvailablePages              = 0x%.08X\n", MemoryStatistics->AvailablePages);
-		DbgPrintf("   MemoryStatistics->VirtualMemoryBytesCommitted = 0x%.08X\n", MemoryStatistics->VirtualMemoryBytesCommitted);
-		DbgPrintf("   MemoryStatistics->VirtualMemoryBytesReserved  = 0x%.08X\n", MemoryStatistics->VirtualMemoryBytesReserved);
-		DbgPrintf("   MemoryStatistics->CachePagesCommitted         = 0x%.08X\n", MemoryStatistics->CachePagesCommitted);
-		DbgPrintf("   MemoryStatistics->PoolPagesCommitted          = 0x%.08X\n", MemoryStatistics->PoolPagesCommitted);
-		DbgPrintf("   MemoryStatistics->StackPagesCommitted         = 0x%.08X\n", MemoryStatistics->StackPagesCommitted);
-		DbgPrintf("   MemoryStatistics->ImagePagesCommitted         = 0x%.08X\n", MemoryStatistics->ImagePagesCommitted);
+		DbgPrintf("   MemoryStatistics->Length                      = 0x%.8X\n", MemoryStatistics->Length);
+		DbgPrintf("   MemoryStatistics->TotalPhysicalPages          = 0x%.8X\n", MemoryStatistics->TotalPhysicalPages);
+		DbgPrintf("   MemoryStatistics->AvailablePages              = 0x%.8X\n", MemoryStatistics->AvailablePages);
+		DbgPrintf("   MemoryStatistics->VirtualMemoryBytesCommitted = 0x%.8X\n", MemoryStatistics->VirtualMemoryBytesCommitted);
+		DbgPrintf("   MemoryStatistics->VirtualMemoryBytesReserved  = 0x%.8X\n", MemoryStatistics->VirtualMemoryBytesReserved);
+		DbgPrintf("   MemoryStatistics->CachePagesCommitted         = 0x%.8X\n", MemoryStatistics->CachePagesCommitted);
+		DbgPrintf("   MemoryStatistics->PoolPagesCommitted          = 0x%.8X\n", MemoryStatistics->PoolPagesCommitted);
+		DbgPrintf("   MemoryStatistics->StackPagesCommitted         = 0x%.8X\n", MemoryStatistics->StackPagesCommitted);
+		DbgPrintf("   MemoryStatistics->ImagePagesCommitted         = 0x%.8X\n", MemoryStatistics->ImagePagesCommitted);
 
 		ret = STATUS_SUCCESS;
 	}
 	else
 	{
-		EmuWarning("EmuKrnl: MmQueryStatistics with unusual size -> 0x%.08X", MemoryStatistics->Length);
+		EmuWarning("EmuKrnl: MmQueryStatistics with unusual size -> 0x%.8X", MemoryStatistics->Length);
 		ret = STATUS_INVALID_PARAMETER;
 	}
 
@@ -591,7 +591,7 @@ XBSYSAPI EXPORTNUM(182) xboxkrnl::VOID NTAPI xboxkrnl::MmSetAddressProtect
 	if (!VirtualProtect(BaseAddress, NumberOfBytes, NewProtect & (~PAGE_WRITECOMBINE), &dwOldProtect))
 		EmuWarning("VirtualProtect Failed!");
 
-	DbgPrintf("EmuKrnl: VirtualProtect was 0x%.08X -> 0x%.08X\n", dwOldProtect, NewProtect & (~PAGE_WRITECOMBINE));
+	DbgPrintf("EmuKrnl: VirtualProtect was 0x%.8X -> 0x%.8X\n", dwOldProtect, NewProtect & (~PAGE_WRITECOMBINE));
 }
 
 // ******************************************************************

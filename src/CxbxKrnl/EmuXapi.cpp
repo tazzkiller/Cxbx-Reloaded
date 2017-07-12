@@ -752,9 +752,9 @@ LPVOID WINAPI XTL::EMUPATCH(CreateFiber)
 
     DbgPrintf("EmuXapi: EmuCreateFiber\n"
            "(\n"
-		   "   dwStackSize         : 0x%.08X\n"
-           "   lpStartRoutine      : 0x%.08X\n"
-           "   lpParameter         : 0x%.08X\n"
+		   "   dwStackSize         : 0x%.8X\n"
+           "   lpStartRoutine      : 0x%.8X\n"
+           "   lpParameter         : 0x%.8X\n"
            ");\n",
             dwStackSize, lpStartRoutine, lpParameter);
 
@@ -787,7 +787,7 @@ VOID WINAPI XTL::EMUPATCH(DeleteFiber)
 
 	DbgPrintf("EmuXapi: EmuDeleteFiber\n"
 			"(\n"
-			"	lpFiber            : 0x%.08X\n"
+			"	lpFiber            : 0x%.8X\n"
 			");\n",
 			lpFiber );
 
@@ -809,7 +809,7 @@ VOID WINAPI XTL::EMUPATCH(SwitchToFiber)
 
 	DbgPrintf("EmuXapi: EmuSwitchToFiber\n"
 			"(\n"
-			"	lpFiber            : 0x%.08X\n"
+			"	lpFiber            : 0x%.8X\n"
 			");\n",
 			lpFiber );
 
@@ -843,7 +843,7 @@ LPVOID WINAPI XTL::EMUPATCH(ConvertThreadToFiber)
 
 	DbgPrintf("EmuXapi: EmuConvertThreadToFiber\n"
 			"(\n"
-			"	lpParameter        : 0x%.08X\n"
+			"	lpParameter        : 0x%.8X\n"
 			");\n",
 			lpParameter );
 
@@ -866,7 +866,7 @@ VOID WINAPI XTL::EMUPATCH(XapiFiberStartup)(DWORD dwDummy)
 
 	DbgPrintf("EmuXapi: EmuXapiFiberStarup()\n"
 			"(\n"
-			"	dwDummy            : 0x%.08X\n"
+			"	dwDummy            : 0x%.8X\n"
 			");\n",
 			dwDummy);
 

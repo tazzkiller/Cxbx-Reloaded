@@ -361,7 +361,7 @@ void EmuInitFS()
 
 				if (memcmp((void*)addr, &fsInstructions[i].data[0], sizeOfData) == 0)
 				{
-					DbgPrintf("Patching FS Instruction at 0x%08X\n", addr);
+					DbgPrintf("Patching FS Instruction at 0x%.8X\n", addr);
 
 					// Write Call opcode
 					*(uint08*)addr = OPCODE_CALL_E8;
@@ -416,10 +416,10 @@ void EmuGenerateFS(Xbe::TLS *pTLS, void *pTLSData)
 						uint08 *bByte = (uint08*)pNewTLS + v;
 
 						if (v % 0x10 == 0)
-							DbgPrintf("EmuFS: 0x%.08X: ", (xbaddr)bByte);
+							DbgPrintf("EmuFS: 0x%.8X: ", (xbaddr)bByte);
 
 						// Note : Use printf instead of DbgPrintf here, which prefixes with GetCurrentThreadId() :
-						printf("%.01X", (uint32)(*bByte));
+						printf("%.1X", (uint32)(*bByte));
 					}
 
 					printf("\n");
@@ -492,5 +492,5 @@ void EmuGenerateFS(Xbe::TLS *pTLS, void *pTLSData)
 	// Make the KPCR struct available to KeGetPcr()
 	EmuKeSetPcr(NewPcr);
 
-	DbgPrintf("EmuFS: Installed KPCR in TIB_ArbitraryDataSlot (with pTLS = 0x%.08X)\n", pTLS);
+	DbgPrintf("EmuFS: Installed KPCR in TIB_ArbitraryDataSlot (with pTLS = 0x%.8X)\n", pTLS);
 }

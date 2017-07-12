@@ -1749,7 +1749,7 @@ static DWORD VshConvertToken_CONSTMEM(DWORD *pToken)
 
     for (uint i = 0; i < Count; i++)
     {
-        DbgVshPrintf("\t0x%08X,\n", pToken);
+        DbgVshPrintf("\t0x%.8X,\n", pToken);
     }
     return Count;
 }
@@ -2003,7 +2003,7 @@ static void VshConvertToken_STREAMDATA_REG(DWORD          *pToken,
         NewDataType = 0xFF;
         break;
     default:
-        DbgVshPrintf("Unknown data type for D3DVSD_REG: 0x%02X\n", DataType);
+        DbgVshPrintf("Unknown data type for D3DVSD_REG: 0x%.2X\n", DataType);
         break;
     }
 
@@ -2181,7 +2181,7 @@ extern HRESULT XTL::EmuRecompileVshFunction
             hRet = E_FAIL;
             break;
         default:
-            EmuWarning("Unknown vertex shader version 0x%02X", pShaderHeader->Version);
+            EmuWarning("Unknown vertex shader version 0x%.2X", pShaderHeader->Version);
             hRet = E_FAIL;
             break;
     }
@@ -2279,7 +2279,7 @@ bool XTL::IsValidCurrentShader(void)
 // Checks for failed vertex shaders, and shaders that would need patching
 bool XTL::VshHandleIsValidShader(DWORD Handle)
 {
-	//printf( "VS = 0x%.08X\n", Handle );
+	//printf( "VS = 0x%.8X\n", Handle );
 
 	CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(Handle);
 

@@ -250,7 +250,7 @@ void NVPB_Clear()
 		if (Flags & X_D3DCLEAR_TARGET) {
 			// TODO: D3DCLEAR_TARGET_A, *R, *G, *B don't exist on windows
 			if ((Flags & X_D3DCLEAR_TARGET) != X_D3DCLEAR_TARGET)
-				EmuWarning("Unsupported : Partial D3DCLEAR_TARGET flag(s) for D3DDevice_Clear : 0x%.08X", Flags & X_D3DCLEAR_TARGET);
+				EmuWarning("Unsupported : Partial D3DCLEAR_TARGET flag(s) for D3DDevice_Clear : 0x%.8X", Flags & X_D3DCLEAR_TARGET);
 		}
 
 		/* Do not needlessly clear Z Buffer
@@ -273,7 +273,7 @@ void NVPB_Clear()
 		}*/
 
 		if (Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL))
-			EmuWarning("Unsupported Flag(s) for D3DDevice_Clear : 0x%.08X", Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL));
+			EmuWarning("Unsupported Flag(s) for D3DDevice_Clear : 0x%.8X", Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL));
 	}
 
 	// Since we filter the flags, make sure there are some left (else, clear isn't necessary) :
@@ -357,7 +357,7 @@ void EmuNV2A_SetRenderState()
 	}
 #endif
 
-	HandledBy = sprintf("SetRenderState(%-33s, 0x%.08X {=%s})", 
+	HandledBy = sprintf("SetRenderState(%-33s, 0x%.8X {=%s})", 
 		CxbxRenderStateInfo[XboxRenderState].S,
 		*pdwPushArguments,
 		CxbxTypedValueToString(CxbxRenderStateInfo[XboxRenderState].T, *pdwPushArguments));
@@ -416,7 +416,7 @@ void NVPB_InlineVertexArray() // 0x1818
 	dwVertexShader = (D3DFVF_XYZ|D3DFVF_DIFFUSE|D3DFVF_TEX1);
 	}*/
 
-	//	printf( "EmuExecutePushBufferRaw: FVF = 0x%.08X\n" );
+	//	printf( "EmuExecutePushBufferRaw: FVF = 0x%.8X\n" );
 
 	//
 	// calculate stride
@@ -451,7 +451,7 @@ void NVPB_InlineVertexArray() // 0x1818
 	if (bShowPB) {
 		printf("NVPB_InlineVertexArray(...)\n");
 		printf("  dwCount : %d\n", dwCount);
-		printf("  dwVertexShader : 0x%08X\n", dwVertexShader);
+		printf("  dwVertexShader : 0x%.8X\n", dwVertexShader);
 	}
 #endif
 
@@ -487,7 +487,7 @@ void NVPB_FixLoop() // 0x1808
 			if (s % 8 == 0)
 				printf("\n  ");
 
-			printf("  %.04X", *pIndices++);
+			printf("  0x%.4X", *pIndices++);
 		}
 
 		printf("\n");
@@ -537,7 +537,7 @@ void NVPB_InlineIndexArray() // 0x1800
 	pIndexData = (INDEX16*)pdwPushArguments;
 #ifdef _DEBUG_TRACK_PB
 	if (bShowPB) {
-		printf("  NVPB_InlineIndexArray(0x%.08X, %d)...\n", pIndexData, dwCount);
+		printf("  NVPB_InlineIndexArray(0x%.8X, %d)...\n", pIndexData, dwCount);
 		printf("\n");
 		printf("  Index Array Data...\n");
 		INDEX16 *pIndices = pIndexData;
@@ -545,7 +545,7 @@ void NVPB_InlineIndexArray() // 0x1800
 			if (s % 8 == 0)
 				printf("\n  ");
 
-			printf("  %.04X", *pIndices++);
+			printf("  0x%.4X", *pIndices++);
 		}
 
 		printf("\n");
@@ -804,13 +804,13 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
     if (g_PBTrackShowOnce.remove((void*)pdwPushData) != NULL) {
         printf("\n");
         printf("\n");
-        printf("  PushBuffer@0x%.08X...\n", pdwPushData);
+        printf("  PushBuffer@0x%.8X...\n", pdwPushData);
         printf("\n");
         bShowPB = true;
     }
     #endif
 
-	DbgPrintf("  NV2A run from 0x%.08X\n", pdwPushData);
+	DbgPrintf("  NV2A run from 0x%.8X\n", pdwPushData);
 
 	while (true) {
 /* TODO :
@@ -819,7 +819,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 		}
 */
 		char LogPrefixStr[200];
-		int len = sprintf(LogPrefixStr, "  NV2A Get=0x%.08X", pdwPushData);
+		int len = sprintf(LogPrefixStr, "  NV2A Get=0x%.8X", pdwPushData);
 
 		// Fake a read by the Nv2A, by moving the DMA 'Get' location
 		// up to where the pushbuffer is executed, so that the BusyLoop
@@ -832,7 +832,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 		if (dwPushCommand == 0) {
 			// Step back and break
 			pdwPushData--;
-			DbgPrintf("%s BREAK at NULL method at 0x%.08X\n", LogPrefixStr, pdwPushData);
+			DbgPrintf("%s BREAK at NULL method at 0x%.8X\n", LogPrefixStr, pdwPushData);
 			break;
 		}
 
@@ -841,7 +841,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 		if ((PushType == PUSH_TYPE_JMP_FAR) || (PushType == PUSH_TYPE_CALL_FAR)) {
 			// Both 'jump' and 'call' just direct execution to the indicated address :
 			pdwPushData = (PPUSH)(PUSH_ADDR_FAR(dwPushCommand) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
-			DbgPrintf("%s Jump far: 0x%.08X\n", LogPrefixStr, pdwPushData);
+			DbgPrintf("%s Jump far: 0x%.8X\n", LogPrefixStr, pdwPushData);
 			continue;
 		}
 
@@ -849,7 +849,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 		DWORD PushInstr = PUSH_INSTR(dwPushCommand);
 		if (PushInstr == PUSH_INSTR_JMP_NEAR) {
 			pdwPushData = (PPUSH)(PUSH_ADDR_NEAR(dwPushCommand) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
-			DbgPrintf("%s Jump near: 0x%.08X\n", LogPrefixStr, pdwPushData);
+			DbgPrintf("%s Jump near: 0x%.8X\n", LogPrefixStr, pdwPushData);
 			continue;
 		}
 
@@ -928,7 +928,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 			if (g_bPrintfOn) {
 				printf("[0x%X] ", GetCurrentThreadId());
 				printf(LogPrefixStr, StepNr);
-				printf(" Method=%.04X Arg[0]=%.08X %s", dwMethod, *pdwPushArguments, NV2AMethodToString(dwMethod));
+				printf(" Method=%.4X Arg[0]=%.8X %s", dwMethod, *pdwPushArguments, NV2AMethodToString(dwMethod));
 				if (HandledBy != nullptr) {
 					printf(HandledBy);
 				}
@@ -1083,7 +1083,7 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
 
     // retrieve stream data
     char szFileName[128];
-    sprintf(szFileName, "D:\\_cxbx\\mesh\\CxbxMesh-0x%.08X.x", pIndexData);
+    sprintf(szFileName, "D:\\_cxbx\\mesh\\CxbxMesh-0x%.8X.x", pIndexData);
     FILE *dbgVertices = fopen(szFileName, "wt");
 
     BYTE *pVBData = (BYTE *)XTL::GetDataFromXboxResource(XTL::Xbox_g_Stream[0].pVertexBuffer);
@@ -1105,12 +1105,12 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
         fprintf(dbgVertices, "xof 0303txt 0032\n");
         fprintf(dbgVertices, "\n");
         fprintf(dbgVertices, "//\n");
-        fprintf(dbgVertices, "//  Vertex Stream Data (0x%.08X)...\n", pVBData);
+        fprintf(dbgVertices, "//  Vertex Stream Data (0x%.8X)...\n", pVBData);
         fprintf(dbgVertices, "//\n");
 #if 0
 		fprintf(dbgVertices, "//  Format : %d\n", VBDesc.Format);
         fprintf(dbgVertices, "//  Size   : %d bytes\n", VBDesc.Size);
-        fprintf(dbgVertices, "//  FVF    : 0x%.08X\n", VBDesc.FVF);
+        fprintf(dbgVertices, "//  FVF    : 0x%.8X\n", VBDesc.FVF);
 #endif
         fprintf(dbgVertices, "//  iCount : %d\n", dwCount/2);
         fprintf(dbgVertices, "//\n");
@@ -1196,8 +1196,8 @@ void XTL::DbgDumpPushBuffer(PPUSH PBData, DWORD dwSize)
 
 	/*if (g_CurrentVertexShader != dwVertexShader) {
 		printf( "g_CurrentVertexShader does not match FVF from GetVertexShader!\n"
-					"g_CurrentVertexShader = 0x%.08X\n"
-					"GetVertexShader = 0x%.08X\n" );
+					"g_CurrentVertexShader = 0x%.8X\n"
+					"GetVertexShader = 0x%.8X\n" );
 	}*/
 
 	if (dwVertexShader > 0xFFFF) {
@@ -1205,7 +1205,7 @@ void XTL::DbgDumpPushBuffer(PPUSH PBData, DWORD dwSize)
 		return;
 	}
 
-	sprintf(szPB, "D:\\cxbx\\_pushbuffer\\pushbuffer%.03d.txt", PbNumber++);
+	sprintf(szPB, "D:\\cxbx\\_pushbuffer\\pushbuffer%.3d.txt", PbNumber++);
 	// Create a new file for this pushbuffer's data
 	HANDLE hFile = CreateFile(szPB, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 	if (hFile == INVALID_HANDLE_VALUE) {

@@ -557,7 +557,7 @@ void InitD3DDeferredStates()
 			int HostIndex = (s * X_D3DTSS_STAGESIZE) + v;
 			int XboxIndex = (s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(v);
 			DWORD XboxValue = Xbox_D3D_TextureState[XboxIndex];
-			printf("Initial Xbox_D3D_TextureState[%d][%d/*=%s*/] = 0x%.08X \n", s, v,
+			printf("Initial Xbox_D3D_TextureState[%d][%d/*=%s*/] = 0x%.8X \n", s, v,
 				DxbxTextureStageStateInfo[v].S, XboxValue);
 
 			TransferredTextureStageStateValues[HostIndex] = XboxValue;
@@ -568,7 +568,7 @@ void InitD3DDeferredStates()
 #if 0
 	for (int v = X_D3DRS_FIRST; v <= X_D3DRS_LAST; v++) {
 		DWORD XboxValue = *EmuMappedD3DRenderState[v];
-		printf("Initial Xbox_D3D_RenderState[%d/*=%s*/] = 0x%.08X \n", v,
+		printf("Initial Xbox_D3D_RenderState[%d/*=%s*/] = 0x%.8X \n", v,
 			GetDxbxRenderStateInfo(v).S, XboxValue);
 		TransferredRenderStateValues[v] = XboxValue;
 	}

@@ -102,14 +102,14 @@ static bool CheckIntegrity(CXBX_MEMORY_BLOCK *pBlock)
 
     if(*(uint32*)GetMemStart(pBlock) != MEMORY_GUARD)
     {
-        printf("    Memory block corrupted at start, overwrite: 0x%.04X\n",
+        printf("    Memory block corrupted at start, overwrite: 0x%.4X\n",
                *(uint32*)GetMemStart(pBlock));
         Integrity = false;
     }
 
     if(*(uint32*)GetMemEnd(pBlock) != MEMORY_GUARD)
     {
-        printf("    Memory block corrupted at end, overwrite: 0x%.04X\n",
+        printf("    Memory block corrupted at end, overwrite: 0x%.4X\n",
                *(uint32*)GetMemEnd(pBlock));
         Integrity = false;
     }
@@ -259,7 +259,7 @@ void CxbxAllocDump(bool DumpData)
     for(pCur = g_pFirstBlock; pCur; pCur = pCur->pNext)
     {
         printf("\n"
-               "    Block: 0x%.08X\n"
+               "    Block: 0x%.8X\n"
                "    Size : %d\n"
                "    File : %s\n"
                "    Line : %d\n"
@@ -358,7 +358,7 @@ void  CxbxFreeDebug(void *pMem,
     CXBX_MEMORY_BLOCK *pFree = RemoveMemoryBlock(pMem);
     if(pFree == NULL)
     {
-        printf("CxbxFreeDebug: free on non-existent block: 0x%.08X! "
+        printf("CxbxFreeDebug: free on non-existent block: 0x%.8X! "
                "Possibly a multiple free.\n"
                "    File: %s\n"
                "    Line: %d\n",
@@ -369,7 +369,7 @@ void  CxbxFreeDebug(void *pMem,
         if(!CheckIntegrity(pFree))
         {
             printf("CxbxFreeDebug: Free on damaged block\n"
-                   "    Block   : 0x.%08X\n"
+                   "    Block   : 0x%.8X\n"
                    "    Allocation\n"
                    "        File: %s\n"
                    "        Line: %d\n"
@@ -402,8 +402,8 @@ void *CxbxRtlAllocDebug(HANDLE  Heap,
     if(!pMem)
     {
         printf("CxbxRtlAllocDebug: Allocation failed\n"
-               "    Heap  : 0x%.08X\n"
-               "    Flags : 0x%.08X\n"
+               "    Heap  : 0x%.8X\n"
+               "    Flags : 0x%.8X\n"
                "    Bytes : %d\n"
                "    File  : %s\n"
                "    Line  : %d\n",
@@ -443,7 +443,7 @@ BOOL  CxbxRtlFreeDebug(HANDLE Heap,
     CXBX_MEMORY_BLOCK *pFree = RemoveMemoryBlock(pMem);
     if(pFree == NULL)
     {
-        printf("CxbxRtlFreeDebug: free on non-existent block: 0x%.08X! "
+        printf("CxbxRtlFreeDebug: free on non-existent block: 0x%.8X! "
                "Possibly a multiple free.\n"
                "    File: %s\n"
                "    Line: %d\n",
@@ -454,7 +454,7 @@ BOOL  CxbxRtlFreeDebug(HANDLE Heap,
         if(!CheckIntegrity(pFree))
         {
             printf("CxbxRtlFreeDebug: Free on damaged block\n"
-                   "    Block   : 0x.%08X\n"
+                   "    Block   : 0x%.8X\n"
                    "    Allocation\n"
                    "        File: %s\n"
                    "        Line: %d\n"
@@ -488,7 +488,7 @@ void *CxbxRtlReallocDebug(HANDLE Heap,
     CXBX_MEMORY_BLOCK *pRealloc = FindMemoryBlock(pMem);
     if(pRealloc == NULL)
     {
-        printf("CxbxRtlRealloc: realloc on non-existent block: 0x%.08X! "
+        printf("CxbxRtlRealloc: realloc on non-existent block: 0x%.8X! "
                "    File: %s\n"
                "    Line: %d\n",
                pMem, pFile, Line);
@@ -498,7 +498,7 @@ void *CxbxRtlReallocDebug(HANDLE Heap,
         if(!CheckIntegrity(pRealloc))
         {
             printf("CxbxRtlReallocDebug: Realloc on damaged block\n"
-                   "    Block   : 0x.%08X\n"
+                   "    Block   : 0x%.8X\n"
                    "    Allocation\n"
                    "        Size: %d\n"
                    "        File: %s\n"
@@ -517,9 +517,9 @@ void *CxbxRtlReallocDebug(HANDLE Heap,
         if(!pNewMem)
         {
             printf("CxbxRtlReallocDebug: Reallocation failed\n"
-                   "    Heap  : 0x%.08X\n"
-                   "    Flags : 0x%.08X\n"
-                   "    pMem  : 0x%.08X\n"
+                   "    Heap  : 0x%.8X\n"
+                   "    Flags : 0x%.8X\n"
+                   "    pMem  : 0x%.8X\n"
                    "    Bytes : %d\n"
                    "    File  : %s\n"
                    "    Line  : %d\n",
@@ -555,7 +555,7 @@ SIZE_T CxbxRtlSizeHeapDebug(HANDLE Heap,
     CXBX_MEMORY_BLOCK *pBlock = FindMemoryBlock(pMem);
     if(pBlock == NULL)
     {
-        printf("CxbxRtlSizeHeap: size heap on non-existent block: 0x%.08X! "
+        printf("CxbxRtlSizeHeap: size heap on non-existent block: 0x%.8X! "
                "    File: %s\n"
                "    Line: %d\n",
                pMem, pFile, Line);

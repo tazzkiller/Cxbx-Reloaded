@@ -118,7 +118,7 @@ std::string EIPToString(xbaddr EIP)
 	std::string symbolName = GetDetectedSymbolName(EIP, &symbolOffset);
 
 	char buffer[256];
-	sprintf(buffer, "0x%.08X(=%s+0x%x)", EIP, symbolName.c_str(), symbolOffset);
+	sprintf(buffer, "0x%.8X(=%s+0x%X)", EIP, symbolName.c_str(), symbolOffset);
 
 	std::string result = buffer;
 	return result;
@@ -131,14 +131,14 @@ void EmuExceptionPrintDebugInformation(LPEXCEPTION_POINTERS e, bool IsBreakpoint
 		if (IsBreakpointException)
 			printf("[0x%X] EmuMain: Received Breakpoint Exception (int 3)\n", GetCurrentThreadId());
 		else
-			printf("[0x%X] EmuMain: Received Exception (Code := 0x%.08X)\n", GetCurrentThreadId(), e->ExceptionRecord->ExceptionCode);
+			printf("[0x%X] EmuMain: Received Exception (Code := 0x%.8X)\n", GetCurrentThreadId(), e->ExceptionRecord->ExceptionCode);
 
 		printf("\n"
 			" EIP := %s\n"
-			" EFL := 0x%.08X\n"
-			" EAX := 0x%.08X EBX := 0x%.08X ECX := 0x%.08X EDX := 0x%.08X\n"
-			" ESI := 0x%.08X EDI := 0x%.08X ESP := 0x%.08X EBP := 0x%.08X\n"
-			" CR2 := 0x%.08X\n"
+			" EFL := 0x%.8X\n"
+			" EAX := 0x%.8X EBX := 0x%.8X ECX := 0x%.8X EDX := 0x%.8X\n"
+			" ESI := 0x%.8X EDI := 0x%.8X ESP := 0x%.8X EBP := 0x%.8X\n"
+			" CR2 := 0x%.8X\n"
 			"\n",
 			EIPToString(e->ContextRecord->Eip).c_str(),
 			e->ContextRecord->EFlags,
@@ -207,7 +207,7 @@ void EmuExceptionNonBreakpointUnhandledShow(LPEXCEPTION_POINTERS e)
 
 	char buffer[256];
 	sprintf(buffer,
-		"Received Exception Code 0x%.08X @ EIP := %s\n"
+		"Received Exception Code 0x%.8X @ EIP := %s\n"
 		"\n"
 		"  Press \"OK\" to terminate emulation.\n"
 		"  Press \"Cancel\" to debug.",
@@ -259,7 +259,7 @@ int ExitException(LPEXCEPTION_POINTERS e)
 
 	// debug information
     printf("[0x%X] EmuMain: * * * * * EXCEPTION * * * * *\n", GetCurrentThreadId());
-    printf("[0x%X] EmuMain: Received Exception [0x%.08X]@%s\n", GetCurrentThreadId(), e->ExceptionRecord->ExceptionCode, EIPToString(e->ContextRecord->Eip).c_str());
+    printf("[0x%X] EmuMain: Received Exception [0x%.8X]@%s\n", GetCurrentThreadId(), e->ExceptionRecord->ExceptionCode, EIPToString(e->ContextRecord->Eip).c_str());
     printf("[0x%X] EmuMain: * * * * * EXCEPTION * * * * *\n", GetCurrentThreadId());
 
     fflush(stdout);
@@ -320,9 +320,9 @@ void EmuPrintStackTrace(PCONTEXT ContextRecord)
 
         SymGetModuleInfo64(g_CurrentProcessHandle, frame.AddrPC.Offset, &module);
         if(module.ModuleName)
-            printf(" %2d: %-8s 0x%.08X", i, module.ModuleName, frame.AddrPC.Offset);
+            printf(" %2d: %-8s 0x%.8X", i, module.ModuleName, frame.AddrPC.Offset);
         else
-            printf(" %2d: %8c 0x%.08X", i, ' ', frame.AddrPC.Offset);
+            printf(" %2d: %8c 0x%.8X", i, ' ', frame.AddrPC.Offset);
 
 		BYTE symbol[sizeof(SYMBOL_INFO) + SYMBOL_MAXLEN] = { 0 };
 		std::string symbolName = "";
@@ -350,7 +350,7 @@ void EmuPrintStackTrace(PCONTEXT ContextRecord)
         }
 
         if(symbolName.length() > 0)
-            printf(" %s+0x%.04X\n", symbolName.c_str(), dwDisplacement);
+            printf(" %s+0x%.4X\n", symbolName.c_str(), dwDisplacement);
         else
             printf("\n");
     }

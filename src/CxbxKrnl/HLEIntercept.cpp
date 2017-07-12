@@ -117,7 +117,7 @@ bool VerifySymbolAddressAgainstXRef(char *SymbolName, xbaddr Address, int XRef)
 		return true;
 
 	if (XRefAddr == XREF_ADDR_DERIVE) {
-		printf("HLE: XRef #%d derived 0x%.08X -> %s\n", XRef, Address, SymbolName);
+		printf("HLE: XRef #%d derived 0x%.8X -> %s\n", XRef, Address, SymbolName);
 		XRefDataBase[XRef] = Address;
 		return true;
 	}
@@ -237,18 +237,18 @@ void CheckDerivedRenderState(xbaddr pFunc, int iCodeOffsetFor_X_D3DRS_, int XREF
 		// Derive address of Xbox_D3D__RenderState from D3DRS_
 		::DWORD *Derived_D3D_RenderState = ((::DWORD*)DerivedAddr_D3DRS_) - XDK_D3DRS_;
 		g_SymbolAddresses["D3D__RenderState"] = (xbaddr)Derived_D3D_RenderState;
-		printf("HLE: Derived 0x%.08X -> D3D__RenderState\n", Derived_D3D_RenderState);
+		printf("HLE: Derived 0x%.8X -> D3D__RenderState\n", Derived_D3D_RenderState);
 
 		// Derive address of Xbox_D3D__RenderState_Deferred from Xbox_D3D__RenderState
 		::DWORD *Derived_D3D__RenderState_Deferred = Derived_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
 		g_SymbolAddresses["D3DDeferredRenderState"] = (xbaddr)Derived_D3D__RenderState_Deferred;
-		printf("HLE: Derived 0x%.08X -> D3D__RenderState_Deferred\n", Derived_D3D__RenderState_Deferred);
+		printf("HLE: Derived 0x%.8X -> D3D__RenderState_Deferred\n", Derived_D3D__RenderState_Deferred);
 
 		// Derive address of a few deferred render state slots (to help xref-based function location)
 		{
 #define DeriveAndPrint(D3DRS) \
 	XRefDataBase[XREF_##D3DRS] = (xbaddr)(Derived_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_##D3DRS]); \
-	printf("HLE: Derived XREF_"#D3DRS"(%d) 0x%.08X -> D3D__RenderState[%d/*="#D3DRS"]\n", (int)XREF_##D3DRS, XRefDataBase[XREF_##D3DRS], DxbxMapMostRecentToActiveVersion[X_##D3DRS]);
+	printf("HLE: Derived XREF_"#D3DRS"(%d) 0x%.8X -> D3D__RenderState[%d/*="#D3DRS"]\n", (int)XREF_##D3DRS, XRefDataBase[XREF_##D3DRS], DxbxMapMostRecentToActiveVersion[X_##D3DRS]);
 
 			DeriveAndPrint(D3DRS_FILLMODE);
 			DeriveAndPrint(D3DRS_CULLMODE);
@@ -272,7 +272,7 @@ void CheckDerivedTextureState(xbaddr pFunc, int iCodeOffsetFor_X_D3DTSS_, int XR
 		// Derive address of D3D_TextureState from D3DTSS_
 		::DWORD *Derived_D3D_TextureState = ((::DWORD*)DerivedAddr_D3DTSS_) - DxbxFromNewVersion_D3DTSS(X_D3DTSS_);
 		g_SymbolAddresses["D3D__TextureState"] = (xbaddr)Derived_D3D_TextureState;
-		printf("HLE: Derived 0x%.08X -> D3D__TextureState\n", Derived_D3D_TextureState);
+		printf("HLE: Derived 0x%.8X -> D3D__TextureState\n", Derived_D3D_TextureState);
 	}
 }
 
@@ -335,7 +335,7 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 		}
 
 		if (pFunc != NULL) {
-			printf("HLE: Located 0x%.08X -> D3DDevice_SetViewport\n", pFunc);
+			printf("HLE: Located 0x%.8X -> D3DDevice_SetViewport\n", pFunc);
 
 			CheckDerivedDevice(pFunc, iCodeOffsetFor_X_pDevice);
 		}
@@ -365,7 +365,7 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 		}
 
 		if (pFunc != NULL) {
-			printf("HLE: Located 0x%.08X -> D3DDevice_SetRenderState_FillMode\n", pFunc);
+			printf("HLE: Located 0x%.8X -> D3DDevice_SetRenderState_FillMode\n", pFunc);
 
 			// Temporary verification - is XREF_D3DDEVICE derived correctly?
 			// TODO : Remove this when D3DEVICE derivation is deemed stable
@@ -402,7 +402,7 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 		}
 
 		if (pFunc != NULL) {
-			printf("HLE: Located 0x%.08X -> D3DDevice_SetRenderState_CullMode\n", pFunc);
+			printf("HLE: Located 0x%.8X -> D3DDevice_SetRenderState_CullMode\n", pFunc);
 
 			// Temporary verification - is XREF_D3DDEVICE derived correctly?
 			// TODO : Remove this when D3DEVICE derivation is deemed stable
@@ -447,7 +447,7 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 		}
 
 		if (pFunc != NULL) {
-			printf("HLE: Located 0x%.08X -> D3DDevice_SetTextureState_TexCoordIndex\n", pFunc);
+			printf("HLE: Located 0x%.8X -> D3DDevice_SetTextureState_TexCoordIndex\n", pFunc);
 
 			CheckDerivedDevice(pFunc, iCodeOffsetFor_X_pDevice);
 
@@ -479,7 +479,7 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 		}
 
 		if (pFunc != NULL) {
-			printf("HLE: Located 0x%.08X -> D3DDevice_SetTextureState_BorderColor\n", pFunc);
+			printf("HLE: Located 0x%.8X -> D3DDevice_SetTextureState_BorderColor\n", pFunc);
 
 			CheckDerivedDevice(pFunc, iCodeOffsetFor_X_pDevice);
 
@@ -503,7 +503,7 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 		}
 
 		if (pFunc != NULL) {
-			printf("HLE: Located 0x%.08X -> D3DDevice_SetStreamSource\n", pFunc);
+			printf("HLE: Located 0x%.8X -> D3DDevice_SetStreamSource\n", pFunc);
 
 			// Read address of Xbox_g_Stream(+8) from D3DDevice_SetStreamSource
 			xbaddr Derived_g_Stream = *((xbaddr*)(pFunc + iCodeOffsetFor_g_Stream));
@@ -516,7 +516,7 @@ void PrescanD3D(Xbe::Header *pXbeHeader)
 				// correct base-address (because "g_Stream" is actually "g_Stream"+8") :
 				Derived_g_Stream -= offsetof(X_Stream, pVertexBuffer);
 				g_SymbolAddresses["g_Stream"] = (xbaddr)Derived_g_Stream;
-				printf("HLE: Derived 0x%.08X -> g_Stream\n", Derived_g_Stream);
+				printf("HLE: Derived 0x%.8X -> g_Stream\n", Derived_g_Stream);
 			}
 		}
 	}
@@ -544,11 +544,11 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 	// Hash the loaded XBE's header, use it as a filename
 	uint32_t uiHash = XXHash32::hash((void*)&CxbxKrnl_Xbe->m_Header, sizeof(Xbe::Header), 0);
 	std::stringstream sstream;
-	sstream << cachePath << std::hex << uiHash << ".ini";
+	sstream << cachePath << std::setfill('0') << std::setw(8) << std::hex << std::uppercase << uiHash << ".ini";
 	std::string filename = sstream.str();
 
 	if (PathFileExists(filename.c_str())) {
-		printf("Found HLE Cache File: %08X.ini\n", uiHash);
+		printf("Found HLE Cache File: %.8X.ini\n", uiHash);
 
 		// Verify the version of the cache file against the HLE Database
 		char buffer[SHRT_MAX] = { 0 };
@@ -1018,7 +1018,7 @@ static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper)
 					// save and count the derived address
 					UnResolvedXRefs--;
 					XRefDataBase[XRef] = XRefAddr;
-					printf("HLE: Derived XREF(%d) -> 0x%0.8X (read from 0x%.08X+0x%X)\n", XRef, XRefAddr, cur, Offset);
+					printf("HLE: Derived XREF(%d) -> 0x%.8X (read from 0x%.8X+0x%X)\n", XRef, XRefAddr, cur, Offset);
 				}
 			}
 
@@ -1161,7 +1161,7 @@ void VerifyHLEOOVPA(HLEVerifyContext *context, OOVPA *oovpa)
 			uint32 curr_offset;
 			GetOovpaEntry(oovpa, p, curr_offset, dummy_value);
 			if (!(curr_offset > prev_offset)) {
-				HLEError(context, "Lovp[%d] : Offset (0x%x) must be larger then previous offset (0x%x)",
+				HLEError(context, "Lovp[%d] : Offset (0x%X) must be larger then previous offset (0x%X)",
 					p, curr_offset, prev_offset);
 			}
 		}

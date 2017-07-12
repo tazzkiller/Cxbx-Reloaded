@@ -213,32 +213,32 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 	printf("*** D3DPIXELSHADERDEF: \n");
 	int i=0;
 	for(int i=0; i<8; i++)
-		printf("pPSD->PSAlphaInputs[%d]				: 0x%08X\n", i, pPSD->PSAlphaInputs[i]);
-	printf("pPSD->PSFinalCombinerInputsABCD			: 0x%08X\n", pPSD->PSFinalCombinerInputsABCD);
-	printf("pPSD->PSFinalCombinerInputsEFG			: 0x%08X\n", pPSD->PSFinalCombinerInputsEFG);
+		printf("pPSD->PSAlphaInputs[%d]				: 0x%.8X\n", i, pPSD->PSAlphaInputs[i]);
+	printf("pPSD->PSFinalCombinerInputsABCD			: 0x%.8X\n", pPSD->PSFinalCombinerInputsABCD);
+	printf("pPSD->PSFinalCombinerInputsEFG			: 0x%.8X\n", pPSD->PSFinalCombinerInputsEFG);
 	for(i=0; i<8; i++)
-		printf("pPSD->PSConstant0[%d]				: 0x%08X\n", i, pPSD->PSConstant0[i]);
+		printf("pPSD->PSConstant0[%d]				: 0x%.8X\n", i, pPSD->PSConstant0[i]);
 	for(i=0; i<8; i++)
-		printf("pPSD->PSConstant1[%d]				: 0x%08X\n", i, pPSD->PSConstant1[i]);
+		printf("pPSD->PSConstant1[%d]				: 0x%.8X\n", i, pPSD->PSConstant1[i]);
 	for(i=0; i<8; i++)
-		printf("pPSD->PSAlphaOutputs[%d]				: 0x%08X\n", i, pPSD->PSAlphaOutputs[i]);
+		printf("pPSD->PSAlphaOutputs[%d]				: 0x%.8X\n", i, pPSD->PSAlphaOutputs[i]);
 	for(i=0; i<8; i++)
-		printf("pPSD->PSRGBInputs[%d]				: 0x%08X\n", i, pPSD->PSRGBInputs[i]);
+		printf("pPSD->PSRGBInputs[%d]				: 0x%.8X\n", i, pPSD->PSRGBInputs[i]);
 
-	printf("pPSD->PSCompareMode				: 0x%08X\n", pPSD->PSCompareMode);
-	printf("pPSD->PSFinalCombinerConstant0			: 0x%08X\n", pPSD->PSFinalCombinerConstant0);
-	printf("pPSD->PSFinalCombinerConstant1			: 0x%08X\n", pPSD->PSFinalCombinerConstant1);
+	printf("pPSD->PSCompareMode				: 0x%.8X\n", pPSD->PSCompareMode);
+	printf("pPSD->PSFinalCombinerConstant0			: 0x%.8X\n", pPSD->PSFinalCombinerConstant0);
+	printf("pPSD->PSFinalCombinerConstant1			: 0x%.8X\n", pPSD->PSFinalCombinerConstant1);
 
 	for(i=0; i<8; i++)
-		printf("pPSD->PSRGBOutputs[%d]				: 0x%08X\n", i, pPSD->PSRGBOutputs[i]);
+		printf("pPSD->PSRGBOutputs[%d]				: 0x%.8X\n", i, pPSD->PSRGBOutputs[i]);
 
-	printf("pPSD->PSCombinerCount				: 0x%08X\n", pPSD->PSCombinerCount);
-	printf("pPSD->PSTextureModes				: 0x%08X\n", pPSD->PSTextureModes);
-	printf("pPSD->PSDotMapping				: 0x%08X\n", pPSD->PSDotMapping);
-	printf("pPSD->PSInputTexture				: 0x%08X\n", pPSD->PSInputTexture);
-	printf("pPSD->PSC0Mapping				: 0x%08X\n", pPSD->PSC0Mapping);
-	printf("pPSD->PSC1Mapping				: 0x%08X\n", pPSD->PSC1Mapping);
-	printf("pPSD->PSFinalCombinerConstants			: 0x%08X\n", pPSD->PSFinalCombinerConstants);
+	printf("pPSD->PSCombinerCount				: 0x%.8X\n", pPSD->PSCombinerCount);
+	printf("pPSD->PSTextureModes				: 0x%.8X\n", pPSD->PSTextureModes);
+	printf("pPSD->PSDotMapping				: 0x%.8X\n", pPSD->PSDotMapping);
+	printf("pPSD->PSInputTexture				: 0x%.8X\n", pPSD->PSInputTexture);
+	printf("pPSD->PSC0Mapping				: 0x%.8X\n", pPSD->PSC0Mapping);
+	printf("pPSD->PSC1Mapping				: 0x%.8X\n", pPSD->PSC1Mapping);
+	printf("pPSD->PSFinalCombinerConstants			: 0x%.8X\n", pPSD->PSFinalCombinerConstants);
 	printf("*** END\n");
 	#endif
 
@@ -308,7 +308,7 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 		{
 			// def cx, xval0, xval1, xval2, xval3
 			DWORD dwC0 = pPSD->PSConstant0[j];
-			printf("pPSD.PSConstant0[%d] = 0x%08X;\n", j, dwC0);
+			printf("pPSD.PSConstant0[%d] = 0x%.8X;\n", j, dwC0);
 
 			float fC0[4];
 			DWORD dwFloat0_0 = ((dwC0>>16) & 0xFF);
@@ -329,7 +329,7 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 		if (iPSC1[j] != 15)
 		{
 			DWORD dwC1 = pPSD->PSConstant1[j];
-			printf("pPSD.PSConstant1[%d] = 0x%08X;\n", j, dwC1);
+			printf("pPSD.PSConstant1[%d] = 0x%.8X;\n", j, dwC1);
 
 			float fC1[4];
 			DWORD dwFloat1_0 = ((dwC1>>16) & 0xFF);
@@ -380,7 +380,7 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 			printf("\n// --------------------------\n");
 			printf("// Final Combiner C0\n");
 			printf("// --------------------------\n");
-			printf("pPSD.PSFinalCombinerConstant0 = 0x%08X\n", pPSD->PSFinalCombinerConstant0);
+			printf("pPSD.PSFinalCombinerConstant0 = 0x%.8X\n", pPSD->PSFinalCombinerConstant0);
 
 			float fC0[4];
 			DWORD dwFloat0_0 = ((pPSD->PSFinalCombinerConstant0>>16) & 0xFF);
@@ -403,7 +403,7 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 			printf("\n// --------------------------\n");
 			printf("// Final Combiner C1\n");
 			printf("// --------------------------\n");
-			printf("pPSD.PSFinalCombinerConstant1 = 0x%08X\n", pPSD->PSFinalCombinerConstant1);
+			printf("pPSD.PSFinalCombinerConstant1 = 0x%.8X\n", pPSD->PSFinalCombinerConstant1);
 
 			float fC1[4];
 			DWORD dwFloat1_0 = ((pPSD->PSFinalCombinerConstant1>>16) & 0xFF);
@@ -2821,29 +2821,29 @@ void XTL::DumpPixelShaderDefToFile( X_D3DPIXELSHADERDEF* pPSDef, const char* psz
 	static int PshNumber = 0;	// Keep track of how many pixel shaders we've attemted to convert.
 	char szPSDef[512];			
 
-	sprintf( szPSDef, "PSDef%.03d.txt", PshNumber++ );
+	sprintf( szPSDef, "PSDef%.3d.txt", PshNumber++ );
 
 	FILE* out = fopen( szPSDef, "w" );
 	if( out )
 	{
-		fprintf( out, "PSAphaInputs[8]              = 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X\n"
-					  "PSFinalCombinerInputsABCD    = 0x%.08X\n"
-					  "PSFinalCombinerInputsEFG     = 0x%.08X\n"
-					  "PSConstant0[8]               = 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X\n"
-					  "PSConstant1[8]               = 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X\n"
-					  "PSAlphaOutputs[8]            = 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X\n"
-					  "PSRGBInputs[8]               = 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X\n"
-					  "PSCompareMode                = 0x%.08X\n"
-					  "PSFinalCombinerConstant0     = 0x%.08X\n"
-					  "PSFinalCombinerConstant1     = 0x%.08X\n"
-					  "PSRGBOutputs[8]              = 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X 0x%.08X\n"
-					  "PSCombinerCount              = 0x%.08X\n"
-					  "PSTextureModes               = 0x%.08X\n"
-					  "PSDotMapping                 = 0x%.08X\n"
-					  "PSInputTexture               = 0x%.08X\n"
-					  "PSC0Mapping                  = 0x%.08X\n"
-					  "PSC1Mapping                  = 0x%.08X\n"
-					  "PSFinalCombinerConstants     = 0x%.08X\n",
+		fprintf( out, "PSAphaInputs[8]              = 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X\n"
+					  "PSFinalCombinerInputsABCD    = 0x%.8X\n"
+					  "PSFinalCombinerInputsEFG     = 0x%.8X\n"
+					  "PSConstant0[8]               = 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X\n"
+					  "PSConstant1[8]               = 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X\n"
+					  "PSAlphaOutputs[8]            = 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X\n"
+					  "PSRGBInputs[8]               = 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X\n"
+					  "PSCompareMode                = 0x%.8X\n"
+					  "PSFinalCombinerConstant0     = 0x%.8X\n"
+					  "PSFinalCombinerConstant1     = 0x%.8X\n"
+					  "PSRGBOutputs[8]              = 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X 0x%.8X\n"
+					  "PSCombinerCount              = 0x%.8X\n"
+					  "PSTextureModes               = 0x%.8X\n"
+					  "PSDotMapping                 = 0x%.8X\n"
+					  "PSInputTexture               = 0x%.8X\n"
+					  "PSC0Mapping                  = 0x%.8X\n"
+					  "PSC1Mapping                  = 0x%.8X\n"
+					  "PSFinalCombinerConstants     = 0x%.8X\n",
 					  pPSDef->PSAlphaInputs[0], pPSDef->PSAlphaInputs[1], pPSDef->PSAlphaInputs[2], pPSDef->PSAlphaInputs[3],
 					  pPSDef->PSAlphaInputs[4], pPSDef->PSAlphaInputs[5], pPSDef->PSAlphaInputs[6], pPSDef->PSAlphaInputs[7],
 					  pPSDef->PSFinalCombinerInputsABCD,

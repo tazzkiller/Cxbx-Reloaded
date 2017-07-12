@@ -114,7 +114,7 @@ void XBController::Load(const char *szRegistryKey)
                     // default is a null string
                     m_DeviceName[v][0] = '\0';
 
-                    sprintf(szValueName, "DeviceName 0x%.02X", v);
+                    sprintf(szValueName, "DeviceName 0x%.2X", v);
 
                     dwType = REG_SZ; dwSize = 260;
                     RegQueryValueEx(hKey, szValueName, NULL, &dwType, (PBYTE)m_DeviceName[v], &dwSize);
@@ -176,7 +176,7 @@ void XBController::Save(const char *szRegistryKey)
 
                 for(v=0;v<XBCTRL_MAX_DEVICES;v++)
                 {
-                    sprintf(szValueName, "DeviceName 0x%.02X", v);
+                    sprintf(szValueName, "DeviceName 0x%.2X", v);
 
                     dwType = REG_SZ; dwSize = 260;
 

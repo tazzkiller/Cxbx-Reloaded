@@ -676,11 +676,11 @@ DEBUG_END(USER)
 
 #define DEBUG_REGNAME(DEV) DebugNV_##DEV##(addr)
 
-#define DEBUG_READ32_LOG(DEV, msg, ...) DbgPrintf("EmuX86 Read32 NV2A " #DEV ## "(0x%08X) [%s] " ## msg ## "\n", addr, DEBUG_REGNAME(DEV),__VA_ARGS__)
-#define DEBUG_WRITE32_LOG(DEV, msg, ...) DbgPrintf("EmuX86 Write32 NV2A " #DEV ## "(0x%08X, 0x%08X) [%s] " ## msg ## "\n", addr, value, DEBUG_REGNAME(DEV), __VA_ARGS__)
+#define DEBUG_READ32_LOG(DEV, msg, ...) DbgPrintf("EmuX86 Read32 NV2A " #DEV ## "(0x%.8X) [%s] " ## msg ## "\n", addr, DEBUG_REGNAME(DEV),__VA_ARGS__)
+#define DEBUG_WRITE32_LOG(DEV, msg, ...) DbgPrintf("EmuX86 Write32 NV2A " #DEV ## "(0x%.8X, 0x%.8X) [%s] " ## msg ## "\n", addr, value, DEBUG_REGNAME(DEV), __VA_ARGS__)
 
-#define DEBUG_READ32(DEV) DEBUG_READ32_LOG(DEV, "= 0x%08X [Handled]", result)
-#define DEBUG_READ32_UNHANDLED(DEV)  { DEBUG_READ32_LOG(DEV, "= 0x%08X [Unhandled]", result); return result; }
+#define DEBUG_READ32(DEV) DEBUG_READ32_LOG(DEV, "= 0x%.8X [Handled]", result)
+#define DEBUG_READ32_UNHANDLED(DEV)  { DEBUG_READ32_LOG(DEV, "= 0x%.8X [Unhandled]", result); return result; }
 
 #define DEBUG_WRITE32(DEV) DEBUG_WRITE32_LOG(DEV, "[Handled]")
 #define DEBUG_WRITE32_UNHANDLED(DEV) { DEBUG_WRITE32_LOG(DEV, "[Unhandled]"); return; }
@@ -699,7 +699,7 @@ DEBUG_END(USER)
 #define DEVICE_WRITE32_REG(DEV) DEVICE_REG32(DEV) = value
 #define DEVICE_WRITE32_END(DEV) DEBUG_WRITE32(DEV)
 
-#define DEVAddrPrintFmt(DEV) #DEV "(0x%08X) = CPU(0x%08X)"
+#define DEVAddrPrintFmt(DEV) #DEV "(0x%.8X) = CPU(0x%.8X)"
 #define DEVAddrPrintArg(DEV, addr) addr, (NV_ ## DEV ## _ADDR + (addr)) | MM_SYSTEM_PHYSICAL_MAP // map GPU to CPU (OR with 0x80000000)
 #define DbgPrintDEVAddr(msg, DEV, addr) DbgPrintf("%s " DEVAddrPrintFmt(DEV) "\n", msg, DEVAddrPrintArg(DEV, addr));
 
@@ -1492,7 +1492,7 @@ DEVICE_WRITE32(PRAMIN)
 				if (DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_CLASS(DMASlot)) == 0x0202B003) {
 					DWORD Address = DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_ADDRESS(DMASlot));
 					g_pNV2ADMAChannel = (Nv2AControlDma*)((Address & ~3) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
-					DbgPrintf("NV2A Pusher DMA channel is at 0x%0.8x\n", g_pNV2ADMAChannel);
+					DbgPrintf("NV2A Pusher DMA channel is at 0x%.8X\n", g_pNV2ADMAChannel);
 				}
 			}
 
@@ -1502,7 +1502,7 @@ DEVICE_WRITE32(PRAMIN)
 					// Remember where the semaphore (starting with a GPU Time DWORD) was allocated
 					DWORD Address = DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_ADDRESS(DMASlot));
 					m_pGPUTime = (PPUSH)((Address & ~3) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
-					DbgPrintf("Registered m_pGPUTime at 0x%0.8x\n", m_pGPUTime);
+					DbgPrintf("Registered m_pGPUTime at 0x%.8X\n", m_pGPUTime);
 				}
 			}
 
@@ -1748,7 +1748,7 @@ uint32_t EmuNV2A_Read(xbaddr addr, int size)
 		}
 	}
 
-	EmuWarning("EmuNV2A_Read%d: Unhandled Read Address %08X", size, addr);
+	EmuWarning("EmuNV2A_Read%d: Unhandled Read Address 0x%.8X", size, addr);
 	return 0;
 }
 
@@ -1795,7 +1795,7 @@ void EmuNV2A_Write(xbaddr addr, uint32_t value, int size)
 		}
 	}
 
-	EmuWarning("EmuNV2A_Write%d: Unhandled Write Address %08X (value %08X)", size, addr, value);
+	EmuWarning("EmuNV2A_Write%d: Unhandled Write Address 0x%.8X (value 0x%X)", size, addr, value);
 	return;
 }
 
