@@ -3174,7 +3174,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetViewport)
     CONST D3DVIEWPORT8 *pViewport
 )
 {
+#ifndef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_ONE_ARG(pViewport);
 
@@ -3378,6 +3380,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface2)()
 	RETURN(result);
 }
 
+#ifndef UNPATCH_CREATEDEVICE
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetTile)
 (
     DWORD           Index,
@@ -3414,6 +3417,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTile)
 		memcpy(&EmuD3DTileCache[Index], pTile, sizeof(X_D3DTILE));
 	}
 }
+#endif
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
 (
@@ -5533,6 +5537,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVerticalBlankCallback)
     g_pVBCallback = pCallback;    
 }
 
+#ifndef UNPATCH_CREATEDEVICE
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_TexCoordIndex)
 (
     DWORD Stage,
@@ -5591,6 +5596,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureStageStateNotInline)
 
 	CxbxInternalSetTextureStageState(__func__, Stage, Type, Value);
 }
+#endif
 
 #ifndef UNPATCH_CREATEDEVICE
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_TwoSidedLighting)
@@ -5973,7 +5979,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTransform)
     CONST D3DMATRIX      *pMatrix
 )
 {
+#ifndef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(State)
@@ -6075,7 +6083,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
     DWORD Handle
 )
 {
+#ifndef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_ONE_ARG(Handle);
 
@@ -6900,7 +6910,9 @@ void WINAPI XTL::EMUPATCH(D3DDevice_SetFlickerFilter)
     DWORD         Filter
 )
 {
+#ifndef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_ONE_ARG(Filter);
 
@@ -6912,7 +6924,9 @@ void WINAPI XTL::EMUPATCH(D3DDevice_SetSoftDisplayFilter)
     BOOL Enable
 )
 {
+#ifndef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_ONE_ARG(Enable);
 
@@ -7388,7 +7402,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetScreenSpaceOffset)
     FLOAT y
 )
 {
+#ifndef UNPATCH_CREATEDEVICE
 	FUNC_EXPORTS
+#endif
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(x)
