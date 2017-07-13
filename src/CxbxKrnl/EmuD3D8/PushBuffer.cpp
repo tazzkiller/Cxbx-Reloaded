@@ -970,7 +970,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 #endif*/
 			// Before handling the method, display it's details :
 			if (g_bPrintfOn) {
-				printf("[0x%X] ", GetCurrentThreadId());
+				printf("[0x%.4X] ", GetCurrentThreadId());
 				printf(LogPrefixStr, StepNr);
 				printf(" Method=%.4X Arg[0]=%.8X", dwMethod, *pdwPushArguments);
 				if (dwSubCh == 0) {
@@ -1117,6 +1117,7 @@ void CxbxInitializeNV2ADMA()
 		DbgPrintf("NV2A : Launching DMA handler thread\n");
 		::DWORD dwThreadId = 0;
 		g_hNV2ADMAThread = CreateThread(nullptr, 0, EmuThreadHandleNV2ADMA, nullptr, 0, &dwThreadId);
+		DbgPrintf("NV2A: Created DMA handler thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", g_hNV2ADMAThread, dwThreadId);
 		// Make sure callbacks run on the same core as the one that runs Xbox1 code :
 		SetThreadAffinityMask(g_hNV2ADMAThread, g_CPUXbox);
 		// We set the priority of this thread a bit higher, to assure reliable timing :

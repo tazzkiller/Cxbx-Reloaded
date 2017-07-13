@@ -419,7 +419,7 @@ void EmuGenerateFS(Xbe::TLS *pTLS, void *pTLSData)
 							DbgPrintf("EmuFS: 0x%.8X: ", (xbaddr)bByte);
 
 						// Note : Use printf instead of DbgPrintf here, which prefixes with GetCurrentThreadId() :
-						printf("%.1X", (uint32)(*bByte));
+						printf("%.2X ", *bByte);
 					}
 
 					printf("\n");

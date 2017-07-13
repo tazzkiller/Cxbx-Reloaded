@@ -531,10 +531,12 @@ VOID XTL::CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize)
 
     // create timing thread
     {
-        DWORD dwThreadId;
+        DWORD dwThreadId = 0;
 
 		DbgPrintf("EmuD3D8: Launching timing thread\n");
         HANDLE hThread = CreateThread(nullptr, 0, EmuUpdateTickCount, nullptr, 0, &dwThreadId);
+		DbgPrintf("EmuD3D8: Created timing thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", hThread, dwThreadId);
+
 		// Ported from Dxbx :
         // If possible, assign this thread to another core than the one that runs Xbox1 code :
         SetThreadAffinityMask(hThread, g_CPUOthers);
@@ -562,7 +564,7 @@ VOID XTL::CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize)
 */
     // create window message processing thread
     {
-        DWORD dwThreadId;
+        DWORD dwThreadId = 0;
 
         g_bRenderWindowActive = false;
 
@@ -576,6 +578,8 @@ VOID XTL::CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize)
 			EmuShared::Cleanup();
 			ExitProcess(0);
 		}
+
+		DbgPrintf("EmuD3D8: Created Message-Pump thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", hRenderWindowThread, dwThreadId);
 
 		// Ported from Dxbx :
 		// If possible, assign this thread to another core than the one that runs Xbox1 code :
@@ -1376,10 +1380,11 @@ VOID XTL::EmuD3DInit()
 {
 	// create the create device proxy thread
 	{
-		DWORD dwThreadId;
+		DWORD dwThreadId = 0;
 
 		DbgPrintf("EmuD3D8: Launching CreateDevice proxy thread\n");
-		CreateThread(nullptr, 0, EmuCreateDeviceProxy, nullptr, 0, &dwThreadId);
+		HANDLE hThread = CreateThread(nullptr, 0, EmuCreateDeviceProxy, nullptr, 0, &dwThreadId);
+		DbgPrintf("EmuD3D8: Created CreateDevice proxy thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", hThread, dwThreadId);
 		// Ported from Dxbx :
 		// If possible, assign this thread to another core than the one that runs Xbox1 code :
 		SetThreadAffinityMask(&dwThreadId, g_CPUOthers);

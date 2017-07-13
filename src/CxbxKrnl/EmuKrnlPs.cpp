@@ -288,9 +288,9 @@ XBSYSAPI EXPORTNUM(255) xboxkrnl::NTSTATUS NTAPI xboxkrnl::PsCreateSystemThreadE
 
 	// create thread, using our special proxy technique
 	{
-		DWORD dwThreadId;
+		DWORD dwThreadId = 0;
 
-		DbgPrintf("EmuKrnl: Launching proxy thread\n");
+		DbgPrintf("EmuKrnl: Launching Xbox proxy thread\n");
 
 		HANDLE hStartedEvent = CreateEvent(NULL, FALSE, FALSE, TEXT("PCSTProxyEvent"));
 
@@ -305,20 +305,10 @@ XBSYSAPI EXPORTNUM(255) xboxkrnl::NTSTATUS NTAPI xboxkrnl::PsCreateSystemThreadE
 
 		// TODO : Why _beginthreadex instead of CreateThread? Should all be replaced?
 		*ThreadHandle = (HANDLE)_beginthreadex(NULL, NULL, PCSTProxy, iPCSTProxyParam, NULL, (uint*)&dwThreadId);
-
-		// Make sure Xbox1 code runs on one core :
-		SetThreadAffinityMask(*ThreadHandle, g_CPUXbox);
-
-		DbgPrintf("EmuKrnl: Waiting for proxy to finish\n");
-		WaitForSingleObject(hStartedEvent, 15000); // 15 seconds should be more than enough. TODO : How to handle timeout?
-
-		// Release the event
-		CloseHandle(hStartedEvent);
-		hStartedEvent = NULL;
-
 		//        *ThreadHandle = CreateThread(NULL, NULL, PCSTProxy, iPCSTProxyParam, NULL, &dwThreadId);
 
-		DbgPrintf("EmuKrnl: ThreadHandle : 0x%X, ThreadId : 0x%.8X\n", *ThreadHandle, dwThreadId);
+		// Log ThreadID identical to how GetCurrentThreadID() is rendered :
+		DbgPrintf("EmuKrnl: Created Xbox proxy thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", *ThreadHandle, dwThreadId);
 
 		// we must duplicate this handle in order to retain Suspend/Resume thread rights from a remote thread
 		{
@@ -328,6 +318,16 @@ XBSYSAPI EXPORTNUM(255) xboxkrnl::NTSTATUS NTAPI xboxkrnl::PsCreateSystemThreadE
 
 			CxbxKrnlRegisterThread(hDupHandle);
 		}
+
+		// Make sure Xbox1 code runs on one core :
+		SetThreadAffinityMask(*ThreadHandle, g_CPUXbox);
+
+		DbgPrintf("EmuKrnl: Waiting for Xbox proxy thread to start...\n");
+		WaitForSingleObject(hStartedEvent, 15000); // 15 seconds should be more than enough. TODO : How to handle timeout?
+
+		// Release the event
+		CloseHandle(hStartedEvent);
+		hStartedEvent = NULL;
 
 		if (ThreadId != NULL)
 			*ThreadId = (xboxkrnl::HANDLE)dwThreadId;

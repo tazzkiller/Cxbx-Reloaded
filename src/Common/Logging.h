@@ -151,7 +151,7 @@ extern thread_local std::string _logPrefix;
 #define LOG_THREAD_INIT \
 	if (_logPrefix.length() == 0) { \
 		std::stringstream tmp; \
-		tmp << "[" << hex2((uint16_t)GetCurrentThreadId()) << "] "; \
+		tmp << "[" << hexstring16 << GetCurrentThreadId() << "] "; \
 		_logPrefix = tmp.str(); \
     }
 

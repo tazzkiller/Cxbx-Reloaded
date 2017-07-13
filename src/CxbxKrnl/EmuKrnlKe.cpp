@@ -262,7 +262,7 @@ DWORD __stdcall EmuThreadDpcHandler(LPVOID lpVoid)
 
 void InitDpcAndTimerThread()
 {
-	DWORD dwThreadId;
+	DWORD dwThreadId = 0;
 
 	InitializeCriticalSection(&(g_DpcData.Lock));
 	InitializeListHead(&(g_DpcData.DpcQueue));
@@ -273,6 +273,7 @@ void InitDpcAndTimerThread()
 
 	DbgPrintf("EmuD3D8: Launching DPC thread\n");
 	g_DpcData.DpcThread = CreateThread(/*lpThreadAttributes=*/nullptr, /*dwStackSize=*/0, (LPTHREAD_START_ROUTINE)&EmuThreadDpcHandler, /*lpParameter=*/nullptr, /*dwCreationFlags=*/0, &dwThreadId);
+	DbgPrintf("EmuD3D8: Created DPC thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", g_DpcData.DpcThread, dwThreadId);
 	SetThreadPriority(g_DpcData.DpcThread, THREAD_PRIORITY_HIGHEST);
 }
 
