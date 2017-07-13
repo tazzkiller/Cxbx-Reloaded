@@ -280,6 +280,7 @@ extern thread_local std::string _logPrefix;
 
 #define LOG_ONCE(msg, ...) { static bool bFirstTime = true; if(bFirstTime) { bFirstTime = false; DbgPrintf(msg, __VA_ARGS__); } }
 
+#define LOG_XBOX_CALL(func) DbgPrintf("Xbox " ## func ## "() call\n");
 #define LOG_FIRST_XBOX_CALL(func) LOG_ONCE("First Xbox " ## func ## "() call\n");
 
 //

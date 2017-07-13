@@ -39,12 +39,13 @@
 
 #include "CxbxKrnl/Emu.h"
 #include "CxbxKrnl/EmuXTL.h"
-#include "CxbxKrnl/EmuNV2A.h" // Nv2AControlDma
+#include "CxbxKrnl/EmuNV2A.h" // For NV_PGRAPH_ADDR, Nv2AControlDma
 #include "CxbxKrnl/EmuD3D8Types.h" // For X_D3DFORMAT
 #include "CxbxKrnl/ResourceTracker.h"
 #include "CxbxKrnl/MemoryManager.h"
 #include "Logging.h" // For LOG_FIRST_XBOX_CALL
 #include "State.h"
+#include "..\nv2a_int.h" // For NV_PGRAPH_DEBUG_5
 
 uint32  XTL::g_dwPrimaryPBCount = 0;
 uint32 *XTL::g_pPrimaryPB = 0;
@@ -227,6 +228,9 @@ void EmuNV2A_NOP() // 0x0100
 	case 9: {
 		const DWORD Register = NOP_Argument1;
 		const DWORD Value = NOP_Argument2;
+		if (Register == NV_PGRAPH_ADDR + NV_PGRAPH_DEBUG_5) {
+			LOG_XBOX_CALL("CommonSetDebugRegisters");
+		}
 		EmuNV2A_Write(Register, Value, 32);
 		HandledBy = "NOP write register";
 		break;
