@@ -1459,11 +1459,11 @@ DEVICE_WRITE32(PRAMIN)
 		// Log when writing initial zero's
 		if (value == 0) {
 			if (addr == 0x00010000) {
-				LOG_FIRST_XBOX_CALL("Xbox HalFbControlInit() clearing 20 KiB of PRAMIN MmClaimGpuInstanceMemory");
+				LOG_ONCE("Xbox HalFbControlInit() clearing 20 KiB of PRAMIN MmClaimGpuInstanceMemory\n");
 			}
 
 			if (addr == 0x00014FFC) {
-				LOG_FIRST_XBOX_CALL("Xbox HalFbControlInit() cleared 20 KiB of PRAMIN MmClaimGpuInstanceMemory");
+				LOG_ONCE("Xbox HalFbControlInit() cleared 20 KiB of PRAMIN MmClaimGpuInstanceMemory\n");
 			}
 		}
 
