@@ -544,7 +544,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 	// Hash the loaded XBE's header, use it as a filename
 	uint32_t uiHash = XXHash32::hash((void*)&CxbxKrnl_Xbe->m_Header, sizeof(Xbe::Header), 0);
 	std::stringstream sstream;
-	sstream << cachePath << std::setfill('0') << std::setw(8) << std::hex << std::uppercase << uiHash << ".ini";
+	sstream << cachePath << std::setfill('0') << std::setw(8) << std::right << std::hex << std::uppercase << uiHash << ".ini";
 	std::string filename = sstream.str();
 
 	if (PathFileExists(filename.c_str())) {

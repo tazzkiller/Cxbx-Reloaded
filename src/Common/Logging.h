@@ -331,21 +331,21 @@ std::basic_ostream<_CharT, _Traits>&
 hexstring8(std::basic_ostream<_CharT, _Traits>&os)
 {
 	// std::noshowbase is not neccessary to set (it's the default, and we never use std::showbase)
-	return os << "0x" << std::setfill('0') << std::setw(2) << std::hex << std::uppercase;
+	return os << "0x" << std::setfill('0') << std::setw(2) << std::right << std::hex << std::uppercase;
 }
 
 template <class _CharT, class _Traits>
 std::basic_ostream<_CharT, _Traits>&
 hexstring16(std::basic_ostream<_CharT, _Traits>&os)
 {
-	return os << "0x" << std::setfill('0') << std::setw(4) << std::hex << std::uppercase;
+	return os << "0x" << std::setfill('0') << std::setw(4) << std::right << std::hex << std::uppercase;
 }
 
 template <class _CharT, class _Traits>
 std::basic_ostream<_CharT, _Traits>&
 hexstring32(std::basic_ostream<_CharT, _Traits>&os)
 {
-	return os << "0x" << std::setfill('0') << std::setw(8) << std::hex << std::uppercase;
+	return os << "0x" << std::setfill('0') << std::setw(8) << std::right << std::hex << std::uppercase;
 }
 
 // Macro combining pointer-to-type implementation and type rendering header :

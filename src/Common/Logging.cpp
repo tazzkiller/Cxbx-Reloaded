@@ -67,7 +67,7 @@ inline void output_char(std::ostream& os, char c)
 		case '\t': os << "\\t"; break;
 		case '\v': os << "\\v"; break;
 			// All other to-escape-characters are rendered as hexadecimal :
-		default: os << "\\x" << std::setfill('0') << std::setw(2) << std::hex << std::uppercase << (int)c;
+		default: os << "\\x" << std::setfill('0') << std::setw(2) << std::right << std::hex << std::uppercase << (int)c;
 		}
 	}
 	else
@@ -92,7 +92,7 @@ inline void output_wchar(std::ostream& os, wchar_t c)
 		case '\t': os << "\\t"; break;
 		case '\v': os << "\\v"; break;
 			// All other to-escape-characters are rendered as hexadecimal :
-		default: os << "\\x" << std::setfill('0') << std::setw(4) << std::hex << std::uppercase << (wint_t)c;
+		default: os << "\\x" << std::setfill('0') << std::setw(4) << std::right << std::hex << std::uppercase << (wint_t)c;
 		}
 	}
 	else
