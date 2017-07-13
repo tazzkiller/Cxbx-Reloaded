@@ -144,7 +144,7 @@ LOG_SANITIZE_HEADER(sanitized_char_pointer, char *)
 		}
 
 	v = container.value;
-	os << hexstring32 << (void *)v << " = \"";
+	os << hexstring32 << (uint32_t)v << " = \"";
 	if (needsEscaping)
 	{
 		while (*v)
@@ -174,7 +174,7 @@ LOG_SANITIZE_HEADER(sanitized_wchar_pointer, wchar_t *)
 		}
 
 	v = container.value;
-	os << hexstring32 << (void *)v << " = \"";
+	os << hexstring32 << (uint32_t)v << " = \"";
 	if (needsEscaping)
 	{
 		while (*v)
