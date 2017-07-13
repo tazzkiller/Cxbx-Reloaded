@@ -59,15 +59,14 @@ namespace NtDll
 };
 
 // PsCreateSystemThread proxy parameters
-typedef struct _PCSTProxyParam
+struct PCSTProxyParam
 {
-	IN PVOID  StartRoutine;
+	IN xboxkrnl::PKSTART_ROUTINE  StartRoutine;
 	IN PVOID  StartContext;
-	IN PVOID  SystemRoutine;
+	IN xboxkrnl::PKSYSTEM_ROUTINE  SystemRoutine;
 	IN BOOL   StartSuspended;
 	IN HANDLE hStartedEvent;
-}
-PCSTProxyParam;
+};
 
 // Global Variable(s)
 extern PVOID g_pfnThreadNotification[PSP_MAX_CREATE_THREAD_NOTIFY] = { NULL };
@@ -76,17 +75,17 @@ extern int g_iThreadNotificationCount = 0;
 // Separate function for logging, otherwise in PCSTProxy __try wont work (Compiler Error C2712)
 void LOG_PCSTProxy
 (
-	PVOID StartRoutine,
+	xboxkrnl::PKSTART_ROUTINE StartRoutine,
 	PVOID StartContext,
-	PVOID SystemRoutine,
+	xboxkrnl::PKSYSTEM_ROUTINE SystemRoutine,
 	BOOL   StartSuspended,
 	HANDLE hStartedEvent
 )
 {
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(StartRoutine)
+		LOG_FUNC_ARG_TYPE(PVOID, StartRoutine)
 		LOG_FUNC_ARG(StartContext)
-		LOG_FUNC_ARG(SystemRoutine)
+		LOG_FUNC_ARG_TYPE(PVOID, SystemRoutine)
 		LOG_FUNC_ARG(StartSuspended)
 		LOG_FUNC_ARG(hStartedEvent)
 		LOG_FUNC_END;
@@ -101,16 +100,16 @@ static unsigned int WINAPI PCSTProxy
 	IN PVOID Parameter
 )
 {
-	PCSTProxyParam *iPCSTProxyParam = (PCSTProxyParam*)Parameter;
+	auto pPCSTProxyParam = (struct PCSTProxyParam*)Parameter;
 
-	PVOID StartRoutine = iPCSTProxyParam->StartRoutine;
-	PVOID StartContext = iPCSTProxyParam->StartContext;
-	PVOID SystemRoutine = iPCSTProxyParam->SystemRoutine;
-	BOOL StartSuspended = iPCSTProxyParam->StartSuspended;
-	HANDLE hStartedEvent = iPCSTProxyParam->hStartedEvent;
+	xboxkrnl::PKSTART_ROUTINE StartRoutine = pPCSTProxyParam->StartRoutine;
+	PVOID StartContext = pPCSTProxyParam->StartContext;
+	xboxkrnl::PKSYSTEM_ROUTINE SystemRoutine = pPCSTProxyParam->SystemRoutine;
+	BOOL StartSuspended = pPCSTProxyParam->StartSuspended;
+	HANDLE hStartedEvent = pPCSTProxyParam->hStartedEvent;
 
-	// Once deleted, unable to directly access iPCSTProxyParam in remainder of function.
-	delete iPCSTProxyParam;
+	// Once deleted, unable to directly access pPCSTProxyParam in remainder of function.
+	delete pPCSTProxyParam;
 
 	LOG_PCSTProxy(
 		StartRoutine,
@@ -295,17 +294,17 @@ XBSYSAPI EXPORTNUM(255) xboxkrnl::NTSTATUS NTAPI xboxkrnl::PsCreateSystemThreadE
 		HANDLE hStartedEvent = CreateEvent(NULL, FALSE, FALSE, TEXT("PCSTProxyEvent"));
 
 		// PCSTProxy is responsible for cleaning up this pointer
-		::PCSTProxyParam *iPCSTProxyParam = new ::PCSTProxyParam();
+		auto pPCSTProxyParam = new struct ::PCSTProxyParam();
 
-		iPCSTProxyParam->StartRoutine = StartRoutine;
-		iPCSTProxyParam->StartContext = StartContext;
-		iPCSTProxyParam->SystemRoutine = SystemRoutine; // NULL, XapiThreadStartup or unknown?
-		iPCSTProxyParam->StartSuspended = CreateSuspended;
-		iPCSTProxyParam->hStartedEvent = hStartedEvent;
+		pPCSTProxyParam->StartRoutine = StartRoutine;
+		pPCSTProxyParam->StartContext = StartContext;
+		pPCSTProxyParam->SystemRoutine = SystemRoutine; // NULL, XapiThreadStartup or unknown?
+		pPCSTProxyParam->StartSuspended = CreateSuspended;
+		pPCSTProxyParam->hStartedEvent = hStartedEvent;
 
 		// TODO : Why _beginthreadex instead of CreateThread? Should all be replaced?
-		*ThreadHandle = (HANDLE)_beginthreadex(NULL, NULL, PCSTProxy, iPCSTProxyParam, NULL, (uint*)&dwThreadId);
-		//        *ThreadHandle = CreateThread(NULL, NULL, PCSTProxy, iPCSTProxyParam, NULL, &dwThreadId);
+		*ThreadHandle = (HANDLE)_beginthreadex(NULL, NULL, PCSTProxy, pPCSTProxyParam, NULL, (uint*)&dwThreadId);
+		//        *ThreadHandle = CreateThread(NULL, NULL, PCSTProxy, pPCSTProxyParam, NULL, &dwThreadId);
 
 		// Log ThreadID identical to how GetCurrentThreadID() is rendered :
 		DbgPrintf("EmuKrnl: Created Xbox proxy thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", *ThreadHandle, dwThreadId);
