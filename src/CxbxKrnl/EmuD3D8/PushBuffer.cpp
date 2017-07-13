@@ -184,6 +184,8 @@ void EmuNV2A_NOP() // 0x0100
 	#define NOP_Argument1 (NV2AInstance_Registers[XTL::NV2A_CLEAR_DEPTH_VALUE / 4])
 	#define NOP_Argument2 (NV2AInstance_Registers[XTL::NV2A_CLEAR_VALUE / 4])
 	switch (*pdwPushArguments) {
+	case 0:
+		break; // No HandledBy-logging on argument zero
 	case 1: {
 		// TODO : Present();
 		HandledBy = "NOP flip immediate";
@@ -230,10 +232,45 @@ void EmuNV2A_NOP() // 0x0100
 		break;
 	}
 	default: {
-		HandledBy = "NOP unknown";
+		HandledBy = "NOP unknown argument";
 		break;
 	}
 	}
+}
+
+void EmuNV2A_FLIP_READ() // 0x0120
+{
+	using namespace XTL; // for NV2A symbols
+
+	if (dwCount == 3) {
+		LOG_FIRST_XBOX_CALL("CDevice::InitializeFrameBuffers");
+
+		DbgPrintf("Read framebuffer = %d\n", NV2AInstance_Registers[NV2A_FLIP_READ / 4]); // TODO : Useless?
+		DbgPrintf("Write framebuffer = %d\n", NV2AInstance_Registers[NV2A_FLIP_WRITE / 4]); // TODO : Useless?
+		DbgPrintf("Number of framebuffers = %d\n", NV2AInstance_Registers[NV2A_FLIP_MODULO / 4]); // TODO : Useless?
+	}
+}
+
+void EmuNV2A_FlipStall() // 0x0130
+{
+	//#ifdef DXBX_USE_D3D
+	XTL::CxbxPresent();
+	//#endif
+#ifdef DXBX_USE_OPENGL
+	SwapBuffers(g_EmuWindowsDC); // TODO : Use glFlush() when single-buffered?
+#endif
+
+	HandledBy = "Swap";
+}
+
+void EmuNV2A_DMA_NOTIFY() // 0x0180
+{
+	LOG_FIRST_XBOX_CALL("InitializeKelvin");
+}
+
+void EmuNV2A_FOG_PLANE__3() // 0x09DC
+{
+	LOG_ONCE("End of first Xbox InitializeKelvin() call\n");
 }
 
 float ZScale = 65535.0f; // TODO : Set to format-dependent divider
@@ -294,18 +331,6 @@ void NVPB_Clear()
 	}
 
 	HandledBy = "Clear";
-}
-
-void EmuNV2A_FlipStall()
-{
-//#ifdef DXBX_USE_D3D
-	XTL::CxbxPresent();
-//#endif
-#ifdef DXBX_USE_OPENGL
-	SwapBuffers(g_EmuWindowsDC); // TODO : Use glFlush() when single-buffered?
-#endif
-
-	HandledBy = "Swap";
 }
 
 void EmuNV2A_SetRenderState()
@@ -599,6 +624,8 @@ void NVPB_SemaphoreRelease()
 
 void NVPB_SetVertexShaderConstantRegister()
 {
+	LOG_FIRST_XBOX_CALL("D3DDevice_SetShaderConstantMode");
+
 	HandledBy = "SetVertexShaderConstantRegister";
 }
 
@@ -743,20 +770,20 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 	static bool NV2ACallbacks_Initialized = false;
 	if (!NV2ACallbacks_Initialized) {
 		NV2ACallbacks_Initialized = true;
+
 		// Set handlers that do more than just store data in registers :
 		NV2ACallbacks[NV2A_NOP / 4] = EmuNV2A_NOP; // 0x0100
+		NV2ACallbacks[NV2A_FLIP_READ / 4] = EmuNV2A_FLIP_READ; // 0x0120
 		NV2ACallbacks[NV2A_FLIP_STALL / 4] = EmuNV2A_FlipStall; // 0x0130 // // TODO : Should we trigger at NV2A_FLIP_INCREMENT_WRITE instead?
+		NV2ACallbacks[NV2A_DMA_NOTIFY / 4] = EmuNV2A_DMA_NOTIFY; // 0x0180
+		NV2ACallbacks[NV2A_FOG_PLANE(3) / 4] = EmuNV2A_FOG_PLANE__3; // 0x09DC
 		NV2ACallbacks[NV2A_VERTEX_BEGIN_END / 4] = NVPB_SetBeginEnd; // NV097_SET_BEGIN_END; // 0x000017FC
 		NV2ACallbacks[NV2A_VB_ELEMENT_U16 / 4] = NVPB_InlineIndexArray; // NV097_ARRAY_ELEMENT16; // 0x1800
 		NV2ACallbacks[(NV2A_VB_ELEMENT_U16 + 8) / 4] = NVPB_FixLoop; // NV097_ARRAY_ELEMENT32; // 0x1808
 		NV2ACallbacks[NV2A_VERTEX_DATA / 4] = NVPB_InlineVertexArray; // NV097_INLINE_ARRAY; // 0x1818
-		NV2ACallbacks[NV2A_BACK_END_WRITE_SEMAPHORE_RELEASE / 4] = NVPB_SemaphoreRelease; // 0x1d70
-		// Not really needed, but helps debugging : 
-		NV2ACallbacks[NV2A_VP_UPLOAD_CONST_ID / 4] = NVPB_SetVertexShaderConstantRegister; // NV097_SET_TRANSFORM_CONSTANT_LOAD; // 0x00001EA4
 		for (int i = 0; i < 32; i++) {
 			NV2ACallbacks[NV2A_VP_UPLOAD_CONST(i) / 4] = NVPB_SetVertexShaderConstants; // NV097_SET_TRANSFORM_CONSTANT; // 0x00000b80
 		}
-		NV2ACallbacks[NV2A_CLEAR_BUFFERS / 4] = NVPB_Clear; // 0x00001d94
 		for (int i = 0; i < 16; i++) {
 			NV2ACallbacks[NV2A_VTX_ATTR_4F_X(i) / 4] = NVPB_SetVertexData4f; // 0x00001a00
 			// TODO : Register callbacks for other vertex attribute formats (SetVertexData2f, 2s, 4ub, 4s, Color)
@@ -765,6 +792,10 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 			NV2ACallbacks[NV2A_TX_BORDER_COLOR(i) / 4] = NVPB_SetTextureState_BorderColor;// NV097_SET_TEXTURE_BORDER_COLOR // 0x00001b24
 			// TODO : Register callbacks for other texture(-stage) related methods
 		}
+		NV2ACallbacks[NV2A_BACK_END_WRITE_SEMAPHORE_RELEASE / 4] = NVPB_SemaphoreRelease; // 0x1D70
+		NV2ACallbacks[NV2A_CLEAR_BUFFERS / 4] = NVPB_Clear; // 0x1D94
+		// Not really needed, but helps debugging : 
+		NV2ACallbacks[NV2A_VP_UPLOAD_CONST_ID / 4] = NVPB_SetVertexShaderConstantRegister; // 0x1EA4
 
 		// Attach SetRenderState to all Xbox render states that have a 1-on-1 mapping to Windows Direct3D :
 		for (int i = X_D3DRS_FIRST; i <= X_D3DRS_LAST; i++) {
@@ -932,8 +963,13 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 			if (g_bPrintfOn) {
 				printf("[0x%X] ", GetCurrentThreadId());
 				printf(LogPrefixStr, StepNr);
-				printf(" Method=%.4X Arg[0]=%.8X %s", dwMethod, *pdwPushArguments, NV2AMethodToString(dwMethod));
+				printf(" Method=%.4X Arg[0]=%.8X", dwMethod, *pdwPushArguments);
+				if (dwSubCh == 0) {
+					printf(" ");
+					printf(NV2AMethodToString(dwMethod));
+				}
 				if (HandledBy != nullptr) {
+					printf(" ");
 					printf(HandledBy);
 				}
 
