@@ -227,7 +227,7 @@ void EmuNV2A_NOP() // 0x0100
 	case 9: {
 		const DWORD Register = NOP_Argument1;
 		const DWORD Value = NOP_Argument2;
-		NV2AInstance_Registers[Register / 4] = Value; // TODO : EmuNV2A_Write32(RegisterBase + Register, Value);
+		EmuNV2A_Write(Register, Value, 32);
 		HandledBy = "NOP write register";
 		break;
 	}
@@ -348,7 +348,7 @@ void EmuNV2A_SetRenderState()
 	default: {
 #endif
 	XboxRenderState = XTL::DxbxXboxMethodToRenderState(dwMethod);
-	if ((int)XboxRenderState < 0) {
+	if (XboxRenderState == XTL::X_D3DRS_UNKNOWN) {
 		XTL::CxbxKrnlCleanup("EmuNV2A_SetRenderState coupled to unknown method?");
 	}
 
@@ -800,8 +800,13 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 		// Attach SetRenderState to all Xbox render states that have a 1-on-1 mapping to Windows Direct3D :
 		for (int i = X_D3DRS_FIRST; i <= X_D3DRS_LAST; i++) {
 			const XTL::RenderStateInfo &Info = XTL::GetDxbxRenderStateInfo(i);
-			if ((Info.M != 0) && (Info.PC != D3DRS_UNSUPPORTED)) {
-				NV2ACallbacks[Info.M / 4] = EmuNV2A_SetRenderState;
+			if (Info.PC != D3DRS_UNSUPPORTED) {
+				if (Info.M != 0) {
+					// Verify it's a 1-on-1 mapping :
+					if (XTL::DxbxXboxMethodToRenderState(Info.M) == Info.PC) {
+						NV2ACallbacks[Info.M / 4] = EmuNV2A_SetRenderState;
+					}
+				}
 			}
 		}
 	}

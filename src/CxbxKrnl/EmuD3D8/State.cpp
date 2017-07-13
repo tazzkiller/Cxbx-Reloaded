@@ -302,6 +302,11 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	if (g_pD3DDevice8 == nullptr)
 		return XboxValue;
 
+	if (DxbxRenderStateXB2PCCallback[XboxRenderState] == nullptr) {
+		EmuWarning("%s is missing a conversion!", Info.S);
+		return XboxValue;
+	}
+
 	// Convert the value from Xbox format into PC format, and set it locally :
 	PCValue = DxbxRenderStateXB2PCCallback[XboxRenderState](XboxValue);
 

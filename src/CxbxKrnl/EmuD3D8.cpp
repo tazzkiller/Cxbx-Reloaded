@@ -5587,6 +5587,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureStageStateNotInline)
 	CxbxInternalSetTextureStageState(__func__, Stage, Type, Value);
 }
 
+#ifndef UNPATCH_CREATEDEVICE
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_TwoSidedLighting)
 (
     DWORD Value
@@ -5959,6 +5960,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderStateNotInline)
 
 	CxbxInternalSetRenderState(__func__, State, Value);
 }
+#endif
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTransform)
 (
