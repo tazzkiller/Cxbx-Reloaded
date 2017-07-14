@@ -166,7 +166,7 @@ XBSYSAPI EXPORTNUM(162) ULONG_PTR KiBugCheckData[5];
 #define KiLockDispatcherDatabase(OldIqrl) \
 	*(OldIrql) = KeRaiseIrqlToDpcLevel()
 #else
-VOID FASTCALL KiLockDispatcherDatabase
+void KiLockDispatcherDatabase
 (
 	OUT KIRQL* OldIrql
 );

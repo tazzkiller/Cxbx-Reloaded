@@ -557,9 +557,10 @@ XBSYSAPI EXPORTNUM(101) xboxkrnl::VOID NTAPI xboxkrnl::KeEnterCriticalRegion
 // ******************************************************************
 XBSYSAPI EXPORTNUM(103) xboxkrnl::KIRQL NTAPI xboxkrnl::KeGetCurrentIrql(void)
 {
-	LOG_FUNC();
+	LOG_FUNC(); // TODO : Remove nested logging on this somehow, so we can call this (instead of inlining)
 
-	KIRQL Irql = (KIRQL)KeGetPcr()->Irql;
+	KPCR* Pcr = KeGetPcr();
+	KIRQL Irql = (KIRQL)Pcr->Irql;
 
 	RETURN(Irql);
 }
@@ -1116,17 +1117,18 @@ XBSYSAPI EXPORTNUM(129) xboxkrnl::UCHAR NTAPI xboxkrnl::KeRaiseIrqlToDpcLevel()
 {
 	LOG_FUNC();
 
-	if(KeGetCurrentIrql() > DISPATCH_LEVEL)
-		CxbxKrnlCleanup("Bugcheck: Caller of KeRaiseIrqlToDpcLevel is higher than DISPATCH_LEVEL!");
-
+	// Inlined KeGetCurrentIrql() :
 	KPCR* Pcr = KeGetPcr();
 	KIRQL OldIrql = (KIRQL)Pcr->Irql;
+
+	if(OldIrql > DISPATCH_LEVEL)
+		CxbxKrnlCleanup("Bugcheck: Caller of KeRaiseIrqlToDpcLevel is higher than DISPATCH_LEVEL!");
 
 	Pcr->Irql = DISPATCH_LEVEL;
 
 	DbgPrintf("KRNL: Raised IRQL to DISPATCH_LEVEL (2).\n");
 
-	// We reached the DISPATCH_LEVEL, so the queue can be processed now :
+	// We reached the DISPATCH_LEVEL, so the queue can be processed now
 	// TODO : ExecuteDpcQueue(); // See EmuThreadDpcHandler
 	LOG_INCOMPLETE();
 	

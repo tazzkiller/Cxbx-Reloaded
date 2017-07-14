@@ -135,8 +135,11 @@ xboxkrnl::KPCR* KeGetPcr();
 // ******************************************************************
 // * KiLockDispatcherDatabase()
 // ******************************************************************
-// Not exported in kernel thunk table
-xboxkrnl::VOID FASTCALL xboxkrnl::KiLockDispatcherDatabase
+// * Not exported in kernel thunk table
+// * NOTE: This is a macro on the Xbox, however we implement it 
+// * as a function because a macro doesn't compile this: *(&OldIrql)
+// ******************************************************************
+void xboxkrnl::KiLockDispatcherDatabase
 (
 	OUT KIRQL* OldIrql
 )
@@ -306,6 +309,7 @@ XBSYSAPI EXPORTNUM(160) xboxkrnl::KIRQL FASTCALL xboxkrnl::KfRaiseIrql
 {
 	LOG_FUNC_ONE_ARG(NewIrql);
 
+	// Inlined KeGetCurrentIrql() :
 	PKPCR Pcr = KeGetPcr();
 	KIRQL OldIrql = (KIRQL)Pcr->Irql;
 
