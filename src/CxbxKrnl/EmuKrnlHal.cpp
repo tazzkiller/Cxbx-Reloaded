@@ -107,6 +107,9 @@ XBSYSAPI EXPORTNUM(38) xboxkrnl::VOID FASTCALL xboxkrnl::HalClearSoftwareInterru
 	LOG_UNIMPLEMENTED();
 }
 
+static bool EmuInterruptEnabled[MAX_BUS_INTERRUPT_LEVEL + 1] = {};
+static xboxkrnl::KINTERRUPT_MODE EmuInterruptMode[MAX_BUS_INTERRUPT_LEVEL + 1] = {};
+
 // ******************************************************************
 // * 0x0027 - HalDisableSystemInterrupt()
 // ******************************************************************
@@ -117,7 +120,8 @@ XBSYSAPI EXPORTNUM(39) xboxkrnl::VOID NTAPI xboxkrnl::HalDisableSystemInterrupt
 {
 	LOG_FUNC_ONE_ARG(BusInterruptLevel);
 
-	LOG_UNIMPLEMENTED(); // TODO : Once thread-switching works, make system interrupts work too
+	EmuInterruptEnabled[BusInterruptLevel] = false;
+	LOG_INCOMPLETE(); // TODO : Once thread-switching works, make system interrupts work too
 }
 
 // ******************************************************************
@@ -152,7 +156,9 @@ XBSYSAPI EXPORTNUM(43) xboxkrnl::VOID NTAPI xboxkrnl::HalEnableSystemInterrupt
 		LOG_FUNC_ARG(InterruptMode)
 		LOG_FUNC_END;
 
-	LOG_UNIMPLEMENTED(); // TODO : Once thread-switching works, make system interrupts work too
+	EmuInterruptMode[BusInterruptLevel] = InterruptMode;
+	EmuInterruptEnabled[BusInterruptLevel] = true;
+	LOG_INCOMPLETE(); // TODO : Once thread-switching works, make system interrupts work too
 }
 
 #ifdef _DEBUG_TRACE
