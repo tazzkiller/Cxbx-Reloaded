@@ -140,9 +140,9 @@ XBSYSAPI EXPORTNUM(89) BOOLEAN KdDebuggerNotPresent;
 // ******************************************************************
 // * 0x00A0 - KfRaiseIrql()
 // ******************************************************************
-XBSYSAPI EXPORTNUM(160) UCHAR FASTCALL KfRaiseIrql
+XBSYSAPI EXPORTNUM(160) KIRQL FASTCALL KfRaiseIrql
 (
-    IN UCHAR    NewIrql
+    IN KIRQL    NewIrql
 );
 
 // ******************************************************************
@@ -150,13 +150,27 @@ XBSYSAPI EXPORTNUM(160) UCHAR FASTCALL KfRaiseIrql
 // ******************************************************************
 XBSYSAPI EXPORTNUM(161) VOID FASTCALL KfLowerIrql
 (
-    IN UCHAR    NewIrql
+    IN KIRQL    NewIrql
 );
 
 // ******************************************************************
 // * 0x00A2 - KiBugCheckData
 // ******************************************************************
 XBSYSAPI EXPORTNUM(162) ULONG_PTR KiBugCheckData[5];
+
+// ******************************************************************
+// * KiLockDispatcherDatabase()
+// ******************************************************************
+// Not exported in kernel thunk table
+#ifdef XBOX
+#define KiLockDispatcherDatabase(OldIqrl) \
+	*(OldIrql) = KeRaiseIrqlToDpcLevel()
+#else
+VOID FASTCALL KiLockDispatcherDatabase
+(
+	OUT KIRQL* OldIrql
+);
+#endif
 
 // ******************************************************************
 // * 0x00A3 - KiUnlockDispatcherDatabase()

@@ -1930,7 +1930,7 @@ typedef struct _KTHREAD
 	/* 0x34/52 */ KAPC_STATE ApcState;
 	/* 0x4C/76 */ ULONG ContextSwitches;
 	/* 0x50/80 */ ULONG WaitStatus;
-	/* 0x54/84 */ CHAR WaitIrql;
+	/* 0x54/84 */ KIRQL WaitIrql;
 	/* 0x55/85 */ CHAR WaitMode;
 	/* 0x56/86 */ CHAR WaitNext;
 	/* 0x57/87 */ CHAR WaitReason;
@@ -2020,8 +2020,8 @@ typedef struct _KPCR
     struct _NT_TIB  NtTib;                                          // 0x00
     struct _KPCR   *SelfPcr;                                        // 0x1C
     struct _KPRCB  *Prcb;                                           // 0x20
-    UCHAR           Irql;                                           // 0x24
-    struct _KPRCB   PrcbData;                                       // 0x28
+	ULONG           Irql;                                           // 0x24 NOTE : Not type KIRQL because of padding
+	struct _KPRCB   PrcbData;                                       // 0x28
 }
 KPCR, *PKPCR;
 

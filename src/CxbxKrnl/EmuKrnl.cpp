@@ -133,6 +133,20 @@ xboxkrnl::PLIST_ENTRY RemoveTailList(xboxkrnl::PLIST_ENTRY pListHead)
 xboxkrnl::KPCR* KeGetPcr();
 
 // ******************************************************************
+// * KiLockDispatcherDatabase()
+// ******************************************************************
+// Not exported in kernel thunk table
+xboxkrnl::VOID FASTCALL xboxkrnl::KiLockDispatcherDatabase
+(
+	OUT KIRQL* OldIrql
+)
+{
+	LOG_FUNC_ONE_ARG_OUT(OldIrql);
+
+	*(OldIrql) = KeRaiseIrqlToDpcLevel();
+}
+
+// ******************************************************************
 // * 0x0033 - InterlockedCompareExchange()
 // ******************************************************************
 // Source:ReactOS
@@ -282,21 +296,20 @@ XBSYSAPI EXPORTNUM(58) xboxkrnl::PSLIST_ENTRY FASTCALL xboxkrnl::KRNL(Interlocke
 // ******************************************************************
 // * 0x00A0 - KfRaiseIrql()
 // ******************************************************************
-// Raises the hardware priority (irql)
-// NewIrql = Irql to raise to
+// Raises the hardware priority (irq level)
+// NewIrql = Irq level to raise to
 // RETURN VALUE previous irq level
-XBSYSAPI EXPORTNUM(160) xboxkrnl::UCHAR FASTCALL xboxkrnl::KfRaiseIrql
+XBSYSAPI EXPORTNUM(160) xboxkrnl::KIRQL FASTCALL xboxkrnl::KfRaiseIrql
 (
-    IN UCHAR NewIrql
+    IN KIRQL NewIrql
 )
 {
 	LOG_FUNC_ONE_ARG(NewIrql);
 
-	UCHAR OldIrql;
+	PKPCR Pcr = KeGetPcr();
+	KIRQL OldIrql = (KIRQL)Pcr->Irql;
 
-	KPCR* Pcr = KeGetPcr();
-
-	if (NewIrql < Pcr->Irql)	{
+	if (NewIrql < OldIrql)	{
 		// TODO: Enable this after KeBugCheck is implemented
 		//KeBugCheck(IRQL_NOT_GREATER_OR_EQUAL);
 		// for (;;);
@@ -304,9 +317,10 @@ XBSYSAPI EXPORTNUM(160) xboxkrnl::UCHAR FASTCALL xboxkrnl::KfRaiseIrql
 		CxbxKrnlCleanup("IRQL_NOT_GREATER_OR_EQUAL");
 	}
 	
-	OldIrql = Pcr->Irql;
 	Pcr->Irql = NewIrql;
-	
+
+	LOG_INCOMPLETE();
+
 	RETURN(OldIrql);
 }
 
@@ -317,7 +331,7 @@ XBSYSAPI EXPORTNUM(160) xboxkrnl::UCHAR FASTCALL xboxkrnl::KfRaiseIrql
 // ARGUMENTS NewIrql = Irql to lower to
 XBSYSAPI EXPORTNUM(161) xboxkrnl::VOID FASTCALL xboxkrnl::KfLowerIrql
 (
-    IN UCHAR NewIrql
+    IN KIRQL NewIrql
 )
 {
 	LOG_FUNC_ONE_ARG(NewIrql);
@@ -342,6 +356,8 @@ XBSYSAPI EXPORTNUM(163) xboxkrnl::VOID FASTCALL xboxkrnl::KiUnlockDispatcherData
 	LOG_FUNC_ONE_ARG(OldIrql);
 
 	LOG_UNIMPLEMENTED();
+
+	// TODO *OldIrql = KfLowerIrql(); // Lower - to what?
 }
 
 // ******************************************************************

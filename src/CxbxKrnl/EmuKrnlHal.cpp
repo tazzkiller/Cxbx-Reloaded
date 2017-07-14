@@ -61,6 +61,10 @@ namespace NtDll
 #include "EmuNtDll.h"
 };
 
+static DWORD EmuSoftwareInterrupRequestRegister = 0;
+static bool EmuInterruptEnabled[256] = { false }; // MAX_BUS_INTERRUPT_LEVEL + 1
+static xboxkrnl::KINTERRUPT_MODE EmuInterruptMode[256] = {}; // MAX_BUS_INTERRUPT_LEVEL + 1
+
 // ******************************************************************
 // * 0x0009 - HalReadSMCTrayState()
 // ******************************************************************
@@ -96,7 +100,6 @@ XBSYSAPI EXPORTNUM(9) xboxkrnl::VOID NTAPI xboxkrnl::HalReadSMCTrayState
 // ******************************************************************
 // * 0x0026 - HalClearSoftwareInterrupt()
 // ******************************************************************
-// Source:ReactOS
 XBSYSAPI EXPORTNUM(38) xboxkrnl::VOID FASTCALL xboxkrnl::HalClearSoftwareInterrupt
 (
 	KIRQL Request
@@ -104,11 +107,9 @@ XBSYSAPI EXPORTNUM(38) xboxkrnl::VOID FASTCALL xboxkrnl::HalClearSoftwareInterru
 {
 	LOG_FUNC_ONE_ARG(Request);
 
-	LOG_UNIMPLEMENTED();
+	// Mask out this interrupt request
+	EmuSoftwareInterrupRequestRegister &= ~(1 << Request);
 }
-
-static bool EmuInterruptEnabled[MAX_BUS_INTERRUPT_LEVEL + 1] = {};
-static xboxkrnl::KINTERRUPT_MODE EmuInterruptMode[MAX_BUS_INTERRUPT_LEVEL + 1] = {};
 
 // ******************************************************************
 // * 0x0027 - HalDisableSystemInterrupt()
@@ -121,6 +122,7 @@ XBSYSAPI EXPORTNUM(39) xboxkrnl::VOID NTAPI xboxkrnl::HalDisableSystemInterrupt
 	LOG_FUNC_ONE_ARG(BusInterruptLevel);
 
 	EmuInterruptEnabled[BusInterruptLevel] = false;
+
 	LOG_INCOMPLETE(); // TODO : Once thread-switching works, make system interrupts work too
 }
 
@@ -158,6 +160,7 @@ XBSYSAPI EXPORTNUM(43) xboxkrnl::VOID NTAPI xboxkrnl::HalEnableSystemInterrupt
 
 	EmuInterruptMode[BusInterruptLevel] = InterruptMode;
 	EmuInterruptEnabled[BusInterruptLevel] = true;
+
 	LOG_INCOMPLETE(); // TODO : Once thread-switching works, make system interrupts work too
 }
 
@@ -223,10 +226,8 @@ XBSYSAPI EXPORTNUM(44) xboxkrnl::ULONG NTAPI xboxkrnl::HalGetInterruptVector
 		if(Irql)
 			*Irql = (KIRQL)VECTOR2IRQL(dwVector);
 
-#ifdef _DEBUG_TRACE
-		DbgPrintf("KRNL: HalGetInterruptVector(): Interrupt vector requested for %d (%s)!\n", 
+		DbgPrintf("KRNL: HalGetInterruptVector(): Interrupt vector requested for %d (%s)\n", 
 			BusInterruptLevel, IRQNames[BusInterruptLevel]);
-#endif
 	}
 
 	RETURN(dwVector);
@@ -398,7 +399,6 @@ XBSYSAPI EXPORTNUM(47) xboxkrnl::VOID NTAPI xboxkrnl::HalRegisterShutdownNotific
 // ******************************************************************
 // * 0x0030 - HalRequestSoftwareInterrupt()
 // ******************************************************************
-// Source:ReactOS
 XBSYSAPI EXPORTNUM(48) xboxkrnl::VOID FASTCALL xboxkrnl::HalRequestSoftwareInterrupt
 (
 	IN KIRQL Request
@@ -406,7 +406,10 @@ XBSYSAPI EXPORTNUM(48) xboxkrnl::VOID FASTCALL xboxkrnl::HalRequestSoftwareInter
 {
 	LOG_FUNC_ONE_ARG(Request);
 
-	LOG_UNIMPLEMENTED();
+	// Set this software interrupt request :
+	EmuSoftwareInterrupRequestRegister |= (1 << Request);
+
+	LOG_INCOMPLETE();
 }
 
 // ******************************************************************

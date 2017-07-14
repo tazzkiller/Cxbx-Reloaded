@@ -314,10 +314,10 @@ XBSYSAPI EXPORTNUM(67) xboxkrnl::NTSTATUS NTAPI xboxkrnl::IoCreateSymbolicLink
 // ******************************************************************
 XBSYSAPI EXPORTNUM(68) xboxkrnl::VOID NTAPI xboxkrnl::IoDeleteDevice
 (
-	IN PDEVICE_OBJECT irql
+	IN PDEVICE_OBJECT Irql
 )
 {
-	LOG_FUNC_ONE_ARG(irql);
+	LOG_FUNC_ONE_ARG(Irql);
 
 	LOG_UNIMPLEMENTED();
 }

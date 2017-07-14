@@ -130,6 +130,18 @@ struct {
 //Nv2AControlDma g_NV2ADMAChannel = {}; // TODO : Rename this to nvuser?
 Nv2AControlDma *g_pNV2ADMAChannel = NULL;// &g_NV2ADMAChannel; // TODO : Rename this to nvuser?
 
+typedef void PCIDevice;
+
+static inline void pci_irq_assert(PCIDevice *pci_dev)
+{
+	// TODO : xboxkrnl::KfRaiseIrql(3); // GPU
+}
+
+static inline void pci_irq_deassert(PCIDevice *pci_dev)
+{
+	// TODO : xboxkrnl::KfLowerIrql(0);
+}
+
 static void update_irq()
 {
 	/* PFIFO */
@@ -172,12 +184,12 @@ static void update_irq()
 	} */
 
 	if (pmc.pending_interrupts && pmc.enabled_interrupts) {
-		// TODO Raise IRQ
-		EmuWarning("NV2A update_irq() : Raise IRQ Not Implemented");
+		DbgPrintf("NV2A: Raise GPU IRQ\n");
+		pci_irq_assert(NULL);
 	}
 	else {
-		// TODO: Cancel IRQ
-		EmuWarning("NV2A update_irq() : Cancel IRQ Not Implemented");
+		DbgPrintf("NV2A: Cancel GPU IRQ\n");
+		pci_irq_deassert(NULL);
 	}
 }
 

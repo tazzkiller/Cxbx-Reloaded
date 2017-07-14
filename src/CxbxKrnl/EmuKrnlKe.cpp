@@ -72,7 +72,11 @@ typedef struct _DpcData {
 	xboxkrnl::LIST_ENTRY TimerQueue;
 } DpcData;
 
-DpcData g_DpcData = { 0 }; // Note : g_DpcData is initialized in InitDpcAndTimerThread()
+static DpcData g_DpcData = { 0 }; // Note : g_DpcData is initialized in InitDpcAndTimerThread()
+
+static xboxkrnl::PKINTERRUPT EmuInterruptList[256] = { NULL }; // MAX_BUS_INTERRUPT_LEVEL + 1 ?
+
+static DWORD BootTickCount = 0;
 
 xboxkrnl::ULONGLONG LARGE_INTEGER2ULONGLONG(xboxkrnl::LARGE_INTEGER value)
 {
@@ -160,9 +164,7 @@ xboxkrnl::KPRCB *KeGetCurrentPrcb()
 
 // Forward KeRaiseIrql() to KfRaiseIrql()
 #define KeRaiseIrql(NewIrql, OldIrql) \
-	*OldIrql = KfRaiseIrql(NewIrql)
-
-DWORD BootTickCount = 0;
+	*(OldIrql) = KfRaiseIrql(NewIrql)
 
 // The Xbox GetTickCount is measured in milliseconds, just like the native GetTickCount.
 // The only difference we'll take into account here, is that the Xbox will probably reboot
@@ -453,8 +455,6 @@ XBSYSAPI EXPORTNUM(96) xboxkrnl::BOOLEAN NTAPI xboxkrnl::KeCancelTimer
 	RETURN(Inserted);
 }
 
-xboxkrnl::PKINTERRUPT EmuInterruptList[MAX_BUS_INTERRUPT_LEVEL + 1] = { 0 };
-
 // ******************************************************************
 // * 0x0062 - KeConnectInterrupt()
 // ******************************************************************
@@ -466,6 +466,9 @@ XBSYSAPI EXPORTNUM(98) xboxkrnl::BOOLEAN NTAPI xboxkrnl::KeConnectInterrupt
 	LOG_FUNC_ONE_ARG(InterruptObject);
 
 	BOOLEAN ret = FALSE;
+	KIRQL OldIrql;
+
+	KiLockDispatcherDatabase(&OldIrql);
 
 	// here we have to connect the interrupt object to the vector
 	if (!InterruptObject->Connected)
@@ -480,6 +483,8 @@ XBSYSAPI EXPORTNUM(98) xboxkrnl::BOOLEAN NTAPI xboxkrnl::KeConnectInterrupt
 		}
 	}
 	// else do nothing
+
+	KiUnlockDispatcherDatabase(OldIrql);
 
 	RETURN(ret);
 }
@@ -515,6 +520,10 @@ XBSYSAPI EXPORTNUM(100) xboxkrnl::VOID NTAPI xboxkrnl::KeDisconnectInterrupt
 {
 	LOG_FUNC_ONE_ARG(InterruptObject);
 
+	KIRQL OldIrql;
+
+	KiLockDispatcherDatabase(&OldIrql);
+
 	// Do the reverse of KeConnectInterrupt
 	LOG_TEST_CASE("Untested and not thread safe");
 	if (InterruptObject->Connected)
@@ -524,6 +533,8 @@ XBSYSAPI EXPORTNUM(100) xboxkrnl::VOID NTAPI xboxkrnl::KeDisconnectInterrupt
 		EmuInterruptList[InterruptObject->BusInterruptLevel] = NULL;
 		InterruptObject->Connected = FALSE;
 	}
+
+	KiUnlockDispatcherDatabase(OldIrql);
 }
 
 // ******************************************************************
@@ -548,7 +559,7 @@ XBSYSAPI EXPORTNUM(103) xboxkrnl::KIRQL NTAPI xboxkrnl::KeGetCurrentIrql(void)
 {
 	LOG_FUNC();
 
-	KIRQL Irql = KeGetPcr()->Irql;
+	KIRQL Irql = (KIRQL)KeGetPcr()->Irql;
 
 	RETURN(Irql);
 }
@@ -699,6 +710,7 @@ XBSYSAPI EXPORTNUM(109) xboxkrnl::VOID NTAPI xboxkrnl::KeInitializeInterrupt
 	// Interrupt->DispatchCode = []?; //TODO : Populate this interrupt dispatch
 	// code block, patch it up so it works with the address of this Interrupt
 	// struct and calls the right dispatch routine (depending on InterruptMode). 
+	LOG_INCOMPLETE();
 }
 
 // ******************************************************************
@@ -930,7 +942,7 @@ XBSYSAPI EXPORTNUM(119) xboxkrnl::BOOLEAN NTAPI xboxkrnl::KeInsertQueueDpc
 
 	// Thread-safety is no longer required anymore
 	LeaveCriticalSection(&(g_DpcData.Lock));
-	// TODO : Instead, enable interrupts - use KeLowerIrql(&OldIrql) ?
+	// TODO : Instead, enable interrupts - use KeLowerIrql(OldIrql) ?
 
 	RETURN(NeedsInsertion);
 }
@@ -1107,20 +1119,18 @@ XBSYSAPI EXPORTNUM(129) xboxkrnl::UCHAR NTAPI xboxkrnl::KeRaiseIrqlToDpcLevel()
 	if(KeGetCurrentIrql() > DISPATCH_LEVEL)
 		CxbxKrnlCleanup("Bugcheck: Caller of KeRaiseIrqlToDpcLevel is higher than DISPATCH_LEVEL!");
 
-	KIRQL kRet = NULL;
-
 	KPCR* Pcr = KeGetPcr();
+	KIRQL OldIrql = (KIRQL)Pcr->Irql;
+
 	Pcr->Irql = DISPATCH_LEVEL;
 
-#ifdef _DEBUG_TRACE
 	DbgPrintf("KRNL: Raised IRQL to DISPATCH_LEVEL (2).\n");
-	DbgPrintf("KRNL: Old IRQL is %d.\n", kRet);
-#endif
 
 	// We reached the DISPATCH_LEVEL, so the queue can be processed now :
-	// TODO : ExecuteDpcQueue();
+	// TODO : ExecuteDpcQueue(); // See EmuThreadDpcHandler
+	LOG_INCOMPLETE();
 	
-	RETURN(kRet);
+	RETURN(OldIrql);
 }
 
 // ******************************************************************
