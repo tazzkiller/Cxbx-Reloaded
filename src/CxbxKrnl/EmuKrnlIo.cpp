@@ -37,6 +37,8 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "KRNL"
+
 // prevent name collisions
 namespace xboxkrnl
 {
@@ -278,11 +280,11 @@ XBSYSAPI EXPORTNUM(66) xboxkrnl::NTSTATUS NTAPI xboxkrnl::IoCreateFile
 
 	if (FAILED(ret))
 	{
-		EmuWarning("EmuKrnl: IoCreateFile Failed! (0x%.8X)\n", ret);
+		EmuWarning("KRNL: IoCreateFile Failed! (0x%.8X)\n", ret);
 	}
 	else
 	{
-		DbgPrintf("EmuKrnl: IoCreateFile = 0x%.8X\n", *FileHandle);
+		DbgPrintf("KRNL: IoCreateFile = 0x%.8X\n", *FileHandle);
 	}
 
 	RETURN(ret);

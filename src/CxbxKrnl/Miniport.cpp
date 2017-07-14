@@ -36,6 +36,8 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "MPRT" // Miniport
+
 // prevent name collisions
 namespace xboxkrnl
 {
@@ -338,7 +340,7 @@ BOOL __fastcall XTL::EMUPATCH(CMiniport_InitHardware)
 
 	// Put the GPURegisterBase value in the CMiniport::m_RegisterBase field (it's the first field in this object) :
 	*((void **)This) = GPURegisterBase;
-	DbgPrintf("NV2A : GPU RegisterBase resides at 0x%.8X\n", GPURegisterBase);
+	DbgPrintf("NV2A: GPU RegisterBase resides at 0x%.8X\n", GPURegisterBase);
 
 	CxbxInitializeNV2ADMA();
 
@@ -353,7 +355,7 @@ void XTL::CxbxLocateCpuTime()
 
 		// Walk through a few members of the D3D device struct :
 		m_pCPUTime = (PPUSH)(*((xbaddr *)XTL::Xbox_D3D__Device));
-		DbgPrintf("CxbxLocateCpuTime : Searching for m_pCPUTime (residing at 0x%.8X) in Xbox_D3D__Device from 0x%.8X\n", m_pGPUTime, m_pCPUTime);
+		DbgPrintf("NV2A: Searching for m_pCPUTime (residing at 0x%.8X) in Xbox_D3D__Device from 0x%.8X\n", m_pGPUTime, m_pCPUTime);
 
 		for (int i = 0; i <= 32; i++) {
 			if (i == 32)
@@ -370,7 +372,7 @@ void XTL::CxbxLocateCpuTime()
 		}
 	}
 
-	DbgPrintf("CxbxLocateCpuTime : m_pCPUTime resides at 0x%.8X\n", m_pCPUTime);
+	DbgPrintf("NV2A: m_pCPUTime resides at 0x%.8X\n", m_pCPUTime);
 }
 
 #if 0 // Patch not needed - NV2A RAMIN handlers are sufficient

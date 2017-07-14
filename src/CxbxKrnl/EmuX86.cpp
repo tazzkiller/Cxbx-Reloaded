@@ -38,6 +38,8 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "X86 " // Intentional extra space to align on 4 characters
+
 // Link the library into our project.
 #pragma comment(lib, "distorm.lib")
 
@@ -63,34 +65,40 @@
 uint32_t EmuX86_IORead32(xbaddr addr)
 {
 	EmuWarning("EmuX86_IORead32(0x%.8X) Not Implemented", addr);
+	// LOG_UNIMPLEMENTED();
 	return 0;
 }
 
 uint16_t EmuX86_IORead16(xbaddr addr)
 {
 	EmuWarning("EmuX86_IORead16(0x%.8X) Not Implemented", addr);
+	// LOG_UNIMPLEMENTED();
 	return 0;
 }
 
 uint8_t EmuX86_IORead8(xbaddr addr)
 {
 	EmuWarning("EmuX86_IORead8(0x%.8X) Not Implemented", addr);
+	// LOG_UNIMPLEMENTED();
 	return 0;
 }
 
 void EmuX86_IOWrite32(xbaddr addr, uint32_t value)
 {
 	EmuWarning("EmuX86_IOWrite32(0x%.8X, 0x%.4X) [Unknown address]", addr, value);
+	// LOG_UNIMPLEMENTED();
 }
 
 void EmuX86_IOWrite16(xbaddr addr, uint16_t value)
 {
 	EmuWarning("EmuX86_IOWrite16(0x%.8X, 0x%.4X) [Unknown address]", addr, value);
+	// LOG_UNIMPLEMENTED();
 }
 
 void EmuX86_IOWrite8(xbaddr addr, uint8_t value)
 {
 	EmuWarning("EmuX86_IOWrite8(0x%.8X, 0x%.2X) [Unknown address]", addr, value);
+	// LOG_UNIMPLEMENTED();
 }
 
 //
@@ -155,7 +163,8 @@ uint32_t EmuX86_Read32Aligned(xbaddr addr)
 			// Outside EmuException, pass the memory-access through to normal memory :
 			value = EmuX86_Mem_Read32(addr);
 		}
-		DbgPrintf("EmuX86_Read32Aligned(0x%.8X) = 0x%.8X\n", addr, value);
+
+		DbgPrintf("X86 : Read32Aligned(0x%.8X) = 0x%.8X\n", addr, value);
 	}
 
 	return value;
@@ -193,7 +202,8 @@ uint16_t EmuX86_Read16(xbaddr addr)
 			// Outside EmuException, pass the memory-access through to normal memory :
 			value = EmuX86_Mem_Read16(addr);
 		}
-		DbgPrintf("EmuX86_Read16(0x%.8X) = 0x%.4X\n", addr, value);
+
+		DbgPrintf("X86 : Read16(0x%.8X) = 0x%.4X\n", addr, value);
 	}
 
 	return value;
@@ -218,7 +228,7 @@ uint8_t EmuX86_Read8(xbaddr addr)
 			// Outside EmuException, pass the memory-access through to normal memory :
 			value = EmuX86_Mem_Read8(addr);
 		}
-		DbgPrintf("EmuX86_Read8(0x%.8X) = 0x%.2X\n", addr, value);
+		DbgPrintf("X86 : Read8(0x%.8X) = 0x%.2X\n", addr, value);
 	}
 
 	return value;
@@ -246,7 +256,7 @@ void EmuX86_Write32Aligned(xbaddr addr, uint32_t value)
 	}
 
 	// Outside EmuException, pass the memory-access through to normal memory :
-	DbgPrintf("EmuX86_Write32Aligned(0x%.8X, 0x%.8X)\n", addr, value);
+	DbgPrintf("X86 : Write32Aligned(0x%.8X, 0x%.8X)\n", addr, value);
 	EmuX86_Mem_Write32(addr, value);
 }
 
@@ -255,8 +265,10 @@ void EmuX86_Write32(xbaddr addr, uint32_t value)
 	if ((addr & 3) == 0) {
 		EmuX86_Write32Aligned(addr, value);
 	}
-	else
+	else {
 		EmuWarning("EmuX86_Write32(0x%.8X, 0x%.8X) [Unaligned unimplemented]", addr, value);
+		// LOG_UNIMPLEMENTD();
+	}
 }
 
 void EmuX86_Write16(xbaddr addr, uint16_t value)
@@ -279,7 +291,7 @@ void EmuX86_Write16(xbaddr addr, uint16_t value)
 	}
 
 	// Outside EmuException, pass the memory-access through to normal memory :
-	DbgPrintf("EmuX86_Write16(0x%.8X, 0x%.4X)\n", addr, value);
+	DbgPrintf("X86 : Write16(0x%.8X, 0x%.4X)\n", addr, value);
 	EmuX86_Mem_Write16(addr, value);
 }
 
@@ -304,7 +316,7 @@ void EmuX86_Write8(xbaddr addr, uint8_t value)
 	}
 
 	// Outside EmuException, pass the memory-access through to normal memory :
-	DbgPrintf("EmuX86_Write8(0x%.8X, 0x%.2X)\n", addr, value);
+	DbgPrintf("X86 : Write8(0x%.8X, 0x%.2X)\n", addr, value);
 	EmuX86_Mem_Write8(addr, value);
 }
 
@@ -965,7 +977,7 @@ bool EmuX86_DecodeException(LPEXCEPTION_POINTERS e)
 	// and check if it successfully decoded one instruction :
 	if (decodedInstructionsCount != 1)
 	{
-		EmuWarning("EmuX86: Error decoding opcode at 0x%.8X", e->ContextRecord->Eip);
+		EmuWarning("EmuX86_DecodeException: Error decoding opcode at 0x%.8X", e->ContextRecord->Eip);
 	}
 	else
 	{
@@ -1022,7 +1034,7 @@ bool EmuX86_DecodeException(LPEXCEPTION_POINTERS e)
 			// Some titles attempt to manually set the TSC via this instruction
 			// This needs fixing eventually, but should be acceptible to ignore for now!
 			// Chase: Hollywood Stunt Driver hits this
-			EmuWarning("EmuX86: WRMSR instruction ignored");
+			EmuWarning("EmuX86_DecodeException: WRMSR instruction ignored");
 			break;
 		default:
 			goto unimplemented_opcode;
@@ -1034,7 +1046,7 @@ bool EmuX86_DecodeException(LPEXCEPTION_POINTERS e)
 		return true;
 
 unimplemented_opcode:
-		EmuWarning("EmuX86: 0x%.8X: Not Implemented\n", e->ContextRecord->Eip);	// TODO : format decodedInstructions[0]
+		EmuWarning("EmuX86_DecodeException: 0x%.8X: Not Implemented\n", e->ContextRecord->Eip);	// TODO : format decodedInstructions[0]
 		e->ContextRecord->Eip += info.size;
 	}
 	
@@ -1043,7 +1055,7 @@ unimplemented_opcode:
 
 void EmuX86_Init()
 {
-	DbgPrintf("EmuX86: Initializing distorm version %d\n", distorm_version());
+	DbgPrintf("X86 : Initializing distorm version %d\n", distorm_version());
 	EmuX86_InitContextRecordOffsetByRegisterType();
 }
 

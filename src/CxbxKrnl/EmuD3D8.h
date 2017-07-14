@@ -60,7 +60,7 @@ extern VOID CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize);
 	do { \
 		if (FAILED(hRet)) \
 			if(g_bPrintfOn) \
-				DbgPrintf("%s : %s D3D error (0x%.8X: %s)\n", __func__, message, hRet, D3DErrorString(hRet)); \
+				DbgPrintf("D3D8: %s : %s D3D error (0x%.8X: %s)\n", __func__, message, hRet, D3DErrorString(hRet)); \
 	} while (0)
 
 #endif

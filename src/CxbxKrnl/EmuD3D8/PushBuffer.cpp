@@ -249,9 +249,9 @@ void EmuNV2A_FLIP_READ() // 0x0120
 	if (dwCount == 3) {
 		LOG_FIRST_XBOX_CALL("CDevice::InitializeFrameBuffers");
 
-		DbgPrintf("Read framebuffer = %d\n", NV2AInstance_Registers[NV2A_FLIP_READ / 4]); // TODO : Useless?
-		DbgPrintf("Write framebuffer = %d\n", NV2AInstance_Registers[NV2A_FLIP_WRITE / 4]); // TODO : Useless?
-		DbgPrintf("Number of framebuffers = %d\n", NV2AInstance_Registers[NV2A_FLIP_MODULO / 4]); // TODO : Useless?
+		DbgPrintf("NV2A: Read framebuffer = %d\n", NV2AInstance_Registers[NV2A_FLIP_READ / 4]); // TODO : Useless?
+		DbgPrintf("NV2A: Write framebuffer = %d\n", NV2AInstance_Registers[NV2A_FLIP_WRITE / 4]); // TODO : Useless?
+		DbgPrintf("NV2A: Number of framebuffers = %d\n", NV2AInstance_Registers[NV2A_FLIP_MODULO / 4]); // TODO : Useless?
 	}
 }
 
@@ -854,7 +854,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
     }
     #endif
 
-	DbgPrintf("  NV2A run from 0x%.8X\n", pdwPushData);
+	DbgPrintf("NV2A: Run DMA puller from 0x%.8X\n", pdwPushData);
 
 	while (true) {
 /* TODO :
@@ -863,7 +863,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 		}
 */
 		char LogPrefixStr[200];
-		int len = sprintf(LogPrefixStr, "  NV2A Get=0x%.8X", pdwPushData);
+		int LogPrefixLen = sprintf(LogPrefixStr, "DMAP: Get=0x%.8X", pdwPushData);
 
 		// Fake a read by the Nv2A, by moving the DMA 'Get' location
 		// up to where the pushbuffer is executed, so that the BusyLoop
@@ -904,21 +904,22 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 			continue;
 		}
 
-		// Remember address of the argument(s)
-		pdwPushArguments = pdwPushData;
-
 		bool bNoInc = (PushInstr == PUSH_INSTR_IMM_NOINC);
-		// Append a counter (variable part via %d, count already formatted) :
-//		if (MayLog(lfUnit))
-		{
-			len += sprintf(LogPrefixStr + len, " %%2d/%2d:", dwCount); // intentional %% for StepNr
-			if (dwSubCh > 0)
-				len += sprintf(LogPrefixStr + len, " [SubCh:%d]", dwSubCh);
 
-			if (bNoInc)
-				len += sprintf(LogPrefixStr + len, " [NoInc]");
+		if (g_bPrintfOn) {
+			// Append a counter (variable part via %d, count already formatted) :
+			LogPrefixLen += sprintf(LogPrefixStr + LogPrefixLen, " %%2d/%2d:", dwCount); // intentional %% for StepNr
+			if (dwSubCh > 0) {
+				LogPrefixLen += sprintf(LogPrefixStr + LogPrefixLen, " [SubCh:%d]", dwSubCh);
+			}
+
+			if (bNoInc) {
+				LogPrefixLen += sprintf(LogPrefixStr + LogPrefixLen, " [NoInc]");
+			}
 		}
 
+		// Remember address of the argument(s)
+		pdwPushArguments = pdwPushData;
 		// Skip fetch-pointer over the arguments already
 		pdwPushData += dwCount;
 		// Initialize handled count & name to their default :
@@ -970,19 +971,22 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 #endif*/
 			// Before handling the method, display it's details :
 			if (g_bPrintfOn) {
-				printf("[0x%.4X] ", GetCurrentThreadId());
-				printf(LogPrefixStr, StepNr);
-				printf(" Method=%.4X Arg[0]=%.8X", dwMethod, *pdwPushArguments);
+				char LogStr[200];
+				int LogLen = sprintf(LogStr, "[0x%.4X] ", GetCurrentThreadId());
+				LogLen += sprintf(LogStr + LogLen, LogPrefixStr, StepNr);
+				LogLen += sprintf(LogStr + LogLen, " Method=%.4X Arg[0]=%.8X", dwMethod, *pdwPushArguments);
 				if (dwSubCh == 0) {
-					printf(" ");
-					printf(NV2AMethodToString(dwMethod));
-				}
-				if (HandledBy != nullptr) {
-					printf(" ");
-					printf(HandledBy);
+					LogLen += sprintf(LogStr + LogLen, " ");
+					LogLen += sprintf(LogStr + LogLen, NV2AMethodToString(dwMethod));
 				}
 
-				printf("\n");
+				if (HandledBy != nullptr) {
+					LogLen += sprintf(LogStr + LogLen, " ");
+					LogLen += sprintf(LogStr + LogLen, HandledBy);
+				}
+
+				LogLen += sprintf(LogStr + LogLen, "\n");
+				printf(LogStr);
 			}
 
 			HandledBy = nullptr;
@@ -992,7 +996,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 
 			// If there are more details, print them now :
 			if (HandledBy != nullptr) {
-				DbgPrintf("  NV2A > %s\n", HandledBy);
+				DbgPrintf("NV2A> %s\n", HandledBy);
 			}
 
 
@@ -1045,7 +1049,7 @@ XTL::DWORD WINAPI EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 {
 	//using namespace XTL;
 
-	DbgPrintf("NV2A : DMA thread started\n");
+	DbgPrintf("NV2A: DMA puller thread started\n");
 
 	// DxbxLogPushBufferPointers('NV2AThread');
 
@@ -1057,7 +1061,7 @@ XTL::DWORD WINAPI EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 
 	XTL::Pusher *pPusher = (XTL::Pusher*)(*((xbaddr *)XTL::Xbox_D3D__Device));
 
-	DbgPrintf("NV2A : DMA thread is running\n");
+	DbgPrintf("NV2A: DMA puller thread is running\n");
 
 	// Emulate the GPU engine here, by running the pushbuffer on the correct addresses :
 	// Xbox KickOff() signals a work flush.
@@ -1094,7 +1098,7 @@ XTL::DWORD WINAPI EmuThreadHandleNV2ADMA(XTL::LPVOID lpVoid)
 		// TODO : Count number of handled commands here?
 	}
 
-	DbgPrintf("NV2A : DMA thread is finished\n");
+	DbgPrintf("NV2A: DMA puller thread is finished\n");
 	return 0;
 } // EmuThreadHandleNV2ADMA
 
@@ -1103,7 +1107,7 @@ HANDLE g_hNV2ADMAThread = NULL;
 void CxbxInitializeNV2ADMA()
 {
 	if (ghNV2AFlushEvent == NULL) {
-		DbgPrintf("NV2A : Creating flush event\n");
+		DbgPrintf("INIT: Creating NV2A flush event\n");
 		ghNV2AFlushEvent = CreateEvent(
 			NULL,                   // default security attributes
 			TRUE,                   // manual-reset event
@@ -1114,12 +1118,11 @@ void CxbxInitializeNV2ADMA()
 
 	if (g_hNV2ADMAThread == NULL) {
 		// Create our DMA pushbuffer 'handling' thread :
-		DbgPrintf("NV2A : Launching DMA handler thread\n");
 		::DWORD dwThreadId = 0;
 		g_hNV2ADMAThread = CreateThread(nullptr, 0, EmuThreadHandleNV2ADMA, nullptr, 0, &dwThreadId);
-		DbgPrintf("NV2A: Created DMA handler thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", g_hNV2ADMAThread, dwThreadId);
-		// Make sure callbacks run on the same core as the one that runs Xbox1 code :
-		SetThreadAffinityMask(g_hNV2ADMAThread, g_CPUXbox);
+		DbgPrintf("INIT: Created NV2A DMA puller thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", g_hNV2ADMAThread, dwThreadId);
+		// If possible, assign this thread to another core than the one that runs Xbox1 code :
+		SetThreadAffinityMask(g_hNV2ADMAThread, g_CPUOthers);
 		// We set the priority of this thread a bit higher, to assure reliable timing :
 		SetThreadPriority(g_hNV2ADMAThread, THREAD_PRIORITY_ABOVE_NORMAL);
 	}

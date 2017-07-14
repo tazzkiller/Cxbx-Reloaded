@@ -36,6 +36,8 @@
 // ******************************************************************
 #define _CXBXKRNL_INTERNAL
 
+#define LOG_PREFIX "HLE " // Intentional extra space to align on 4 characters
+
 #include <cmath>
 #include <iomanip> // For std::setfill and std::setw
 #include "CxbxKrnl.h"
@@ -174,17 +176,17 @@ void CheckHLEExports()
 			void* addr = GetEmuPatchAddr(std::string(OovpaTable[a].szFuncName));
 			if (DontPatch) {
 				if (IsXRef) {
-					DbgPrintf("DISABLED and XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
+					DbgPrintf("HLE : DISABLED and XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
 				}
 			}
 
 			if (addr != nullptr) {
 				if (DontPatch) {
-					DbgPrintf("Patch available, but DISABLED : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
+					DbgPrintf("HLE : Patch available, but DISABLED : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
 				}
 
 				if (IsXRef) {
-					DbgPrintf("Patch available, but XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
+					DbgPrintf("HLE : Patch available, but XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
 				}
 			}
 			else {
@@ -202,7 +204,7 @@ void CheckHLEExports()
 						// Disable this message, as it won't matter once we start refactoring
 						// the HLE databases (removing the DISABLED/XREF/PATCH distinction,
 						// and merging registation of all versions of a symbol into one line).
-						// DbgPrintf("No patch available, but not DISABLED nor XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
+						// DbgPrintf("HLE : No patch available, but not DISABLED nor XREF : %s %d %s\n", FoundHLEData->Library, FoundHLEData->BuildVersion, OovpaTable[a].szFuncName);
 					}
 				}
 			}

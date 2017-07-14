@@ -139,8 +139,30 @@ LOG_SANITIZE(sanitized_wchar_pointer, wchar_t *);
 // Function (and argument) logging defines
 //
 
+constexpr const int str_length(const char* str) {
+	return str_end(str) - str;
+}
+
+constexpr const char* str_skip_prefix(const char* str, const char *prefix) {
+	return (*str == *prefix) ? str_skip_prefix(str + 1, prefix + 1) : str;
+}
+
+constexpr const char* remove_prefix(const char* str, const char *prefix) {
+	return (str_skip_prefix(str, prefix) == str + str_length(prefix)) ? str_skip_prefix(str, prefix) : str;
+}
+
+constexpr const char* remove_emupatch_prefix(const char* str) {
+	constexpr char* xtl_prefix = "XTL::";
+	constexpr char* emupatch_prefix = "EmuPatch_"; // See #define EMUPATCH
+	return remove_prefix(remove_prefix(str, xtl_prefix), emupatch_prefix);
+}
+
 #define LOG_ARG_START "\n   " << std::setfill(' ') << std::setw(20) << std::left 
 #define LOG_ARG_OUT_START "\n OUT " << std::setfill(' ') << std::setw(18) << std::left 
+
+#ifndef LOG_PREFIX
+#define LOG_PREFIX __FILENAME__
+#endif // LOG_PREFIX
 
 #ifdef _DEBUG_TRACE
 
@@ -160,7 +182,7 @@ extern thread_local std::string _logPrefix;
 	static thread_local std::string _logFuncPrefix; \
 	if (_logFuncPrefix.length() == 0) {	\
 		std::stringstream tmp; \
-		tmp << _logPrefix << __FILENAME__ << " : " << (func != nullptr ? func : ""); \
+		tmp << _logPrefix << LOG_PREFIX << ": " << (func != nullptr ? remove_emupatch_prefix(func) : ""); \
 		_logFuncPrefix = tmp.str(); \
 	}
 
@@ -278,9 +300,9 @@ extern thread_local std::string _logPrefix;
 // RETURN logs the given result and then returns it (so this should appear last in functions)
 #define RETURN(r) do { LOG_FUNC_RESULT(r) return r; } while (0)
 
-#define LOG_ONCE(msg, ...) { static bool bFirstTime = true; if(bFirstTime) { bFirstTime = false; DbgPrintf(msg, __VA_ARGS__); } }
+#define LOG_ONCE(msg, ...) { static bool bFirstTime = true; if(bFirstTime) { bFirstTime = false; DbgPrintf("TRAC: " ## msg, __VA_ARGS__); } }
 
-#define LOG_XBOX_CALL(func) DbgPrintf("Xbox " ## func ## "() call\n");
+#define LOG_XBOX_CALL(func) DbgPrintf("TRAC: Xbox " ## func ## "() call\n");
 #define LOG_FIRST_XBOX_CALL(func) LOG_ONCE("First Xbox " ## func ## "() call\n");
 
 //

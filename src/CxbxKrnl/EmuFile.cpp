@@ -36,6 +36,8 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "FILE"
+
 #include "EmuFile.h"
 #include <vector>
 #include <string>
@@ -291,15 +293,15 @@ NTSTATUS _CxbxConvertFilePath(
 		}
 		*/
 
-		DbgPrintf("EmuKrnl : %s Corrected path...\n", aFileAPIName.c_str());
-		DbgPrintf("  Org:\"%s\"\n", OriginalPath.c_str());
-		if (_strnicmp(HostPath.c_str(), CxbxBasePath.c_str(), CxbxBasePath.length()) == 0)
-		{
-			DbgPrintf("  New:\"$CxbxPath\\%s%s\"\n", (HostPath.substr(CxbxBasePath.length(), std::string::npos)).c_str(), RelativePath.c_str());
+		if (g_bPrintfOn) {
+			DbgPrintf("FILE: %s Corrected path...\n", aFileAPIName.c_str());
+			printf("  Org:\"%s\"\n", OriginalPath.c_str());
+			if (_strnicmp(HostPath.c_str(), CxbxBasePath.c_str(), CxbxBasePath.length()) == 0) {
+				printf("  New:\"$CxbxPath\\%s%s\"\n", (HostPath.substr(CxbxBasePath.length(), std::string::npos)).c_str(), RelativePath.c_str());
+			}
+			else
+				printf("  New:\"$XbePath\\%s\"\n", RelativePath.c_str());
 		}
-		else
-			DbgPrintf("  New:\"$XbePath\\%s\"\n", RelativePath.c_str());
-
 	}
 	else
 	{
@@ -484,7 +486,7 @@ NTSTATUS EmuNtSymbolicLinkObject::Init(std::string aSymbolicLinkName, std::strin
 				else
 				{
 					NtSymbolicLinkObjects[DriveLetter - 'A'] = this;
-					DbgPrintf("EmuMain : Linked \"%s\" to \"%s\" (residing at \"%s\")\n", aSymbolicLinkName.c_str(), aFullPath.c_str(), HostSymbolicLinkPath.c_str());
+					DbgPrintf("FILE: Linked \"%s\" to \"%s\" (residing at \"%s\")\n", aSymbolicLinkName.c_str(), aFullPath.c_str(), HostSymbolicLinkPath.c_str());
 				}
 			}
 		}

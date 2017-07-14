@@ -37,6 +37,8 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "KRNL"
+
 // prevent name collisions
 namespace xboxkrnl
 {
@@ -216,7 +218,7 @@ XBSYSAPI EXPORTNUM(44) xboxkrnl::ULONG NTAPI xboxkrnl::HalGetInterruptVector
 			*Irql = (KIRQL)VECTOR2IRQL(dwVector);
 
 #ifdef _DEBUG_TRACE
-		DbgPrintf("HalGetInterruptVector(): Interrupt vector requested for %d (%s)!\n", 
+		DbgPrintf("KRNL: HalGetInterruptVector(): Interrupt vector requested for %d (%s)!\n", 
 			BusInterruptLevel, IRQNames[BusInterruptLevel]);
 #endif
 	}

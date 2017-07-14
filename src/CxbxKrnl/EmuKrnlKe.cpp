@@ -37,6 +37,8 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "KRNL"
+
 // prevent name collisions
 namespace xboxkrnl
 {
@@ -178,7 +180,7 @@ DWORD __stdcall EmuThreadDpcHandler(LPVOID lpVoid)
 	LONG lWait;
 	xboxkrnl::PKTIMER pktimer;
 
-	DbgPrintf("EmuD3D8: DPC thread is running\n");
+	DbgPrintf("KRNL: DPC thread is running\n");
 
 	while (true)
 	{
@@ -255,7 +257,7 @@ DWORD __stdcall EmuThreadDpcHandler(LPVOID lpVoid)
 		WaitForSingleObject(g_DpcData.DpcEvent, dwWait);
 	} // while
 
-	DbgPrintf("EmuD3D8: DPC thread is finished\n");
+	DbgPrintf("KRNL: DPC thread is finished\n");
 
 	return S_OK;
 }
@@ -268,13 +270,14 @@ void InitDpcAndTimerThread()
 	InitializeListHead(&(g_DpcData.DpcQueue));
 	InitializeListHead(&(g_DpcData.TimerQueue));
 
-	DbgPrintf("EmuD3D8: Creating DPC event\n");
+	DbgPrintf("INIT: Creating DPC event\n");
 	g_DpcData.DpcEvent = CreateEvent(/*lpEventAttributes=*/nullptr, /*bManualReset=*/FALSE, /*bInitialState=*/FALSE, /*lpName=*/nullptr);
 
-	DbgPrintf("EmuD3D8: Launching DPC thread\n");
 	g_DpcData.DpcThread = CreateThread(/*lpThreadAttributes=*/nullptr, /*dwStackSize=*/0, (LPTHREAD_START_ROUTINE)&EmuThreadDpcHandler, /*lpParameter=*/nullptr, /*dwCreationFlags=*/0, &dwThreadId);
-	DbgPrintf("EmuD3D8: Created DPC thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", g_DpcData.DpcThread, dwThreadId);
+	DbgPrintf("INIT: Created DPC thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", g_DpcData.DpcThread, dwThreadId);
 	SetThreadPriority(g_DpcData.DpcThread, THREAD_PRIORITY_HIGHEST);
+	// Make sure DPC callbacks run on the same core as the one that runs Xbox1 code :
+	SetThreadAffinityMask(g_DpcData.DpcThread, g_CPUXbox);
 }
 
 // Xbox Performance Counter Frequency = 337F98 = ACPI timer frequency (3.375000 Mhz)
@@ -1108,8 +1111,8 @@ XBSYSAPI EXPORTNUM(129) xboxkrnl::UCHAR NTAPI xboxkrnl::KeRaiseIrqlToDpcLevel()
 	Pcr->Irql = DISPATCH_LEVEL;
 
 #ifdef _DEBUG_TRACE
-	DbgPrintf("Raised IRQL to DISPATCH_LEVEL (2).\n");
-	DbgPrintf("Old IRQL is %d.\n", kRet);
+	DbgPrintf("KRNL: Raised IRQL to DISPATCH_LEVEL (2).\n");
+	DbgPrintf("KRNL: Old IRQL is %d.\n", kRet);
 #endif
 
 	// We reached the DISPATCH_LEVEL, so the queue can be processed now :

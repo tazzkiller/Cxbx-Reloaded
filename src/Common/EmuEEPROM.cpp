@@ -87,7 +87,7 @@ xboxkrnl::XBOX_EEPROM *CxbxRestoreEEPROM(char *szFilePath_EEPROM_bin)
 			/* hTemplateFile */nullptr);
 		if (hFileEEPROM == INVALID_HANDLE_VALUE)
 		{
-			DbgPrintf("CxbxRestoreEEPROM : Couldn't create EEPROM.bin file!\n");
+			DbgPrintf("INIT: Couldn't create EEPROM.bin file!\n");
 			return nullptr;
 		}
 	}
@@ -103,7 +103,7 @@ xboxkrnl::XBOX_EEPROM *CxbxRestoreEEPROM(char *szFilePath_EEPROM_bin)
 		/**/nullptr);
 	if (hFileMappingEEPROM == NULL)
 	{
-		DbgPrintf("CxbxRestoreEEPROM : Couldn't create EEPROM.bin file mapping!\n");
+		DbgPrintf("INIT: Couldn't create EEPROM.bin file mapping!\n");
 		return nullptr;
 	}
 
@@ -115,7 +115,7 @@ xboxkrnl::XBOX_EEPROM *CxbxRestoreEEPROM(char *szFilePath_EEPROM_bin)
 		/* dwFileOffsetLow */0,
 		EEPROM_SIZE);
 	if (EEPROM == NULL)
-		DbgPrintf("CxbxRestoreEEPROM : Couldn't map EEPROM.bin into memory!\n");
+		DbgPrintf("INIT: Couldn't map EEPROM.bin into memory!\n");
 
 	// TODO : Verify checksums
 
@@ -134,10 +134,10 @@ xboxkrnl::XBOX_EEPROM *CxbxRestoreEEPROM(char *szFilePath_EEPROM_bin)
 
 		XboxFactoryGameRegion = 1; // = North America - TODO : This should be derived from EncryptedSection somehow
 
-		DbgPrintf("EmuMain: Initialized default EEPROM\n");
+		DbgPrintf("INIT: Initialized default EEPROM\n");
 	}
 	else
-		DbgPrintf("EmuMain: Loaded EEPROM.bin\n");
+		DbgPrintf("INIT: Loaded EEPROM.bin\n");
 
 	return EEPROM;
 }

@@ -37,6 +37,8 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "KRNL"
+
 // prevent name collisions
 namespace xboxkrnl
 {
@@ -93,7 +95,7 @@ XBSYSAPI EXPORTNUM(184) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtAllocateVirtualMemo
 	ULONG_PTR RequestedBaseAddress = (ULONG_PTR)*BaseAddress;
 	ULONG RequestedAllocationSize = *AllocationSize;
 
-	DbgPrintf("NtAllocateVirtualMemory requested range : 0x%.8X - 0x%.8X\n", RequestedBaseAddress, RequestedBaseAddress + RequestedAllocationSize);
+	DbgPrintf("KNRL: NtAllocateVirtualMemory requested range : 0x%.8X - 0x%.8X\n", RequestedBaseAddress, RequestedBaseAddress + RequestedAllocationSize);
 
 	// Don't allow base address to exceed highest virtual address
 	if (RequestedBaseAddress > MM_HIGHEST_VAD_ADDRESS)
@@ -151,7 +153,7 @@ XBSYSAPI EXPORTNUM(184) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtAllocateVirtualMemo
 			ULONG_PTR ResultingBaseAddress = (ULONG_PTR)*BaseAddress;
 			ULONG ResultingAllocationSize = *AllocationSize;
 
-			DbgPrintf("NtAllocateVirtualMemory resulting range : 0x%.8X - 0x%.8X\n", ResultingBaseAddress, ResultingBaseAddress + ResultingAllocationSize);
+			DbgPrintf("KNRL: NtAllocateVirtualMemory resulting range : 0x%.8X - 0x%.8X\n", ResultingBaseAddress, ResultingBaseAddress + ResultingAllocationSize);
 		}
 		else
 			if (ret == STATUS_INVALID_PARAMETER_5) // = 0xC00000F3
@@ -266,7 +268,7 @@ XBSYSAPI EXPORTNUM(188) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtCreateDirectoryObje
 	if (FAILED(ret))
 		EmuWarning("NtCreateDirectoryObject Failed!");
 	else
-		DbgPrintf("EmuKrnl: NtCreateDirectoryObject DirectoryHandle = 0x%.8X\n", *DirectoryHandle);
+		DbgPrintf("KRNL: NtCreateDirectoryObject DirectoryHandle = 0x%.8X\n", *DirectoryHandle);
 
 	RETURN(ret);
 }
@@ -343,10 +345,10 @@ XBSYSAPI EXPORTNUM(189) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtCreateEvent
 		if(FAILED(ret))
 			EmuWarning("NtCreateEvent Failed!");
 		else
-			DbgPrintf("EmuKrnl: NtCreateEvent EventHandle = 0x%.8X\n", *EventHandle);
+			DbgPrintf("KRNL: NtCreateEvent EventHandle = 0x%.8X\n", *EventHandle);
 	}
 	else
-		DbgPrintf("EmuKrnl: NtCreateEvent EventHandle = 0x%.8X\n", *EventHandle);
+		DbgPrintf("KRNL: NtCreateEvent EventHandle = 0x%.8X\n", *EventHandle);
 
 	RETURN(ret);
 }
@@ -468,10 +470,10 @@ XBSYSAPI EXPORTNUM(192) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtCreateMutant
 		if(FAILED(ret))
 			EmuWarning("NtCreateMutant Failed!");
 		else
-			DbgPrintf("EmuKrnl: NtCreateMutant MutantHandle = 0x%.8X\n", *MutantHandle);
+			DbgPrintf("KRNL: NtCreateMutant MutantHandle = 0x%.8X\n", *MutantHandle);
 	}
 	else
-		DbgPrintf("EmuKrnl: NtCreateMutant MutantHandle = 0x%.8X\n", *MutantHandle);
+		DbgPrintf("KRNL: NtCreateMutant MutantHandle = 0x%.8X\n", *MutantHandle);
 
 	RETURN(ret);
 }
@@ -543,10 +545,10 @@ XBSYSAPI EXPORTNUM(193) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtCreateSemaphore
 		if(FAILED(ret))
 			EmuWarning("NtCreateSemaphore failed!");
 		else
-			DbgPrintf("EmuKrnl: NtCreateSemaphore SemaphoreHandle = 0x%.8X\n", *SemaphoreHandle);
+			DbgPrintf("KRNL: NtCreateSemaphore SemaphoreHandle = 0x%.8X\n", *SemaphoreHandle);
 	}
 	else
-		DbgPrintf("EmuKrnl: NtCreateSemaphore SemaphoreHandle = 0x%.8X\n", *SemaphoreHandle);
+		DbgPrintf("KRNL: NtCreateSemaphore SemaphoreHandle = 0x%.8X\n", *SemaphoreHandle);
 
 	RETURN(ret);
 }
@@ -606,7 +608,7 @@ XBSYSAPI EXPORTNUM(194) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtCreateTimer
 	if (FAILED(ret))
 		EmuWarning("NtCreateTimer failed!");
 	else
-		DbgPrintf("EmuKrnl: NtCreateTimer TimerHandle = 0x%.8X\n", *TimerHandle);
+		DbgPrintf("KRNL: NtCreateTimer TimerHandle = 0x%.8X\n", *TimerHandle);
 
 	RETURN(ret);
 }
@@ -922,7 +924,7 @@ XBSYSAPI EXPORTNUM(203) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtOpenSymbolicLinkObj
 	if (ret != STATUS_SUCCESS)
 		EmuWarning("NtOpenSymbolicLinkObject failed! (%s)", NtStatusToString(ret));
 	else
-		DbgPrintf("EmuKrnl : NtOpenSymbolicLinkObject LinkHandle^ = 0x%.8X", *LinkHandle);
+		DbgPrintf("KRNL: NtOpenSymbolicLinkObject LinkHandle^ = 0x%.8X", *LinkHandle);
 
 	RETURN(ret);
 }
@@ -1414,7 +1416,7 @@ XBSYSAPI EXPORTNUM(217) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtQueryVirtualMemory
 
 			ret = STATUS_SUCCESS;
 
-			DbgPrintf("EmuKrnl: NtQueryVirtualMemory: Applied fix for Forza Motorsport!\n");
+			DbgPrintf("KRNL: NtQueryVirtualMemory: Applied fix for Forza Motorsport!\n");
 		}
 	}
 
@@ -1790,7 +1792,7 @@ XBSYSAPI EXPORTNUM(232) xboxkrnl::VOID NTAPI xboxkrnl::NtUserIoApcDispatcher
 
 	(CompletionRoutine)(dwErrorCode, dwTransferred, lpOverlapped);
 
-	DbgPrintf("EmuKrnl: NtUserIoApcDispatcher Completed\n");
+	DbgPrintf("KRNL: NtUserIoApcDispatcher Completed\n");
 }
 
 // ******************************************************************

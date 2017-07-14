@@ -40,6 +40,8 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "NET " // Intentional extra space to align on 4 characters
+
 #include "CxbxKrnl.h"
 #include "Emu.h"
 #include "EmuNVNet.h"
@@ -259,11 +261,11 @@ void EmuNVNet_SetRegister(xbaddr addr, uint32_t value, unsigned int size)
 
 uint32_t EmuNVNet_Read(xbaddr addr, int size)
 {
-	DbgPrintf("EmuNVNet_Read%d: %s (0x%.8X)\n", size, EmuNVNet_GetRegisterName(addr), addr);
+	DbgPrintf("NET : Read%d: %s (0x%.8X)\n", size, EmuNVNet_GetRegisterName(addr), addr);
 	return EmuNVNet_GetRegister(addr,size);
 }
 void EmuNVNet_Write(xbaddr addr, uint32_t value, int size)
 {
-	DbgPrintf("EmuNVNet_Write%d: %s (0x%.8X) = 0x%.8X\n", size, EmuNVNet_GetRegisterName(addr), addr, value);
+	DbgPrintf("NET : Write%d: %s (0x%.8X) = 0x%.8X\n", size, EmuNVNet_GetRegisterName(addr), addr, value);
 	return EmuNVNet_SetRegister(addr, value, size);
 }

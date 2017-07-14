@@ -41,6 +41,8 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "NV2A"
+
 #ifdef _MSC_VER                         // Check if MS Visual C compiler
 #  pragma comment(lib, "opengl32.lib")  // Compiler-specific directive to avoid manually configuration
 //#  pragma comment(lib, "glu32.lib")     // Link libraries
@@ -676,8 +678,8 @@ DEBUG_END(USER)
 
 #define DEBUG_REGNAME(DEV) DebugNV_##DEV##(addr)
 
-#define DEBUG_READ32_LOG(DEV, msg, ...) DbgPrintf("EmuX86 Read32 NV2A " #DEV ## "(0x%.8X) [%s] " ## msg ## "\n", addr, DEBUG_REGNAME(DEV),__VA_ARGS__)
-#define DEBUG_WRITE32_LOG(DEV, msg, ...) DbgPrintf("EmuX86 Write32 NV2A " #DEV ## "(0x%.8X, 0x%.8X) [%s] " ## msg ## "\n", addr, value, DEBUG_REGNAME(DEV), __VA_ARGS__)
+#define DEBUG_READ32_LOG(DEV, msg, ...) DbgPrintf("X86 : Read32 NV2A " #DEV ## "(0x%.8X) [%s] " ## msg ## "\n", addr, DEBUG_REGNAME(DEV),__VA_ARGS__)
+#define DEBUG_WRITE32_LOG(DEV, msg, ...) DbgPrintf("X86 : Write32 NV2A " #DEV ## "(0x%.8X, 0x%.8X) [%s] " ## msg ## "\n", addr, value, DEBUG_REGNAME(DEV), __VA_ARGS__)
 
 #define DEBUG_READ32(DEV) DEBUG_READ32_LOG(DEV, "= 0x%.8X [Handled]", result)
 #define DEBUG_READ32_UNHANDLED(DEV)  { DEBUG_READ32_LOG(DEV, "= 0x%.8X [Unhandled]", result); return result; }
@@ -828,7 +830,7 @@ DEVICE_WRITE32(PFIFO)
 			// Decode and dump the written value
 			xbaddr HTBaseAddr = (value & NV_PFIFO_RAMHT_BASE_ADDRESS_MASK) << NV_PFIFO_RAMHT_BASE_ADDRESS_MOVE;
 
-			DbgPrintf("NV_PFIFO_RAMHT: ");
+			DbgPrintf("PFIFO: NV_PFIFO_RAMHT: ");
 			switch ((value & NV_PFIFO_RAMHT_SIZE_MASK) >> NV_PFIFO_RAMHT_SIZE_SHIFT) {
 			case NV_PFIFO_RAMHT_SIZE_4K: printf("NV_PFIFO_RAMHT_SIZE_4K, "); break;
 			case NV_PFIFO_RAMHT_SIZE_8K: printf("NV_PFIFO_RAMHT_SIZE_8K, "); break;
@@ -854,7 +856,7 @@ DEVICE_WRITE32(PFIFO)
 			xbaddr FCBaseAddr1 = (value & NV_PFIFO_RAMFC_BASE_ADDRESS1) << NV_PFIFO_RAMFC_BASE_ADDRESS1_MOVE;
 			xbaddr FCBaseAddr2 = ((value & NV_PFIFO_RAMFC_BASE_ADDRESS2_MASK) >> NV_PFIFO_RAMFC_BASE_ADDRESS2_SHIFT) << NV_PFIFO_RAMFC_BASE_ADDRESS2_MOVE;
 
-			DbgPrintf("NV_PFIFO_RAMFC: ");
+			DbgPrintf("PFIFO: NV_PFIFO_RAMFC: ");
 			printf("NV_PFIFO_RAMFC_BASE_ADDRESS1 = " DEVAddrPrintFmt(PRAMIN) ", ", DEVAddrPrintArg(PRAMIN, FCBaseAddr1));
 			if ((value & NV_PFIFO_RAMFC_SIZE_MASK) == NV_PFIFO_RAMFC_SIZE_1K) {
 				printf("NV_PFIFO_RAMFC_SIZE_1K, ");
@@ -1492,7 +1494,7 @@ DEVICE_WRITE32(PRAMIN)
 				if (DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_CLASS(DMASlot)) == 0x0202B003) {
 					DWORD Address = DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_ADDRESS(DMASlot));
 					g_pNV2ADMAChannel = (Nv2AControlDma*)((Address & ~3) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
-					DbgPrintf("NV2A Pusher DMA channel is at 0x%.8X\n", g_pNV2ADMAChannel);
+					DbgPrintf("NV2A: Pusher DMA channel is at 0x%.8X\n", g_pNV2ADMAChannel);
 				}
 			}
 
@@ -1502,7 +1504,7 @@ DEVICE_WRITE32(PRAMIN)
 					// Remember where the semaphore (starting with a GPU Time DWORD) was allocated
 					DWORD Address = DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_ADDRESS(DMASlot));
 					m_pGPUTime = (PPUSH)((Address & ~3) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
-					DbgPrintf("Registered m_pGPUTime at 0x%.8X\n", m_pGPUTime);
+					DbgPrintf("NV2A: Registered m_pGPUTime at 0x%.8X\n", m_pGPUTime);
 				}
 			}
 
@@ -1933,7 +1935,7 @@ void DxbxCompileShader(std::string Shader)
 	int GLErrorPos;
 
 //	if (MayLog(lfUnit))
-//		DbgPrintf("  NV2A: New vertex program :\n" + Shader);
+//		DbgPrintf("NV2A: New vertex program :\n" + Shader);
 
 /*
 glProgramStringARB(GL_VERTEX_PROGRAM_ARB, GL_PROGRAM_FORMAT_ASCII_ARB, Shader.size(), Shader.c_str());
