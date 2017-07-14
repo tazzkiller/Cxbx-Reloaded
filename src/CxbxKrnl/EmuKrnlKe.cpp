@@ -204,6 +204,7 @@ DWORD __stdcall EmuThreadDpcHandler(LPVOID lpVoid)
 			pkdpc->Inserted = FALSE;
 			// Set DpcRoutineActive to support KeIsExecutingDpc:
 			KeGetCurrentPrcb()->DpcRoutineActive = TRUE; // Experimental
+			DbgPrintf("KRNL: Global DpcQueue, calling DPC at 0x%.8X\n", pkdpc->DeferredRoutine);
 			// Call the Deferred Procedure  :
 			pkdpc->DeferredRoutine(
 				pkdpc,
@@ -241,6 +242,7 @@ DWORD __stdcall EmuThreadDpcHandler(LPVOID lpVoid)
 				if (pkdpc == nullptr)
 					break; // while
 
+				DbgPrintf("KRNL: Global TimerQueue, calling DPC at 0x%.8X\n", pkdpc->DeferredRoutine);
 				pkdpc->DeferredRoutine(pkdpc,
 					pkdpc->DeferredContext,
 					pkdpc->SystemArgument1,
