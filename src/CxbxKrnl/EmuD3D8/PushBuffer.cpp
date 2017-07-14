@@ -821,7 +821,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 	}
 
 	if (pdwPushData == NULL) {
-		EmuWarning("pdwPushData is null");
+		EmuWarning("pdwPushData is NULL");
 		return NULL;
 	}
 
@@ -841,7 +841,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 
     XboxPrimitiveType = X_D3DPT_INVALID;
 
-    #ifdef _DEBUG_TRACK_PB
+#ifdef _DEBUG_TRACK_PB
     bShowPB = false;
 
     g_PBTrackTotal.insert((void*)pdwPushData);
@@ -852,41 +852,33 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
         printf("\n");
         bShowPB = true;
     }
-    #endif
+#endif
 
 	DbgPrintf("NV2A: Run DMA puller from 0x%.8X\n", pdwPushData);
 
 	while (true) {
-/* TODO :
-		if (pdwPushData == pdwPushEnd) {
-			break;
-		}
-*/
-		char LogPrefixStr[200];
-		int LogPrefixLen = sprintf(LogPrefixStr, "DMAP: Get=0x%.8X", pdwPushData);
-
 		// Fake a read by the Nv2A, by moving the DMA 'Get' location
 		// up to where the pushbuffer is executed, so that the BusyLoop
 		// in CDevice.Init finishes cleanly :
 		g_pNV2ADMAChannel->Get = (PPUSH)pdwPushData;
-		// TODO : We should probably set g_pNV2ADMAChannel->Put to the same value first?
+		// TODO : Should we set g_pNV2ADMAChannel->Put to the same value?
 
-		// Fetch method DWORD
+		/* TODO :
+		if (pdwPushData == pdwPushEnd) {
+			break;
+		}
+		*/
+
+		char LogPrefixStr[200];
+		int LogPrefixLen = sprintf(LogPrefixStr, "DMAP: Get=0x%.8X", pdwPushData);
+
+		// Fetch next command from push buffer
 		DWORD dwPushCommand = *pdwPushData++;
 		if (dwPushCommand == 0) {
 			// Step back and break
 			pdwPushData--;
-			DbgPrintf("%s BREAK at NULL method at 0x%.8X\n", LogPrefixStr, pdwPushData);
+			DbgPrintf("%s BREAK at NULL\n", LogPrefixStr);
 			break;
-		}
-
-		// Handle jumps and/or calls :
-		DWORD PushType = PUSH_TYPE(dwPushCommand);
-		if ((PushType == PUSH_TYPE_JMP_FAR) || (PushType == PUSH_TYPE_CALL_FAR)) {
-			// Both 'jump' and 'call' just direct execution to the indicated address :
-			pdwPushData = (PPUSH)(PUSH_ADDR_FAR(dwPushCommand) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
-			DbgPrintf("%s Jump far: 0x%.8X\n", LogPrefixStr, pdwPushData);
-			continue;
 		}
 
 		// Handle instruction
@@ -897,6 +889,32 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 			continue;
 		}
 
+		if (PushInstr > PUSH_INSTR_JMP_NEAR) {
+			EmuWarning("%s Unsupported instruction type: %d", LogPrefixStr, PushInstr);
+			continue;
+		}
+
+		bool bNoInc = (PushInstr == PUSH_INSTR_IMM_NOINC);
+
+		// Handle jumps and calls
+		DWORD PushType = PUSH_TYPE(dwPushCommand);
+		if (PushType == PUSH_TYPE_JMP_FAR) {
+			// Both 'jump' and 'call' just direct execution to the indicated address
+			pdwPushData = (PPUSH)(PUSH_ADDR_FAR(dwPushCommand) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
+			DbgPrintf("%s Jump far to 0x%.8X\n", LogPrefixStr, pdwPushData);
+			continue;
+		}
+
+		if (PushType == PUSH_TYPE_CALL_FAR) {
+			// Remember the return-address
+			DbgPrintf("%s Call will return to: 0x%.8X\n", LogPrefixStr, pdwPushData);
+			EmuNV2A_Write(NV_PFIFO_CACHE1_DMA_SUBROUTINE, (u32)pdwPushData ^ MM_SYSTEM_PHYSICAL_MAP, 32); // TODO : Add dwCount?
+			// Both 'jump' and 'call' just direct execution to the indicated address
+			pdwPushData = (PPUSH)(PUSH_ADDR_FAR(dwPushCommand) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
+			DbgPrintf("%s Call far to 0x%.8X\n", LogPrefixStr, pdwPushData);
+			continue;
+		}
+
 		// Get method, sub channel and count (should normally be at least 1)
 		D3DPUSH_DECODE(dwPushCommand, dwMethod, dwSubCh, dwCount);
 		if (dwCount == 0) {
@@ -904,7 +922,6 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 			continue;
 		}
 
-		bool bNoInc = (PushInstr == PUSH_INSTR_IMM_NOINC);
 
 		if (g_bPrintfOn) {
 			// Append a counter (variable part via %d, count already formatted) :
