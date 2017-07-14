@@ -118,9 +118,6 @@
     <ClCompile Include="..\..\src\CxbxKrnl\Emu.cpp">
       <Filter>Emulator</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuAlloc.cpp">
-      <Filter>Emulator</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8.cpp">
       <Filter>Emulator</Filter>
     </ClCompile>
@@ -454,9 +451,6 @@
       <Filter>Emulator</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\CxbxKrnl\device.h">
-      <Filter>Emulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuAlloc.h">
       <Filter>Emulator</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8.h">

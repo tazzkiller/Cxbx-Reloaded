@@ -45,7 +45,6 @@ namespace xboxkrnl
 #include "CxbxUtil.h"
 #include "CxbxKrnl.h"
 #include "Emu.h"
-#include "EmuAlloc.h"
 #include "MemoryManager.h"
 #include "EmuXTL.h"
 #include "Logging.h"

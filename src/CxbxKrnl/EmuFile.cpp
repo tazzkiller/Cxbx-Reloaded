@@ -46,7 +46,6 @@
 #include <ntstatus.h>
 #pragma warning(default:4005)
 #include "CxbxKrnl.h"
-#include "EmuAlloc.h"
 #include "MemoryManager.h"
 //#include "Logging.h" // For hex4()
 

@@ -48,7 +48,6 @@ namespace xboxkrnl
 #include "EmuKrnlLogging.h"
 #include "CxbxKrnl.h" // For CxbxKrnlCleanup
 #include "Emu.h" // For EmuWarning()
-#include "EmuAlloc.h" // For CxbxFree(), g_MemoryManager.Allocate(), etc.
 #include "ResourceTracker.h" // For g_AlignCache
 #include "MemoryManager.h"
 
