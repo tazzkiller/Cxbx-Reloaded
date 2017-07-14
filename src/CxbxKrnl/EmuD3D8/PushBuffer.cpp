@@ -182,6 +182,7 @@ void EmuNV2A_NOP() // 0x0100
 	// NOP, when used with an argument, triggers a software-interrupt on NV2A.
 	// The CPU handles these interrupts via a DMA trigger, but since we don't
 	// emulate these yet, we'll have to emulate them here instead.
+	// TODO : For this, emulate DMA triggers / interrupts, as well as calling DPC's
 	#define NOP_Argument1 (NV2AInstance_Registers[XTL::NV2A_CLEAR_DEPTH_VALUE / 4])
 	#define NOP_Argument2 (NV2AInstance_Registers[XTL::NV2A_CLEAR_VALUE / 4])
 	switch (*pdwPushArguments) {

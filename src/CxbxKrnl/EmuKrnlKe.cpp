@@ -174,7 +174,7 @@ DWORD CxbxXboxGetTickCount()
 	return GetTickCount() - BootTickCount;
 }
 
-DWORD __stdcall EmuThreadDpcHandler(LPVOID lpVoid)
+DWORD ExecuteDpcQueue()
 {
 	xboxkrnl::PKDPC pkdpc;
 	DWORD dwWait;
@@ -182,80 +182,87 @@ DWORD __stdcall EmuThreadDpcHandler(LPVOID lpVoid)
 	LONG lWait;
 	xboxkrnl::PKTIMER pktimer;
 
+	// While we're working with the DpcQueue, we need to be thread-safe :
+	EnterCriticalSection(&(g_DpcData.Lock));
+
+	//    if (g_DpcData._fShutdown)
+	//        break; // while 
+
+	//    Assert(g_DpcData._dwThreadId == GetCurrentThreadId());
+	//    Assert(g_DpcData._dwDpcThreadId == 0);
+	//    g_DpcData._dwDpcThreadId = g_DpcData._dwThreadId;
+	//    Assert(g_DpcData._dwDpcThreadId != 0);
+
+			// Are there entries in the DpqQueue?
+	while (!IsListEmpty(&(g_DpcData.DpcQueue)))
+	{
+		// Extract the head entry and retrieve the containing KDPC pointer for it:
+		pkdpc = CONTAINING_RECORD(RemoveHeadList(&(g_DpcData.DpcQueue)), xboxkrnl::KDPC, DpcListEntry);
+		// Mark it as no longer linked into the DpcQueue
+		pkdpc->Inserted = FALSE;
+		// Set DpcRoutineActive to support KeIsExecutingDpc:
+		KeGetCurrentPrcb()->DpcRoutineActive = TRUE; // Experimental
+		DbgPrintf("KRNL: Global DpcQueue, calling DPC at 0x%.8X\n", pkdpc->DeferredRoutine);
+		// Call the Deferred Procedure  :
+		pkdpc->DeferredRoutine(
+			pkdpc,
+			pkdpc->DeferredContext,
+			pkdpc->SystemArgument1,
+			pkdpc->SystemArgument2);
+		KeGetCurrentPrcb()->DpcRoutineActive = FALSE; // Experimental
+	}
+
+	dwWait = INFINITE;
+	if (!IsListEmpty(&(g_DpcData.TimerQueue)))
+	{
+		while (true)
+		{
+			dwNow = CxbxXboxGetTickCount();
+			dwWait = INFINITE;
+			pktimer = (xboxkrnl::PKTIMER)g_DpcData.TimerQueue.Flink;
+			pkdpc = nullptr;
+			while (pktimer != (xboxkrnl::PKTIMER)&(g_DpcData.TimerQueue))
+			{
+				lWait = (LONG)pktimer->DueTime.u.LowPart - dwNow;
+				if (lWait <= 0)
+				{
+					pktimer->DueTime.u.LowPart = pktimer->Period + dwNow;
+					pkdpc = pktimer->Dpc;
+					break; // while
+				}
+
+				if (dwWait > (DWORD)lWait)
+					dwWait = (DWORD)lWait;
+
+				pktimer = (xboxkrnl::PKTIMER)pktimer->TimerListEntry.Flink;
+			}
+
+			if (pkdpc == nullptr)
+				break; // while
+
+			DbgPrintf("KRNL: Global TimerQueue, calling DPC at 0x%.8X\n", pkdpc->DeferredRoutine);
+			pkdpc->DeferredRoutine(pkdpc,
+				pkdpc->DeferredContext,
+				pkdpc->SystemArgument1,
+				pkdpc->SystemArgument2);
+		}
+	}
+
+	//    Assert(g_DpcData._dwThreadId == GetCurrentThreadId());
+	//    Assert(g_DpcData._dwDpcThreadId == g_DpcData._dwThreadId);
+	//    g_DpcData._dwDpcThreadId = 0;
+	LeaveCriticalSection(&(g_DpcData.Lock));
+
+	return dwWait;
+}
+
+DWORD __stdcall EmuThreadDpcHandler(LPVOID lpVoid)
+{
 	DbgPrintf("KRNL: DPC thread is running\n");
 
 	while (true)
 	{
-		// While we're working with the DpcQueue, we need to be thread-safe :
-		EnterCriticalSection(&(g_DpcData.Lock));
-
-//    if (g_DpcData._fShutdown)
-//        break; // while 
-
-//    Assert(g_DpcData._dwThreadId == GetCurrentThreadId());
-//    Assert(g_DpcData._dwDpcThreadId == 0);
-//    g_DpcData._dwDpcThreadId = g_DpcData._dwThreadId;
-//    Assert(g_DpcData._dwDpcThreadId != 0);
-
-		// Are there entries in the DpqQueue?
-		while (!IsListEmpty(&(g_DpcData.DpcQueue)))
-		{
-			// Extract the head entry and retrieve the containing KDPC pointer for it:
-			pkdpc = CONTAINING_RECORD(RemoveHeadList(&(g_DpcData.DpcQueue)), xboxkrnl::KDPC, DpcListEntry);
-			// Mark it as no longer linked into the DpcQueue
-			pkdpc->Inserted = FALSE;
-			// Set DpcRoutineActive to support KeIsExecutingDpc:
-			KeGetCurrentPrcb()->DpcRoutineActive = TRUE; // Experimental
-			DbgPrintf("KRNL: Global DpcQueue, calling DPC at 0x%.8X\n", pkdpc->DeferredRoutine);
-			// Call the Deferred Procedure  :
-			pkdpc->DeferredRoutine(
-				pkdpc,
-				pkdpc->DeferredContext,
-				pkdpc->SystemArgument1,
-				pkdpc->SystemArgument2);
-			KeGetCurrentPrcb()->DpcRoutineActive = FALSE; // Experimental
-		}
-
-		dwWait = INFINITE;
-		if (!IsListEmpty(&(g_DpcData.TimerQueue)))
-		{
-			while (true)
-			{
-				dwNow = CxbxXboxGetTickCount();
-				dwWait = INFINITE;
-				pktimer = (xboxkrnl::PKTIMER)g_DpcData.TimerQueue.Flink;
-				pkdpc = nullptr;
-				while (pktimer != (xboxkrnl::PKTIMER)&(g_DpcData.TimerQueue))
-				{
-					lWait = (LONG)pktimer->DueTime.u.LowPart - dwNow;
-					if (lWait <= 0) 
-					{
-						pktimer->DueTime.u.LowPart = pktimer->Period + dwNow;
-						pkdpc = pktimer->Dpc;
-						break; // while
-					}
-
-					if (dwWait > (DWORD)lWait)
-						dwWait = (DWORD)lWait;
-
-					pktimer = (xboxkrnl::PKTIMER)pktimer->TimerListEntry.Flink;
-				}
-
-				if (pkdpc == nullptr)
-					break; // while
-
-				DbgPrintf("KRNL: Global TimerQueue, calling DPC at 0x%.8X\n", pkdpc->DeferredRoutine);
-				pkdpc->DeferredRoutine(pkdpc,
-					pkdpc->DeferredContext,
-					pkdpc->SystemArgument1,
-					pkdpc->SystemArgument2);
-			}
-		}
-
-//    Assert(g_DpcData._dwThreadId == GetCurrentThreadId());
-//    Assert(g_DpcData._dwDpcThreadId == g_DpcData._dwThreadId);
-//    g_DpcData._dwDpcThreadId = 0;
-		LeaveCriticalSection(&(g_DpcData.Lock));
+		DWORD dwWait = ExecuteDpcQueue();
 
 		// TODO : Wait for shutdown too here
 		WaitForSingleObject(g_DpcData.DpcEvent, dwWait);
@@ -1129,8 +1136,7 @@ XBSYSAPI EXPORTNUM(129) xboxkrnl::UCHAR NTAPI xboxkrnl::KeRaiseIrqlToDpcLevel()
 	DbgPrintf("KRNL: Raised IRQL to DISPATCH_LEVEL (2).\n");
 
 	// We reached the DISPATCH_LEVEL, so the queue can be processed now
-	// TODO : ExecuteDpcQueue(); // See EmuThreadDpcHandler
-	LOG_INCOMPLETE();
+	ExecuteDpcQueue();
 	
 	RETURN(OldIrql);
 }
