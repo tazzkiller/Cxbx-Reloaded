@@ -902,7 +902,7 @@ DEVICE_WRITE32(PFIFO)
 	case NV_PFIFO_CACHE1_DMA_INSTANCE: {
 		if (value > NULL) {
 			xbaddr DmaInstance = ((value & NV_PFIFO_CACHE1_DMA_INSTANCE_ADDRESS_MASK) >> NV_PFIFO_CACHE1_DMA_INSTANCE_ADDRESS_SHIFT) << NV_PFIFO_CACHE1_DMA_INSTANCE_ADDRESS_MOVE;
-			DbgPrintDEVAddr("NV_PFIFO_CACHE1_DMA_INSTANCE: Set DMA Instance to", PRAMIN, DmaInstance);
+			DbgPrintDEVAddr("PFIFO: NV_PFIFO_CACHE1_DMA_INSTANCE: Set DMA Instance to", PRAMIN, DmaInstance);
 		}
 
 		break;
@@ -1222,7 +1222,7 @@ DEVICE_WRITE32(PGRAPH)
 		xbaddr CtxTableBase = value & NV_PGRAPH_CHANNEL_CTX_TABLE_INST;
 		// TODO : Add CtxTableBase member to pgraph when required. Receive it here:
 		// pgraph.CtxTableBase = CtxTableBase;
-		DbgPrintDEVAddr("Xbox CMiniport::HalGrControlInit() set CtxTableBase to", PRAMIN, CtxTableBase);
+		DbgPrintDEVAddr("PGRAPH: Xbox CMiniport::HalGrControlInit() set CtxTableBase to", PRAMIN, CtxTableBase);
 		break;
 	}
 	case NV_PGRAPH_CHANNEL_CTX_POINTER: {
