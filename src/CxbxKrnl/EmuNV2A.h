@@ -115,7 +115,7 @@ void EmuNV2A_Write(xbaddr addr, uint32_t value, int size);
 #define PUSH_SUBCH_SHIFT       13
 #define PUSH_COUNT_MASK        0x1FFC0000 // 11 bits
 #define PUSH_COUNT_SHIFT       18
-#define PUSH_INSTR_MASK        0xC0000000 // 3 bits
+#define PUSH_INSTR_MASK        0xE0000000 // 3 bits
 #define PUSH_INSTR_SHIFT       29
 #define PUSH_INSTR_IMM_INCR     0 // immediate, increment
 #define PUSH_INSTR_JMP_NEAR     1 // near jump
