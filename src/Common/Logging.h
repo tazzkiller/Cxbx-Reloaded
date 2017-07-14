@@ -151,9 +151,10 @@ constexpr const char* remove_prefix(const char* str, const char *prefix) {
 	return (str_skip_prefix(str, prefix) == str + str_length(prefix)) ? str_skip_prefix(str, prefix) : str;
 }
 
+constexpr char* xtl_prefix = "XTL::";
+constexpr char* emupatch_prefix = "EmuPatch_"; // See #define EMUPATCH
+
 constexpr const char* remove_emupatch_prefix(const char* str) {
-	constexpr char* xtl_prefix = "XTL::";
-	constexpr char* emupatch_prefix = "EmuPatch_"; // See #define EMUPATCH
 	return remove_prefix(remove_prefix(str, xtl_prefix), emupatch_prefix);
 }
 
