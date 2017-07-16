@@ -21,10 +21,14 @@
 
 
 #define NV_PMC_BOOT_0                                    0x00000000
+#define NV_PMC_BOOT_1                                    0x00000004
 #define NV_PMC_INTR_0                                    0x00000100
 #   define NV_PMC_INTR_0_PFIFO                                 (1 << 8)
 #   define NV_PMC_INTR_0_PGRAPH                               (1 << 12)
+#   define NV_PMC_INTR_0_PVIDEO                               (1 << 16)
+#   define NV_PMC_INTR_0_PTIMER                               (1 << 20)
 #   define NV_PMC_INTR_0_PCRTC                                (1 << 24)
+#   define NV_PMC_INTR_0_PCRTC2                               (1 << 25)
 #   define NV_PMC_INTR_0_PBUS                                 (1 << 28)
 #   define NV_PMC_INTR_0_SOFTWARE                             (1 << 31)
 #define NV_PMC_INTR_EN_0                                 0x00000140
@@ -33,6 +37,10 @@
 #define NV_PMC_ENABLE                                    0x00000200
 #   define NV_PMC_ENABLE_PFIFO                                 (1 << 8)
 #   define NV_PMC_ENABLE_PGRAPH                               (1 << 12)
+#   define NV_PMC_ENABLE_PFB                                  (1 << 20)
+#   define NV_PMC_ENABLE_PCRTC                                (1 << 24)
+#   define NV_PMC_ENABLE_PCRTC2                               (1 << 25)
+#   define NV_PMC_ENABLE_PVIDEO                               (1 << 28)
 
 
 #define NV_PBUS_FBIO_RAM                                 0x00000218  

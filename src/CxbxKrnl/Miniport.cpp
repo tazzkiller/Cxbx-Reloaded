@@ -379,8 +379,8 @@ void XTL::CxbxLocateCpuTime()
 // The NV2A DMA channel can be emulated in a few different ways :
 // 1: Allocate a fake DMA channel :
 //g_NV2ADMAChannel = (Nv2AControlDma*)CxbxCalloc(1, sizeof(Nv2AControlDma));
-// 2: Use a fixed address (simple but not accurate)
-//g_NV2ADMAChannel = (Nv2AControlDma*)((ULONG)XTL::GPURegisterBase + NV_USER_ADDR);
+// 2: Use a fixed address (simple but not accurate - needs FifoID offset)
+//g_NV2ADMAChannel = (Nv2AControlDma*)((ULONG)XTL::GPURegisterBase + NV_USER_ADDR + NV_USER_DMA_GET(0));
 // 3: Use a global variable (this is a simple approach, but not accurate)
 //g_pNV2ADMAChannel = &g_NV2ADMAChannel;
 // 4: Let CMiniport::CreateCtxDmaObject run unpatched - it'll initialize and write it to NV2A_PRAMIN+0x6C

@@ -77,10 +77,10 @@
 #define NV_PRAMDAC_SIZE             0x001000
 #define NV_PRMDIO_ADDR   0x00681000
 #define NV_PRMDIO_SIZE              0x001000
-#define NV_PRAMIN_ADDR   0x00700000 // Was 0x00710000
+#define NV_PRAMIN_ADDR   0x00700000
 #define NV_PRAMIN_SIZE              0x100000
 #define NV_USER_ADDR     0x00800000
-#define NV_USER_SIZE                0x400000 // Was 0x800000
+#define NV_USER_SIZE                0x400000
 #define NV_UREMAP_ADDR   0x00C00000 // Looks like a mapping of NV_USER_ADDR
 #define NV_UREMAP_SIZE              0x400000
 

@@ -69,6 +69,7 @@ PPUSH m_pGPUTime = NULL;
 
 HANDLE ghNV2AFlushEvent = 0;
 
+// See http://envytools.readthedocs.io/en/latest/hw/bus/pmc.html
 struct {
 	uint32_t pending_interrupts;
 	uint32_t enabled_interrupts;
@@ -117,6 +118,7 @@ struct {
 	uint32_t regs[NV_PRAMDAC_SIZE / sizeof(uint32_t)]; // TODO : union
 } pramdac;
 
+// TODO : Reverse BAR 1 VRAM - see https://people.freedesktop.org/~mslusarz/nouveau-wiki-dump/HwIntroduction.html
 struct {
 	uint32_t regs[NV_PRAMIN_SIZE / sizeof(uint32_t)]; // TODO : union
 } pramin;
@@ -126,6 +128,10 @@ struct {
 	uint32_t enabled_interrupts;
 	uint32_t regs[NV_PGRAPH_SIZE / sizeof(uint32_t)]; // TODO : union
 } pgraph;
+
+struct {
+	uint32_t regs[NV_USER_SIZE / sizeof(uint32_t)]; // TODO : union
+} user;
 
 //Nv2AControlDma g_NV2ADMAChannel = {}; // TODO : Rename this to nvuser?
 Nv2AControlDma *g_pNV2ADMAChannel = NULL;// &g_NV2ADMAChannel; // TODO : Rename this to nvuser?
@@ -151,6 +157,7 @@ static void update_irq()
 	else {
 		pmc.pending_interrupts &= ~NV_PMC_INTR_0_PFIFO;
 	}
+
 	/* PCRTC */
 	if (pcrtc.pending_interrupts & pcrtc.enabled_interrupts) {
 		pmc.pending_interrupts |= NV_PMC_INTR_0_PCRTC;
@@ -165,6 +172,14 @@ static void update_irq()
 	}
 	else {
 		pmc.pending_interrupts &= ~NV_PMC_INTR_0_PGRAPH;
+	}
+
+	/* PTIMER */
+	if (ptimer.pending_interrupts & ptimer.enabled_interrupts) {
+		pmc.pending_interrupts |= NV_PMC_INTR_0_PTIMER;
+	}
+	else {
+		pmc.pending_interrupts &= ~NV_PMC_INTR_0_PTIMER;
 	}
 
 	/* TODO : PBUS * /
@@ -183,7 +198,7 @@ static void update_irq()
 		pmc.pending_interrupts &= ~NV_PMC_INTR_0_SOFTWARE;
 	} */
 
-	if (pmc.pending_interrupts && pmc.enabled_interrupts) {
+	if ((pmc.pending_interrupts & pmc.enabled_interrupts) > 0) {
 		DbgPrintf("NV2A: Raise GPU IRQ\n");
 		pci_irq_assert(NULL);
 	}
@@ -210,6 +225,7 @@ const char *DebugNV_##DEV##(xbaddr addr) \
 
 DEBUG_START(PMC)
 	DEBUG_CASE(NV_PMC_BOOT_0);
+	DEBUG_CASE(NV_PMC_BOOT_1);
 	DEBUG_CASE(NV_PMC_INTR_0);
 	DEBUG_CASE(NV_PMC_INTR_EN_0);
 	DEBUG_CASE(NV_PMC_ENABLE);
@@ -717,7 +733,7 @@ DEBUG_END(USER)
 #define DEVAddrPrintArg(DEV, addr) addr, (NV_ ## DEV ## _ADDR + (addr)) | MM_SYSTEM_PHYSICAL_MAP // map GPU to CPU (OR with 0x80000000)
 #define DbgPrintDEVAddr(msg, DEV, addr) DbgPrintf("%s " DEVAddrPrintFmt(DEV) "\n", msg, DEVAddrPrintArg(DEV, addr));
 
-DEVICE_READ32(PMC)
+DEVICE_READ32(PMC) // Master Control
 {
 	DEVICE_READ32_SWITCH() {
 	case NV_PMC_ENABLE: {
@@ -728,10 +744,13 @@ DEVICE_READ32(PMC)
 	case NV_PMC_BOOT_0:	// chipset and stepping: NV2A, A02, Rev 0
 		result = 0x02A000A2;
 		break;
-	case NV_PMC_INTR_0:
+	case NV_PMC_BOOT_1:	// Selects big/little endian mode for the card
+		result = 0; // When read, returns 0 if in little-endian mode, 0x01000001 if in big-endian mode.
+		break;
+	case NV_PMC_INTR_0: // Shows which functional units have pending IRQ
 		result = pmc.pending_interrupts;
 		break;
-	case NV_PMC_INTR_EN_0:
+	case NV_PMC_INTR_EN_0: // Selects which functional units can cause IRQs
 		result = pmc.enabled_interrupts;
 		break;
 	case 0x0000020C: // What's this address? What does the xbe expect to read here? The Kernel base address perhaps?
@@ -816,6 +835,12 @@ DEVICE_WRITE32(PBUS)
 DEVICE_READ32(PFIFO)
 {
 	DEVICE_READ32_SWITCH() {
+	case NV_PFIFO_INTR_0:
+		result = pfifo.pending_interrupts;
+		break;
+	case NV_PFIFO_INTR_EN_0:
+		result = pfifo.enabled_interrupts;
+		break;
 	case NV_PFIFO_RAMHT:
 		result = 0x03000100; // = (NV_PFIFO_RAMHT_SIZE_4K < NV_PFIFO_RAMHT_SIZE_SHIFT) | (((NumberOfPaddingBytes >> NV_PFIFO_RAMHT_BASE_ADDRESS_MOVE) & NV_PFIFO_RAMHT_BASE_ADDRESS_MASK) << NV_PFIFO_RAMHT_BASE_ADDRESS_SHIFT) | (NV_PFIFO_RAMHT_SEARCH_128 << NV_PFIFO_RAMHT_SEARCH_SHIFT)
 		break;
@@ -837,6 +862,17 @@ DEVICE_READ32(PFIFO)
 DEVICE_WRITE32(PFIFO)
 {
 	switch(addr) {
+	case NV_PFIFO_INTR_0:
+		pfifo.pending_interrupts &= ~value;
+		break;
+	case NV_PFIFO_INTR_EN_0: {
+		if (value == 0x01111111) {
+			LOG_ONCE("End of CMiniport::LoadEngines() call\n"); // Also ends InitHardware(), next should be CreateCtxDmaObject()
+		}
+
+		pfifo.enabled_interrupts = value;
+		break;
+	}
 	case NV_PFIFO_RAMHT: {
 		if (g_bPrintfOn) {
 			// Decode and dump the written value
@@ -900,13 +936,6 @@ DEVICE_WRITE32(PFIFO)
 	case NV_PFIFO_MODE: {
 		if (value > 0) {
 			LOG_FIRST_XBOX_CALL("HalFifoAllocDMA");
-		}
-
-		break;
-	}
-	case NV_PFIFO_INTR_EN_0: {
-		if (value == 0x01111111) {
-			LOG_ONCE("End of CMiniport::LoadEngines() call\n"); // Also ends InitHardware(), next should be CreateCtxDmaObject()
 		}
 
 		break;
@@ -1498,7 +1527,6 @@ DEVICE_WRITE32(PRAMIN)
 				LOG_FIRST_XBOX_CALL("CMiniport::CreateCtxDmaObject");
 			}
 			break;
-
 		}
 		case NV_PRAMIN_DMA_LIMIT(0): {
 			// Detect DMA registration of pusher
@@ -1507,6 +1535,13 @@ DEVICE_WRITE32(PRAMIN)
 					DWORD Address = DEVICE_REG32_ADDR(pramin, NV_PRAMIN_DMA_ADDRESS(DMASlot));
 					g_pNV2ADMAChannel = (Nv2AControlDma*)((Address & ~3) | MM_SYSTEM_PHYSICAL_MAP); // 0x80000000
 					DbgPrintf("NV2A: Pusher DMA channel is at 0x%.8X\n", g_pNV2ADMAChannel);
+					// TODO : Actually, this Address is the pusher dma *context*, not the dma channel itself
+					// The active DMA channel ID       seems to reside in NV_PFIFO_CACHE1_PUSH1
+					// The active DMA channel instance seems to reside in NV_PGRAPH_CHANNEL_CTX_POINTER
+					// The active DMA channel          seems to reside in NV_USER_DMA_PUT(ChannelID)
+					DWORD ChannelID       = DEVICE_REG32_ADDR(pfifo,  NV_PFIFO_CACHE1_PUSH1);
+					DWORD ChannelInstance = DEVICE_REG32_ADDR(pgraph, NV_PGRAPH_CHANNEL_CTX_POINTER);
+					DWORD TEST_DMAChannel = DEVICE_REG32_ADDR(user,   NV_USER_DMA_PUT);
 				}
 			}
 
@@ -1538,7 +1573,7 @@ DEVICE_WRITE32(PRAMIN)
 DEVICE_READ32(USER)
 {
 	DEVICE_READ32_SWITCH() {
-	case NV_USER_DMA_GET:		
+	case NV_USER_DMA_GET:
 		result = (uint32_t)g_pNV2ADMAChannel->Get;
 		break;
 	case NV_USER_DMA_PUT:
@@ -1548,7 +1583,7 @@ DEVICE_READ32(USER)
 		result = (uint32_t)g_pNV2ADMAChannel->Reference;
 		break;
 	default:
-		DEBUG_READ32_UNHANDLED(USER);
+		DEVICE_READ32_REG(user);
 	}
 
 	DEVICE_READ32_END(USER);
@@ -1566,11 +1601,9 @@ DEVICE_WRITE32(USER)
 	case NV_USER_REF:
 		g_pNV2ADMAChannel->Reference = (PPUSH)value;
 		break;
-	default:
-		DEBUG_WRITE32_UNHANDLED(USER);
 	}
 
-	// TODO : DEVICE_WRITE32_REG(user);
+	DEVICE_WRITE32_REG(user);
 	DEVICE_WRITE32_END(USER);
 }
 
