@@ -730,7 +730,7 @@ DEBUG_END(USER)
 #define DEVICE_WRITE32_END(DEV) DEBUG_WRITE32(DEV)
 
 #define DEVAddrPrintFmt(DEV) #DEV "(0x%.8X) = CPU(0x%.8X)"
-#define DEVAddrPrintArg(DEV, addr) addr, (NV_ ## DEV ## _ADDR + (addr)) | MM_SYSTEM_PHYSICAL_MAP // map GPU to CPU (OR with 0x80000000)
+#define DEVAddrPrintArg(DEV, addr) addr, (NV_ ## DEV ## _ADDR + (addr)) | NV2A_ADDR // map GPU to CPU
 #define DbgPrintDEVAddr(msg, DEV, addr) DbgPrintf("%s " DEVAddrPrintFmt(DEV) "\n", msg, DEVAddrPrintArg(DEV, addr));
 
 DEVICE_READ32(PMC) // Master Control
