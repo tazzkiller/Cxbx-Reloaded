@@ -86,7 +86,7 @@ struct {
 } pfifo;
 
 struct {
-	uint32_t regs[NV_PVIDEO_SIZE / sizeof(uint32_t)]; // TODO : union
+	uint32_t regs[NV_PVIDEO_SIZE / sizeof(uint32_t)];
 } pvideo;
 
 
@@ -100,7 +100,7 @@ struct {
 } ptimer;
 
 struct {
-	uint32_t regs[NV_PFB_SIZE / sizeof(uint32_t)]; // TODO : union
+	uint32_t regs[NV_PFB_SIZE / sizeof(uint32_t)];
 } pfb;
 
 struct {
@@ -120,21 +120,21 @@ struct {
 
 // TODO : Reverse BAR 1 VRAM - see https://people.freedesktop.org/~mslusarz/nouveau-wiki-dump/HwIntroduction.html
 struct {
-	uint32_t regs[NV_PRAMIN_SIZE / sizeof(uint32_t)]; // TODO : union
+	uint32_t regs[NV_PRAMIN_SIZE / sizeof(uint32_t)];
 } pramin;
 
 struct {
 	uint32_t pending_interrupts;
 	uint32_t enabled_interrupts;
-	uint32_t regs[NV_PGRAPH_SIZE / sizeof(uint32_t)]; // TODO : union
+	uint32_t regs[NV_PGRAPH_SIZE / sizeof(uint32_t)];
 } pgraph;
 
 struct {
-	uint32_t regs[NV_USER_SIZE / sizeof(uint32_t)]; // TODO : union
+	uint32_t regs[NV_USER_SIZE / sizeof(uint32_t)];
 } user;
 
-//Nv2AControlDma g_NV2ADMAChannel = {}; // TODO : Rename this to nvuser?
-Nv2AControlDma *g_pNV2ADMAChannel = NULL;// &g_NV2ADMAChannel; // TODO : Rename this to nvuser?
+//Nv2AControlDma g_NV2ADMAChannel = {};
+Nv2AControlDma *g_pNV2ADMAChannel = NULL;// &g_NV2ADMAChannel;
 
 typedef void PCIDevice;
 
@@ -198,7 +198,7 @@ static void update_irq()
 		pmc.pending_interrupts &= ~NV_PMC_INTR_0_SOFTWARE;
 	} */
 
-	if ((pmc.pending_interrupts & pmc.enabled_interrupts) > 0) {
+	if (pmc.pending_interrupts && pmc.enabled_interrupts) { // enabled_interrupts maps to NV_PMC_INTR_EN_0
 		DbgPrintf("NV2A: Raise GPU IRQ\n");
 		pci_irq_assert(NULL);
 	}
@@ -876,7 +876,7 @@ DEVICE_WRITE32(PFIFO)
 	case NV_PFIFO_RAMHT: {
 		if (g_bPrintfOn) {
 			// Decode and dump the written value
-			xbaddr HTBaseAddr = (value & NV_PFIFO_RAMHT_BASE_ADDRESS_MASK) << NV_PFIFO_RAMHT_BASE_ADDRESS_MOVE;
+			xbaddr HTBaseAddr = ((value & NV_PFIFO_RAMHT_BASE_ADDRESS_MASK) >> NV_PFIFO_RAMHT_BASE_ADDRESS_SHIFT) << NV_PFIFO_RAMHT_BASE_ADDRESS_MOVE;
 
 			DbgPrintf("PFIFO: NV_PFIFO_RAMHT: ");
 			switch ((value & NV_PFIFO_RAMHT_SIZE_MASK) >> NV_PFIFO_RAMHT_SIZE_SHIFT) {
@@ -901,7 +901,7 @@ DEVICE_WRITE32(PFIFO)
 	case NV_PFIFO_RAMFC: {
 		if (g_bPrintfOn) {
 			// Decode and dump the written value
-			xbaddr FCBaseAddr1 = (value & NV_PFIFO_RAMFC_BASE_ADDRESS1) << NV_PFIFO_RAMFC_BASE_ADDRESS1_MOVE;
+			xbaddr FCBaseAddr1 = ((value & NV_PFIFO_RAMFC_BASE_ADDRESS1_MASK) >> NV_PFIFO_RAMFC_BASE_ADDRESS1_SHIFT) << NV_PFIFO_RAMFC_BASE_ADDRESS1_MOVE;
 			xbaddr FCBaseAddr2 = ((value & NV_PFIFO_RAMFC_BASE_ADDRESS2_MASK) >> NV_PFIFO_RAMFC_BASE_ADDRESS2_SHIFT) << NV_PFIFO_RAMFC_BASE_ADDRESS2_MOVE;
 
 			DbgPrintf("PFIFO: NV_PFIFO_RAMFC: ");

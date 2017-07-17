@@ -123,7 +123,7 @@ void EmuNV2A_Write(xbaddr addr, uint32_t value, int size);
 #define PUSH_ADDR_FAR_MASK     0xFFFFFFFC // 30 bits
 #define PUSH_ADDR_FAR_SHIFT    0
 #define PUSH_ADDR_NEAR_MASK    0x1FFFFFFC // 27 bits
-#define PUSH_ADDR_NEAR_SHIFT   2
+#define PUSH_ADDR_NEAR_SHIFT   0 // Cxbx note : Not 2, because methods are actually DWORD offsets (and thus defined with increments of 4)
 
 #define PUSH_TYPE(dwPushCommand) ((dwPushCommand & PUSH_TYPE_MASK) >> PUSH_TYPE_SHIFT)
 #define PUSH_METHOD(dwPushCommand) ((dwPushCommand & PUSH_METHOD_MASK) >> PUSH_METHOD_SHIFT)

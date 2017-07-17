@@ -895,8 +895,6 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 			continue;
 		}
 
-		bool bNoInc = (PushInstr == PUSH_INSTR_IMM_NOINC);
-
 		// Handle jumps and calls
 		DWORD PushType = PUSH_TYPE(dwPushCommand);
 		if (PushType == PUSH_TYPE_JMP_FAR) {
@@ -907,6 +905,7 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 		}
 
 		if (PushType == PUSH_TYPE_CALL_FAR) {
+			// Note : NV2A can't return from a call, so calls are returned by a jump to DMA_SUBROUTINE. TODO : Test this
 			// Remember the return-address
 			DbgPrintf("%s Call will return to: 0x%.8X\n", LogPrefixStr, pdwPushData);
 			EmuNV2A_Write(NV_PFIFO_CACHE1_DMA_SUBROUTINE, (u32)pdwPushData ^ MM_SYSTEM_PHYSICAL_MAP, 32); // TODO : Add dwCount?
@@ -915,6 +914,12 @@ extern PPUSH XTL::EmuExecutePushBufferRaw
 			DbgPrintf("%s Call far to 0x%.8X\n", LogPrefixStr, pdwPushData);
 			continue;
 		}
+
+		if (PushType == PUSH_TYPE_METHOD_UNUSED) {
+			EmuWarning("%s Unaligned method at x%.8X (handling like PUSH_TYPE_METHOD)\n", LogPrefixStr, pdwPushData);
+		}
+
+		bool bNoInc = (PushInstr == PUSH_INSTR_IMM_NOINC);
 
 		// Get method, sub channel and count (should normally be at least 1)
 		D3DPUSH_DECODE(dwPushCommand, dwMethod, dwSubCh, dwCount);
