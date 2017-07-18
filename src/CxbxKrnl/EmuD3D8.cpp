@@ -59,6 +59,7 @@ namespace xboxkrnl
 #include "MemoryManager.h"
 #include "EmuXTL.h"
 #include "HLEDatabase.h"
+#include "HLEIntercept.h" // for GetXboxFunctionPointer()
 #include "Logging.h"
 #include "EmuD3D8Logging.h"
 
@@ -2563,6 +2564,7 @@ void CxbxUpdateActiveIndexBuffer
 // ******************************************************************
 
 #define UNPATCH_CREATEDEVICE
+#undef PATCH_PUSHBUFFER
 
 // Note on __thiscall vs __fastcall :
 //
@@ -5194,6 +5196,103 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	g_ConvertedTextures[(xbaddr)pTextureData].pConvertedHostResource = result;
 
 	return result;
+}
+
+// ******************************************************************
+// * patch: IDirect3DResource8_Release
+// ******************************************************************
+ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
+(
+	X_D3DResource      *pThis
+)
+{
+#ifndef UNPATCH_CREATEDEVICE
+	FUNC_EXPORTS
+#endif
+
+	LOG_FUNC_ONE_ARG(pThis);
+
+	ULONG uRet;
+
+	if (!pThis) {
+		// HACK: In case the clone technique fails...
+		EmuWarning("NULL texture!");
+		uRet = 0;
+	}
+	else {
+/*
+		// HACK: Disable overlay when a YUV surface is released (regardless which refcount, apparently)
+		if (IsYuvSurface(pThis))
+			EMUPATCH(D3DDevice_EnableOverlay)(FALSE);
+*/
+		uRet = (--(pThis->Common)) & X_D3DCOMMON_REFCOUNT_MASK;
+		if (uRet == 0) {
+			X_D3DSurface** ppHostAllocatedXboxSurface = nullptr;
+			IDirect3DSurface8** ppHostSurface = nullptr;
+
+			if (pThis == g_pInitialXboxBackBuffer) {
+				ppHostAllocatedXboxSurface = &g_pInitialXboxBackBuffer;
+				ppHostSurface = &g_pInitialHostBackBuffer;
+			}
+			else
+				if (pThis == g_pActiveXboxBackBuffer) {
+					ppHostAllocatedXboxSurface = &g_pActiveXboxBackBuffer;
+					ppHostSurface = &g_pActiveHostBackBuffer;
+				}
+				else
+					if (pThis == g_pInitialXboxRenderTarget) {
+						ppHostAllocatedXboxSurface = &g_pInitialXboxRenderTarget;
+						ppHostSurface = &g_pInitialHostRenderTarget;
+					}
+					else
+						if (pThis == g_pActiveXboxRenderTarget) {
+							ppHostAllocatedXboxSurface = &g_pActiveXboxRenderTarget;
+							ppHostSurface = &g_pActiveHostRenderTarget;
+						}
+						else
+							if (pThis == g_pInitialXboxDepthStencil) {
+								ppHostAllocatedXboxSurface = &g_pInitialXboxDepthStencil;
+								ppHostSurface = &g_pInitialHostDepthStencil;
+							}
+							else
+								if (pThis == g_pActiveXboxDepthStencil) {
+									ppHostAllocatedXboxSurface = &g_pActiveXboxDepthStencil;
+									ppHostSurface = &g_pActiveHostDepthStencil;
+								};
+
+			if (ppHostAllocatedXboxSurface != nullptr) {
+				if ((pThis->Common & X_D3DCOMMON_D3DCREATED) > 0) { // was if (IsXboxResourceD3DCreated(pThis))
+					void *XboxData = GetDataFromXboxResource(pThis);
+					if (XboxData != NULL) {
+						if (g_MemoryManager.IsAllocated(XboxData)) { // Prevents problems for now (don't free partial or unallocated memory)
+							// TODO : This crashes on "MemoryManager attempted to free only a part of a block" :
+							// g_MemoryManager.Free(XboxData); 
+							EmuWarning("D3DResource_Release not freeing allocated resource data (preventing a crash on partial frees)");
+						}
+					}
+				}
+
+				// Release host allocated resources from the host heap:
+				delete(*ppHostAllocatedXboxSurface);
+				*ppHostAllocatedXboxSurface = NULL;
+
+				(*ppHostSurface)->Release();
+				*ppHostSurface = nullptr;
+			}
+			else {
+				// Call Xbox version of D3DResource_Release, so xbox will release it from the Xbox heap
+				static ULONG(*Xbox_D3DResource_Release)(X_D3DResource*) = (ULONG(*)(X_D3DResource*))GetXboxFunctionPointer("XTL::EmuPatch_D3DResource_Release");
+
+				if (Xbox_D3DResource_Release == nullptr) {
+					CxbxKrnlCleanup("Could not locate Xbox_D3DResource_Release");
+				}
+
+				uRet = Xbox_D3DResource_Release(pThis);
+			}
+		}
+	}
+
+	return uRet;
 }
 
 BOOL WINAPI XTL::EMUPATCH(D3DResource_IsBusy)
@@ -7922,7 +8021,9 @@ PPUSH WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 )
 {
 #ifndef UNPATCH_CREATEDEVICE
+  #ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
+  #endif
 #endif
 
 	LOG_FUNC_BEGIN

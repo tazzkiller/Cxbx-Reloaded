@@ -556,6 +556,14 @@ DWORD WINAPI EMUPATCH(D3DDevice_Swap)
 );
 
 // ******************************************************************
+// * patch: D3DResource_Release
+// ******************************************************************
+ULONG WINAPI EMUPATCH(D3DResource_Release)
+(
+	X_D3DResource      *pThis
+);
+
+// ******************************************************************
 // * patch: IDirect3DResource8_IsBusy
 // ******************************************************************
 BOOL WINAPI EMUPATCH(D3DResource_IsBusy)
