@@ -102,3 +102,5 @@ src/Version.h
 *.db
 *.xbe
 *.ipch
+*.db-shm
+*.db-wal
