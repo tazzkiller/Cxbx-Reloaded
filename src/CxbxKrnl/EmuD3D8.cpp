@@ -95,6 +95,7 @@ static DWORD WINAPI                 EmuUpdateTickCount(LPVOID);
 // Static Variable(s)
 static HMONITOR                     g_hMonitor      = NULL; // Handle to DirectDraw monitor
 static BOOL                         g_bYUY2OverlaysSupported = FALSE;// Does device support YUY2 overlays?
+static BOOL                         g_bSupportsP8   = FALSE;// Does device support palette textures?
 static XTL::LPDIRECTDRAW7           g_pDD7          = nullptr; // DirectDraw7
 static XTL::DDCAPS                  g_DriverCaps    = { 0 };
 static Xbe::Header                 *g_XbeHeader     = NULL; // XbeHeader
@@ -4699,7 +4700,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	}
 	}
 
-	if (X_Format == X_D3DFMT_P8)
+	if (X_Format == X_D3DFMT_P8 && !g_bSupportsP8)
 	{
 		// Since most modern graphics cards don't support palettized textures,
 		// we need to convert these to ARGB texture format (see X_D3DFMT_P8 below)
