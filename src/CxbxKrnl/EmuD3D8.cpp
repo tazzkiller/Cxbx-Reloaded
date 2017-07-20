@@ -2244,7 +2244,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					}
 
 					// Does this device support paletized textures?
-					g_bSupportsP8 = g_DriverCaps.RasterCaps & RC_PALETTE;
+					g_bSupportsP8 = g_D3DCaps.RasterCaps & RC_PALETTE;
                 }
 
                 // initialize primary surface
