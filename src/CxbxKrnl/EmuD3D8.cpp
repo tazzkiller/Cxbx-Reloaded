@@ -199,6 +199,7 @@ void CxbxClearGlobals()
 
 	g_hMonitor = NULL;
 	g_bYUY2OverlaysSupported = FALSE;
+	g_bSupportsP8 = FALSE;
 	g_pDD7 = nullptr;
 	g_DriverCaps = { 0 };
 
@@ -2241,6 +2242,9 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 							DbgPrintf("D3D8: Hardware accelerated YUV surfaces Disabled...\n");
 						}
 					}
+
+					// Does this device support paletized textures?
+					g_bSupportsP8 = g_DriverCaps.RasterCaps & RC_PALETTE;
                 }
 
                 // initialize primary surface
