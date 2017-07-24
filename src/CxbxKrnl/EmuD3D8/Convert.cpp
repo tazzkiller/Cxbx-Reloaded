@@ -1036,8 +1036,8 @@ D3DBLENDOP EmuXB2PC_D3DBLENDOP(X_D3DBLENDOP Value)
 		EmuWarning("Unsupported X_D3DBLENDOP : X_D3DBLENDOP_REVSUBTRACTSIGNED. Using D3DBLENDOP_REVSUBTRACT approximation.");
 		return D3DBLENDOP_REVSUBTRACT;
 	default:
-		CxbxKrnlCleanup("Unknown X_D3DBLENDOP (0x%.8X)", (DWORD)Value);
-		return (D3DBLENDOP)Value; // Never reached
+		EmuWarning("Unsupported X_D3DBLENDOP : 0x%.08X. Using D3DBLENDOP_ADD approximation.", Value);
+		return (D3DBLENDOP)D3DBLENDOP_ADD;
 	}
 }
 

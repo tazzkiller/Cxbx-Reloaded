@@ -2117,6 +2117,13 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				// Dxbx addition : Prevent Direct3D from changing the FPU Control word :
 				g_EmuCDPD.CreationParameters.BehaviorFlags |= D3DCREATE_FPU_PRESERVE;
 
+				// Does this device support paletized textures?
+				// TODO : g_D3DCaps.RasterCaps & RC_PALETTE might work *after* creation
+				g_bSupportsP8 = g_pD3D8->CheckDeviceFormat(
+					g_EmuCDPD.CreationParameters.AdapterOrdinal, g_EmuCDPD.CreationParameters.DeviceType,
+					(XTL::D3DFORMAT)g_EmuCDPD.pPresentationParameters->BackBufferFormat, 0,
+					XTL::D3DRTYPE_TEXTURE, XTL::D3DFMT_P8) == D3D_OK;
+
 				// Cleanup previous device (and all related state) if necessary :
 				if (g_pD3DDevice8 != nullptr)
 				{
@@ -2660,7 +2667,9 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
         Sleep(10);
 	
 	// Set the Xbox g_pD3DDevice pointer to our D3D Device object
-	*((DWORD*)XRefDataBase[XREF_D3DDEVICE]) = (DWORD)g_XboxD3DDevice;
+	if ((DWORD*)XRefDataBase[XREF_D3DDEVICE] != nullptr && ((DWORD)XRefDataBase[XREF_D3DDEVICE]) != XREF_ADDR_DERIVE) {
+		*((DWORD*)XRefDataBase[XREF_D3DDEVICE]) = (DWORD)g_XboxD3DDevice;
+	}
 
     return g_EmuCDPD.hRet;
 }
