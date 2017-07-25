@@ -143,8 +143,8 @@ extern struct _D3DIVB
 	FLOAT			 Blend2;	 // Dxbx addition : for D3DFVF_XYZB2 TODO : Where should we set these?
 	FLOAT			 Blend3;	 // Dxbx addition : for D3DFVF_XYZB3
 	FLOAT			 Blend4;	 // Dxbx addition : for D3DFVF_XYZB4
-	XTL::D3DCOLOR    Specular;
-    XTL::D3DCOLOR    Diffuse;
+	D3DCOLOR    Specular;
+    D3DCOLOR    Diffuse;
     XTL::D3DXVECTOR3 Normal;
     XTL::D3DXVECTOR2 TexCoord1;
     XTL::D3DXVECTOR2 TexCoord2;

@@ -2277,7 +2277,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 
 				// Does this device support paletized textures?
 				g_bSupportsP8 = g_pD3D8->CheckDeviceFormat(
-					g_EmuCDPD.Adapter, g_EmuCDPD.DeviceType,
+					g_EmuCDPD.CreationParameters.AdapterOrdinal, g_EmuCDPD.CreationParameters.DeviceType,
 					(XTL::D3DFORMAT)g_EmuCDPD.pPresentationParameters->BackBufferFormat, 0,
 					XTL::D3DRTYPE_TEXTURE, XTL::D3DFMT_P8) == D3D_OK;
 
@@ -2305,7 +2305,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					g_EmuCDPD.CreationParameters.hFocusWindow,
 					g_EmuCDPD.CreationParameters.BehaviorFlags,
 					&(g_EmuCDPD.NativePresentationParameters),
-					g_EmuCDPD.ppReturnedDeviceInterface
+					&g_pD3DDevice8
 				);
 				DEBUG_D3DRESULT(g_EmuCDPD.hRet, "IDirect3D8::CreateDevice");
 
@@ -2322,16 +2322,13 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 						g_EmuCDPD.CreationParameters.hFocusWindow,
 						g_EmuCDPD.CreationParameters.BehaviorFlags,
 						&(g_EmuCDPD.NativePresentationParameters),
-						g_EmuCDPD.ppReturnedDeviceInterface
+						&g_pD3DDevice8
 					);
 					DEBUG_D3DRESULT(g_EmuCDPD.hRet, "IDirect3D8::CreateDevice");
 				}
 
 				if (FAILED(g_EmuCDPD.hRet))
                     CxbxKrnlCleanup("IDirect3D8::CreateDevice failed");
-
-                // cache device pointer
-                g_pD3DDevice8 = *g_EmuCDPD.ppReturnedDeviceInterface;
 
 				g_EmuCDPD.pPresentationParameters->BackBufferWidth = g_EmuCDPD.NativePresentationParameters.BackBufferWidth;
 				g_EmuCDPD.pPresentationParameters->BackBufferHeight = g_EmuCDPD.NativePresentationParameters.BackBufferHeight;
@@ -2817,6 +2814,10 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 	if ((DWORD*)XRefDataBase[XREF_D3DDEVICE] != nullptr && ((DWORD)XRefDataBase[XREF_D3DDEVICE]) != XREF_ADDR_DERIVE) {
 		*((DWORD*)XRefDataBase[XREF_D3DDEVICE]) = (DWORD)g_XboxD3DDevice;
 	}
+
+	// TODO : What to set in *ppReturnedDeviceInterface?
+	// cache device pointer
+	// *ppReturnedDeviceInterface = g_pD3DDevice8;
 
     return g_EmuCDPD.hRet;
 }
