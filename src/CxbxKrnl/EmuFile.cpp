@@ -331,6 +331,18 @@ NTSTATUS CxbxObjectAttributesToNT(
 	std::string ObjectName = PSTRING_to_string(ObjectAttributes->ObjectName);
 	std::wstring RelativeHostPath;
 	NtDll::HANDLE RootDirectory = ObjectAttributes->RootDirectory;
+
+	// Handle special Xbox root directory constants
+	if (RootDirectory == (NtDll::HANDLE)-4) { 
+		RootDirectory = NULL;
+
+		if (ObjectName.size() == 0){
+			ObjectName = "\\BaseNamedObjects";
+		} else {
+			ObjectName = "\\BaseNamedObjects\\" + ObjectName;
+		}
+	}
+
 	// Is there a filename API given?
 	if (aFileAPIName.size() > 0)
 	{
@@ -439,6 +451,14 @@ NTSTATUS EmuNtSymbolicLinkObject::Init(std::string aSymbolicLinkName, std::strin
 		{
 			// Look up the partition in the list of pre-registered devices :
 			result = STATUS_DEVICE_DOES_NOT_EXIST; // TODO : Is this the correct error?
+
+			// If aFullPath starts with a Drive letter, find the originating path and substitute that
+			if (aFullPath[1] == ':' && aFullPath[0] >= 'A' && aFullPath[0] <= 'Z') {
+				EmuNtSymbolicLinkObject* DriveLetterLink = FindNtSymbolicLinkObjectByDriveLetter(aFullPath[0]);
+				if (DriveLetterLink != NULL) {
+					aFullPath = DriveLetterLink->XboxSymbolicLinkPath;
+				}
+			}
 
  		    // Make a distinction between Xbox paths (starting with '\Device'...) and host paths :
 			IsHostBasedPath = _strnicmp(aFullPath.c_str(), DevicePrefix.c_str(), DevicePrefix.length()) != 0;

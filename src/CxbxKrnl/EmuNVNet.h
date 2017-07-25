@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuDInput.h
+// *   Cxbx->Win32->CxbxKrnl->EmuNVNet.h
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -27,29 +27,17 @@
 // *  59 Temple Place - Suite 330, Bostom, MA 02111-1307, USA.
 // *
 // *  (c) 2002-2003 Aaron Robinson <caustik@caustik.com>
-// *
+// *  (c) 2017 Luke Usher <luke.usher@outlook.com>
 // *  All rights reserved
 // *
 // ******************************************************************
-#ifndef EMUDINPUT_H
-#define EMUDINPUT_H
+#ifndef EMUNVNET_H
+#define EMUNVNET_H
 
-#define DIRECTINPUT_VERSION 0x0800
-#include <dinput.h>
+#define NVNET_ADDR  0xFEF00000 
+#define NVNET_SIZE  0x00000400
 
-// ******************************************************************
-// * patch: DInputInit
-// ******************************************************************
-extern bool EmuDInputInit();
-
-// ******************************************************************
-// * patch: DInputCleanup
-// ******************************************************************
-extern void EmuDInputCleanup();
-
-// ******************************************************************
-// * patch: DInputPoll
-// ******************************************************************
-extern void EmuDInputPoll(PXINPUT_STATE Controller);
+uint32_t EmuNVNet_Read(xbaddr addr, int size);
+void EmuNVNet_Write(xbaddr addr, uint32_t value, int size);
 
 #endif

@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->EmuDInput.h
+// *   Cxbx->Cxbx->DlgAudioConfig.h
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -26,30 +26,17 @@
 // *  If not, write to the Free Software Foundation, Inc.,
 // *  59 Temple Place - Suite 330, Bostom, MA 02111-1307, USA.
 // *
-// *  (c) 2002-2003 Aaron Robinson <caustik@caustik.com>
+// *  (c) 2017 RadWolfie
 // *
 // *  All rights reserved
 // *
 // ******************************************************************
-#ifndef EMUDINPUT_H
-#define EMUDINPUT_H
+#ifndef DLGAUDIOCONFIG_H
+#define DLGAUDIOCONFIG_H
 
-#define DIRECTINPUT_VERSION 0x0800
-#include <dinput.h>
+#include <windows.h>
 
-// ******************************************************************
-// * patch: DInputInit
-// ******************************************************************
-extern bool EmuDInputInit();
-
-// ******************************************************************
-// * patch: DInputCleanup
-// ******************************************************************
-extern void EmuDInputCleanup();
-
-// ******************************************************************
-// * patch: DInputPoll
-// ******************************************************************
-extern void EmuDInputPoll(PXINPUT_STATE Controller);
+/*! show audio configuration dialog */
+extern VOID ShowAudioConfig(HWND hwnd);
 
 #endif

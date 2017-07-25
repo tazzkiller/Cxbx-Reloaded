@@ -37,6 +37,7 @@
 #include "Cxbx.h"
 #include "Common/Win32/XBController.h"
 #include "Common/Win32/XBVideo.h"
+#include "Common/Win32/XBAudio.h"
 
 #include <memory.h>
 
@@ -74,6 +75,12 @@ class EmuShared : public Mutex
         void SetXBVideo(const XBVideo *video) { Lock(); memcpy(&m_XBVideo, video, sizeof(XBVideo)); Unlock(); }
 
         // ******************************************************************
+        // * Xbox Audio Accessors
+        // ******************************************************************
+        void GetXBAudio(      XBAudio *audio) { Lock(); memcpy(audio, &m_XBAudio, sizeof(XBAudio)); Unlock(); }
+        void SetXBAudio(const XBAudio *audio) { Lock(); memcpy(&m_XBAudio, audio, sizeof(XBAudio)); Unlock(); }
+
+        // ******************************************************************
         // * Xbox Controller Accessors
         // ******************************************************************
         void GetXBController(      XBController *ctrl) { Lock(); memcpy(ctrl, &m_XBController, sizeof(XBController)); Unlock();}
@@ -91,6 +98,12 @@ class EmuShared : public Mutex
 		void GetFlagsLLE(      int *flags) { Lock(); *flags = m_FlagsLLE; Unlock(); }
 		void SetFlagsLLE(const int *flags) { Lock(); m_FlagsLLE = *flags; Unlock(); }
 
+		// ******************************************************************
+		// * XInput Flag Accessors
+		// ******************************************************************
+		void GetXInputEnabled(int* value) { Lock(); *value = m_XInputEnabled; Unlock(); }
+		void SetXInputEnabled(int* value) { Lock(); m_XInputEnabled = *value; Unlock(); }
+
     private:
         // ******************************************************************
         // * Constructor / Deconstructor
@@ -103,8 +116,10 @@ class EmuShared : public Mutex
         // ******************************************************************
         XBController m_XBController;
         XBVideo      m_XBVideo;
+        XBAudio      m_XBAudio;
         char         m_XbePath[MAX_PATH];
 		int          m_FlagsLLE;
+		int			 m_XInputEnabled;
 };
 
 // ******************************************************************
