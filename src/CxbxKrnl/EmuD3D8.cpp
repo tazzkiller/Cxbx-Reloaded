@@ -2173,6 +2173,9 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				if (FAILED(g_EmuCDPD.hRet))
                     CxbxKrnlCleanup("IDirect3D8::CreateDevice failed");
 
+				// 
+				g_pD3DDevice8 = *g_EmuCDPD.ppReturnedDeviceInterface;
+
 				// Update Xbox PresentationParameters :
 				g_EmuCDPD.pPresentationParameters->BackBufferWidth = g_EmuCDPD.NativePresentationParameters.BackBufferWidth;
 				g_EmuCDPD.pPresentationParameters->BackBufferHeight = g_EmuCDPD.NativePresentationParameters.BackBufferHeight;
@@ -2572,8 +2575,14 @@ void CxbxUpdateActiveIndexBuffer
 // * Start of all D3D patches
 // ******************************************************************
 
-#define UNPATCH_CREATEDEVICE
-#undef PATCH_PUSHBUFFER
+#undef PATCH_CREATEDEVICE
+#define PATCH_TEXTURES // unused here
+#define PATCH_PUSHBUFFER
+
+#ifndef PATCH_CREATEDEVICE
+	// Can't patch pusbuffer functions when CreateDevice is unpatched
+	#undef PATCH_PUSHBUFFER
+#endif
 
 // Note on __thiscall vs __fastcall :
 //
@@ -2598,7 +2607,7 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
     IDirect3DDevice8          **ppReturnedDeviceInterface
 )
 {
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 
@@ -2897,7 +2906,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SelectVertexShader)
 
 VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle)()
 {
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 	LOG_FUNC();
@@ -2909,7 +2918,7 @@ VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle)()
 
 VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle2)(DWORD dwDummy1, DWORD dwDummy2)
 {
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 	LOG_FUNC_BEGIN
@@ -3192,7 +3201,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetViewport)
     CONST D3DVIEWPORT8 *pViewport
 )
 {
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 
@@ -3398,7 +3407,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface2)()
 	RETURN(result);
 }
 
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetTile)
 (
     DWORD           Index,
@@ -5222,7 +5231,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
 	X_D3DResource      *pThis
 )
 {
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 
@@ -5632,7 +5641,7 @@ BOOL WINAPI XTL::EMUPATCH(D3DDevice_GetOverlayUpdateStatus)()
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_BlockUntilVerticalBlank)()
 {
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 	LOG_FUNC();
@@ -5653,7 +5662,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVerticalBlankCallback)
     g_pVBCallback = pCallback;    
 }
 
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_TexCoordIndex)
 (
     DWORD Stage,
@@ -5714,7 +5723,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureStageStateNotInline)
 }
 #endif
 
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_TwoSidedLighting)
 (
     DWORD Value
@@ -6095,7 +6104,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTransform)
     CONST D3DMATRIX      *pMatrix
 )
 {
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 
@@ -6199,7 +6208,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
     DWORD Handle
 )
 {
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 
@@ -7003,7 +7012,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
     X_D3DSurface    *pNewZStencil
 )
 {
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 
@@ -7026,7 +7035,7 @@ void WINAPI XTL::EMUPATCH(D3DDevice_SetFlickerFilter)
     DWORD         Filter
 )
 {
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 
@@ -7040,7 +7049,7 @@ void WINAPI XTL::EMUPATCH(D3DDevice_SetSoftDisplayFilter)
     BOOL Enable
 )
 {
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 
@@ -7518,7 +7527,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetScreenSpaceOffset)
     FLOAT y
 )
 {
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 
@@ -8036,10 +8045,8 @@ PPUSH WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 	DWORD RequestedSpace
 )
 {
-#ifndef UNPATCH_CREATEDEVICE
-  #ifdef PATCH_PUSHBUFFER
+#ifdef PATCH_PUSHBUFFER
 	FUNC_EXPORTS
-  #endif
 #endif
 
 	LOG_FUNC_BEGIN
@@ -8047,16 +8054,17 @@ PPUSH WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 		LOG_FUNC_ARG(RequestedSpace)
 		LOG_FUNC_END;
 
+#ifdef PATCH_CREATEDEVICE
 	// NOTE: This function is ignored, as we currently don't emulate the push buffer
 	LOG_IGNORED();
-
+#else
 	PPUSH End = EmuExecutePushBufferRaw((PPUSH)PushBuffer);
 
 	// Clear the handled pushbuffer commands :
 	if (End > PushBuffer) {
 		memset(PushBuffer, 0, (intptr_t)End - (intptr_t)PushBuffer);
 	}
-
+#endif
 
 	return (PPUSH)PushBuffer; // Return a buffer that will be filled with GPU commands
 
@@ -8099,7 +8107,7 @@ void WINAPI XTL::EMUPATCH(D3D_SetCommonDebugRegisters)()
 
 void WINAPI XTL::EMUPATCH(D3D_BlockOnTime)( DWORD Unknown1, int Unknown2 )
 {
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 
@@ -8120,7 +8128,7 @@ void WINAPI XTL::EMUPATCH(D3D_BlockOnTime)( DWORD Unknown1, int Unknown2 )
 
 void WINAPI XTL::EMUPATCH(D3D_BlockOnResource)( X_D3DResource* pResource )
 {
-#ifndef UNPATCH_CREATEDEVICE
+#ifdef PATCH_CREATEDEVICE
 	FUNC_EXPORTS
 #endif
 
