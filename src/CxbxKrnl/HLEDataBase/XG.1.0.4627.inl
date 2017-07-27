@@ -75,10 +75,10 @@ OOVPA_END;
 // ******************************************************************
 OOVPATable XG_4627[] = {
 
-	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, PATCH),
+	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, DISABLED),
 	// REGISTER_OOVPA(XGSwizzleRect, 4361, DISABLED), // TODO : Uncomment
 	// REGISTER_OOVPA(XGUnswizzleRect, 3911, DISABLED), // TODO : Uncomment
-	REGISTER_OOVPA(XGSwizzleBox, 4627, PATCH),
+	REGISTER_OOVPA(XGSwizzleBox, 4627, DISABLED),
 	REGISTER_OOVPA(XGWriteSurfaceOrTextureToXPR, 4627, PATCH),
 };
 

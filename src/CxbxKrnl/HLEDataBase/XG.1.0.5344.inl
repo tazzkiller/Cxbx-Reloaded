@@ -35,9 +35,9 @@
 // ******************************************************************
 // * XG_5344
 // ******************************************************************
-OOVPATable XG_5344[1] = {
+OOVPATable XG_5344[] = {
 
-	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, PATCH),
+	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, DISABLED),
 	// REGISTER_OOVPA(XGSwizzleRect, 4361, DISABLED), // TODO : Uncomment
 };
 

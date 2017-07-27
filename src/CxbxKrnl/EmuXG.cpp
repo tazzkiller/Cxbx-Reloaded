@@ -54,6 +54,7 @@ namespace NtDll
 #include "EmuXTL.h"
 #include "EmuD3D8Logging.h" // for log rendering of X_D3DFORMAT, etc.
 
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: XGIsSwizzledFormat
 // ******************************************************************
@@ -67,6 +68,7 @@ PVOID WINAPI XTL::EMUPATCH(XGIsSwizzledFormat)
 
 	RETURN(FALSE);
 }
+#endif
 
 #if 0 // Leave unpatched
 // ******************************************************************

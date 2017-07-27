@@ -120,7 +120,7 @@ OOVPA_XREF(CDirectSound_SetVelocity, 4627, 15,
         { 0x38, 0x7A }, // (Offset,Value)-Pair #7
         { 0x39, 0x44 }, // (Offset,Value)-Pair #8
 
-        // CDirectSound_SetVelocity+0x4C : or byte ptr [eax+0x0x00A4], 0x80
+        // CDirectSound_SetVelocity+0x4C : or byte ptr [eax+....00A4], 0x80
         { 0x4C, 0x80 }, // (Offset,Value)-Pair #9
         { 0x4D, 0x88 }, // (Offset,Value)-Pair #10
         { 0x4E, 0xA4 }, // (Offset,Value)-Pair #11

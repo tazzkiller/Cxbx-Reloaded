@@ -502,7 +502,7 @@ XBSYSAPI EXPORTNUM(100) xboxkrnl::VOID NTAPI xboxkrnl::KeDisconnectInterrupt
 	LOG_FUNC_ONE_ARG(InterruptObject);
 
 	// Do the reverse of KeConnectInterrupt
-	// Untested (no known test cases) and not thread safe :
+	LOG_TEST_CASE("Untested and not thread safe");
 	if (InterruptObject->Connected)
 	{
 		// Mark InterruptObject as not connected anymore

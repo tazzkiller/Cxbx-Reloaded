@@ -435,6 +435,9 @@ XBSYSAPI EXPORTNUM(49) xboxkrnl::VOID DECLSPEC_NORETURN NTAPI xboxkrnl::HalRetur
 			// Convert Xbox XBE Path to Windows Path
 			{
 				EmuNtSymbolicLinkObject* symbolicLink = FindNtSymbolicLinkObjectByDriveLetter(lpTitlePath[0]);
+				if (symbolicLink == nullptr)
+					break; // prevent exception TODO : Why is szLaunchPath not filled? (Seen in Dolphin.xbe)
+
 				snprintf(szXbePath, MAX_PATH, "%s%s", symbolicLink->HostSymbolicLinkPath.c_str(), &lpTitlePath[2]);
 			}
 

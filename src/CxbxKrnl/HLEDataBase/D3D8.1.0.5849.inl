@@ -168,7 +168,9 @@ OOVPA_END;
 // ******************************************************************
 OOVPATable D3D8_5849[] = {
 
-	REGISTER_OOVPA(Direct3D_CreateDevice, 4627, PATCH),
+	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 5849, DISABLED),
+
+	REGISTER_OOVPA(Direct3D_CreateDevice, 3911, PATCH), // Was 4627
 	REGISTER_OOVPA(D3DDevice_BeginVisibilityTest, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_EndVisibilityTest, 5788, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetVisibilityTestResult, 5344, PATCH),
@@ -208,7 +210,7 @@ OOVPATable D3D8_5849[] = {
 	REGISTER_OOVPA(D3DDevice_SetRenderState_YuvEnable, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShader, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetIndices, 5558, DISABLED),
-	REGISTER_OOVPA(D3DDevice_SetTexture, 5233, PATCH),
+	REGISTER_OOVPA(D3DDevice_SetTexture, 5344, PATCH), // Was 5233
 	REGISTER_OOVPA(D3DDevice_LazySetStateVB, 5558, XREF),
 	REGISTER_OOVPA(D3DDevice_BeginPush, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_EndPush, 4627, PATCH),
@@ -227,7 +229,7 @@ OOVPATable D3D8_5849[] = {
 	REGISTER_OOVPA(D3DResource_AddRef, 3925, PATCH),
 	REGISTER_OOVPA(D3DResource_Release, 3925, PATCH),
 	REGISTER_OOVPA(D3DResource_IsBusy, 4361, PATCH),
-	REGISTER_OOVPA(D3DSurface_GetDesc, 3925, PATCH),
+	REGISTER_OOVPA(D3DSurface_GetDesc, 3925, DISABLED),
 	REGISTER_OOVPA(D3DDevice_CopyRects, 5233, PATCH),
 	REGISTER_OOVPA(D3DPalette_Lock2, 4627, PATCH),
 	REGISTER_OOVPA(D3DTexture_LockRect, 5788, PATCH),
@@ -239,7 +241,8 @@ OOVPATable D3D8_5849[] = {
 	REGISTER_OOVPA(D3DDevice_CreateVertexBuffer2, 5558, DISABLED),
 	REGISTER_OOVPA(D3DVertexBuffer_Lock, 5788, PATCH),
 	REGISTER_OOVPA(D3DVertexBuffer_Lock2, 5788, PATCH),
-	REGISTER_OOVPA(D3DDevice_LightEnable, 5344, PATCH),
+	REGISTER_OOVPA(D3DDevice_LightEnable, 5849, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetLightEnable, 5849, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawVertices, 5028, PATCH),
 	REGISTER_OOVPA(D3D_SetFence, 5849, XREF),
 	REGISTER_OOVPA(D3DDevice_InsertFence, 3925, PATCH),
@@ -248,11 +251,13 @@ OOVPATable D3D8_5849[] = {
 	REGISTER_OOVPA(D3DDevice_BlockOnFence, 5233, PATCH),
 	REGISTER_OOVPA(D3D_AllocContiguousMemory, 5788, DISABLED), // Just calls MmAllocateContiguousMemory. Was PATCH
 	REGISTER_OOVPA(Get2DSurfaceDesc, 5849, PATCH),
-	REGISTER_OOVPA(D3DDevice_CreateTexture2, 5788, PATCH),
+	REGISTER_OOVPA(D3DDevice_CreateTexture2, 5788, DISABLED),
 	REGISTER_OOVPA(Lock2DSurface, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShaderConstant4, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShaderConstant1, 5788, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawVerticesUP, 5788, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawRectPatch, 3911, PATCH),
+	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderTarget, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetShaderConstantMode, 5028, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetViewport, 5558, PATCH),
@@ -283,7 +288,7 @@ OOVPATable D3D8_5849[] = {
 	REGISTER_OOVPA(D3DDevice_SetPalette, 5788, PATCH),
 	REGISTER_OOVPA(D3DDevice_LoadVertexShaderProgram, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetPushBufferOffset, 5788, PATCH),
-	REGISTER_OOVPA(D3D_MakeRequestedSpace, 5788, XREF),
+	REGISTER_OOVPA(MakeRequestedSpace, 5788, PATCH), // NOT VERIFIED
 	REGISTER_OOVPA(D3D_Unknown, 5788, XREF),
 	REGISTER_OOVPA(D3DDevice_SetVertexShaderConstantNotInline, 5233, PATCH),
 	REGISTER_OOVPA(D3DDevice_FlushVertexCache, 4134, PATCH),
@@ -321,7 +326,7 @@ OOVPATable D3D8_5849[] = {
 	REGISTER_OOVPA(D3DDevice_DeleteStateBlock, 5788, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_StencilCullEnable, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_RopZCmpAlwaysRead, 5788, PATCH),
-	REGISTER_OOVPA(D3DDevice_GetTexture2, 5788, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetTexture2, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderTargetFast, 5344, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetDepthClipPlanes, 5849, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetScreenSpaceOffset, 5849, PATCH),
@@ -330,7 +335,7 @@ OOVPATable D3D8_5849[] = {
 	REGISTER_OOVPA(D3DDevice_GetViewportOffsetAndScale, 5849, PATCH),
 	REGISTER_OOVPA(D3DDevice_CreateStateBlock, 5849, PATCH),
 	REGISTER_OOVPA(D3DDevice_CreateIndexBuffer2, 5558, DISABLED),
-	REGISTER_OOVPA(D3DDevice_CreatePalette2, 5558, PATCH),
+	REGISTER_OOVPA(D3DDevice_CreatePalette2, 5558, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SwitchTexture, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_DeletePixelShader, 5344, PATCH),
 };
