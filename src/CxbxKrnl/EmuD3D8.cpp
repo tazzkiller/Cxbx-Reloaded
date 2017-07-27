@@ -2173,9 +2173,6 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				if (FAILED(g_EmuCDPD.hRet))
                     CxbxKrnlCleanup("IDirect3D8::CreateDevice failed");
 
-				// cache device pointer
-				g_pD3DDevice8 = *g_EmuCDPD.ppReturnedDeviceInterface;
-
 				// Update Xbox PresentationParameters :
 				g_EmuCDPD.pPresentationParameters->BackBufferWidth = g_EmuCDPD.NativePresentationParameters.BackBufferWidth;
 				g_EmuCDPD.pPresentationParameters->BackBufferHeight = g_EmuCDPD.NativePresentationParameters.BackBufferHeight;
@@ -2670,6 +2667,10 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 	if ((DWORD*)XRefDataBase[XREF_D3DDEVICE] != nullptr && ((DWORD)XRefDataBase[XREF_D3DDEVICE]) != XREF_ADDR_DERIVE) {
 		*((DWORD*)XRefDataBase[XREF_D3DDEVICE]) = (DWORD)g_XboxD3DDevice;
 	}
+
+	// TODO : What to set in *ppReturnedDeviceInterface?
+	// cache device pointer
+	// *ppReturnedDeviceInterface = g_pD3DDevice8;
 
     return g_EmuCDPD.hRet;
 }
@@ -4717,7 +4718,8 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	{
 		// Since most modern graphics cards don't support palettized textures,
 		// we need to convert these to ARGB texture format (see X_D3DFMT_P8 below)
-		bConvertToARGB = true;
+		if (!g_bSupportsP8)
+			bConvertToARGB = true;
 	} else
 	{
 		if (EmuXBFormatRequiresConversionToARGB(X_Format))
