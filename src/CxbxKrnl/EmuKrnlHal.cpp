@@ -164,7 +164,6 @@ XBSYSAPI EXPORTNUM(43) xboxkrnl::VOID NTAPI xboxkrnl::HalEnableSystemInterrupt
 	LOG_INCOMPLETE(); // TODO : Once thread-switching works, make system interrupts work too
 }
 
-#ifdef _DEBUG_TRACE
 // Source : Xbox Linux
 char *IRQNames[MAX_BUS_INTERRUPT_LEVEL + 1] =
 {
@@ -196,7 +195,6 @@ char *IRQNames[MAX_BUS_INTERRUPT_LEVEL + 1] =
 	"<unknown>",
 	"<unknown>"
 };
-#endif
 
 // ******************************************************************
 // * 0x002C - HalGetInterruptVector()
