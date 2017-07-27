@@ -201,9 +201,6 @@ void EmuExceptionNonBreakpointUnhandledShow(LPEXCEPTION_POINTERS e)
 {
 	EmuExceptionPrintDebugInformation(e, /*IsBreakpointException=*/false);
 
-	int symbolOffset = 0;
-	std::string symbolName = GetDetectedSymbolName(e->ContextRecord->Eip, &symbolOffset);
-
 	char buffer[256];
 	sprintf(buffer,
 		"Received Exception Code 0x%.8X @ EIP := %s\n"
