@@ -2584,19 +2584,6 @@ void CxbxUpdateActiveIndexBuffer
 	#undef PATCH_PUSHBUFFER
 #endif
 
-// Note on __thiscall vs __fastcall :
-//
-// Class::functions are compiled using the __thiscall calling convention.
-//
-// Our patches are not class functions, so we need to cater for two things :
-// 1) An extra initial This pointer argument
-// 2) Usage of __thiscall isn't allowed on not-class-functions.
-// Ad 1 can be easily fixed by inserting an initial This argument to each argument list
-// Ad 2 can be fixed using the __fastcall calling convention instead,
-// *but* insert an extra argument to make up for the unused EDX register.
-// Source of this solution :
-// https ://www.unknowncheats.me/forum/617803-post5.html?s=e4e45c25853735b088016787354a8ad5
-
 HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 (
     UINT                        Adapter,
