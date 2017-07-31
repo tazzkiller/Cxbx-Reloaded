@@ -543,19 +543,20 @@ void InitD3DDeferredStates()
 	*EmuMappedD3DRenderState[X_D3DRS_POINTSIZE_MAX] = 256;
 	*EmuMappedD3DRenderState[X_D3DRS_SPECULARMATERIALSOURCE] = 2;
 
-	for (int s = 0; s < X_D3DTSS_STAGECOUNT; s++) {
-		// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DTEXTUREADDRESS
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSU)] = X_D3DTSS_UNKNOWN;
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSV)] = X_D3DTSS_UNKNOWN;
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSW)] = X_D3DTSS_UNKNOWN;
-		// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DTEXTUREOP
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_COLOROP)] = X_D3DTSS_UNKNOWN;
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ALPHAOP)] = X_D3DTSS_UNKNOWN;
+	if (Xbox_D3D_TextureState != NULL) {
+		for (int s = 0; s < X_D3DTSS_STAGECOUNT; s++) {
+			// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DTEXTUREADDRESS
+			Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSU)] = X_D3DTSS_UNKNOWN;
+			Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSV)] = X_D3DTSS_UNKNOWN;
+			Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSW)] = X_D3DTSS_UNKNOWN;
+			// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DTEXTUREOP
+			Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_COLOROP)] = X_D3DTSS_UNKNOWN;
+			Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ALPHAOP)] = X_D3DTSS_UNKNOWN;
 
-		// Set TextureStageStates such that the correspond with default values (tested using apitrace on gamepad)
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ALPHAARG2)] = 0;
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_COLORARG2)] = 0;
-
+			// Set TextureStageStates such that the correspond with default values (tested using apitrace on gamepad)
+			Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ALPHAARG2)] = 0;
+			Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_COLORARG2)] = 0;
+		}
 #if 0
 		// Fake all transfers, perhaps that helps X-Marbles?
 		for (int v = 0; v < X_D3DTSS_STAGESIZE; v++) {

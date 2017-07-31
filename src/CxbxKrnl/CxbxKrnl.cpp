@@ -316,7 +316,7 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 		/* dwFileOffsetLow */0,
 		TILED_MEMORY_SIZE,
 		(void *)TILED_MEMORY_BASE);
-	if (tiled_memory == NULL)
+	if (tiled_memory != (void *)TILED_MEMORY_BASE)
 	{
 		CxbxKrnlCleanup("CxbxRestoreContiguousMemory: Couldn't map contiguous memory.bin into tiled memory!");
 		return nullptr;
