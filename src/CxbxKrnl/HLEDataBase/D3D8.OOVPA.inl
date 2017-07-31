@@ -109,7 +109,7 @@ OOVPATable D3D8_OOVPA[] = {
 	REGISTER_OOVPAS(D3DDevice_SetSoftDisplayFilter, 3925, 4134, 4361, 4432, 4627, 5233, 5344, 5558),
 	REGISTER_OOVPAS(D3DDevice_SetTextureState_TexCoordIndex, 3925, 4034, 4134, 4361, 4627),
 	REGISTER_OOVPAS(D3DDevice_SetTextureState_BorderColor, 3925, 4034, 4361),
-	REGISTER_OOVPAS(D3DDevice_SetRenderState_PSTextureModes, 3925, 4361),
+	REGISTER_OOVPAS(D3DDevice_SetRenderState_PSTextureModes, 3925, 4134),
 	REGISTER_OOVPAS(D3DDevice_SetRenderState_StencilFail, 3925, 4034, 4134, 5788),
 	REGISTER_OOVPAS(D3DDevice_SetRenderState_CullMode, 3925, 4034, 5233),
 	REGISTER_OOVPAS(D3DDevice_SetRenderState_Simple, 3925, 4034),

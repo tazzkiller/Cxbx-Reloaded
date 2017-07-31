@@ -54,9 +54,10 @@ static inline void EmuInstallPatch(std::string FunctionName, xbaddr FunctionAddr
 
 #include <shlobj.h>
 #include <unordered_map>
+#include <map>
 #include <sstream>
 
-std::unordered_map<std::string, xbaddr> g_SymbolAddresses;
+std::map<std::string, xbaddr> g_SymbolAddresses;
 std::unordered_map<std::string, subhook::Hook> g_FunctionHooks;
 
 // D3D build version
@@ -181,7 +182,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 	printf("\n");
 
 	g_SymbolAddresses.clear();
-	g_SymbolAddresses.reserve(1250); // number of symbols that have one or more OOVPA (will be less than the hitcount of search on OOVPA_END)
+	// only for unordered_map : g_SymbolAddresses.reserve(1250); // number of symbols that have one or more OOVPA (will be less than the hitcount of search on OOVPA_END)
 
 	// Make sure the HLE Cache directory exists
 	std::string cachePath = std::string(szFolder_CxbxReloadedData) + "\\HLECache\\";
