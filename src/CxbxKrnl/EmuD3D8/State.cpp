@@ -299,8 +299,8 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	PCValue = DxbxRenderStateXB2PCCallback[XboxRenderState](XboxValue);
 
 	HRESULT hRet;
-#if DXBX_USE_D3D9
 	switch (XboxRenderState) {
+#if DXBX_USE_D3D9
 	case X_D3DRS_EDGEANTIALIAS:
 		break; // TODO -oDxbx : What can we do to support this?
 	case X_D3DRS_ZBIAS:
@@ -317,14 +317,17 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
 		break;
 	}
+#endif
+	case X_D3DRS_FILLMODE: {
+		// Store actual dwFillMode for when g_iWireframe is changed
+		XTL::CxbxSetFillMode(PCValue);
+		break;
+	}
 	default:
 		hRet = g_pD3DDevice8->SetRenderState(PCRenderState, PCValue);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+		//	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+		break;
 	}
-#else
-	hRet = g_pD3DDevice8->SetRenderState(PCRenderState, PCValue);
-	//	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
-#endif
 
 	return PCValue;
 }
