@@ -360,6 +360,30 @@ BOOL __fastcall XTL::EMUPATCH(CMiniport_InitHardware)
 	RETURN(true);
 }
 
+#if 0
+// ******************************************************************
+// * patch: D3D_CMiniport_GetDisplayCapabilities
+// ******************************************************************
+DWORD WINAPI XTL::EMUPATCH(D3D_CMiniport_GetDisplayCapabilities)()
+{
+	FUNC_EXPORTS
+
+		LOG_FUNC();
+
+	// This function was only found in Run Like Hell (5233) @ 0x11FCD0.
+	// So far, this function hasn't been found in any other XDKs.  
+
+	DWORD AvInfo;
+
+	xboxkrnl::AvSendTVEncoderOption(NULL,
+		AV_QUERY_AV_CAPABILITIES,
+		0,
+		&AvInfo);
+
+	RETURN(AvInfo);
+}
+#endif
+
 void XTL::CxbxLocateCpuTime()
 {
 	if (m_pCPUTime == NULL) {

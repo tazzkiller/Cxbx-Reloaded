@@ -81,6 +81,7 @@ XTL::CxbxPixelShader               *g_CurrentPixelShader = nullptr;
 BOOL                                g_bFakePixelShaderLoaded = FALSE;
 BOOL                                g_bIsFauxFullscreen = FALSE;
 BOOL								g_bHackUpdateSoftwareOverlay = FALSE;
+DWORD								g_CurrentFillMode = XTL::D3DFILL_SOLID;	// Used to backup/restore the fill mode when WireFrame is enabled
 
 
 void CxbxUpdateTextureStages(); // forward
@@ -503,11 +504,7 @@ const char *D3DErrorString(HRESULT hResult)
 	static char buffer[1024];
 	buffer[0] = 0; // Reset static buffer!
 
-	// HACK: dxerr8.h is not working!
-	// But als long as we link with dxerr8.lib, this works :
-	const char*  __stdcall DXGetErrorString8A(HRESULT hr);
-
-	const char* errorCodeString = DXGetErrorString8A(hResult);
+	const char* errorCodeString = XTL::DXGetErrorString8A(hResult);
 	if (errorCodeString)
 	{
 		strcat(buffer, errorCodeString);
@@ -2668,6 +2665,131 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 	// cache device pointer
 	// *ppReturnedDeviceInterface = g_pD3DDevice8;
 
+	// Finally, set all default render and texture states
+	// All commented out states are unsupported on this version of DirectX 8
+	g_pD3DDevice8->SetRenderState(D3DRS_ZFUNC, D3DCMP_LESSEQUAL);
+	g_pD3DDevice8->SetRenderState(D3DRS_ALPHAFUNC, D3DCMP_ALWAYS);
+	g_pD3DDevice8->SetRenderState(D3DRS_ALPHATESTENABLE, FALSE);
+	g_pD3DDevice8->SetRenderState(D3DRS_ALPHAREF, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_ONE);
+	g_pD3DDevice8->SetRenderState(D3DRS_DESTBLEND, D3DCMP_ALWAYS);
+	g_pD3DDevice8->SetRenderState(D3DRS_ALPHAFUNC, D3DBLEND_ZERO);
+	g_pD3DDevice8->SetRenderState(D3DRS_ZWRITEENABLE, TRUE);
+	g_pD3DDevice8->SetRenderState(D3DRS_DITHERENABLE, FALSE);
+	g_pD3DDevice8->SetRenderState(D3DRS_SHADEMODE, D3DSHADE_GOURAUD);
+	g_pD3DDevice8->SetRenderState(D3DRS_COLORWRITEENABLE, D3DCOLORWRITEENABLE_RED | D3DCOLORWRITEENABLE_GREEN |
+		D3DCOLORWRITEENABLE_BLUE | D3DCOLORWRITEENABLE_ALPHA);
+	g_pD3DDevice8->SetRenderState(D3DRS_STENCILZFAIL, D3DSTENCILOP_KEEP);
+	g_pD3DDevice8->SetRenderState(D3DRS_STENCILPASS, D3DSTENCILOP_KEEP);
+	g_pD3DDevice8->SetRenderState(D3DRS_STENCILFUNC, D3DCMP_ALWAYS);
+	g_pD3DDevice8->SetRenderState(D3DRS_STENCILREF, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_STENCILMASK, 0xffffffff);
+	g_pD3DDevice8->SetRenderState(D3DRS_STENCILWRITEMASK, 0xffffffff);
+	g_pD3DDevice8->SetRenderState(D3DRS_BLENDOP, D3DBLENDOP_ADD);
+	//g_pD3DDevice8->SetRenderState(D3DRS_BLENDCOLOR, 0);
+	//g_pD3DDevice8->SetRenderState(D3DRS_SWATHWIDTH, D3DSWATH_128);
+	//g_pD3DDevice8->SetRenderState(D3DRS_POLYGONOFFSETZSLOPESCALE, 0);
+	//g_pD3DDevice8->SetRenderState(D3DRS_POLYGONOFFSETZOFFSET, 0);
+	//g_pD3DDevice8->SetRenderState(D3DRS_POINTOFFSETENABLE, FALSE);
+	//g_pD3DDevice8->SetRenderState(D3DRS_WIREFRAMEOFFSETENABLE, FALSE);
+	//g_pD3DDevice8->SetRenderState(D3DRS_SOLIDOFFSETENABLE, FALSE);
+	g_pD3DDevice8->SetRenderState(D3DRS_FOGENABLE, FALSE);
+	g_pD3DDevice8->SetRenderState(D3DRS_FOGTABLEMODE, D3DFOG_NONE);
+	g_pD3DDevice8->SetRenderState(D3DRS_FOGSTART, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_FOGEND, (DWORD)(1.0f));
+	g_pD3DDevice8->SetRenderState(D3DRS_FOGDENSITY, (DWORD)(1.0f));
+	g_pD3DDevice8->SetRenderState(D3DRS_RANGEFOGENABLE, FALSE);
+	g_pD3DDevice8->SetRenderState(D3DRS_WRAP0, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_WRAP1, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_WRAP2, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_WRAP3, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_LIGHTING, TRUE);
+	g_pD3DDevice8->SetRenderState(D3DRS_SPECULARENABLE, FALSE);
+	g_pD3DDevice8->SetRenderState(D3DRS_LOCALVIEWER, TRUE);
+	g_pD3DDevice8->SetRenderState(D3DRS_COLORVERTEX, TRUE);
+	//g_pD3DDevice8->SetRenderState(D3DRS_BACKSPECULARMATERIALSOURCE, D3DMCS_COLOR2);
+	//g_pD3DDevice8->SetRenderState(D3DRS_BACKDIFFUSEMATERIALSOURCE, D3DMCS_COLOR1);
+	//g_pD3DDevice8->SetRenderState(D3DRS_BACKAMBIENTMATERIALSOURCE, D3DMCS_MATERIAL);
+	//g_pD3DDevice8->SetRenderState(D3DRS_BACKEMISSIVEMATERIALSOURCE, D3DMCS_MATERIAL);
+	g_pD3DDevice8->SetRenderState(D3DRS_SPECULARMATERIALSOURCE, D3DMCS_COLOR2);
+	g_pD3DDevice8->SetRenderState(D3DRS_DIFFUSEMATERIALSOURCE, D3DMCS_COLOR1);
+	g_pD3DDevice8->SetRenderState(D3DRS_AMBIENTMATERIALSOURCE, D3DMCS_MATERIAL);
+	g_pD3DDevice8->SetRenderState(D3DRS_EMISSIVEMATERIALSOURCE, D3DMCS_MATERIAL);
+	//g_pD3DDevice8->SetRenderState(D3DRS_BACKAMBIENT, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_AMBIENT, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_POINTSIZE, (DWORD)(1.0f));
+	g_pD3DDevice8->SetRenderState(D3DRS_POINTSIZE_MIN, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_POINTSPRITEENABLE, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_POINTSCALEENABLE, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_POINTSCALE_A, (DWORD)(1.0f));
+	g_pD3DDevice8->SetRenderState(D3DRS_POINTSCALE_B, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_POINTSCALE_C, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_POINTSIZE_MAX, (DWORD)(64.0f));
+	g_pD3DDevice8->SetRenderState(D3DRS_PATCHEDGESTYLE, D3DPATCHEDGE_DISCRETE);
+	g_pD3DDevice8->SetRenderState(D3DRS_PATCHSEGMENTS, (DWORD)(1.0f));
+	//g_pD3DDevice8->SetRenderState(D3DRS_PSTEXTUREMODES, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_VERTEXBLEND, D3DVBF_DISABLE);
+	g_pD3DDevice8->SetRenderState(D3DRS_FOGCOLOR, 0);
+	g_pD3DDevice8->SetRenderState(D3DRS_FILLMODE, D3DFILL_SOLID);
+	//g_pD3DDevice8->SetRenderState(D3DRS_BACKFILLMODE, D3DFILL_SOLID);
+	//g_pD3DDevice8->SetRenderState(D3DRS_TWOSIDEDLIGHTING, FALSE);
+	g_pD3DDevice8->SetRenderState(D3DRS_NORMALIZENORMALS, FALSE);
+	g_pD3DDevice8->SetRenderState(D3DRS_ZENABLE, D3DZB_USEW);
+	g_pD3DDevice8->SetRenderState(D3DRS_STENCILENABLE, FALSE);
+	g_pD3DDevice8->SetRenderState(D3DRS_STENCILFAIL, D3DSTENCILOP_KEEP);
+	//g_pD3DDevice8->SetRenderState(D3DRS_FRONTFACE, D3DFRONT_CW);
+	g_pD3DDevice8->SetRenderState(D3DRS_CULLMODE, D3DCULL_CCW);
+	g_pD3DDevice8->SetRenderState(D3DRS_TEXTUREFACTOR, 0xffffffff);
+	g_pD3DDevice8->SetRenderState(D3DRS_ZBIAS, 0);
+	//g_pD3DDevice8->SetRenderState(D3DRS_LOGICOP, D3DLOGICOP_NONE);
+	g_pD3DDevice8->SetRenderState(D3DRS_EDGEANTIALIAS, FALSE);
+	g_pD3DDevice8->SetRenderState(D3DRS_MULTISAMPLEANTIALIAS, TRUE);
+	g_pD3DDevice8->SetRenderState(D3DRS_MULTISAMPLEMASK, 0xffffffff);
+	//g_pD3DDevice8->SetRenderState(D3DRS_MULTISAMPLEMODERENDERTARGETS, D3DMULTISAMPLEMODE_1X);
+	//g_pD3DDevice8->SetRenderState(D3DRS_SHADOWFUNC, D3DCMP_NEVER);	
+	//g_pD3DDevice8->SetRenderState(D3DRS_LINEWIDTH, (DWORD)(1.0f));
+	//g_pD3DDevice8->SetRenderState(D3DRS_DXT1NOISEENABLE, TRUE);
+	//g_pD3DDevice8->SetRenderState(D3DRS_YUVENABLE, FALSE);
+	//g_pD3DDevice8->SetRenderState(D3DRS_OCCLUSIONCULLENABLE, TRUE);
+	//g_pD3DDevice8->SetRenderState(D3DRS_STENCILCULLENABLE, TRUE);
+	//g_pD3DDevice8->SetRenderState(D3DRS_ROPZCMPALWAYSREAD, FALSE);
+	//g_pD3DDevice8->SetRenderState(D3DRS_ROPZREAD, FALSE);
+	//g_pD3DDevice8->SetRenderState(D3DRS_DONOTCULLUNCOMPRESSED, FALSE);
+
+	// Xbox has 4 Texture Stages
+	for (int stage = 0; stage < 4; stage++)	{
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_ADDRESSU, D3DTADDRESS_WRAP);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_ADDRESSV, D3DTADDRESS_WRAP);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_ADDRESSW, D3DTADDRESS_WRAP);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_MAGFILTER, D3DTEXF_POINT);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_MINFILTER, D3DTEXF_POINT);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_MIPFILTER, D3DTEXF_NONE);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_MIPMAPLODBIAS, 0);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_MAXMIPLEVEL, 0);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_MAXANISOTROPY, 1);
+		//g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLORKEYOP, D3DTCOLORKEYOP_DISABLE);
+		//g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLORSIGN, 0);
+		//g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_ALPHAKILL, D3DTALPHAKILL_DISABLE);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_DISABLE);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLORARG0, D3DTA_CURRENT);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_CURRENT);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_ALPHAARG0, D3DTA_CURRENT);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_ALPHAARG1, D3DTA_TEXTURE);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_ALPHAARG2, D3DTA_CURRENT);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_RESULTARG, D3DTA_CURRENT);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_TEXTURETRANSFORMFLAGS, D3DTTFF_DISABLE);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_BUMPENVMAT00, 0);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_BUMPENVMAT01, 0);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_BUMPENVMAT11, 0);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_BUMPENVMAT10, 0);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_BUMPENVLSCALE, 0);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_BUMPENVLOFFSET, 0);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_TEXCOORDINDEX, 0);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_BORDERCOLOR, 0);
+		//g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLORKEYCOLOR, 0);
+	}
     return g_EmuCDPD.hRet;
 }
 
@@ -2700,6 +2822,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayFieldStatus)(X_D3DFIELD_STATUS *pF
 
 	LOG_FUNC_ONE_ARG(pFieldStatus);
 
+	// TODO: Read AV Flags to determine if Progressive or Interlaced
 #if 1
     pFieldStatus->Field = (g_VBData.VBlankCounter%2 == 0) ? X_D3DFIELD_ODD : X_D3DFIELD_EVEN;
     pFieldStatus->VBlankCount = g_VBData.VBlankCounter;
@@ -2709,6 +2832,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayFieldStatus)(X_D3DFIELD_STATUS *pF
 #endif
 }
 
+// TODO: Find a test case and verify this
+// At least one XDK has this as return VOID with a second input parameter.
+// Is this definition incorrect, or did it change at some point?
 PDWORD WINAPI XTL::EMUPATCH(D3DDevice_BeginPush)(DWORD Count)
 {
 #ifdef PATCH_PUSHBUFFER
@@ -2756,15 +2882,13 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_EndPush)(DWORD *pPush)
 	}
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginVisibilityTest)()
+VOID WINAPI XTL::EMUPATCH(D3DDevice_BeginVisibilityTest)()
 {
 	FUNC_EXPORTS
 
 	LOG_FUNC();
 
 	LOG_UNIMPLEMENTED();
-
-    return D3D_OK;
 }
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndVisibilityTest)
@@ -2821,7 +2945,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVisibilityTestResult)
     return D3D_OK;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_LoadVertexShader)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_LoadVertexShader)
 (
     DWORD                       Handle,
     DWORD                       Address
@@ -2843,11 +2967,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_LoadVertexShader)
 			}
 		}
     }
-
-    return D3D_OK;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SelectVertexShader)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SelectVertexShader)
 (
     DWORD                       Handle,
     DWORD                       Address
@@ -2887,8 +3009,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SelectVertexShader)
 		EmuWarning("We're lying about setting a vertext shader!");
 		hRet = D3D_OK;
 	}
-
-    RETURN(hRet);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle)()
@@ -2929,7 +3049,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DDevice_AddRef)()
     return ret;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginStateBlock)()
+VOID WINAPI XTL::EMUPATCH(D3DDevice_BeginStateBlock)()
 {
 	FUNC_EXPORTS
 
@@ -2937,8 +3057,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginStateBlock)()
 
     ULONG ret = g_pD3DDevice8->BeginStateBlock();
 	DEBUG_D3DRESULT(ret, "g_pD3DDevice8->BeginStateBlock");
-
-    return ret;
 }
 
 /*
@@ -2957,7 +3075,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginStateBig)()
     return hRet;
 }*/
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CaptureStateBlock)(DWORD Token)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_CaptureStateBlock)(DWORD Token)
 {
 	FUNC_EXPORTS
 
@@ -2965,11 +3083,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CaptureStateBlock)(DWORD Token)
 
     ULONG ret = g_pD3DDevice8->CaptureStateBlock(Token);
 	DEBUG_D3DRESULT(ret, "g_pD3DDevice8->CaptureStateBlock");
-
-    return ret;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_ApplyStateBlock)(DWORD Token)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_ApplyStateBlock)(DWORD Token)
 {
 	FUNC_EXPORTS
 
@@ -2977,8 +3093,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_ApplyStateBlock)(DWORD Token)
 
     ULONG ret = g_pD3DDevice8->ApplyStateBlock(Token);
 	DEBUG_D3DRESULT(ret, "g_pD3DDevice8->ApplyStateBlock");
-
-    return ret;
 }
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndStateBlock)(DWORD *pToken)
@@ -2993,7 +3107,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndStateBlock)(DWORD *pToken)
     return ret;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CopyRects)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_CopyRects)
 (
     X_D3DSurface       *pSourceSurface,
     CONST RECT         *pSourceRectsArray,
@@ -3032,8 +3146,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CopyRects)
         pDestPointsArray
     );
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CopyRects");    
-
-    return hRet;
 }
 
 inline BYTE DownsampleWordToByte(WORD value)
@@ -3183,7 +3295,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer)
     *ppBackBuffer = EMUPATCH(D3DDevice_GetBackBuffer2)(BackBuffer);
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetViewport)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetViewport)
 (
     CONST D3DVIEWPORT8 *pViewport
 )
@@ -3230,13 +3342,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetViewport)
         EmuWarning("Unable to set viewport! We're lying");
         hRet = D3D_OK;
     }*/
-
-    
-
-    return hRet;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetViewport)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_GetViewport)
 (
     D3DVIEWPORT8 *pViewport
 )
@@ -3254,8 +3362,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetViewport)
 
         hRet = D3D_OK;
     }
-
-    return hRet;
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetViewportOffsetAndScale)
@@ -3308,7 +3414,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetViewportOffsetAndScale)
     
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetShaderConstantMode)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetShaderConstantMode)
 (
     XTL::X_D3DSHADERCONSTANTMODE Mode
 )
@@ -3319,8 +3425,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetShaderConstantMode)
 	LOG_FUNC_ONE_ARG(Mode);
 
     g_VertexShaderConstantMode = Mode;
-
-    return D3D_OK;
 }
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Reset)
@@ -3634,7 +3738,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderConstant)
 }
 
 #if 0
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderConstant)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderConstant)
 (
     INT         Register,
     CONST PVOID pConstantData,
@@ -3682,9 +3786,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderConstant)
     {
         EmuWarning("We're lying about setting a vertex shader constant!");
         hRet = D3D_OK;
-    }    
-
-    return hRet;
+    }   
 }
 
 VOID __fastcall XTL::EMUPATCH(D3DDevice_SetVertexShaderConstant1)
@@ -3852,7 +3954,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePixelShader)
     return hRet;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShader)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShader)
 (
     DWORD           Handle
 )
@@ -3917,13 +4019,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShader)
 
         hRet = D3D_OK;
     }
-
-    
-
-    return hRet;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayMode)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayMode)
 (
     OUT X_D3DDISPLAYMODE         *pMode
 )
@@ -3952,11 +4050,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayMode)
 		pMode->Height = 480; // TODO : g_EmuCDPD.pPresentationParameters->BackBufferHeight;
 		pMode->RefreshRate = 50; // New
     }
-
-    return hRet;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Begin)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_Begin)
 (
     X_D3DPRIMITIVETYPE     PrimitiveType
 )
@@ -3968,11 +4064,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Begin)
     g_InlineVertexBuffer_PrimitiveType = PrimitiveType;
     g_InlineVertexBuffer_TableOffset = 0;
     g_InlineVertexBuffer_FVF = 0;
-
-    return D3D_OK;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData2f)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData2f)
 (
     int     Register,
     FLOAT   a,
@@ -3983,13 +4077,13 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData2f)
 
 	LOG_FORWARD("D3DDevice_SetVertexData4f");
 
-    return EMUPATCH(D3DDevice_SetVertexData4f)(Register, a, b, 0.0f, 1.0f);
+    EMUPATCH(D3DDevice_SetVertexData4f)(Register, a, b, 0.0f, 1.0f);
 }
 
 static inline DWORD FtoDW(FLOAT f) { return *((DWORD*)&f); }
 static inline FLOAT DWtoF(DWORD f) { return *((FLOAT*)&f); }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData2s)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData2s)
 (
     int     Register,
     SHORT   a,
@@ -4002,10 +4096,10 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData2s)
 
     DWORD dwA = a, dwB = b;
 
-    return EMUPATCH(D3DDevice_SetVertexData4f)(Register, DWtoF(dwA), DWtoF(dwB), 0.0f, 1.0f);
+    EMUPATCH(D3DDevice_SetVertexData4f)(Register, DWtoF(dwA), DWtoF(dwB), 0.0f, 1.0f);
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 (
     int     Register,
     FLOAT   a,
@@ -4230,11 +4324,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 		}
 		uiPreviousOffset = g_InlineVertexBuffer_TableOffset;
 	}
-
-	return hRet;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4ub)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4ub)
 (
 	INT		Register,
 	BYTE	a,
@@ -4249,10 +4341,10 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4ub)
 
 	DWORD dwA = a, dwB = b, dwC = c, dwD = d;
 
-    return EMUPATCH(D3DDevice_SetVertexData4f)(Register, DWtoF(dwA), DWtoF(dwB), DWtoF(dwC), DWtoF(dwD));
+    EMUPATCH(D3DDevice_SetVertexData4f)(Register, DWtoF(dwA), DWtoF(dwB), DWtoF(dwC), DWtoF(dwD));
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4s)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4s)
 (
 	INT		Register,
 	SHORT	a,
@@ -4267,10 +4359,10 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4s)
 
 	DWORD dwA = a, dwB = b, dwC = c, dwD = d;
 
-    return EMUPATCH(D3DDevice_SetVertexData4f)(Register, DWtoF(dwA), DWtoF(dwB), DWtoF(dwC), DWtoF(dwD));
+    EMUPATCH(D3DDevice_SetVertexData4f)(Register, DWtoF(dwA), DWtoF(dwB), DWtoF(dwC), DWtoF(dwD));
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexDataColor)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVertexDataColor)
 (
     int         Register,
     D3DCOLOR    Color
@@ -4285,10 +4377,10 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexDataColor)
     FLOAT g = DWtoF((Color & 0x0000FF00) >> 8);
     FLOAT b = DWtoF((Color & 0x000000FF) >> 0);
 
-    return EMUPATCH(D3DDevice_SetVertexData4f)(Register, r, g, b, a);
+    EMUPATCH(D3DDevice_SetVertexData4f)(Register, r, g, b, a);
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_End)()
+VOID WINAPI XTL::EMUPATCH(D3DDevice_End)()
 {
 	FUNC_EXPORTS
 
@@ -4300,10 +4392,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_End)()
     // TODO: Should technically clean this up at some point..but on XP doesnt matter much
 //    g_MemoryManager.Free(g_InlineVertexBuffer_pData);
 //    g_MemoryManager.Free(g_InlineVertexBuffer_Table);
-
-    
-
-    return D3D_OK;
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_RunPushBuffer)
@@ -4390,7 +4478,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 			DWORD dwFillMode;
 
 			if (g_iWireframe == 0)
-				dwFillMode = D3DFILL_SOLID;
+				dwFillMode = g_CurrentFillMode;
 			else if (g_iWireframe == 1)
 				dwFillMode = D3DFILL_WIREFRAME;
 			else
@@ -4410,7 +4498,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 
 #define CXBX_SWAP_PRESENT_FORWARD (256 + 4 + 1) // = CxbxPresentForwardMarker + D3DSWAP_FINISH + D3DSWAP_COPY
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Present)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_Present)
 (
     CONST RECT* pSourceRect,
     CONST RECT* pDestRect,
@@ -4429,7 +4517,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Present)
 		LOG_FUNC_ARG(pDummy2)
 		LOG_FUNC_END;
 
-	return EMUPATCH(D3DDevice_Swap)(CXBX_SWAP_PRESENT_FORWARD); // Xbox present ignores
+	EMUPATCH(D3DDevice_Swap)(CXBX_SWAP_PRESENT_FORWARD); // Xbox present ignores
 }
 
 DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
@@ -6085,7 +6173,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderStateNotInline)
 }
 #endif
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTransform)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTransform)
 (
 	X_D3DTRANSFORMSTATETYPE State,
     CONST D3DMATRIX      *pMatrix
@@ -6125,11 +6213,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetTransform)
 
     HRESULT hRet = g_pD3DDevice8->SetTransform(PCState, pMatrix);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTransform");    
-
-    return hRet;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetTransform)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_GetTransform)
 (
 	X_D3DTRANSFORMSTATETYPE State,
     D3DMATRIX            *pMatrix
@@ -6146,8 +6232,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetTransform)
 
     HRESULT hRet = g_pD3DDevice8->GetTransform(PCState, pMatrix);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetTransform");    
-
-    return hRet;
 }
 
 #if 1
@@ -6190,7 +6274,7 @@ BYTE* WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock2)
 }
 #endif
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
 (
     DWORD Handle
 )
@@ -6242,8 +6326,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShader)
 
 	hRet = g_pD3DDevice8->SetVertexShader(HostVertexHandle);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetVertexShader");    
-
-    return hRet;
 }
 
 #define VERTICES_PER_QUAD 4
@@ -6888,7 +6970,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 	}
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetLight)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_GetLight)
 (
     DWORD            Index,
 	X_D3DLIGHT      *pLight
@@ -6903,8 +6985,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetLight)
 
     HRESULT hRet = g_pD3DDevice8->GetLight(Index, pLight);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetLight");    
-
-    return hRet;
 }
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetLight)
@@ -7183,7 +7263,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderConstant)
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetVertexShaderConstant");    
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderInputDirect)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderInputDirect)
 (
     X_VERTEXATTRIBUTEFORMAT *pVAF,
     UINT                     StreamCount,
@@ -7199,8 +7279,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderInputDirect)
 		LOG_FUNC_END;
 
     LOG_UNIMPLEMENTED(); 
-
-    return 0;
 }
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderInput)
@@ -7223,7 +7301,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderInput)
     return 0;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderInput)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderInput)
 (
     DWORD              Handle,
     UINT               StreamCount,
@@ -7239,8 +7317,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderInput)
 		LOG_FUNC_END;
 
     LOG_UNIMPLEMENTED(); 
-
-    return 0;
 }
 
 
@@ -7486,7 +7562,7 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_BlockUntilNotBusy)
 	LOG_UNIMPLEMENTED();
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetScissors)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetScissors)
 (
     DWORD          Count,
     BOOL           Exclusive,
@@ -7503,12 +7579,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetScissors)
 
     // TODO: Implement
 	LOG_UNIMPLEMENTED();
-
-
-    return D3D_OK;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetScreenSpaceOffset)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetScreenSpaceOffset)
 (
     FLOAT x,
     FLOAT y
@@ -7524,13 +7597,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetScreenSpaceOffset)
 		LOG_FUNC_END;
 
     EmuWarning("EmuD3DDevice_SetScreenSpaceOffset ignored");
-
-    
-
-    return D3D_OK;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderProgram)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderProgram)
 (
 	X_D3DPIXELSHADERDEF* pPSDef
 )
@@ -7562,10 +7631,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderProgram)
 	//EMUPATCH(D3DDevice_CreatePixelShader)(pPSDef, &dwHandle);
 	//hRet = EMUPATCH(D3DDevice_SetPixelShader)( dwHandle );
 	//
-
-		
-
-	return D3D_OK;
 }
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateStateBlock)
@@ -7660,7 +7725,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawTriPatch)
 }
 
 #pragma warning(disable:4244)
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetProjectionViewportMatrix)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_GetProjectionViewportMatrix)
 (
 	X_D3DXMATRIX *pProjectionViewport
 )
@@ -7713,10 +7778,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetProjectionViewportMatrix)
 	*pProjectionViewport = Out;
 
 //	__asm int 3;
-
-		
-
-	return D3D_OK;
 }
 #pragma warning(default:4244)
 
@@ -7865,7 +7926,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_PersistDisplay)()
 	return hRet;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_PrimeVertexCache)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_PrimeVertexCache)
 (
 	UINT  VertexCount,
 	WORD *pIndexData
@@ -7880,11 +7941,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_PrimeVertexCache)
 
 	// TODO: Implement
 	LOG_UNIMPLEMENTED();
-
-	return D3D_OK;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DeleteStateBlock)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_DeleteStateBlock)
 (
 	DWORD Token
 )
@@ -7895,12 +7954,10 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DeleteStateBlock)
 
 	HRESULT hRet = g_pD3DDevice8->DeleteStateBlock(Token);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->DeleteStateBlock");
-
-	return hRet;
 }
 
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetModelView)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetModelView)
 (
 	CONST D3DMATRIX *pModelView, 
 	CONST D3DMATRIX *pInverseModelView, 
@@ -7917,8 +7974,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetModelView)
 
 	// TODO: Implement
 	LOG_UNIMPLEMENTED();
-
-	return D3D_OK;
 }
 
 void WINAPI XTL::EMUPATCH(D3DDevice_FlushVertexCache)()
@@ -7930,7 +7985,7 @@ void WINAPI XTL::EMUPATCH(D3DDevice_FlushVertexCache)()
 	LOG_UNIMPLEMENTED();
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginPushBuffer)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_BeginPushBuffer)
 (
 	X_D3DPushBuffer *pPushBuffer
 )
@@ -7946,9 +8001,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginPushBuffer)
 //	CxbxKrnlCleanup("BeginPushBuffer is not yet implemented!\n"
 	//				"This is going to be a difficult fix for Direct3D but NOT OpenGL!");
 
-		
-
-	return D3D_OK;
 }
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndPushBuffer)()
@@ -7963,7 +8015,10 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndPushBuffer)()
 	return D3D_OK;
 }
 
-void WINAPI XTL::EMUPATCH(XMETAL_StartPush)(void* Unknown)
+#define PB_SIZE (64 * 1024 / sizeof(DWORD))
+DWORD PushBuffer[PB_SIZE] = {};
+
+PDWORD WINAPI XTL::EMUPATCH(XMETAL_StartPush)(void* Unknown)
 {
 #ifdef PATCH_PUSHBUFFER
 	// 	FUNC_EXPORTS DISABLED
@@ -7975,6 +8030,8 @@ void WINAPI XTL::EMUPATCH(XMETAL_StartPush)(void* Unknown)
 //	__asm int 3;
 
 	LOG_UNIMPLEMENTED();
+
+	return &(PushBuffer[0]);
 }
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetModelView)
@@ -8022,9 +8079,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetBackMaterial)
 
 	g_pBackMaterial = *pMaterial;
 }
-
-#define PB_SIZE (64 * 1024 / sizeof(DWORD))
-DWORD PushBuffer[PB_SIZE] = {};
 
 PPUSH WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 (
@@ -8127,7 +8181,7 @@ void WINAPI XTL::EMUPATCH(D3D_BlockOnResource)( X_D3DResource* pResource )
 		
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPushBufferOffset)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_GetPushBufferOffset)
 (
 	DWORD *pOffset
 )
@@ -8142,11 +8196,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPushBufferOffset)
 	*pOffset = 0;
 
 	LOG_UNIMPLEMENTED();
-
-	return D3D_OK;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPixelShader)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_GetPixelShader)
 (
 	DWORD  Name,
 	DWORD* pHandle
@@ -8161,13 +8213,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPixelShader)
 
 	// TODO: This implementation is very wrong, but better than nothing.
 	*pHandle = g_dwCurrentPixelShader;
-
-		
-
-	return D3D_OK;
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface)(X_D3DSurface **ppSurface)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface)(X_D3DSurface **ppSurface)
 {
 	FUNC_EXPORTS
 
@@ -8191,8 +8239,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface)(X_D3DSurface **ppSur
 		if( SUCCEEDED( hr ) )
 			DbgPrintf( "Successfully loaded persisted_surface.bmp\n" );
 	}
-
-	return D3D_OK;
 }
 
 XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface2)()
@@ -8224,7 +8270,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTargetFast)
 	EMUPATCH(D3DDevice_SetRenderTarget)(pRenderTarget, pNewZStencil);
 }
 
-HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetScissors)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_GetScissors)
 (
 	DWORD	*pCount, 
 	BOOL	*pExclusive, 
@@ -8254,10 +8300,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetScissors)
 	pRects->y2 = vp.Height;
 
 	pExclusive[0] = FALSE;
-
-    
-
-    return D3D_OK;
 }
 
 void WINAPI XTL::EMUPATCH(D3D_LazySetPointParams)
