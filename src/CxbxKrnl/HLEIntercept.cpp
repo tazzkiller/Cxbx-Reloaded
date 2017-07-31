@@ -46,16 +46,18 @@
 #include "HLEIntercept.h"
 #include "xxhash32.h"
 #include <Shlwapi.h>
+#include <subhook.h>
 
 static xbaddr EmuLocateFunction(OOVPA *pOovpa, xbaddr lower, xbaddr upper);
 static void  EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe::Header *pXbeHeader, uint16 BuildVersion);
-static inline void EmuInstallPatch(xbaddr FunctionAddr, void *Patch);
+static inline void EmuInstallPatch(std::string FunctionName, xbaddr FunctionAddr, void *Patch);
 
 #include <shlobj.h>
 #include <unordered_map>
 #include <sstream>
 
 std::unordered_map<std::string, xbaddr> g_SymbolAddresses;
+std::unordered_map<std::string, subhook::Hook> g_FunctionHooks;
 
 // D3D build version
 uint16 g_BuildVersion;
@@ -66,6 +68,15 @@ bool bLLE_JIT = false; // Set this to true for experimental JIT
 
 bool bXRefFirstPass; // For search speed optimization, set in EmuHLEIntercept, read in EmuLocateFunction
 uint32 UnResolvedXRefs; // Tracks XRef location, used (read/write) in EmuHLEIntercept and EmuLocateFunction
+
+void* GetXboxFunctionPointer(std::string functionName)
+{
+	if (g_FunctionHooks.find(functionName) != g_FunctionHooks.end()) {
+		return g_FunctionHooks[functionName].GetTrampoline();
+	}
+
+	return nullptr;
+}
 
 std::string GetDetectedSymbolName(xbaddr address, int *symbolOffset)
 {
@@ -239,7 +250,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 					}
 					else
 					{
-						EmuInstallPatch(location, pFunc);
+						EmuInstallPatch(functionName, location, pFunc);
 						output << "\t*PATCHED*";
 					}
 				}
@@ -579,12 +590,9 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
     return;
 }
 
-static inline void EmuInstallPatch(xbaddr FunctionAddr, void *Patch)
+static inline void EmuInstallPatch(std::string FunctionName, xbaddr FunctionAddr, void *Patch)
 {
-    uint08 *FuncBytes = (uint08*)FunctionAddr;
-
-	*(uint08*)&FuncBytes[0] = OPCODE_JMP_E9; // = opcode for JMP rel32 (Jump near, relative, displacement relative to next instruction)
-    *(uint32*)&FuncBytes[1] = (uint32)Patch - FunctionAddr - 5;
+	g_FunctionHooks[FunctionName].Install((void*)(FunctionAddr), Patch);
 }
 
 static inline void GetXRefEntry(OOVPA *oovpa, int index, OUT uint32 &xref, OUT uint08 &offset)
@@ -863,9 +871,10 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 				<< " -> " << szCurrentSymbol << " " << std::dec << pBestEntry->Version;
 
 			// Retrieve the associated patch, if any is available
-			void* addr = GetEmuPatchAddr(std::string(szCurrentSymbol));
+			std::string szFuncName = std::string(szCurrentSymbol);
+			void* addr = GetEmuPatchAddr(szFuncName);
 			if (addr != nullptr) {
-				EmuInstallPatch(pFunc, addr);
+				EmuInstallPatch(szFuncName, pFunc, addr);
 				output << "\t*PATCHED*";
 			}
 			else {

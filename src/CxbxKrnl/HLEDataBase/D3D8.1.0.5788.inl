@@ -871,21 +871,6 @@ OOVPA_NO_XREF(D3DDevice_GetBackMaterial, 5788, 8)
 OOVPA_END;
 
 // ******************************************************************
-// * D3DDevice_CaptureStateBlock
-// ******************************************************************
-OOVPA_NO_XREF(D3DDevice_CaptureStateBlock, 5788, 8)
-
-        { 0x1E, 0x3C },
-        { 0x3E, 0xC0 },
-        { 0x5E, 0x7E },
-        { 0x7E, 0x00 },
-        { 0x9E, 0x74 },
-        { 0xC0, 0x8B },
-        { 0xDE, 0x83 },
-        { 0xFE, 0x45 },
-OOVPA_END;
-
-// ******************************************************************
 // * D3DDevice_DeleteStateBlock
 // ******************************************************************
 OOVPA_NO_XREF(D3DDevice_DeleteStateBlock, 5788, 9)

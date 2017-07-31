@@ -1348,6 +1348,21 @@ OOVPA_NO_XREF(D3DDevice_SetTile, 5558, 10)
 OOVPA_END;
 
 // ******************************************************************
+// * D3DDevice_CaptureStateBlock
+// ******************************************************************
+OOVPA_NO_XREF(D3DDevice_CaptureStateBlock, 5455, 8)
+	{ 0x1E, 0x3C },
+	{ 0x3E, 0xC0 },
+	{ 0x5E, 0x7E },
+	{ 0x7E, 0x00 },
+	{ 0x9E, 0x74 },
+	{ 0xC0, 0x8B },
+	{ 0xDE, 0x83 },
+	{ 0xFE, 0x45 },
+OOVPA_END;
+
+
+// ******************************************************************
 // * CMiniport::InitHardware
 // ******************************************************************
 OOVPA_NO_XREF(CMiniport_InitHardware, 5558, 24) // Also for 5659, 5788, 5849, 5933
