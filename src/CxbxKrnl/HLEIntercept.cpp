@@ -211,7 +211,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 			// Fix up Render state and Texture States
 			if (g_SymbolAddresses.find("D3DDeferredRenderState") == g_SymbolAddresses.end()) {
-				CxbxKrnlCleanup("Xbox_D3D__RenderState_Deferred was not found!");
+				EmuWarning("Xbox_D3D__RenderState_Deferred was not found!");
 			}
 			
 			if (g_SymbolAddresses.find("D3D__TextureState") == g_SymbolAddresses.end()) {
@@ -219,11 +219,11 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 					// Keep compatibility with HLE caches that contain "D3DDeferredTextureState" instead of "D3D__TextureState"
 					g_SymbolAddresses["D3D__TextureState"] = g_SymbolAddresses["D3DDeferredTextureState"];
 				else
-					CxbxKrnlCleanup("D3D__TextureState was not found!");
+					EmuWarning("D3D__TextureState was not found!");
 			}
 
 			if (g_SymbolAddresses.find("D3DDEVICE") == g_SymbolAddresses.end()) {
-				CxbxKrnlCleanup("D3DDEVICE was not found!");
+				EmuWarning("D3DDEVICE was not found!");
 			}
 
 			XTL::Xbox_D3D__RenderState_Deferred = (DWORD*)g_SymbolAddresses["D3DDeferredRenderState"];
