@@ -133,8 +133,8 @@ extern struct _D3DIVB
 	D3DCOLOR		 Specular;
 #if 0
 	FLOAT            Fog; // TODO : Handle
-	XTL::D3DCOLOR    BackDiffuse; // TODO : Handle
-	XTL::D3DCOLOR    BackSpecular; // TODO  : Handle
+	D3DCOLOR		BackDiffuse; // TODO : Handle
+	D3DCOLOR		BackSpecular; // TODO  : Handle
 #endif
     XTL::D3DXVECTOR3 TexCoord1;
     XTL::D3DXVECTOR3 TexCoord2;

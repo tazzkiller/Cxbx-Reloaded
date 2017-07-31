@@ -280,15 +280,6 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	break;
 	}
 	*/
-	if (XboxRenderState == X_D3DRS_FILLMODE)
-	{
-		// Configurable override on fillmode :
-		switch (g_iWireframe) {
-		case 0: break; // Use fillmode specified by the XBE
-		case 1: XboxValue = (DWORD)X_D3DFILL_WIREFRAME; break;
-		default: XboxValue = (DWORD)X_D3DFILL_POINT;
-		}
-	}
 
 	// Map the Xbox state to a PC state, and check if it's supported :
 	PCRenderState = Info.PC;
@@ -305,8 +296,8 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	PCValue = DxbxRenderStateXB2PCCallback[XboxRenderState](XboxValue);
 
 	HRESULT hRet;
-#if DXBX_USE_D3D9
 	switch (XboxRenderState) {
+#if DXBX_USE_D3D9
 	case X_D3DRS_EDGEANTIALIAS:
 		break; // TODO -oDxbx : What can we do to support this?
 	case X_D3DRS_ZBIAS:
@@ -323,14 +314,17 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
 		break;
 	}
-	default:
-		hRet = g_pD3DDevice8->SetRenderState(PCRenderState, PCValue);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
-	}
-#else
-	hRet = g_pD3DDevice8->SetRenderState(PCRenderState, PCValue);
-	//	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
 #endif
+	case X_D3DRS_FILLMODE: {
+		// Store actual dwFillMode for when g_iWireframe is changed
+		XTL::CxbxSetFillMode(PCValue);
+		break;
+	}
+	default: {
+		hRet = g_pD3DDevice8->SetRenderState(PCRenderState, PCValue);
+		//	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+	}
+	}
 
 	return PCValue;
 }
