@@ -2787,7 +2787,7 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 
 	// Poor-mans cache-eviction : Clear when full.
 	if (g_ConvertedIndexBuffers.size() >= MAX_CACHE_SIZE_INDEXBUFFERS) {
-		DbgPrintf("Texture cache full - clearing and repopulating");
+		DbgPrintf("Index buffer cache full - clearing and repopulating");
 		for (auto it = g_ConvertedIndexBuffers.begin(); it != g_ConvertedIndexBuffers.end(); ++it) {
 			auto pHostIndexBuffer = (XTL::IDirect3DIndexBuffer8 *)(it->second.pConvertedHostIndexBuffer);
 			if (pHostIndexBuffer != nullptr) {
@@ -5631,7 +5631,7 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 
 	// Poor-mans cache-eviction : Clear when full.
 	if (g_ConvertedVertexBuffers.size() >= MAX_CACHE_SIZE_VERTEXBUFFERS) {
-		DbgPrintf("Texture cache full - clearing and repopulating");
+		DbgPrintf("Vertex buffer cache full - clearing and repopulating");
 		for (auto it = g_ConvertedVertexBuffers.begin(); it != g_ConvertedVertexBuffers.end(); ++it) {
 			auto pHostVertexBuffer = (IDirect3DVertexBuffer8 *)(it->second.pConvertedHostResource);
 			if (pHostVertexBuffer != nullptr) {
