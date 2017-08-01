@@ -83,7 +83,7 @@ void ClearHLECache()
 WndMain::WndMain(HINSTANCE x_hInstance) :
 	Wnd(x_hInstance),
 	m_bCreated(false),
-	m_Xbe(0),
+	m_Xbe(nullptr),
 	m_bXbeChanged(false),
 	m_bIsStarted(false),
 	m_hwndChild(NULL),
@@ -405,7 +405,7 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
                 char buffer[255];
 
-                if(m_Xbe != 0 && m_Xbe->HasError())
+                if(m_Xbe != nullptr && m_Xbe->HasError())
                     sprintf(buffer, "%s Loaded!", m_Xbe->m_szAsciiTitle);
                 else
                     sprintf(buffer, "%s", "Disclaimer: Cxbx-Reloaded has no affiliation with Microsoft");
@@ -433,6 +433,7 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
                 case VK_F5:
                 {
 					if (m_Xbe != NULL)
+					if (m_Xbe != nullptr)
 						if (m_hwndChild == NULL)
 							if(!m_bIsStarted)
 								StartEmulation(hwnd);
@@ -481,10 +482,10 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
 				if (GetOpenFileName(&ofn) == TRUE)
 				{
-					if (m_Xbe != 0)
+					if (m_Xbe != nullptr)
 						CloseXbe();
 
-					if (m_Xbe != 0)
+					if (m_Xbe != nullptr)
 						break;
 
 					OpenXbe(ofn.lpstrFile);
@@ -1098,10 +1099,10 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
         case WM_CLOSE:
         {
-            if(m_Xbe != 0)
+            if(m_Xbe != nullptr)
                 CloseXbe();
 
-            if(m_Xbe == 0)
+            if(m_Xbe == nullptr)
                 DestroyWindow(hwnd);
         }
         break;
@@ -1128,7 +1129,7 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
             delete m_Xbe;
 
-            m_Xbe = 0;
+            m_Xbe = nullptr;
 
             PostQuitMessage(0);
         }
@@ -1200,7 +1201,7 @@ void WndMain::LoadLogo()
 // refresh menu items
 void WndMain::RefreshMenus()
 {
-	bool XbeLoaded = (m_Xbe != 0);
+	bool XbeLoaded = (m_Xbe != nullptr);
 	bool Running = (m_hwndChild != 0);
 	UINT MF_WhenXbeLoaded = XbeLoaded ? MF_ENABLED : MF_GRAYED;
 	UINT MF_WhenXbeLoadedNotRunning = (XbeLoaded && !Running) ? MF_ENABLED : MF_GRAYED;
@@ -1252,7 +1253,7 @@ void WndMain::RefreshMenus()
             // patch menu
             {
                 // check "allow >64 MB" if appropriate
-                if(m_Xbe != 0)
+                if(m_Xbe != nullptr)
                 {
                     UINT chk_flag = (m_Xbe->m_Header.dwInitFlags.bLimit64MB) ? MF_UNCHECKED : MF_CHECKED;
 
@@ -1260,7 +1261,7 @@ void WndMain::RefreshMenus()
                 }
 
                 // check "debug mode" if appropriate
-                if(m_Xbe != 0)
+                if(m_Xbe != nullptr)
                 {
                     UINT chk_flag = ((m_Xbe->m_Header.dwEntryAddr ^ XOR_EP_RETAIL) > 0x01000000) ? MF_CHECKED : MF_UNCHECKED;
 
@@ -1418,7 +1419,7 @@ void WndMain::UpdateRecentFiles()
 // open an xbe file
 void WndMain::OpenXbe(const char *x_filename)
 {
-    if(m_Xbe != 0)
+    if(m_Xbe != nullptr)
         return;
 
     strcpy(m_XbeFilename, x_filename);
@@ -1429,7 +1430,7 @@ void WndMain::OpenXbe(const char *x_filename)
     {
         MessageBox(m_hwnd, m_Xbe->GetError().c_str(), "Cxbx-Reloaded", MB_ICONSTOP | MB_OK);
 
-        delete m_Xbe; m_Xbe = 0;
+        delete m_Xbe; m_Xbe = nullptr;
 
         return;
     }
@@ -1517,7 +1518,7 @@ void WndMain::CloseXbe()
 
     m_bXbeChanged = false;
 
-    delete m_Xbe; m_Xbe = 0;
+    delete m_Xbe; m_Xbe = nullptr;
 
     RefreshMenus();
 
