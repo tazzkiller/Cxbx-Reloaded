@@ -5777,8 +5777,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	}
 #endif
 
-	bool bConvertToARGB = false;
-
 	// TODO: HACK: Temporary?
 	switch (X_Format)
 	{
@@ -5831,17 +5829,17 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	}
 	}
 
-	if (X_Format == X_D3DFMT_P8)
-	{
+	// Determine if a conversion to ARGB is needed
+	bool bConvertToARGB = false;
+	if (X_Format == X_D3DFMT_P8) {
 		if (!g_bSupportsP8) {
 			// Since most modern graphics cards don't support palettized textures,
 			// we need to convert these to ARGB texture format (see X_D3DFMT_P8 below)
 			bConvertToARGB = true;
 		}
-	} else
-	{
-		if (EmuXBFormatRequiresConversionToARGB(X_Format))
-		{
+	}
+	else {
+		if (EmuXBFormatRequiresConversionToARGB(X_Format)) {
 			EmuWarning("X_Format RequiresConversionToARGB");
 			bConvertToARGB = true;
 		}
