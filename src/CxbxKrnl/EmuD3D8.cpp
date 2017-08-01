@@ -2785,8 +2785,8 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 	ConvertedIndexBuffer& convertedIndexBuffer = g_ConvertedIndexBuffers[pIndexBufferData];
 
 	// Check if the data needs an updated conversion or not
-	XTL::IDirect3DIndexBuffer8 *pHostIndexBuffer = convertedIndexBuffer.pConvertedHostIndexBuffer;
-	if (pHostIndexBuffer != nullptr)
+	XTL::IDirect3DIndexBuffer8 *result = convertedIndexBuffer.pConvertedHostIndexBuffer;
+	if (result != nullptr)
 	{
 		// Only re-use if the size hasn't changed (we can't use larger buffers,
 		// since those will have have different hashes from smaller buffers)
@@ -2797,13 +2797,13 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 				// Hash is still the same - assume the converted resource doesn't require updating
 				// TODO : Maybe, if the converted resource gets too old, an update might still be wise
 				// to cater for differences that didn't cause a hash-difference (slight chance, but still).
-				return pHostIndexBuffer;
+				return result;
 			}
 		}
 
 		convertedIndexBuffer = {};
-		pHostIndexBuffer->Release();
-		pHostIndexBuffer = nullptr;
+		result->Release();
+		result = nullptr;
 	}
 
 	// Create a new native index buffer of the above determined size :
@@ -2812,7 +2812,7 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 		D3DUSAGE_WRITEONLY,
 		XTL::D3DFMT_INDEX16,
 		XTL::D3DPOOL_MANAGED,
-		&pHostIndexBuffer);
+		&result);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateIndexBuffer");
 
 	if (FAILED(hRet))
@@ -2820,24 +2820,24 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 
 	// Update the host index buffer
 	BYTE* pData = nullptr;
-	hRet = pHostIndexBuffer->Lock(0, 0, &pData, D3DLOCK_DISCARD);
+	hRet = result->Lock(0, 0, &pData, D3DLOCK_DISCARD);
 	DEBUG_D3DRESULT(hRet, "result->Lock");
 
 	if (pData == nullptr)
 		CxbxKrnlCleanup("CxbxUpdateIndexBuffer: Could not lock index buffer!");
 
 	memcpy(pData, pIndexBufferData, uiIndexBufferSize);
-	hRet = pHostIndexBuffer->Unlock();
+	hRet = result->Unlock();
 	DEBUG_D3DRESULT(hRet, "result->Unlock");
 
 	// Update the Index Count and the hash
 	convertedIndexBuffer.Hash = uiHash;
 	convertedIndexBuffer.uiIndexCount = uiIndexCount;
-	convertedIndexBuffer.pConvertedHostIndexBuffer = pHostIndexBuffer;
+	convertedIndexBuffer.pConvertedHostIndexBuffer = result;
 
 	DbgPrintf("Copied %d indices (D3DFMT_INDEX16)\n", uiIndexCount);
 
-	return pHostIndexBuffer;
+	return result;
 }
 
 void CxbxUpdateActiveIndexBuffer
