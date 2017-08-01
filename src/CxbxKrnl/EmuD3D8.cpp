@@ -127,7 +127,7 @@ static GUID                         g_ddguid;               // DirectDraw driver
 static XTL::LPDIRECT3D8             g_pD3D8 = nullptr;		// Direct3D8
 static XTL::D3DCAPS8                g_D3DCaps;              // Direct3D8 Caps
 
-// wireframe toggle
+// Wireframe toggle. Default 0=Xbox pass-through. Overrides: 1=D3DFILL_WIREFRAME,2=D3DFILL_POINT,3=D3DFILL_SOLID
 int                                 g_iWireframe = 0;
 // version-dependent correction on shader constant numbers
 int                                 X_D3DSCM_CORRECTION_VersionDependent = 0;
@@ -1593,7 +1593,8 @@ void XTL::CxbxSetFillMode(DWORD CurrentFillMode)
 	switch (g_iWireframe) {
 	case 0: dwFillMode = CurrentFillMode; break; // Use fillmode specified by the XBE
 	case 1: dwFillMode = D3DFILL_WIREFRAME; break;
-	default: dwFillMode = D3DFILL_POINT; break;
+	case 2: dwFillMode = D3DFILL_POINT; break;
+	default: dwFillMode = D3DFILL_SOLID; break;
 	}
 
 	HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_FILLMODE, dwFillMode);
@@ -2051,7 +2052,7 @@ static LRESULT WINAPI EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
             }
             else if(wParam == VK_F11)
             {
-                if(g_iWireframe++ >= 2)
+                if(g_iWireframe++ > 2)
                     g_iWireframe = 0;
             }
             else if(wParam == VK_F12)
