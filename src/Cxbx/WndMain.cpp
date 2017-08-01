@@ -432,7 +432,10 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
             {
                 case VK_F5:
                 {
-					if (m_Xbe != NULL)
+					// Try to open the most recent Xbe if none is opened yet :
+					if (m_Xbe == nullptr)
+						OpenMRU(0);
+
 					if (m_Xbe != nullptr)
 						if (m_hwndChild == NULL)
 							if(!m_bIsStarted)
