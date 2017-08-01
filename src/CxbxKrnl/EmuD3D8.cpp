@@ -5681,13 +5681,29 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
     return result;
 }
 
+// Since the same memory address can be used for multiple textures,
+// this struct construct a key out of all identifiying values.
+// This applies to X_D3DCOMMON_TYPE_TEXTURE and X_D3DCOMMON_TYPE_SURFACE.
+typedef struct {
+	xbaddr TextureData;
+	DWORD Format; // See X_D3DFORMAT_* masks and flags
+	DWORD Size; // See X_D3DSIZE_* masks
+} TextureResourceKey;
+
+// See https://stackoverflow.com/questions/40413309/c2678-binary-no-operator-found-which-takes-a-left-hand-operand-of-type-con
+inline bool operator< (const TextureResourceKey& lhs, const TextureResourceKey& rhs) {
+	// std::tuple's lexicographic ordering does all the actual work for you
+	// and using std::tie means no actual copies are made
+	return std::tie(lhs.TextureData, lhs.Format, lhs.Size) < std::tie(rhs.TextureData, rhs.Format, rhs.Size);
+}
+
 XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 (
 	XTL::X_D3DPixelContainer *pPixelContainer,
 	const DWORD *pPalette
 )
 {
-	static std::map<xbaddr, ConvertedResource> g_ConvertedTextures;
+	static std::map<TextureResourceKey, ConvertedResource> g_ConvertedTextures;
 
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
@@ -5740,8 +5756,14 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 	// TODO : Lock all access to g_ConvertedTextures
 
+	// Construct the identifying key for this Xbox texture
+	TextureResourceKey textureKey;
+	textureKey.TextureData = (xbaddr)pTextureData;
+	textureKey.Format = pPixelContainer->Format;
+	textureKey.Size = pPixelContainer->Size;
+
 	// Reference the converted texture (when the texture is not present, it's added) :
-	ConvertedResource &convertedTexture = g_ConvertedTextures[(xbaddr)pTextureData];
+	ConvertedResource &convertedTexture = g_ConvertedTextures[textureKey];
 
 	// Check if the data needs an updated conversion or not
 	IDirect3DBaseTexture8 *result = (XTL::IDirect3DBaseTexture8 *)convertedTexture.pConvertedHostResource;
@@ -6364,7 +6386,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	}
 #endif
 
-	g_ConvertedTextures[(xbaddr)pTextureData].pConvertedHostResource = result;
+	g_ConvertedTextures[textureKey].pConvertedHostResource = result;
 
 	return result;
 }
