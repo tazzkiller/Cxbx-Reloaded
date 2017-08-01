@@ -65,6 +65,10 @@ namespace xboxkrnl
 
 // This doesn't work : #include <dxerr8.h> // See DXGetErrorString8A below
 
+#define MAX_CACHE_SIZE_INDEXBUFFERS 256
+#define MAX_CACHE_SIZE_VERTEXBUFFERS 256
+#define MAX_CACHE_SIZE_TEXTURES 256
+
 // Global(s)
 HWND                                g_hEmuWindow   = nullptr; // rendering window
 XTL::LPDIRECT3DDEVICE8              g_pD3DDevice8  = nullptr; // Direct3D8 Device
@@ -2781,6 +2785,18 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 
 	// TODO : Lock all access to g_ConvertedIndexBuffers
 
+	// Poor-mans cache-eviction : Clear when full.
+	if (g_ConvertedIndexBuffers.size() >= MAX_CACHE_SIZE_INDEXBUFFERS) {
+		DbgPrintf("Texture cache full - clearing and repopulating");
+		for (auto it = g_ConvertedIndexBuffers.begin(); it != g_ConvertedIndexBuffers.end(); ++it) {
+			auto pHostIndexBuffer = (XTL::IDirect3DIndexBuffer8 *)(it->second.pConvertedHostIndexBuffer);
+			if (pHostIndexBuffer != nullptr) {
+				pHostIndexBuffer->Release(); // avoid memory leaks
+			}
+		}
+
+		g_ConvertedIndexBuffers.clear();
+	}
 	// Reference the converted index buffer (when it's not present, it's added) 
 	ConvertedIndexBuffer& convertedIndexBuffer = g_ConvertedIndexBuffers[pIndexBufferData];
 
@@ -2833,6 +2849,8 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 	// Update the Index Count and the hash
 	convertedIndexBuffer.Hash = uiHash;
 	convertedIndexBuffer.uiIndexCount = uiIndexCount;
+	// Store the resource in the cache
+	result->AddRef();
 	convertedIndexBuffer.pConvertedHostIndexBuffer = result;
 
 	DbgPrintf("Copied %d indices (D3DFMT_INDEX16)\n", uiIndexCount);
@@ -5611,6 +5629,19 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 
 	// TODO : Lock all access to g_ConvertedVertexBuffers
 
+	// Poor-mans cache-eviction : Clear when full.
+	if (g_ConvertedVertexBuffers.size() >= MAX_CACHE_SIZE_VERTEXBUFFERS) {
+		DbgPrintf("Texture cache full - clearing and repopulating");
+		for (auto it = g_ConvertedVertexBuffers.begin(); it != g_ConvertedVertexBuffers.end(); ++it) {
+			auto pHostVertexBuffer = (IDirect3DVertexBuffer8 *)(it->second.pConvertedHostResource);
+			if (pHostVertexBuffer != nullptr) {
+				pHostVertexBuffer->Release(); // avoid memory leaks
+			}
+		}
+
+		g_ConvertedVertexBuffers.clear();
+	}
+
 	// Reference the converted vertex buffer (when it's not present, it's added) :
 	ConvertedResource &convertedVertexBuffer = g_ConvertedVertexBuffers[pVertexBufferData];
 
@@ -5674,6 +5705,7 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 	SetHostVertexBuffer((XTL::X_D3DResource *)pXboxVertexBuffer, pNewHostVertexBuffer);
 
 	result = pNewHostVertexBuffer;
+	result->AddRef();
 	convertedVertexBuffer.pConvertedHostResource = result;
 
     DbgPrintf("CxbxUpdateVertexBuffer : Successfully Created VertexBuffer (0x%.08X)\n", result);
@@ -5755,6 +5787,19 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		uiHash = XXHash32::hash((void *)pPalette, (uint64_t)256 * sizeof(D3DCOLOR), uiHash);
 
 	// TODO : Lock all access to g_ConvertedTextures
+
+	// Poor-mans cache-eviction : Clear when full.
+	if (g_ConvertedTextures.size() >= MAX_CACHE_SIZE_TEXTURES) {
+		DbgPrintf("Texture cache full - clearing and repopulating");
+		for (auto it = g_ConvertedTextures.begin(); it != g_ConvertedTextures.end(); ++it) {
+			auto pHostTexture = (IDirect3DBaseTexture8 *)(it->second.pConvertedHostResource);
+			if (pHostTexture != nullptr) {
+				pHostTexture->Release(); // avoid memory leaks
+			}
+		}
+
+		g_ConvertedTextures.clear();
+	}
 
 	// Construct the identifying key for this Xbox texture
 	TextureResourceKey textureKey;
@@ -6386,6 +6431,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	}
 #endif
 
+	result->AddRef();
 	g_ConvertedTextures[textureKey].pConvertedHostResource = result;
 
 	return result;
