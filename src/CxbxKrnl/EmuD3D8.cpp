@@ -2779,7 +2779,7 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 	uint32_t uiHash = 0; // TODO : seed with characteristics
 	uiHash = XXHash32::hash((void *)pIndexBufferData, (uint64_t)uiIndexBufferSize, uiHash);
 
-	// TODO : Lock this
+	// TODO : Lock all access to g_ConvertedIndexBuffers
 
 	// Reference the converted index buffer (when it's not present, it's added) 
 	ConvertedIndexBuffer& convertedIndexBuffer = g_ConvertedIndexBuffers[pIndexBufferData];
@@ -5609,6 +5609,8 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 	uint32_t uiHash = 0; // TODO : seed with characteristics
 	uiHash = XXHash32::hash((void *)pVertexBufferData, (uint64_t)Size, uiHash);
 
+	// TODO : Lock all access to g_ConvertedVertexBuffers
+
 	// Reference the converted vertex buffer (when it's not present, it's added) :
 	ConvertedResource &convertedVertexBuffer = g_ConvertedVertexBuffers[pVertexBufferData];
 
@@ -5735,6 +5737,8 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (pPalette != NULL)
 		// TODO : Use actual palette size (but how to retrieve?)
 		uiHash = XXHash32::hash((void *)pPalette, (uint64_t)256 * sizeof(D3DCOLOR), uiHash);
+
+	// TODO : Lock all access to g_ConvertedTextures
 
 	// Reference the converted texture (when the texture is not present, it's added) :
 	ConvertedResource &convertedTexture = g_ConvertedTextures[(xbaddr)pTextureData];
