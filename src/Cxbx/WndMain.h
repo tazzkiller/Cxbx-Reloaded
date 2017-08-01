@@ -61,6 +61,7 @@ class WndMain : public Wnd
         // ******************************************************************
         void OpenXbe(const char *x_filename);
         void CloseXbe();
+		void OpenMRU(int mru);
         void SaveXbe(const char *x_filename);
         void SaveXbeAs();
 

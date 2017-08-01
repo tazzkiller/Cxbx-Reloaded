@@ -521,23 +521,7 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 			case ID_FILE_RXBE_8:
 			case ID_FILE_RXBE_9:
 			{
-				if (m_Xbe != 0)
-					CloseXbe();
-
-				if (m_Xbe != 0)
-					break;
-
-				HMENU menu = GetMenu(m_hwnd);
-				HMENU file_menu = GetSubMenu(menu, 0);
-				HMENU rxbe_menu = GetSubMenu(file_menu, 6);
-
-				char szBuffer[270];
-
-				GetMenuString(rxbe_menu, LOWORD(wParam), szBuffer, 269, MF_BYCOMMAND);
-
-				char *szFilename = (char*)((uint32)szBuffer + 5);
-
-				OpenXbe(szFilename);
+				OpenMRU(LOWORD(wParam) - ID_FILE_RXBE_0);
 			}
 			break;
 
@@ -1536,6 +1520,27 @@ void WndMain::CloseXbe()
     }
 
     RedrawWindow(m_hwnd, NULL, NULL, RDW_INVALIDATE);
+}
+
+void WndMain::OpenMRU(int mru)
+{
+	if (m_Xbe != nullptr) {
+		CloseXbe();
+		if (m_Xbe != nullptr)
+			return;
+	}
+
+	HMENU menu = GetMenu(m_hwnd);
+	HMENU file_menu = GetSubMenu(menu, 0);
+	HMENU rxbe_menu = GetSubMenu(file_menu, 6);
+
+	char szBuffer[270];
+
+	GetMenuString(rxbe_menu, ID_FILE_RXBE_0 + mru, szBuffer, 269, MF_BYCOMMAND);
+
+	char *szFilename = (char*)((uint32)szBuffer + 5); // +5 skips over "&%d : " prefix (see UpdateRecentFiles)
+
+	OpenXbe(szFilename);
 }
 
 // save xbe file
