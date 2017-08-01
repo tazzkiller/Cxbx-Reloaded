@@ -5501,7 +5501,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 		HRESULT hRet;
 
 		// Before clearing, make sure the correct output surfaces are used
-		CxbxUpdateActiveRenderTarget(); // TODO : Or should we have to call DxbxUpdateNativeD3DResources ?
+		CxbxUpdateActiveRenderTarget(); // No need to call full-fledged CxbxUpdateNativeD3DResources
 
 		// TODO : Dxbx doesn't do this - should we?
 		CxbxSetFillMode(g_CurrentFillMode);
@@ -5817,7 +5817,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		if (uiHash == convertedTexture.Hash)
 			// Hash is still the same - assume the converted resource doesn't require updating
 			// TODO : Maybe, if the converted resource gets too old, an update might still be wise
-			// to cater for differences that didn't cause a hash-difference (slight chance, but still).s
+			// to cater for differences that didn't cause a hash-difference (slight chance, but still).
 			return result;
 
 		convertedTexture = {};
