@@ -1560,7 +1560,7 @@ void CxbxUpdateActiveRenderTarget()
 	// This tries to fix VolumeFog on ATI :
 	if (FAILED(hRet))
 	{
-		// TODO : Maybe some info : http://forums.create.msdn.com/forums/t/2124.aspx
+		// TODO : Maybe some info : http://xboxforums.create.msdn.com/forums/t/2124.aspx
 		EmuWarning("SetRenderTarget failed! Trying ATI fix");
 		hRet = g_pD3DDevice8->SetRenderTarget(g_pActiveHostRenderTarget, nullptr);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderTarget [second]");
@@ -5482,11 +5482,11 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 	{
 		HRESULT hRet;
 
-		// TODO : Dxbx doesn't do this - should we?
-		CxbxSetFillMode(g_CurrentFillMode);
-
 		// Before clearing, make sure the correct output surfaces are used
 		CxbxUpdateActiveRenderTarget(); // TODO : Or should we have to call DxbxUpdateNativeD3DResources ?
+
+		// TODO : Dxbx doesn't do this - should we?
+		CxbxSetFillMode(g_CurrentFillMode);
 
 		hRet = g_pD3DDevice8->Clear(Count, pRects, PCFlags, Color, Z, Stencil);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
