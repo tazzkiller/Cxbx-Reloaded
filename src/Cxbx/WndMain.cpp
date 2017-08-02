@@ -535,17 +535,10 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
 		case WM_DROPFILES:
 		{
-			if(m_bIsStarted)
-			{
-				if (m_Xbe != 0)
-				{
-					CloseXbe();
-				}
-				HDROP hDropInfo = NULL; char *DroppedXbeFilename = (char*)calloc(1, MAX_PATH);
-				hDropInfo = (HDROP)wParam;
-				DragQueryFile(hDropInfo, 0, DroppedXbeFilename, MAX_PATH);
+			if(!m_bIsStarted) {
+				char DroppedXbeFilename[MAX_PATH];
+				DragQueryFile((HDROP)wParam, 0, DroppedXbeFilename, MAX_PATH);
 				OpenXbe(DroppedXbeFilename);
-				free(DroppedXbeFilename);
 			}
 		}
 		break;
@@ -573,12 +566,6 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
 				if (GetOpenFileName(&ofn) == TRUE)
 				{
-					if (m_Xbe != nullptr)
-						CloseXbe();
-
-					if (m_Xbe != nullptr)
-						break;
-
 					OpenXbe(ofn.lpstrFile);
 				}
 			}
@@ -1494,8 +1481,11 @@ void WndMain::UpdateRecentFiles()
 // open an xbe file
 void WndMain::OpenXbe(const char *x_filename)
 {
-    if(m_Xbe != nullptr)
-        return;
+	if (m_Xbe != nullptr) {
+		CloseXbe();
+		if (m_Xbe != nullptr)
+			return;
+	}
 
     strcpy(m_XbeFilename, x_filename);
 
@@ -1615,12 +1605,6 @@ void WndMain::CloseXbe()
 
 void WndMain::OpenMRU(int mru)
 {
-	if (m_Xbe != nullptr) {
-		CloseXbe();
-		if (m_Xbe != nullptr)
-			return;
-	}
-
 	HMENU menu = GetMenu(m_hwnd);
 	HMENU file_menu = GetSubMenu(menu, 0);
 	HMENU rxbe_menu = GetSubMenu(file_menu, 6);
