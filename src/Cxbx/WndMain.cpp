@@ -432,7 +432,7 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 					// (HWND)HIWORD(wParam) seems to be NULL, so we can't compare to m_hwndChild
 					if (m_hwndChild != NULL) { // Let's hope this signal originated from the only child window
 						KillTimer(hwnd, TIMERID_FPS);
-						m_hwndChild = NULL;
+						m_hwndChild = NULL; // Prevent closing the child window twice
 						StopEmulation();
 					}
                 }
@@ -547,7 +547,7 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
                 case VK_F6:
                 {
 					if(m_bIsStarted)
-                        StopEmulation();
+						StopEmulation();
                 }
                 break;
 
@@ -1438,7 +1438,6 @@ void WndMain::LoadGameLogo()
 	free(bitmapData);
 }
 
-
 // refresh menu items
 void WndMain::RefreshMenus()
 {
@@ -1704,7 +1703,7 @@ void WndMain::OpenXbe(const char *x_filename)
 
         delete m_Xbe; m_Xbe = nullptr;
 
-        UpdateCaption();
+		UpdateCaption();
         return;
     }
 
@@ -1775,8 +1774,8 @@ void WndMain::OpenXbe(const char *x_filename)
 // close xbe file
 void WndMain::CloseXbe()
 {
-    if (m_bIsStarted)
-        StopEmulation();
+	if (m_bIsStarted)
+		StopEmulation();
 
     if(m_bXbeChanged)
     {
@@ -1794,7 +1793,7 @@ void WndMain::CloseXbe()
 
     delete m_Xbe; m_Xbe = nullptr;
 
-    UpdateCaption();
+	UpdateCaption();
     RefreshMenus();
 
     // clear logo bitmap
