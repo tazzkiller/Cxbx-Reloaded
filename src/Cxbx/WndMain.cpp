@@ -1688,11 +1688,11 @@ void WndMain::UpdateCaption()
 // open an xbe file
 void WndMain::OpenXbe(const char *x_filename)
 {
-    if (m_Xbe != nullptr) {
-        CloseXbe();
-        if (m_Xbe != nullptr)
-            return;
-    }
+	if (m_Xbe != nullptr) {
+		CloseXbe();
+		if (m_Xbe != nullptr)
+			return;
+	}
 
     strcpy(m_XbeFilename, x_filename);
 
