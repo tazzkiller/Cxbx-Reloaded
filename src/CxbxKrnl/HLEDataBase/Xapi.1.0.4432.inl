@@ -38,18 +38,18 @@
 OOVPA_NO_XREF(XMountUtilityDrive, 4432, 8)
 
         // XapiUnknownBad1+0x51 : push 0x0104
-        { 0x51, 0x68 }, // (Offset,Value)-Pair #1
-        { 0x52, 0x04 }, // (Offset,Value)-Pair #2
-        { 0x53, 0x01 }, // (Offset,Value)-Pair #3
+        { 0x51, 0x68 },
+        { 0x52, 0x04 },
+        { 0x53, 0x01 },
 
         // XapiUnknownBad1+0xB3 : jnz +0x1A
-        { 0xB3, 0x75 }, // (Offset,Value)-Pair #4
-        { 0xB4, 0x1A }, // (Offset,Value)-Pair #5
+        { 0xB3, 0x75 },
+        { 0xB4, 0x1A },
 
         // XapiUnknownBad1+0xE8 : setnl al
-        { 0xE8, 0x0F }, // (Offset,Value)-Pair #6
-        { 0xE9, 0x9D }, // (Offset,Value)-Pair #7
-        { 0xEA, 0xC0 }, // (Offset,Value)-Pair #8
+        { 0xE8, 0x0F },
+        { 0xE9, 0x9D },
+        { 0xEA, 0xC0 },
 
         // TODO: Finish signature, toss out function call basically
 OOVPA_END;
@@ -58,6 +58,7 @@ OOVPA_END;
 // * XAPI_4432
 // ******************************************************************
 OOVPATable XAPI_4432[] = {
+
 	REGISTER_OOVPA(XMountUtilityDrive, 4432, PATCH),
 	REGISTER_OOVPA(XInitDevices, 3911, PATCH),
 	REGISTER_OOVPA(XGetDevices, 3911, PATCH),
@@ -78,10 +79,22 @@ OOVPATable XAPI_4432[] = {
 	REGISTER_OOVPA(SwitchToFiber, 3911, DISABLED),
 	REGISTER_OOVPA(ConvertThreadToFiber, 3911, DISABLED),
 	REGISTER_OOVPA(QueueUserAPC, 3911, PATCH),
-	REGISTER_OOVPA(timeSetEvent, 4134, PATCH),
-	REGISTER_OOVPA(timeKillEvent, 4134, PATCH),
+	REGISTER_OOVPA(timeSetEvent, 3911, PATCH),
+	REGISTER_OOVPA(timeKillEvent, 3911, PATCH),
 	REGISTER_OOVPA(XLaunchNewImageA, 3911, PATCH),
 	REGISTER_OOVPA(OutputDebugStringA, 3911, PATCH),
+	REGISTER_OOVPA(XRegisterThreadNotifyRoutine, 3911, PATCH),
+	REGISTER_OOVPA(SetThreadPriorityBoost, 3911, PATCH),
+	REGISTER_OOVPA(GetThreadPriority, 3911, PATCH),
+	REGISTER_OOVPA(XMountAlternateTitleA, 3911, PATCH),
+	REGISTER_OOVPA(XUnmountAlternateTitleA, 3911, PATCH),
+	REGISTER_OOVPA(XMountMUA, 4361, PATCH),
+	REGISTER_OOVPA(XMountMURootA, 4361, PATCH),
+	REGISTER_OOVPA(XInputPoll, 3911, PATCH),
+	REGISTER_OOVPA(XFormatUtilityDrive, 4361, PATCH),
+	REGISTER_OOVPA(GetOverlappedResult, 3911, PATCH),
+	REGISTER_OOVPA(XSetProcessQuantumLength, 4134, PATCH),
+	REGISTER_OOVPA(RaiseException, 3911, PATCH),
 };
 
 // ******************************************************************

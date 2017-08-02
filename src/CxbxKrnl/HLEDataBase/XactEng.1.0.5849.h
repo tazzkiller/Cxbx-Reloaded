@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->XG.1.0.4432.cpp
+// *   Cxbx->Win32->CxbxKrnl->XactEng.1.0.5849.h
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -31,33 +31,12 @@
 // *  All rights reserved
 // *
 // ******************************************************************
+#ifndef XACTENG_5849_H
+#define XACTENG_5849_H
 
+#include "OOVPA.h"
 
+extern OOVPATable XactEng_5849[];
+extern uint32     XactEng_5849_SIZE;
 
-// ******************************************************************
-// * XG_4432
-// ******************************************************************
-OOVPATable XG_4432[] = {
-	REGISTER_OOVPA(XGIsSwizzledFormat, 3911, PATCH),
-	// REGISTER_OOVPA(XGSwizzleRect, 3911, DISABLED), // TODO : Uncomment
-	// REGISTER_OOVPA(XGUnswizzleRect, 3911, DISABLED), // TODO : Uncomment
-	REGISTER_OOVPA(XGSwizzleBox, 3911, PATCH),
-	REGISTER_OOVPA(XGWriteSurfaceOrTextureToXPR, 3911, PATCH),
-	REGISTER_OOVPA(XGSetTextureHeader, 3911, PATCH),
-	REGISTER_OOVPA(XGSetVertexBufferHeader, 4361, XREF),
-	REGISTER_OOVPA(XGSetIndexBufferHeader, 4361, XREF),
-	REGISTER_OOVPA(XGCompressRect, 3911, XREF),
-	REGISTER_OOVPA(XGUnswizzleBox, 3911, DISABLED),
-
-	// ******************************************************************
-	// Provisional registration functions in XDK 4432
-	// TODO: Need test cases
-	// ******************************************************************
-	REGISTER_OOVPA(XFONT_OpenBitmapFontFromMemory, 4361, XREF),
-	// ******************************************************************
-};
-
-// ******************************************************************
-// * XG_4432_SIZE
-// ******************************************************************
-uint32 XG_4432_SIZE = sizeof(XG_4432);
+#endif

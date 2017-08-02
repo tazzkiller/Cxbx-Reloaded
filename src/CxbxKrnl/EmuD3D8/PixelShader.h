@@ -1,10 +1,10 @@
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
-// *  ,;;;'````'    `;;;,  .,;;  ;;;'';;'   `;;;,  .,;;
-// *  [[[             '[[,,[['   [[[__[[\.    '[[,,[['
-// *  $$$              Y$$$P     $$""""Y$$     Y$$$P
-// *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
+// *  ,;;;'````'    `;;;,  .,;;  ;;;'';;'   `;;;,  .,;; 
+// *  [[[             '[[,,[['   [[[__[[\.    '[[,,[['  
+// *  $$$              Y$$$P     $$""""Y$$     Y$$$P    
+// *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,  
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
 // *   Cxbx->Win32->CxbxKrnl->EmuD3D8->PixelShader.h
@@ -33,6 +33,8 @@
 // ******************************************************************
 #ifndef PIXELSHADER_H
 #define PIXELSHADER_H
+
+#pragma once
 
 #include "Cxbx.h"
 
@@ -222,205 +224,6 @@ enum PS_COMBINERCOUNTFLAGS
 };
 
 
-// =========================================================================================================
-// PSRGBInputs[0-7]
-// PSAlphaInputs[0-7]
-// PSFinalCombinerInputsABCD
-// PSFinalCombinerInputsEFG
-// --------.--------.--------.----xxxx // D register
-// --------.--------.--------.---x---- // D channel (0= RGB/BLUE, 1= ALPHA)
-// --------.--------.--------.xxx----- // D input mapping
-// --------.--------.----xxxx.-------- // C register
-// --------.--------.---x----.-------- // C channel (0= RGB/BLUE, 1= ALPHA)
-// --------.--------.xxx-----.-------- // C input mapping
-// --------.----xxxx.--------.-------- // B register
-// --------.---x----.--------.-------- // B channel (0= RGB/BLUE, 1= ALPHA)
-// --------.xxx-----.--------.-------- // B input mapping
-// ----xxxx.--------.--------.-------- // A register
-// ---x----.--------.--------.-------- // A channel (0= RGB/BLUE, 1= ALPHA)
-// xxx-----.--------.--------.-------- // A input mapping
-
-// examples:
-//
-// shader.PSRGBInputs[3]= PS_COMBINERINPUTS(
-//     PS_REGISTER_T0 | PS_INPUTMAPPING_EXPAND_NORMAL     | PS_CHANNEL_RGB,
-//     PS_REGISTER_C0 | PS_INPUTMAPPING_UNSIGNED_IDENTITY | PS_CHANNEL_ALPHA,
-//     PS_REGISTER_ZERO,
-//     PS_REGISTER_ZERO);
-//
-// shader.PSFinalCombinerInputsABCD= PS_COMBINERINPUTS(
-//     PS_REGISTER_T0     | PS_INPUTMAPPING_UNSIGNED_IDENTITY | PS_CHANNEL_ALPHA,
-//     PS_REGISTER_ZERO   | PS_INPUTMAPPING_EXPAND_NORMAL     | PS_CHANNEL_RGB,
-//     PS_REGISTER_EFPROD | PS_INPUTMAPPING_UNSIGNED_INVERT   | PS_CHANNEL_RGB,
-//     PS_REGISTER_ZERO);
-//
-// PS_FINALCOMBINERSETTING is set in 4th field of PSFinalCombinerInputsEFG with PS_COMBINERINPUTS
-// example:
-//
-// shader.PSFinalCombinerInputsEFG= PS_COMBINERINPUTS(
-//     PS_REGISTER_R0 | PS_INPUTMAPPING_UNSIGNED_IDENTITY | PS_CHANNEL_RGB,
-//     PS_REGISTER_R1 | PS_INPUTMAPPING_UNSIGNED_IDENTITY | PS_CHANNEL_RGB,
-//     PS_REGISTER_R1 | PS_INPUTMAPPING_UNSIGNED_IDENTITY | PS_CHANNEL_BLUE,
-//    PS_FINALCOMBINERSETTING_CLAMP_SUM | PS_FINALCOMBINERSETTING_COMPLEMENT_R0);
-
-#define PS_COMBINERINPUTS(a,b,c,d) (((a)<<24)|((b)<<16)|((c)<<8)|(d))
-// For PSFinalCombinerInputsEFG,
-//     a,b,c contain a value from PS_REGISTER, PS_CHANNEL, and PS_INPUTMAPPING for input E,F, and G
-//     d contains values from PS_FINALCOMBINERSETTING
-// For all other inputs,
-//     a,b,c,d each contain a value from PS_REGISTER, PS_CHANNEL, and PS_INPUTMAPPING
-
-enum PS_INPUTMAPPING
-{
-    PS_INPUTMAPPING_UNSIGNED_IDENTITY= 0x00L, // max(0,x)         OK for final combiner
-    PS_INPUTMAPPING_UNSIGNED_INVERT=   0x20L, // 1 - max(0,x)     OK for final combiner
-    PS_INPUTMAPPING_EXPAND_NORMAL=     0x40L, // 2*max(0,x) - 1   invalid for final combiner
-    PS_INPUTMAPPING_EXPAND_NEGATE=     0x60L, // 1 - 2*max(0,x)   invalid for final combiner
-    PS_INPUTMAPPING_HALFBIAS_NORMAL=   0x80L, // max(0,x) - 1/2   invalid for final combiner
-    PS_INPUTMAPPING_HALFBIAS_NEGATE=   0xa0L, // 1/2 - max(0,x)   invalid for final combiner
-    PS_INPUTMAPPING_SIGNED_IDENTITY=   0xc0L, // x                invalid for final combiner
-    PS_INPUTMAPPING_SIGNED_NEGATE=     0xe0L, // -x               invalid for final combiner
-};
-
-enum PS_REGISTER
-{
-    PS_REGISTER_ZERO=              0x00L, // r
-    PS_REGISTER_DISCARD=           0x00L, // w
-    PS_REGISTER_C0=                0x01L, // r
-    PS_REGISTER_C1=                0x02L, // r
-    PS_REGISTER_FOG=               0x03L, // r
-    PS_REGISTER_V0=                0x04L, // r/w
-    PS_REGISTER_V1=                0x05L, // r/w
-    PS_REGISTER_T0=                0x08L, // r/w
-    PS_REGISTER_T1=                0x09L, // r/w
-    PS_REGISTER_T2=                0x0aL, // r/w
-    PS_REGISTER_T3=                0x0bL, // r/w
-    PS_REGISTER_R0=                0x0cL, // r/w
-    PS_REGISTER_R1=                0x0dL, // r/w
-    PS_REGISTER_V1R0_SUM=          0x0eL, // r
-    PS_REGISTER_EF_PROD=           0x0fL, // r
-
-    PS_REGISTER_ONE=               PS_REGISTER_ZERO | PS_INPUTMAPPING_UNSIGNED_INVERT, // OK for final combiner
-    PS_REGISTER_NEGATIVE_ONE=      PS_REGISTER_ZERO | PS_INPUTMAPPING_EXPAND_NORMAL,   // invalid for final combiner
-    PS_REGISTER_ONE_HALF=          PS_REGISTER_ZERO | PS_INPUTMAPPING_HALFBIAS_NEGATE, // invalid for final combiner
-    PS_REGISTER_NEGATIVE_ONE_HALF= PS_REGISTER_ZERO | PS_INPUTMAPPING_HALFBIAS_NORMAL, // invalid for final combiner
-};
-
-// FOG ALPHA is only available in final combiner
-// V1R0_SUM and EF_PROD are only available in final combiner (A,B,C,D inputs only)
-// V1R0_SUM_ALPHA and EF_PROD_ALPHA are not available
-// R0_ALPHA is initialized to T0_ALPHA in stage0
-
-enum PS_CHANNEL
-{
-    PS_CHANNEL_RGB=   0x00, // used as RGB source
-    PS_CHANNEL_BLUE=  0x00, // used as ALPHA source
-    PS_CHANNEL_ALPHA= 0x10, // used as RGB or ALPHA source
-};
-
-
-enum PS_FINALCOMBINERSETTING
-{
-    PS_FINALCOMBINERSETTING_CLAMP_SUM=     0x80, // V1+R0 sum clamped to [0,1]
-
-    PS_FINALCOMBINERSETTING_COMPLEMENT_V1= 0x40, // unsigned invert mapping
-
-    PS_FINALCOMBINERSETTING_COMPLEMENT_R0= 0x20, // unsigned invert mapping
-};
-
-// =========================================================================================================
-// PSRGBOutputs[0-7]
-// PSAlphaOutputs[0-7]
-// --------.--------.--------.----xxxx // CD register
-// --------.--------.--------.xxxx---- // AB register
-// --------.--------.----xxxx.-------- // SUM register
-// --------.--------.---x----.-------- // CD output (0= multiply, 1= dot product)
-// --------.--------.--x-----.-------- // AB output (0= multiply, 1= dot product)
-// --------.--------.-x------.-------- // AB_CD mux/sum select (0= sum, 1= mux)
-// --------.------xx.x-------.-------- // Output mapping
-// --------.-----x--.--------.-------- // CD blue to alpha
-// --------.----x---.--------.-------- // AB blue to alpha
-
-#define PS_COMBINEROUTPUTS(ab,cd,mux_sum,flags) (((flags)<<12)|((mux_sum)<<8)|((ab)<<4)|(cd))
-// ab,cd,mux_sum contain a value from PS_REGISTER
-// flags contains values from PS_COMBINEROUTPUT
-
-enum PS_COMBINEROUTPUT
-{
-    PS_COMBINEROUTPUT_IDENTITY=            0x00L, // y = x
-    PS_COMBINEROUTPUT_BIAS=                0x08L, // y = x - 0.5
-    PS_COMBINEROUTPUT_SHIFTLEFT_1=         0x10L, // y = x*2
-    PS_COMBINEROUTPUT_SHIFTLEFT_1_BIAS=    0x18L, // y = (x - 0.5)*2
-    PS_COMBINEROUTPUT_SHIFTLEFT_2=         0x20L, // y = x*4
-    PS_COMBINEROUTPUT_SHIFTRIGHT_1=        0x30L, // y = x/2
-
-    PS_COMBINEROUTPUT_AB_BLUE_TO_ALPHA=    0x80L, // RGB only
-
-    PS_COMBINEROUTPUT_CD_BLUE_TO_ALPHA=    0x40L, // RGB only
-
-    PS_COMBINEROUTPUT_AB_MULTIPLY=         0x00L,
-    PS_COMBINEROUTPUT_AB_DOT_PRODUCT=      0x02L, // RGB only
-
-    PS_COMBINEROUTPUT_CD_MULTIPLY=         0x00L,
-    PS_COMBINEROUTPUT_CD_DOT_PRODUCT=      0x01L, // RGB only
-
-    PS_COMBINEROUTPUT_AB_CD_SUM=           0x00L, // 3rd output is AB+CD
-    PS_COMBINEROUTPUT_AB_CD_MUX=           0x04L, // 3rd output is MUX(AB,CD) based on R0.a
-};
-
-// AB_CD register output must be DISCARD if either AB_DOT_PRODUCT or CD_DOT_PRODUCT are set
-
-// =========================================================================================================
-// PSC0Mapping
-// PSC1Mapping
-// --------.--------.--------.----xxxx // offset of D3D constant for stage 0
-// --------.--------.--------.xxxx---- // offset of D3D constant for stage 1
-// --------.--------.----xxxx.-------- // offset of D3D constant for stage 2
-// --------.--------.xxxx----.-------- // offset of D3D constant for stage 3
-// --------.----xxxx.--------.-------- // offset of D3D constant for stage 4
-// --------.xxxx----.--------.-------- // offset of D3D constant for stage 5
-// ----xxxx.--------.--------.-------- // offset of D3D constant for stage 6
-// xxxx----.--------.--------.-------- // offset of D3D constant for stage 7
-
-#define PS_CONSTANTMAPPING(s0,s1,s2,s3,s4,s5,s6,s7) \
-     (((DWORD)(s0)&0xf)<< 0) | (((DWORD)(s1)&0xf)<< 4) | \
-     (((DWORD)(s2)&0xf)<< 8) | (((DWORD)(s3)&0xf)<<12) | \
-     (((DWORD)(s4)&0xf)<<16) | (((DWORD)(s5)&0xf)<<20) | \
-     (((DWORD)(s6)&0xf)<<24) | (((DWORD)(s7)&0xf)<<28)
-// s0-s7 contain the offset of the D3D constant that corresponds to the
-// c0 or c1 constant in stages 0 through 7.  These mappings are only used in
-// SetPixelShaderConstant().
-
-// =========================================================================================================
-// PSFinalCombinerConstants
-// --------.--------.--------.----xxxx // offset of D3D constant for C0
-// --------.--------.--------.xxxx---- // offset of D3D constant for C1
-// --------.--------.-------x.-------- // Adjust texture flag
-
-#define PS_FINALCOMBINERCONSTANTS(c0,c1,flags) (((DWORD)(flags) << 8) | ((DWORD)(c0)&0xf)<< 0) | (((DWORD)(c1)&0xf)<< 4)
-// c0 and c1 contain the offset of the D3D constant that corresponds to the
-// constants in the final combiner.  These mappings are only used in
-// SetPixelShaderConstant().  Flags contains values from PS_GLOBALFLAGS
-
-enum PS_GLOBALFLAGS
-{
-    // if this flag is set, the texture mode for each texture stage is adjusted as follows:
-    //     if set texture is a cubemap,
-    //         change PS_TEXTUREMODES_PROJECT2D to PS_TEXTUREMODES_CUBEMAP
-    //         change PS_TEXTUREMODES_PROJECT3D to PS_TEXTUREMODES_CUBEMAP
-    //         change PS_TEXTUREMODES_DOT_STR_3D to PS_TEXTUREMODES_DOT_STR_CUBE
-    //     if set texture is a volume texture,
-    //         change PS_TEXTUREMODES_PROJECT2D to PS_TEXTUREMODES_PROJECT3D
-    //         change PS_TEXTUREMODES_CUBEMAP to PS_TEXTUREMODES_PROJECT3D
-    //         change PS_TEXTUREMODES_DOT_STR_CUBE to PS_TEXTUREMODES_DOT_STR_3D
-    //     if set texture is neither cubemap or volume texture,
-    //         change PS_TEXTUREMODES_PROJECT3D to PS_TEXTUREMODES_PROJECT2D
-    //         change PS_TEXTUREMODES_CUBEMAP to PS_TEXTUREMODES_PROJECT2D
-
-    PS_GLOBALFLAGS_NO_TEXMODE_ADJUST=     0x0000L, // don't adjust texture modes
-    PS_GLOBALFLAGS_TEXMODE_ADJUST=        0x0001L, // adjust texture modes according to set texture
-};
-
 // dump pixel shader definition to file
 void DumpPixelShaderDefToFile( X_D3DPIXELSHADERDEF* pPSDef, const char* pszCode );
 // print relevant contents to the debug console
@@ -434,6 +237,9 @@ HRESULT EmuRecompilePshDef( X_D3DPIXELSHADERDEF* pPSDef, LPD3DXBUFFER* ppRecompi
 // Pixel Shader Stuff
 HRESULT CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* ppRecompiled);
 
+// PatrickvL's Dxbx pixel shader translation
+HRESULT DxbxUpdateActivePixelShader(X_D3DPIXELSHADERDEF *pPSDef, DWORD *pHandle); // NOPATCH
+
 // check
 bool IsValidPixelShader(void);
 
@@ -445,4 +251,4 @@ inline void null_func_psh(...) { }
 #define DbgPshPrintf XTL::null_func_psh
 #endif
 
-#endif
+#endif // PIXELSHADER_H

@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Core->Xbe.h
+// *   Cxbx->Common->Xbe.h
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -42,6 +42,9 @@
 //#include <windef.h> // For MAX_PATH
 // The above leads to 55 compile errors, so until we've sorted out why that happens, declare MAX_PATH ourselves for now :
 #define MAX_PATH 260
+#define XPR_IMAGE_WH 128
+#define XPR_IMAGE_DATA_SIZE (XPR_IMAGE_WH * XPR_IMAGE_WH) / 2
+#define XPR_IMAGE_HDR_SIZE 2048
 
 // Xbe (Xbox Executable) file object
 class Xbe : public Error
@@ -52,6 +55,9 @@ class Xbe : public Error
 		
         // deconstructor
        ~Xbe();
+
+	   // find an image by name
+	   void *FindSection(char *zsSectionName);
 
         // export to Xbe file
         void Export(const char *x_szXbeFilename);
@@ -261,6 +267,63 @@ class Xbe : public Error
             }
             m_Sixteen;
         };
+
+	public:
+		// used to decode game logo bitmap data
+		#include "AlignPrefix1.h"
+		struct X_D3DResourceLoc
+		{
+			uint32 Common;
+			uint32 Data;
+			uint32 Lock;
+			uint32 Format;
+			uint32 Size;
+		}
+		#include "AlignPosfix1.h"
+		;
+
+		#include "AlignPrefix1.h"
+		// XPR structures
+
+		// Purpose:
+		//   The XPR file format allows multiple graphics resources to be pre-defined
+		//   and bundled together into one file.  These resources can be copied into
+		//   memory and then immediately used in-place as D3D objects such as textures
+		//   and vertex buffers.  The structure below defines the XPR header and the
+		//   unique identifier for this file type.
+		struct XprHeader
+		{
+			uint32 dwXprMagic; // 'XPR0' or 'XPR1'
+			uint32 dwXprTotalSize;
+			uint32 dwXprHeaderSize;
+		}
+		#include "AlignPosfix1.h"
+		*m_xprHeader;
+
+		#include "AlignPrefix1.h"
+		// Layout of SaveImage.xbx saved game image file
+		//
+		// File is XPR0 format. Since the XPR will always contain only a single
+		// 256x256 DXT1 image, we know exactly what the header portion will look like
+		struct XprImageHeader
+		{
+			XprHeader xprHeader; // Standard XPR struct
+			X_D3DResourceLoc d3dTexture; // Standard D3D texture struct
+			uint32 dwEndOfHeader; // $FFFFFFFF
+		}
+		#include "AlignPosfix1.h"
+		*m_xprImageHeader;
+
+
+		#include "AlignPrefix1.h"
+		struct XprImage
+		{
+			XprImageHeader xprImageHeader;
+			char strPad[XPR_IMAGE_HDR_SIZE - sizeof(XprImageHeader)];
+			unsigned char pBits;
+		}
+		#include "AlignPosfix1.h"
+		*m_xprImage;
 };
 
 // debug/retail XOR keys
@@ -293,9 +356,5 @@ const uint32 XBEIMAGE_MEDIA_TYPE_MEDIA_BOARD         = 0x00000200;
 const uint32 XBEIMAGE_MEDIA_TYPE_NONSECURE_HARD_DISK = 0x40000000;
 const uint32 XBEIMAGE_MEDIA_TYPE_NONSECURE_MODE      = 0x80000000;
 const uint32 XBEIMAGE_MEDIA_TYPE_MEDIA_MASK          = 0x00FFFFFF;
-
-// OpenXDK logo bitmap (used by cxbe by default)
-extern uint08 OpenXDK[];
-extern uint32 dwSizeOfOpenXDK;
 
 #endif

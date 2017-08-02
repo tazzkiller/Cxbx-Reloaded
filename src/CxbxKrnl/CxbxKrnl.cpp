@@ -50,6 +50,7 @@ namespace xboxkrnl
 #include "EmuFile.h"
 #include "EmuFS.h"
 #include "EmuEEPROM.h" // For CxbxRestoreEEPROM, EEPROM, XboxFactoryGameRegion
+#include "EmuKrnl.h"
 #include "EmuShared.h"
 #include "EmuNV2A.h" // For InitOpenGLContext
 #include "HLEIntercept.h"
@@ -58,6 +59,7 @@ namespace xboxkrnl
 
 #include <shlobj.h>
 #include <clocale>
+#include <process.h>
 #include <Shlwapi.h>
 #include <time.h> // For time()
 
@@ -235,7 +237,7 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 {
 	// First, try to open an existing memory.bin file :
 	HANDLE hFile = CreateFile(szFilePath_memory_bin,
-		GENERIC_READ | GENERIC_WRITE,
+		GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE, 
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
 		/* lpSecurityAttributes */nullptr,
 		OPEN_EXISTING,
@@ -247,7 +249,7 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 	{
 		// If the memory.bin file doesn't exist yet, create it :
 		hFile = CreateFile(szFilePath_memory_bin,
-			GENERIC_READ | GENERIC_WRITE,
+			GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE,
 			FILE_SHARE_READ | FILE_SHARE_WRITE,
 			/* lpSecurityAttributes */nullptr,
 			OPEN_ALWAYS,
@@ -265,7 +267,7 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 	HANDLE hFileMapping = CreateFileMapping(
 		hFile,
 		/* lpFileMappingAttributes */nullptr,
-		PAGE_READWRITE,
+		PAGE_EXECUTE_READWRITE,
 		/* dwMaximumSizeHigh */0,
 		/* dwMaximumSizeLow */CONTIGUOUS_MEMORY_SIZE,
 		/**/nullptr);
@@ -278,7 +280,7 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 	// Map memory.bin contents into memory :
 	void *memory = (void *)MapViewOfFileEx(
 		hFileMapping,
-		FILE_MAP_READ | FILE_MAP_WRITE,
+		FILE_MAP_READ | FILE_MAP_WRITE | FILE_MAP_EXECUTE,
 		/* dwFileOffsetHigh */0,
 		/* dwFileOffsetLow */0,
 		CONTIGUOUS_MEMORY_SIZE,
@@ -300,7 +302,7 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 	// Map memory.bin contents into tiled memory too :
 	void *tiled_memory = (void *)MapViewOfFileEx(
 		hFileMapping,
-		FILE_MAP_READ | FILE_MAP_WRITE,
+		FILE_MAP_READ | FILE_MAP_WRITE | FILE_MAP_EXECUTE,
 		/* dwFileOffsetHigh */0,
 		/* dwFileOffsetLow */0,
 		CONTIGUOUS_MEMORY_SIZE,
@@ -329,6 +331,69 @@ void CxbxPopupMessage(const char *message, ...)
 
 	DbgPrintf("Popup : %s\n", Buffer);
 	MessageBox(NULL, Buffer, TEXT("Cxbx-Reloaded"), MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST | MB_SETFOREGROUND);
+}
+
+void PrintCurrentConfigurationLog() {
+	// Print current LLE configuration
+	{
+		printf("---------------------------- LLE CONFIG ----------------------------\n");
+		printf("EmuMain: LLE for APU is %s\n", bLLE_APU ? "enabled" : "disabled");
+		printf("EmuMain: LLE for GPU is %s\n", bLLE_GPU ? "enabled" : "disabled");
+		printf("EmuMain: LLE for JIT is %s\n", bLLE_JIT ? "enabled" : "disabled");
+	}
+
+	// Print current INPUT configuration
+	{
+		printf("--------------------------- INPUT CONFIG ---------------------------\n");
+		printf("EmuMain: Using %s\n", g_XInputEnabled ? "XInput" : "DirectInput");
+	}
+
+	// Print current video configuration
+	{
+		XBVideo XBVideoConf;
+		g_EmuShared->GetXBVideo(&XBVideoConf);
+
+		printf("--------------------------- VIDEO CONFIG ---------------------------\n");
+		printf("EmuMain: Direct3D Device: %s\n", XBVideoConf.GetDirect3DDevice() == 0 ? "Direct3D HAL (Hardware Accelerated)" : "Direct3D REF (Software)");
+		printf("EmuMain: Video Resolution: %s\n", XBVideoConf.GetVideoResolution());
+		printf("EmuMain: Force VSync is %s\n", XBVideoConf.GetVSync() ? "enabled" : "disabled");
+		printf("EmuMain: Fullscreen is %s\n", XBVideoConf.GetFullscreen() ? "enabled" : "disabled");
+		printf("EmuMain: Hardware YUV is %s\n", XBVideoConf.GetHardwareYUV() ? "enabled" : "disabled");
+	}
+
+	// Print current audio configuration
+	{
+		XBAudio XBAudioConf;
+		g_EmuShared->GetXBAudio(&XBAudioConf);
+
+		printf("--------------------------- AUDIO CONFIG ---------------------------\n");
+		printf("EmuMain: Audio Adapter: %s\n", XBAudioConf.GetAudioAdapter().Data1 == 0 ? "Primary Audio Device" : "Secondary Audio Device");
+		printf("EmuMain: Legacy Audio Hack is %s\n", XBAudioConf.GetLegacyAudioHack() ? "enabled" : "disabled");
+		printf("EmuMain: PCM is %s\n", XBAudioConf.GetPCM() ? "enabled" : "disabled");
+		printf("EmuMain: XADPCM is %s\n", XBAudioConf.GetXADPCM() ? "enabled" : "disabled");
+		printf("EmuMain: Unknown Codec is %s\n", XBAudioConf.GetUnknownCodec() ? "enabled" : "disabled");
+	}
+
+	printf("------------------------- END OF CONFIG LOG ------------------------\n");
+}
+
+static unsigned int WINAPI CxbxKrnlInterruptThread(PVOID param)
+{
+	// Make sure Xbox1 code runs on one core :
+	InitXboxThread(g_CPUXbox);
+
+	while (true) {
+		for (int i = 0; i < MAX_BUS_INTERRUPT_LEVEL; i++) {
+			// If the interrupt is pending and connected, process it
+			if (HalSystemInterrupts[i].IsPending() && EmuInterruptList[i]->Connected) {
+				HalSystemInterrupts[i].Trigger(EmuInterruptList[i]);
+			}
+		}
+
+		SwitchToThread();
+	}
+
+	return 0;
 }
 
 void CxbxKrnlMain(int argc, char* argv[])
@@ -627,7 +692,7 @@ void CxbxKrnlInit
 	// Write a header to the log
 	{
 		printf("[0x%X] EmuMain: Cxbx-Reloaded Version %s\n", GetCurrentThreadId(), _CXBX_VERSION);
-		
+
 		time_t startTime = time(nullptr);
 		struct tm* tm_info = localtime(&startTime);
 		char timeString[26];
@@ -680,33 +745,22 @@ void CxbxKrnlInit
 	{
 		int CxbxLLE_Flags;
 		g_EmuShared->GetFlagsLLE(&CxbxLLE_Flags);
-
 		bLLE_APU = (CxbxLLE_Flags & LLE_APU) > 0;
-		if (bLLE_APU)
-			printf("EmuMain : LLE enabled for APU.\n");
-
 		bLLE_GPU = (CxbxLLE_Flags & LLE_GPU) > 0;
-		if (bLLE_GPU)
-			printf("EmuMain : LLE enabled for GPU.\n");
-
 		bLLE_JIT = (CxbxLLE_Flags & LLE_JIT) > 0;
-		if (bLLE_JIT)
-			printf("EmuMain : LLE enabled for JIT.\n");
 	}
 
 	// Process XInput Enabled flag
 	{
 		int XInputEnabled;
 		g_EmuShared->GetXInputEnabled(&XInputEnabled);
-		if (XInputEnabled) {
-			g_XInputEnabled = true;
-			printf("EmuMain : Using XInput\n");
-		} else {
-			g_XInputEnabled = false;
-			printf("EmuMain : Using DirectInput\n");
-		}
+		g_XInputEnabled = XInputEnabled;
 	}
 
+#ifdef _DEBUG_PRINT_CURRENT_CONF
+	PrintCurrentConfigurationLog();
+#endif
+	
 	// Initialize devices :
 	char szBuffer[MAX_PATH];
 	SHGetSpecialFolderPath(NULL, szBuffer, CSIDL_APPDATA, TRUE);
@@ -823,9 +877,6 @@ void CxbxKrnlInit
 			// Else the other threads must run on the same core as the Xbox code :
 			g_CPUOthers = g_CPUXbox;
 		}
-
-		// Make sure Xbox1 code runs on one core :
-		SetThreadAffinityMask(GetCurrentThread(), g_CPUXbox);
 	}
 
 	// initialize grapchics
@@ -835,6 +886,9 @@ void CxbxKrnlInit
     XTL::CxbxInitAudio();
 
 	EmuHLEIntercept(pXbeHeader);
+
+	// Always initialise NV2A: We may need it for disabled HLE patches too!
+	EmuNV2A_Init();
 
 	if (bLLE_GPU)
 	{
@@ -855,18 +909,19 @@ void CxbxKrnlInit
 	// Setup per-title encryption keys
 	SetupPerTitleKeys();
 
-	// initialize FS segment selector
-	{
-		EmuInitFS();
-		EmuGenerateFS(pTLS, pTLSData);
-	}
+	EmuInitFS();
+
+	InitXboxThread(g_CPUXbox);
 
 	EmuX86_Init();
+	// Create the interrupt processing thread
+	DWORD dwThreadId;
+	HANDLE hThread = (HANDLE)_beginthreadex(NULL, NULL, CxbxKrnlInterruptThread, NULL, NULL, (uint*)&dwThreadId);
     DbgPrintf("EmuMain: Initial thread starting.\n");
 	CxbxLaunchXbe(Entry);
     DbgPrintf("EmuMain: Initial thread ended.\n");
     fflush(stdout);
-	EmuShared::Cleanup();
+	//	EmuShared::Cleanup();   FIXME: commenting this line is a bad workaround for issue #617 (https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/issues/617)
     CxbxKrnlTerminateThread();
     return;
 }

@@ -196,9 +196,10 @@ BOOL WINAPI XTL::EMUPATCH(XGetDeviceChanges)
 	// Without this, JSRF hard crashes sometime after calling this function
 	// I HATE game specific hacks, but I've wasted three weeks trying to solve this already
 	// TitleID 0x49470018 = JSRF NTSC-U
-	// TitleID 0x5345000A = JSRF PAL
+	// TitleID 0x5345000A = JSRF PAL, NTSC-J
+	// TitleID 0x53450016 = JSRF NTSC-J (Demo)
 	// ~Luke Usher
-	if (g_pCertificate->dwTitleId == 0x49470018 || g_pCertificate->dwTitleId == 0x5345000A) {
+	if (g_pCertificate->dwTitleId == 0x49470018 || g_pCertificate->dwTitleId == 0x5345000A || g_pCertificate->dwTitleId == 0x53450016) {
 		RETURN(ret);
 	}
 
@@ -219,6 +220,26 @@ BOOL WINAPI XTL::EMUPATCH(XGetDeviceChanges)
 
 	*pdwRemovals = 0;  
 
+/*
+    if(!DeviceType->ChangeConnected)
+    {
+        *pdwInsertions = 0;
+        *pdwRemovals = 0;
+    }
+    else
+    {
+        *pdwInsertions = (DeviceType->CurrentConnected & ~DeviceType->PreviousConnected);
+        *pdwRemovals = (DeviceType->PreviousConnected & ~DeviceType->CurrentConnected);
+        ULONG RemoveInsert = DeviceType->ChangeConnected &
+            DeviceType->CurrentConnected &
+            DeviceType->PreviousConnected;
+        *pdwRemovals |= RemoveInsert;
+        *pdwInsertions |= RemoveInsert;
+        DeviceType->ChangeConnected = 0;
+        DeviceType->PreviousConnected = DeviceType->CurrentConnected;
+        ret = (*pdwInsertions | *pdwRemovals) ? TRUE : FALSE;
+    }
+*/
 	RETURN(ret);
 }
 
@@ -660,7 +681,7 @@ VOID WINAPI XTL::EMUPATCH(XapiThreadStartup)
     DWORD dwDummy2
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(dwDummy1)
@@ -695,7 +716,7 @@ VOID WINAPI XTL::EMUPATCH(XRegisterThreadNotifyRoutine)
     BOOL                    fRegister
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pThreadNotification)
@@ -923,6 +944,7 @@ DWORD WINAPI XTL::EMUPATCH(QueueUserAPC)
 	RETURN(dwRet);
 }
 
+#if 0 // Handled by WaitForSingleObject
 // ******************************************************************
 // * patch: GetOverlappedResult
 // ******************************************************************
@@ -934,7 +956,7 @@ BOOL WINAPI XTL::EMUPATCH(GetOverlappedResult)
 	BOOL			bWait
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(hFile)
@@ -950,6 +972,7 @@ BOOL WINAPI XTL::EMUPATCH(GetOverlappedResult)
 
 	RETURN(bRet);
 }
+#endif
 
 // ******************************************************************
 // * patch: XLaunchNewImageA
@@ -960,7 +983,7 @@ DWORD WINAPI XTL::EMUPATCH(XLaunchNewImageA)
 	PLAUNCH_DATA	pLaunchData
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	// Note : This can be tested using "Innocent tears",
 	// which relaunches different xbes between scenes;
