@@ -404,23 +404,21 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
             {
                 case WM_CREATE:
                 {
-                    m_hwndChild = GetWindow(hwnd, GW_CHILD);
-
-                    char AsciiTitle[MAX_PATH];
-
-					sprintf(AsciiTitle, "Cxbx-Reloaded %s : Emulating %s", _CXBX_VERSION, m_Xbe->m_szAsciiTitle);
-
-                    SetWindowText(m_hwnd, AsciiTitle);
-
-                    RefreshMenus();
+					if (m_hwndChild == NULL) {
+						m_hwndChild = GetWindow(hwnd, GW_CHILD); // (HWND)HIWORD(wParam) seems to be NULL
+						UpdateCaption();
+						RefreshMenus();
+					}
                 }
                 break;
 
                 case WM_DESTROY:
                 {
-                    m_hwndChild = NULL;
-                    SetWindowText(m_hwnd, "Cxbx-Reloaded " _CXBX_VERSION);
-                    RefreshMenus();
+					// (HWND)HIWORD(wParam) seems to be NULL, so we can't compare to m_hwndChild
+					if (m_hwndChild != NULL) { // Let's hope this signal originated from the only child window
+						m_hwndChild = NULL; // Prevent closing the child window twice
+						StopEmulation();
+					}
                 }
                 break;
             }
@@ -428,7 +426,7 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
         case WM_SYSKEYDOWN:
         {
-            if(m_hwndChild != 0)
+            if(m_hwndChild != NULL)
             {
                 SendMessage(m_hwndChild, uMsg, wParam, lParam);
             }
@@ -508,23 +506,21 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 						OpenMRU(0);
 
 					if (m_Xbe != nullptr)
-						if (m_hwndChild == NULL)
-							if(!m_bIsStarted)
-								StartEmulation(hwnd);
+						if(!m_bIsStarted)
+							StartEmulation(hwnd);
                 }
                 break;
 
                 case VK_F6:
                 {
-					if (m_hwndChild != NULL)
-						if(m_bIsStarted)
-							StopEmulation();
+					if(m_bIsStarted)
+						StopEmulation();
                 }
                 break;
 
                 default:
                 {
-                    if(m_hwndChild != 0)
+                    if(m_hwndChild != NULL)
                     {
                         SendMessage(m_hwndChild, uMsg, wParam, lParam);
                     }
@@ -1221,6 +1217,7 @@ void WndMain::XbeLoaded()
 {
     LoadLogo();
 
+	UpdateCaption();
     RefreshMenus();
 
     InvalidateRgn(m_hwnd, NULL, TRUE);
@@ -1260,11 +1257,31 @@ void WndMain::LoadLogo()
     RedrawWindow(m_hwnd, NULL, NULL, RDW_INVALIDATE);
 }
 
+void WndMain::UpdateCaption()
+{
+	char AsciiTitle[MAX_PATH];
+
+	int i = sprintf(AsciiTitle, "Cxbx-Reloaded %s", _CXBX_VERSION);
+	if (m_Xbe != nullptr) {
+		if (m_bIsStarted) {
+			i += sprintf(AsciiTitle + i, " : Emulating ");
+			// TODO : Display FPS and ms/f in caption too
+		}
+		else {
+			i += sprintf(AsciiTitle + i, " : Loaded ");
+		}
+
+		i += sprintf(AsciiTitle + i, m_Xbe->m_szAsciiTitle);
+	}
+
+	SetWindowText(m_hwnd, AsciiTitle);
+}
+
 // refresh menu items
 void WndMain::RefreshMenus()
 {
 	bool XbeLoaded = (m_Xbe != nullptr);
-	bool Running = (m_hwndChild != 0);
+	bool Running = (m_hwndChild != NULL); // TODO : Use m_bIsStarted?
 	UINT MF_WhenXbeLoaded = XbeLoaded ? MF_ENABLED : MF_GRAYED;
 	UINT MF_WhenXbeLoadedNotRunning = (XbeLoaded && !Running) ? MF_ENABLED : MF_GRAYED;
 	UINT MF_WhenXbeLoadedAndRunning = (XbeLoaded && Running) ? MF_ENABLED : MF_GRAYED;
@@ -1497,6 +1514,7 @@ void WndMain::OpenXbe(const char *x_filename)
 
         delete m_Xbe; m_Xbe = nullptr;
 
+		UpdateCaption();
         return;
     }
 
@@ -1567,7 +1585,8 @@ void WndMain::OpenXbe(const char *x_filename)
 // close xbe file
 void WndMain::CloseXbe()
 {
-    StopEmulation();
+	if (m_bIsStarted)
+		StopEmulation();
 
     if(m_bXbeChanged)
     {
@@ -1585,6 +1604,7 @@ void WndMain::CloseXbe()
 
     delete m_Xbe; m_Xbe = nullptr;
 
+	UpdateCaption();
     RefreshMenus();
 
     // clear logo bitmap
@@ -1719,13 +1739,15 @@ void WndMain::StartEmulation(HWND hwndParent)
 // stop emulation
 void WndMain::StopEmulation()
 {
-    if(!IsWindow(m_hwndChild))
-    {
-        m_hwndChild = NULL;
-        SetWindowText(m_hwnd, "Cxbx-Reloaded " _CXBX_VERSION);
-        RefreshMenus();
+    m_bIsStarted = false;
+    if (m_hwndChild != NULL) {
+		if (IsWindow(m_hwndChild)) {
+			SendMessage(m_hwndChild, WM_CLOSE, 0, 0);
+		}
+
+		m_hwndChild = NULL;
     }
 
-    SendMessage(m_hwndChild, WM_CLOSE, 0, 0);
-    m_bIsStarted = false;
+	UpdateCaption();
+    RefreshMenus();
 }
