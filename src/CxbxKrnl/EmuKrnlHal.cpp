@@ -48,16 +48,22 @@ namespace xboxkrnl
 #include "EmuKrnlLogging.h"
 #include "CxbxKrnl.h" // For CxbxKrnlCleanup
 #include "Emu.h" // For EmuWarning()
+#include "EmuKrnl.h"
 #include "EmuX86.h" // HalReadWritePciSpace needs this
 #include "EmuEEPROM.h" // For EEPROM
 #include "EmuShared.h"
 #include "EmuFile.h" // For FindNtSymbolicLinkObjectByDriveLetter
+
+#include <locale>
+#include <codecvt>
 
 // prevent name collisions
 namespace NtDll
 {
 #include "EmuNtDll.h"
 };
+
+HalSystemInterrupt HalSystemInterrupts[MAX_BUS_INTERRUPT_LEVEL + 1];
 
 // ******************************************************************
 // * 0x0009 - HalReadSMCTrayState()
@@ -101,7 +107,6 @@ XBSYSAPI EXPORTNUM(38) xboxkrnl::VOID FASTCALL xboxkrnl::HalClearSoftwareInterru
 )
 {
 	LOG_FUNC_ONE_ARG(Request);
-
 	LOG_UNIMPLEMENTED();
 }
 
@@ -115,7 +120,7 @@ XBSYSAPI EXPORTNUM(39) xboxkrnl::VOID NTAPI xboxkrnl::HalDisableSystemInterrupt
 {
 	LOG_FUNC_ONE_ARG(BusInterruptLevel);
 
-	LOG_UNIMPLEMENTED(); // TODO : Once thread-switching works, make system interrupts work too
+	HalSystemInterrupts[BusInterruptLevel].Disable();
 }
 
 // ******************************************************************
@@ -150,7 +155,8 @@ XBSYSAPI EXPORTNUM(43) xboxkrnl::VOID NTAPI xboxkrnl::HalEnableSystemInterrupt
 		LOG_FUNC_ARG(InterruptMode)
 		LOG_FUNC_END;
 
-	LOG_UNIMPLEMENTED(); // TODO : Once thread-switching works, make system interrupts work too
+	HalSystemInterrupts[BusInterruptLevel].Enable();
+	HalSystemInterrupts[BusInterruptLevel].SetInterruptMode(InterruptMode);
 }
 
 #ifdef _DEBUG_TRACE
@@ -260,6 +266,8 @@ XBSYSAPI EXPORTNUM(45) xboxkrnl::NTSTATUS NTAPI xboxkrnl::HalReadSMBusValue
 
 	NTSTATUS Status = STATUS_SUCCESS;
 
+	// This really should use the correct EmuX86_WriteIO/ReadIO functions so the actual
+	// hardware can be implemented in only one single location!
 	switch (Address) {
 	case SMBUS_EEPROM_READ: {
 		if (ReadWord)
@@ -426,21 +434,50 @@ XBSYSAPI EXPORTNUM(49) xboxkrnl::VOID DECLSPEC_NORETURN NTAPI xboxkrnl::HalRetur
 		{
 			// Save the launch data page to disk for later.
 			// (Note : XWriteTitleInfoNoReboot does this too)
-			MmPersistContiguousMemory((PVOID)xboxkrnl::LaunchDataPage, sizeof(LAUNCH_DATA_PAGE), TRUE);
+			// Commented out because XLaunchNewImage is disabled!
+			// MmPersistContiguousMemory((PVOID)xboxkrnl::LaunchDataPage, sizeof(LAUNCH_DATA_PAGE), TRUE);
 
-			char *lpTitlePath = xboxkrnl::LaunchDataPage->Header.szLaunchPath;
-			char szXbePath[MAX_PATH];
+			std::string TitlePath = xboxkrnl::LaunchDataPage->Header.szLaunchPath;
 			char szWorkingDirectoy[MAX_PATH];
 
+			// If the title path starts with a semicolon, remove it
+			if (TitlePath.length() > 0 && TitlePath[0] == ';') {
+				TitlePath.erase(0, 1);
+			}
+
+			// If the title path was an empty string, we need to launch the dashboard
+			if (TitlePath.length() == 0) {
+				TitlePath = DeviceHarddisk0Partition2 + "\\xboxdash.xbe";
+			}
+
+			std::string XbePath = TitlePath;
 			// Convert Xbox XBE Path to Windows Path
 			{
-				EmuNtSymbolicLinkObject* symbolicLink = FindNtSymbolicLinkObjectByDriveLetter(lpTitlePath[0]);
-				snprintf(szXbePath, MAX_PATH, "%s%s", symbolicLink->HostSymbolicLinkPath.c_str(), &lpTitlePath[2]);
+				HANDLE rootDirectoryHandle;
+				std::wstring wXbePath;
+				// We pretend to come from NtCreateFile to force symbolic link resolution
+				CxbxConvertFilePath(TitlePath, wXbePath, &rootDirectoryHandle, "NtCreateFile");
+
+				// Convert Wide String as returned by above to a string, for XbePath
+				XbePath = std::wstring_convert<std::codecvt_utf8<wchar_t>>().to_bytes(wXbePath);
+
+				// If the rootDirectoryHandle is not null, we have a relative path
+				// We need to prepend the path of the root directory to get a full DOS path
+				if (rootDirectoryHandle != nullptr) {
+					char directoryPathBuffer[MAX_PATH];
+					GetFinalPathNameByHandle(rootDirectoryHandle, directoryPathBuffer, MAX_PATH, VOLUME_NAME_DOS);
+					XbePath = directoryPathBuffer + std::string("\\") + XbePath;
+
+					// Trim \\?\ from the output string, as we want the raw DOS path, not NT path
+					// We can do this always because GetFinalPathNameByHandle ALWAYS returns this format
+					// Without exception
+					XbePath.erase(0, 4);
+				}
 			}
 
 			// Determine Working Directory
 			{
-				strncpy_s(szWorkingDirectoy, szXbePath, MAX_PATH);
+				strncpy_s(szWorkingDirectoy, XbePath.c_str(), MAX_PATH);
 				PathRemoveFileSpec(szWorkingDirectoy);
 			}
 
@@ -448,9 +485,9 @@ XBSYSAPI EXPORTNUM(49) xboxkrnl::VOID DECLSPEC_NORETURN NTAPI xboxkrnl::HalRetur
 			{
 				char szArgsBuffer[4096];
 
-				snprintf(szArgsBuffer, 4096, "/load \"%s\" %u %d \"%s\"", szXbePath, CxbxKrnl_hEmuParent, CxbxKrnl_DebugMode, CxbxKrnl_DebugFileName);
+				snprintf(szArgsBuffer, 4096, "/load \"%s\" %u %d \"%s\"", XbePath.c_str(), CxbxKrnl_hEmuParent, CxbxKrnl_DebugMode, CxbxKrnl_DebugFileName);
 				if ((int)ShellExecute(NULL, "open", szFilePath_CxbxReloaded_Exe, szArgsBuffer, szWorkingDirectoy, SW_SHOWDEFAULT) <= 32)
-					CxbxKrnlCleanup("Could not launch %s", lpTitlePath);
+					CxbxKrnlCleanup("Could not launch %s", XbePath.c_str());
 			}
 		}
 		break;

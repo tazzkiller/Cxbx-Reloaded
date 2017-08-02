@@ -121,7 +121,9 @@ typedef uint32 xbaddr;
 #define VECTOR2IRQ(vector)  ((vector)-IRQ_BASE)
 #define VECTOR2IRQL(vector) (PROFILE_LEVEL - VECTOR2IRQ(vector))
 
-void CxbxPopupMessage(const char *message);
+void CxbxPopupMessage(char *message);
+
+extern Xbe::Certificate *g_pCertificate;
 
 /*! validate version string match */
 bool CxbxKrnlVerifyVersion(const char *szVersion);
@@ -163,6 +165,8 @@ void ConnectWindowsTimersToThunkTable();
 
 /*! kernel thunk table */
 extern uint32 CxbxKrnl_KernelThunkTable[379];
+
+void InitXboxThread(DWORD_PTR cores);
 
 /*! thread local storage structure */
 extern Xbe::TLS *CxbxKrnl_TLS;

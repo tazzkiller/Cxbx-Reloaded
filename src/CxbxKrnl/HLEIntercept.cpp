@@ -119,7 +119,6 @@ void *GetEmuPatchAddr(std::string aFunctionName)
 
 void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 {
-    Xbe::Certificate *pCertificate = (Xbe::Certificate*)pXbeHeader->dwCertificateAddr;
 	Xbe::LibraryVersion *pLibraryVersion = (Xbe::LibraryVersion*)pXbeHeader->dwLibraryVersionsAddr;
 
     printf("\n");
@@ -267,8 +266,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
         uint32 LastUnResolvedXRefs = UnResolvedXRefs+1;
         uint32 OrigUnResolvedXRefs = UnResolvedXRefs;
 
-		bool bFoundD3D = false;
-
 		bXRefFirstPass = true; // Set to false for search speed optimization
 
 		// Mark all Xrefs initially as undetermined
@@ -306,12 +303,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
                 if(BuildVersion == 5933) { BuildVersion = 5849; }   // These XDK versions are pretty much the same
                 
 				std::string LibraryName(pLibraryVersion[v].szName, pLibraryVersion[v].szName + 8);
-				
-				// TODO: HACK: D3DX8 is packed into D3D8 database
-				if (strcmp(LibraryName.c_str(), Lib_D3DX8) == 0)
-				{
-					LibraryName = Lib_D3D8;
-				}
 
 				if (strcmp(LibraryName.c_str(), Lib_D3D8LTCG) == 0)
 				{
@@ -329,14 +320,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 					// Skip scanning for D3D8 symbols when LLE GPU is selected
 					if (bLLE_GPU)
 						continue;
-
-					// Prevent scanning D3D8 again (since D3D8X is packed into it above)
-					if (bFoundD3D)
-					{
-						continue;
-					}
-
-					bFoundD3D = true;
 
 					// Some 3911 titles have different D3D8 builds
 					if (BuildVersion <= 3948)
@@ -606,15 +589,15 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 	// Write the Certificate Details to the cache file
 	char tAsciiTitle[40] = "Unknown";
 	setlocale(LC_ALL, "English");
-	wcstombs(tAsciiTitle, pCertificate->wszTitleName, sizeof(tAsciiTitle));
+	wcstombs(tAsciiTitle, g_pCertificate->wszTitleName, sizeof(tAsciiTitle));
 	WritePrivateProfileString("Certificate", "Name", tAsciiTitle, filename.c_str());
 
 	std::stringstream titleId;
-	titleId << std::hex << pCertificate->dwTitleId;
+	titleId << std::hex << g_pCertificate->dwTitleId;
 	WritePrivateProfileString("Certificate", "TitleID", titleId.str().c_str(), filename.c_str());
 
 	std::stringstream region;
-	region << std::hex << pCertificate->dwGameRegion;
+	region << std::hex << g_pCertificate->dwGameRegion;
 	WritePrivateProfileString("Certificate", "Region", region.str().c_str(), filename.c_str());
 
 	// Write Library Details

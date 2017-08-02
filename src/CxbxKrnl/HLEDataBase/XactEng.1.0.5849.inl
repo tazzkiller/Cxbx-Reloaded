@@ -1,5 +1,3 @@
-// This is an open source non-commercial project. Dear PVS-Studio, please check it.
-// PVS-Studio Static Code Analyzer for C, C++ and C#: http://www.viva64.com
 // ******************************************************************
 // *
 // *    .,-:::::    .,::      .::::::::.    .,::      .:
@@ -9,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Core->Error.cpp
+// *   Cxbx->Win32->CxbxKrnl->XactEng.1.0.5849.inl
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -28,39 +26,45 @@
 // *  If not, write to the Free Software Foundation, Inc.,
 // *  59 Temple Place - Suite 330, Bostom, MA 02111-1307, USA.
 // *
-// *  (c) 2002-2003 Aaron Robinson <caustik@caustik.com>
+// *  (c) 2017 Luke Usher <luke.usher@outlook.com>
 // *
 // *  All rights reserved
 // *
 // ******************************************************************
-#include "Error.h"
 
-#include <string.h>
+// *****************************************************************
+// * XACTEngineCreate
+// ******************************************************************
+OOVPA_NO_XREF(XACTEngineCreate, 5849, 11)
+		// XACTEngineCreate+0x09 : movzx ebx, al
+		{ 0x09, 0x0F },
+		{ 0x0A, 0xB6 },
+		{ 0x0B, 0xD8 },
 
-// clear the current error (returns false if error was fatal)
-bool Error::ClearError()
-{
-    if(m_bFatal)
-        return false;
+        // XACTEngineCreate+0x2B : push edi
+		{ 0x2B, 0x57 },
 
-    delete[] m_szError;
+		// XACTEngineCreate+0x31 : push 0x168
+		{ 0x31, 0x68 },
+		{ 0x32, 0x68 },
+		{ 0x33, 0x01 },
+		{ 0x34, 0x00 },
+		{ 0x35, 0x00 },
 
-    m_szError = 0;
+		// XACTEngineCreate+0xA2 : retn 0x8
+		{ 0xA2, 0xC2 },
+		{ 0xA3, 0x08 },
+OOVPA_END;
 
-    m_bFatal  = false;
+// ******************************************************************
+// * XactEng_5849
+// ******************************************************************
+OOVPATable XactEng_5849[] = {
+	REGISTER_OOVPA(XACTEngineCreate, 5849, PATCH),
+	REGISTER_OOVPA(XACTEngineDoWork, 4627, PATCH),
+};
 
-    return true;
-}
-
-// protected so only derived class may set an error
-void Error::SetError(const char *x_szError, bool x_bFatal)
-{
-    if(m_szError == 0)
-        m_szError = new char[256];
-
-    strncpy(m_szError, x_szError, 255);
-
-    m_bFatal = x_bFatal;
-
-    return;
-}
+// ******************************************************************
+// * XACTENG_5849_SIZE
+// ******************************************************************
+uint32 XactEng_5849_SIZE = sizeof(XactEng_5849);

@@ -191,15 +191,15 @@ BOOL WINAPI XTL::EMUPATCH(XGetDeviceChanges)
 	LOG_FUNC_END;
 
 	BOOL ret = FALSE;
-
+	
 	// JSRF Hack: Always return no device changes
 	// Without this, JSRF hard crashes sometime after calling this function
 	// I HATE game specific hacks, but I've wasted three weeks trying to solve this already
 	// TitleID 0x49470018 = JSRF NTSC-U
-	// TitleID 0x5345000A = JSRF PAL
+	// TitleID 0x5345000A = JSRF PAL, NTSC-J
+	// TitleID 0x53450016 = JSRF NTSC-J (Demo)
 	// ~Luke Usher
-	Xbe::Certificate *pCertificate = (Xbe::Certificate*)CxbxKrnl_XbeHeader->dwCertificateAddr;
-	if (pCertificate->dwTitleId == 0x49470018 || pCertificate->dwTitleId == 0x5345000A) {
+	if (g_pCertificate->dwTitleId == 0x49470018 || g_pCertificate->dwTitleId == 0x5345000A || g_pCertificate->dwTitleId == 0x53450016) {
 		RETURN(ret);
 	}
 
@@ -214,6 +214,26 @@ BOOL WINAPI XTL::EMUPATCH(XGetDeviceChanges)
 
 	*pdwRemovals = 0;  
 
+/*
+    if(!DeviceType->ChangeConnected)
+    {
+        *pdwInsertions = 0;
+        *pdwRemovals = 0;
+    }
+    else
+    {
+        *pdwInsertions = (DeviceType->CurrentConnected & ~DeviceType->PreviousConnected);
+        *pdwRemovals = (DeviceType->PreviousConnected & ~DeviceType->CurrentConnected);
+        ULONG RemoveInsert = DeviceType->ChangeConnected &
+            DeviceType->CurrentConnected &
+            DeviceType->PreviousConnected;
+        *pdwRemovals |= RemoveInsert;
+        *pdwInsertions |= RemoveInsert;
+        DeviceType->ChangeConnected = 0;
+        DeviceType->PreviousConnected = DeviceType->CurrentConnected;
+        ret = (*pdwInsertions | *pdwRemovals) ? TRUE : FALSE;
+    }
+*/
 	RETURN(ret);
 }
 
@@ -655,7 +675,7 @@ VOID WINAPI XTL::EMUPATCH(XapiThreadStartup)
     DWORD dwDummy2
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(dwDummy1)
@@ -690,7 +710,7 @@ VOID WINAPI XTL::EMUPATCH(XRegisterThreadNotifyRoutine)
     BOOL                    fRegister
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pThreadNotification)
@@ -897,7 +917,7 @@ DWORD WINAPI XTL::EMUPATCH(QueueUserAPC)
 	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(pfnAPC)
+		LOG_FUNC_ARG_TYPE(PVOID, pfnAPC)
 		LOG_FUNC_ARG(hThread)
 		LOG_FUNC_ARG(dwData)
 		LOG_FUNC_END;
@@ -918,6 +938,7 @@ DWORD WINAPI XTL::EMUPATCH(QueueUserAPC)
 	RETURN(dwRet);
 }
 
+#if 0 // Handled by WaitForSingleObject
 // ******************************************************************
 // * patch: GetOverlappedResult
 // ******************************************************************
@@ -929,7 +950,7 @@ BOOL WINAPI XTL::EMUPATCH(GetOverlappedResult)
 	BOOL			bWait
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(hFile)
@@ -945,6 +966,7 @@ BOOL WINAPI XTL::EMUPATCH(GetOverlappedResult)
 
 	RETURN(bRet);
 }
+#endif
 
 // ******************************************************************
 // * patch: XLaunchNewImageA
@@ -955,7 +977,7 @@ DWORD WINAPI XTL::EMUPATCH(XLaunchNewImageA)
 	PLAUNCH_DATA	pLaunchData
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	// Note : This can be tested using "Innocent tears",
 	// which relaunches different xbes between scenes;
@@ -983,8 +1005,7 @@ DWORD WINAPI XTL::EMUPATCH(XLaunchNewImageA)
 		if (xboxkrnl::LaunchDataPage == NULL)
 			xboxkrnl::LaunchDataPage = (xboxkrnl::LAUNCH_DATA_PAGE *)xboxkrnl::MmAllocateContiguousMemory(sizeof(xboxkrnl::LAUNCH_DATA_PAGE));
 
-		Xbe::Certificate *pCertificate = (Xbe::Certificate*)CxbxKrnl_XbeHeader->dwCertificateAddr;
-		xboxkrnl::LaunchDataPage->Header.dwTitleId = pCertificate->dwTitleId;
+		xboxkrnl::LaunchDataPage->Header.dwTitleId = g_pCertificate->dwTitleId;
 		xboxkrnl::LaunchDataPage->Header.dwFlags = 0; // TODO : What to put in here?
 		xboxkrnl::LaunchDataPage->Header.dwLaunchDataType = LDT_TITLE;
 
@@ -1056,10 +1077,8 @@ DWORD WINAPI XTL::EMUPATCH(XGetLaunchInfo)
 		// Note : Here, CxbxRestoreLaunchDataPage() was already called,
 		// which has loaded LaunchDataPage from a binary file (if present).
 
-		Xbe::Certificate *pCertificate = (Xbe::Certificate*)CxbxKrnl_XbeHeader->dwCertificateAddr;
-
 		// A title can pass data only to itself, not another title (unless started from the dashboard, of course) :
-		if (   (xboxkrnl::LaunchDataPage->Header.dwTitleId == pCertificate->dwTitleId)
+		if (   (xboxkrnl::LaunchDataPage->Header.dwTitleId == g_pCertificate->dwTitleId)
 			|| (xboxkrnl::LaunchDataPage->Header.dwLaunchDataType == LDT_FROM_DASHBOARD)
 			|| (xboxkrnl::LaunchDataPage->Header.dwLaunchDataType == LDT_FROM_DEBUGGER_CMDLINE))
 		{
@@ -1134,7 +1153,7 @@ MMRESULT WINAPI XTL::EMUPATCH(timeSetEvent)
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(uDelay)
 		LOG_FUNC_ARG(uResolution)
-		LOG_FUNC_ARG(fptc)
+		LOG_FUNC_ARG_TYPE(PVOID, fptc)
 		LOG_FUNC_ARG(dwUser)
 		LOG_FUNC_ARG(fuEvent)
 		LOG_FUNC_END;

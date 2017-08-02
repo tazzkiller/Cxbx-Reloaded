@@ -90,6 +90,7 @@
 #include "HLEDataBase/XOnline.1.0.5788.h"
 #include "HLEDataBase/XOnline.1.0.5849.h"
 #include "HLEDataBase/XactEng.1.0.4627.h"
+#include "HLEDataBase/XactEng.1.0.5849.h"
 
 // ******************************************************************
 // * szHLELastCompileTime
@@ -141,11 +142,14 @@ enum XRefDataBaseOffset
     XREF_D3DRS_DONOTCULLUNCOMPRESSED,
     XREF_D3DRS_STENCILCULLENABLE,
     XREF_D3DCD_LAZYSETSTATEVB,
+    XREF_D3D_BlockOnResource,
     XREF_D3D_BLOCKONTIME,
+    XREF_D3D_CreateStandAloneSurface,
     XREF_D3D_SETFENCE,
 	XREF_D3D_KickOffAndWaitForIdle,
 	XREF_D3D_MakeRequestedSpace,
 	XREF_D3D_KickOff,
+	XREF_D3DPalette_Lock2,
     XREF_XNINIT,
     XREF_FCLOSEDEVICE,
     XREF_CLEARSTATEBLOCKFLAGS,
@@ -268,7 +272,6 @@ enum XRefDataBaseOffset
     XREF_CDirectSoundBuffer_SetFormat,
     XREF_CFullHRTFSource_GetCenterVolume,
     XREF_CHRTFSource_SetFullHRTF5Channel,
-    XREF_D3D_BlockOnResource,
     XREF_CMcpxVoiceClient_SetLFO,
     XREF_CDirectSoundVoice_SetLFO,
     XREF_CDirectSoundBuffer_SetLFO,

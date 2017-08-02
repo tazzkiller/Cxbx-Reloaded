@@ -32,30 +32,32 @@
 // *
 // ******************************************************************
 
+#if 0 // No longer used, replaced by generic 3911 version
 // ******************************************************************
 // * XGSwizzleBox
 // ******************************************************************
 OOVPA_NO_XREF(XGSwizzleBox, 4627, 10)
 
         // XGSwizzleBox+0x60 : sub ecx, [eax]
-        { 0x60, 0x2B }, // (Offset,Value)-Pair #1
-        { 0x61, 0x08 }, // (Offset,Value)-Pair #2
+        { 0x60, 0x2B },
+        { 0x61, 0x08 },
 
         // XGSwizzleBox+0x8E : lea ecx, [ebp+0xD8]
-        { 0x8E, 0x8D }, // (Offset,Value)-Pair #3
-        { 0x8F, 0x4D }, // (Offset,Value)-Pair #4
-        { 0x90, 0xD8 }, // (Offset,Value)-Pair #5
+        { 0x8E, 0x8D },
+        { 0x8F, 0x4D },
+        { 0x90, 0xD8 },
 
         // XGSwizzleBox+0xD5 : shl eax, 2
-        { 0xD5, 0xC1 }, // (Offset,Value)-Pair #6
-        { 0xD6, 0xE0 }, // (Offset,Value)-Pair #7
-        { 0xD7, 0x02 }, // (Offset,Value)-Pair #8
+        { 0xD5, 0xC1 },
+        { 0xD6, 0xE0 },
+        { 0xD7, 0x02 },
 
         // XGSwizzleBox+0xE2 : test ebx, ebx
-        { 0xE2, 0x85 }, // (Offset,Value)-Pair #9
-        { 0xE3, 0xDB }, // (Offset,Value)-Pair #10
+        { 0xE2, 0x85 },
+        { 0xE3, 0xDB },
 OOVPA_END;
-
+#endif
+#if 0 // No longer used, replaced by generic 3911 version
 // ******************************************************************
 // * XGWriteSurfaceOrTextureToXPR
 // ******************************************************************
@@ -69,17 +71,23 @@ OOVPA_NO_XREF(XGWriteSurfaceOrTextureToXPR, 4627, 7)
         { 0xBE, 0xF0 },
         { 0xE2, 0x8B },
 OOVPA_END;
-
+#endif
 // ******************************************************************
 // * XG_4627
 // ******************************************************************
 OOVPATable XG_4627[] = {
 
-	REGISTER_OOVPA(XGIsSwizzledFormat, 4361, PATCH),
-	// REGISTER_OOVPA(XGSwizzleRect, 4361, DISABLED), // TODO : Uncomment
+	REGISTER_OOVPA(XGIsSwizzledFormat, 3911, PATCH),
+	// REGISTER_OOVPA(XGSwizzleRect, 3911, DISABLED), // TODO : Uncomment
 	// REGISTER_OOVPA(XGUnswizzleRect, 3911, DISABLED), // TODO : Uncomment
-	REGISTER_OOVPA(XGSwizzleBox, 4627, PATCH),
-	REGISTER_OOVPA(XGWriteSurfaceOrTextureToXPR, 4627, PATCH),
+	REGISTER_OOVPA(XGSwizzleBox, 3911, PATCH),
+	REGISTER_OOVPA(XGWriteSurfaceOrTextureToXPR, 3911, PATCH),
+	REGISTER_OOVPA(XGSetTextureHeader, 3911, PATCH),
+	REGISTER_OOVPA(XGSetVertexBufferHeader, 4361, XREF),
+	REGISTER_OOVPA(XGSetIndexBufferHeader, 4361, XREF),
+	REGISTER_OOVPA(XGCompressRect, 3911, XREF),
+	REGISTER_OOVPA(XGUnswizzleBox, 3911, DISABLED),
+	REGISTER_OOVPA(XFONT_OpenBitmapFontFromMemory, 4361, XREF),
 };
 
 // ******************************************************************
