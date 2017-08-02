@@ -36,6 +36,14 @@
 // * Direct3D_CreateDevice
 // ******************************************************************
 OOVPA_NO_XREF(Direct3D_CreateDevice, 3911, 18) // Also for 4361, 4627, 5558, 5659, 5788, 5849, 5933 (NOT 5344!)
+
+#define Direct3D_CreateDevice_4361 Direct3D_CreateDevice_3911
+#define Direct3D_CreateDevice_4627 Direct3D_CreateDevice_3911
+#define Direct3D_CreateDevice_5558 Direct3D_CreateDevice_3911
+#define Direct3D_CreateDevice_5659 Direct3D_CreateDevice_3911
+#define Direct3D_CreateDevice_5788 Direct3D_CreateDevice_3911
+#define Direct3D_CreateDevice_5849 Direct3D_CreateDevice_3911
+#define Direct3D_CreateDevice_5933 Direct3D_CreateDevice_3911
 		{ 0x00, 0xA1 },
 
 		{ 0x05, 0x85 },
