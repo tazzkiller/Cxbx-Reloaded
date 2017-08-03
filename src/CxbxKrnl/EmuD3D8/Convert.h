@@ -36,6 +36,8 @@
 
 #include "CxbxKrnl.h"
 
+#define OLD_COLOR_CONVERSION
+
 #define VERTICES_PER_TRIANGLE 3
 #define VERTICES_PER_QUAD 4
 #define TRIANGLES_PER_QUAD 2
@@ -43,6 +45,7 @@
 // Convert a 'method' DWORD into it's associated 'pixel-shader' or 'simple' render state.
 extern X_D3DRENDERSTATETYPE DxbxXboxMethodToRenderState(const NV2AMETHOD aMethod);
 
+#ifdef OLD_COLOR_CONVERSION
 typedef struct _ComponentEncodingInfo
 {
 	int8_t ABits, RBits, GBits, BBits;
@@ -52,6 +55,11 @@ typedef struct _ComponentEncodingInfo
 extern const ComponentEncodingInfo *EmuXBFormatComponentEncodingInfo(X_D3DFORMAT Format);
 
 extern D3DCOLOR DecodeUInt32ToColor(const ComponentEncodingInfo * encoding, const uint32 value);
+#else // !OLD_COLOR_CONVERSION
+typedef void(*FormatToARGBRow)(const char* src, char* dst_argb, int width); // TODO : libyuv uses uint8
+
+extern const FormatToARGBRow EmuXBFormatComponentConverter(X_D3DFORMAT Format);
+#endif // !OLD_COLOR_CONVERSION
 
 bool EmuXBFormatRequiresConversionToARGB(X_D3DFORMAT Format);
 

@@ -6280,6 +6280,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 					{
 						EmuWarning("Unsupported texture format, expanding to D3DFMT_A8R8G8B8");
 
+#ifdef OLD_COLOR_CONVERSION
 						const ComponentEncodingInfo *encoding = EmuXBFormatComponentEncodingInfo(X_Format);
 						unsigned int x = 0, s = 0, d = 0;
 						switch (PixelJar.dwBPP) {
@@ -6325,6 +6326,20 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 						default:
 							CxbxKrnlCleanup("Unhandled BPP");
 						}
+#else // !OLD_COLOR_CONVERSION
+						// Convert a row at a time, using a libyuv-like callback approach :
+						const FormatToARGBRow ConvertRowToARGB = EmuXBFormatComponentConverter(X_Format);
+						if (ConvertRowToARGB == nullptr)
+							CxbxKrnlCleanup("Unhandled conversion!");
+
+						unsigned int s = 0;
+						char *pDestRow = (char *)pDest;
+						while (s < dwMipSizeInBytes) {
+							ConvertRowToARGB((char *)pSrc + s, pDestRow, dwMipWidth);
+							s += dwSrcPitch - dwMipPitch;
+							pDestRow += dwDestPitch - dwDestWidthInBytes;
+						}
+#endif // !OLD_COLOR_CONVERSION
 					}
 
 					// Flush temporary data buffer

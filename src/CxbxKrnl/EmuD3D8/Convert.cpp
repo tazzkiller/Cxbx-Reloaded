@@ -76,6 +76,7 @@ enum _ComponentEncoding {
 	____A8L8, // NOTE : R=G=B= L
 };
 
+#ifdef OLD_COLOR_CONVERSION
 static const XTL::ComponentEncodingInfo ComponentEncodingInfos[] = {
 	{ }, // NoCmpnts
 	// AB  RB  GB  BB ASh RSh GSh BSh
@@ -106,6 +107,311 @@ static const XTL::ComponentEncodingInfo ComponentEncodingInfos[] = {
 	// converted into A=255. It's probably more correct to convert these cases towards
 	// XRGB (as that would send unaltered data to shaders) but that's not supported yet.
 };
+
+#else // !OLD_COLOR_CONVERSION
+
+#define uint8 char // TODO : declare uint8 for libuyv compatibility
+
+// Conversion functions copied from libyuv
+// See https://chromium.googlesource.com/libyuv/libyuv/+/master/source/row_common.cc
+void RGB565ToARGBRow_C(const uint8* src_rgb565, uint8* dst_argb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 b = src_rgb565[0] & 0x1f;
+		uint8 g = (src_rgb565[0] >> 5) | ((src_rgb565[1] & 0x07) << 3);
+		uint8 r = src_rgb565[1] >> 3;
+		dst_argb[0] = (b << 3) | (b >> 2);
+		dst_argb[1] = (g << 2) | (g >> 4);
+		dst_argb[2] = (r << 3) | (r >> 2);
+		dst_argb[3] = 255u;
+		dst_argb += 4;
+		src_rgb565 += 2;
+	}
+}
+void ARGB1555ToARGBRow_C(const uint8* src_argb1555,
+	uint8* dst_argb,
+	int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 b = src_argb1555[0] & 0x1f;
+		uint8 g = (src_argb1555[0] >> 5) | ((src_argb1555[1] & 0x03) << 3);
+		uint8 r = (src_argb1555[1] & 0x7c) >> 2;
+		uint8 a = src_argb1555[1] >> 7;
+		dst_argb[0] = (b << 3) | (b >> 2);
+		dst_argb[1] = (g << 3) | (g >> 2);
+		dst_argb[2] = (r << 3) | (r >> 2);
+		dst_argb[3] = -a;
+		dst_argb += 4;
+		src_argb1555 += 2;
+	}
+}
+void ARGB4444ToARGBRow_C(const uint8* src_argb4444,
+	uint8* dst_argb,
+	int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 b = src_argb4444[0] & 0x0f;
+		uint8 g = src_argb4444[0] >> 4;
+		uint8 r = src_argb4444[1] & 0x0f;
+		uint8 a = src_argb4444[1] >> 4;
+		dst_argb[0] = (b << 4) | b;
+		dst_argb[1] = (g << 4) | g;
+		dst_argb[2] = (r << 4) | r;
+		dst_argb[3] = (a << 4) | a;
+		dst_argb += 4;
+		src_argb4444 += 2;
+	}
+}
+
+// Cxbx color component conversion functions 
+void X1R5G5B5ToARGBRow_C(const uint8* src_x1r5g5b5, uint8* dst_argb,
+	int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 b = src_x1r5g5b5[0] & 0x1f;
+		uint8 g = (src_x1r5g5b5[0] >> 5) | ((src_x1r5g5b5[1] & 0x03) << 3);
+		uint8 r = (src_x1r5g5b5[1] & 0x7c) >> 2;
+		dst_argb[0] = (b << 3) | (b >> 2);
+		dst_argb[1] = (g << 3) | (g >> 2);
+		dst_argb[2] = (r << 3) | (r >> 2);
+		dst_argb[3] = 255u;
+		dst_argb += 4;
+		src_x1r5g5b5 += 2;
+	}
+}
+
+void A8R8G8B8ToARGBRow_C(const uint8* src_a8r8g8b8, uint8* dst_argb, int width) {
+	memcpy(dst_argb, src_a8r8g8b8, width * 4); // Cxbx pass-through
+}
+
+void X8R8G8B8ToARGBRow_C(const uint8* src_x8r8g8b8, uint8* dst_rgb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 b = src_x8r8g8b8[0];
+		uint8 g = src_x8r8g8b8[1];
+		uint8 r = src_x8r8g8b8[2];
+		dst_rgb[0] = b;
+		dst_rgb[1] = g;
+		dst_rgb[2] = r;
+		dst_rgb[3] = 255u;
+		dst_rgb += 4;
+		src_x8r8g8b8 += 4;
+	}
+}
+
+void ____R8B8ToARGBRow_C(const uint8* src_r8b8, uint8* dst_rgb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 b = src_r8b8[0];
+		uint8 r = src_r8b8[1];
+		dst_rgb[0] = b;
+		dst_rgb[1] = b;
+		dst_rgb[2] = r;
+		dst_rgb[3] = r;
+		dst_rgb += 4;
+		src_r8b8 += 2;
+	}
+}
+
+void ____G8B8ToARGBRow_C(const uint8* src_g8b8, uint8* dst_rgb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 b = src_g8b8[0];
+		uint8 g = src_g8b8[1];
+		dst_rgb[0] = b;
+		dst_rgb[1] = g;
+		dst_rgb[2] = b;
+		dst_rgb[3] = g;
+		dst_rgb += 4;
+		src_g8b8 += 2;
+	}
+}
+
+void ______A8ToARGBRow_C(const uint8* src_a8, uint8* dst_rgb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 a = src_a8[0];
+		dst_rgb[0] = 0u; // TODO : Use 255u ?
+		dst_rgb[1] = 0u; // TODO : Use 255u ?
+		dst_rgb[2] = 0u; // TODO : Use 255u ?
+		dst_rgb[3] = a;
+		dst_rgb += 4;
+		src_a8 += 1;
+	}
+}
+
+void __R6G5B5ToARGBRow_C(const uint8* src_r6g5b5, uint8* dst_argb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 b = src_r6g5b5[0] & 0x1f;
+		uint8 g = (src_r6g5b5[0] >> 5) | ((src_r6g5b5[1] & 0x03) << 3);
+		uint8 r = src_r6g5b5[1] >> 2;
+		dst_argb[0] = (b << 3) | (b >> 2);
+		dst_argb[1] = (g << 3) | (g >> 2);
+		dst_argb[2] = (r << 2) | (r >> 4);
+		dst_argb[3] = 255u;
+		dst_argb += 4;
+		src_r6g5b5 += 2;
+	}
+}
+
+void R5G5B5A1ToARGBRow_C(const uint8* src_r5g5b5a1, uint8* dst_argb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 a = src_r5g5b5a1[0] & 1;
+		uint8 b = (src_r5g5b5a1[0] >> 1) & 0x1f;
+		uint8 g = (src_r5g5b5a1[0] >> 6) | ((src_r5g5b5a1[1] & 0x07) << 2);
+		uint8 r = (src_r5g5b5a1[1] & 0xf8) >> 3;
+		dst_argb[0] = (b << 3) | (b >> 2);
+		dst_argb[1] = (g << 3) | (g >> 2);
+		dst_argb[2] = (r << 3) | (r >> 2);
+		dst_argb[3] = -a;
+		dst_argb += 4;
+		src_r5g5b5a1 += 2;
+	}
+}
+
+void R4G4B4A4ToARGBRow_C(const uint8* src_r4g4b4a4, uint8* dst_argb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 a = src_r4g4b4a4[0] & 0x0f;
+		uint8 b = src_r4g4b4a4[0] >> 4;
+		uint8 g = src_r4g4b4a4[1] & 0x0f;
+		uint8 r = src_r4g4b4a4[1] >> 4;
+		dst_argb[0] = (b << 4) | b;
+		dst_argb[1] = (g << 4) | g;
+		dst_argb[2] = (r << 4) | r;
+		dst_argb[3] = (a << 4) | a;
+		dst_argb += 4;
+		src_r4g4b4a4 += 2;
+	}
+}
+
+void A8B8G8R8ToARGBRow_C(const uint8* src_a8b8g8r8, uint8* dst_rgb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 r = src_a8b8g8r8[0];
+		uint8 g = src_a8b8g8r8[1];
+		uint8 b = src_a8b8g8r8[3];
+		uint8 a = src_a8b8g8r8[4];
+		dst_rgb[0] = b;
+		dst_rgb[1] = g;
+		dst_rgb[2] = r;
+		dst_rgb[3] = a;
+		dst_rgb += 4;
+		src_a8b8g8r8 += 4;
+	}
+}
+
+void B8G8R8A8ToARGBRow_C(const uint8* src_b8g8r8a8, uint8* dst_rgb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 a = src_b8g8r8a8[0];
+		uint8 r = src_b8g8r8a8[1];
+		uint8 g = src_b8g8r8a8[3];
+		uint8 b = src_b8g8r8a8[4];
+		dst_rgb[0] = b;
+		dst_rgb[1] = g;
+		dst_rgb[2] = r;
+		dst_rgb[3] = a;
+		dst_rgb += 4;
+		src_b8g8r8a8 += 4;
+	}
+}
+
+void R8G8B8A8ToARGBRow_C(const uint8* src_r8g8b8a8, uint8* dst_rgb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 a = src_r8g8b8a8[0];
+		uint8 b = src_r8g8b8a8[1];
+		uint8 g = src_r8g8b8a8[3];
+		uint8 r = src_r8g8b8a8[4];
+		dst_rgb[0] = b;
+		dst_rgb[1] = g;
+		dst_rgb[2] = r;
+		dst_rgb[3] = a;
+		dst_rgb += 4;
+		src_r8g8b8a8 += 4;
+	}
+}
+
+void ______L8ToARGBRow_C(const uint8* src_l8, uint8* dst_argb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 l = src_l8[0];
+		dst_argb[0] = l;
+		dst_argb[1] = l;
+		dst_argb[2] = l;
+		dst_argb[3] = 255u;
+		dst_argb += 4;
+		src_l8 += 1;
+	}
+}
+
+void _____AL8ToARGBRow_C(const uint8* src_al8, uint8* dst_argb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 l = src_al8[0];
+		dst_argb[0] = l;
+		dst_argb[1] = l;
+		dst_argb[2] = l;
+		dst_argb[3] = l;
+		dst_argb += 4;
+		src_al8 += 1;
+	}
+}
+
+void _____L16ToARGBRow_C(const uint8* src_l16, uint8* dst_argb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 b = src_l16[0];
+		uint8 g = src_l16[1];
+		dst_argb[0] = b;
+		dst_argb[1] = g;
+		dst_argb[2] = 255u;
+		dst_argb[3] = 255u;
+		dst_argb += 4;
+		src_l16 += 2;
+	}
+}
+
+void ____A8L8ToARGBRow_C(const uint8* src_a8l8, uint8* dst_argb, int width) {
+	int x;
+	for (x = 0; x < width; ++x) {
+		uint8 l = src_a8l8[0];
+		uint8 a = src_a8l8[1];
+		dst_argb[0] = l;
+		dst_argb[1] = l;
+		dst_argb[2] = l;
+		dst_argb[3] = a;
+		dst_argb += 4;
+		src_a8l8 += 2;
+	}
+}
+
+static const XTL::FormatToARGBRow ComponentConverters[] = {
+	nullptr, // NoCmpnts,
+	ARGB1555ToARGBRow_C, // A1R5G5B5,
+	X1R5G5B5ToARGBRow_C, // X1R5G5B5, // Test : Convert X into 255
+	ARGB4444ToARGBRow_C, // A4R4G4B4,
+	  RGB565ToARGBRow_C, // __R5G6B5, // NOTE : A=255
+	A8R8G8B8ToARGBRow_C, // A8R8G8B8,
+	X8R8G8B8ToARGBRow_C, // X8R8G8B8, // Test : Convert X into 255
+	____R8B8ToARGBRow_C, // ____R8B8, // NOTE : A takes R, G takes B
+	____G8B8ToARGBRow_C, // ____G8B8, // NOTE : A takes G, R takes B
+	______A8ToARGBRow_C, // ______A8,
+	__R6G5B5ToARGBRow_C, // __R6G5B5,
+	R5G5B5A1ToARGBRow_C, // R5G5B5A1,
+	R4G4B4A4ToARGBRow_C, // R4G4B4A4,
+	A8B8G8R8ToARGBRow_C, // A8B8G8R8,
+	B8G8R8A8ToARGBRow_C, // B8G8R8A8,
+	R8G8B8A8ToARGBRow_C, // R8G8B8A8,
+	______L8ToARGBRow_C, // ______L8, // NOTE : A=255, R=G=B= L
+	_____AL8ToARGBRow_C, // _____AL8, // NOTE : A=R=G=B= L
+	_____L16ToARGBRow_C, // _____L16, // NOTE : Actually G8B8, with A=R=255
+	____A8L8ToARGBRow_C, // ____A8L8, // NOTE : R=G=B= L
+};
+#endif // !OLD_COLOR_CONVERSION
 
 enum _FormatStorage {
 	Undfnd = 0, // Undefined
@@ -213,6 +519,7 @@ static const FormatInfo FormatInfos[] = {
 #endif
 };
 
+#ifdef OLD_COLOR_CONVERSION
 XTL::D3DCOLOR XTL::DecodeUInt32ToColor(const ComponentEncodingInfo * encoding, const uint32 value)
 {
 	return D3DCOLOR_ARGB(
@@ -232,9 +539,25 @@ const XTL::ComponentEncodingInfo *XTL::EmuXBFormatComponentEncodingInfo(X_D3DFOR
 	return nullptr;
 }
 
+#else // !OLD_COLOR_CONVERSION
+
+const XTL::FormatToARGBRow XTL::EmuXBFormatComponentConverter(X_D3DFORMAT Format)
+{
+	if (Format <= X_D3DFMT_LIN_R8G8B8A8)
+		if (FormatInfos[Format].components != NoCmpnts)
+			return ComponentConverters[FormatInfos[Format].components];
+
+	return nullptr;
+}
+#endif // !OLD_COLOR_CONVERSION
+
 bool XTL::EmuXBFormatRequiresConversionToARGB(X_D3DFORMAT Format)
 {
+#ifdef OLD_COLOR_CONVERSION
 	const ComponentEncodingInfo *info = EmuXBFormatComponentEncodingInfo(Format);
+#else // !OLD_COLOR_CONVERSION
+	const FormatToARGBRow info = EmuXBFormatComponentConverter(Format);
+#endif // !OLD_COLOR_CONVERSION
 	// Conversion is required if there's ARGB conversion info present, and the format has a warning message
 	if (info != nullptr)
 		if (FormatInfos[Format].warning != nullptr)
