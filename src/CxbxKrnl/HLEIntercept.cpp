@@ -199,18 +199,42 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 		printf("Found HLE Cache File: %08X.ini\n", uiHash);
 
 		// Verify the version of the cache file against the HLE Database
-		char buffer[SHRT_MAX] = { 0 };
-		char* bufferPtr = buffer;
+		char HLEDatabaseVersion[40] = { 0 }; // Will contain [Info] HLEDatabaseVersion value, normally set to szHLELastCompileTime
 
-		GetPrivateProfileString("Info", "HLEDatabaseVersion", NULL, buffer, sizeof(buffer), filename.c_str());
+		GetPrivateProfileString("Info", "HLEDatabaseVersion", nullptr, HLEDatabaseVersion, sizeof(HLEDatabaseVersion), filename.c_str());
 		g_BuildVersion = GetPrivateProfileInt("Libs", "D3D8_BuildVersion", 0, filename.c_str());
 
-		if (strcmp(buffer, szHLELastCompileTime) == 0) {
+		if (strcmp(HLEDatabaseVersion, szHLELastCompileTime) == 0) {
 			printf("Using HLE Cache\n");
-			GetPrivateProfileSection("Symbols", buffer, sizeof(buffer), filename.c_str());
 
+			LPSTR buffer = nullptr;
+			DWORD buffer_size = SHRT_MAX;
+
+			while (true) {
+				buffer = (LPSTR)malloc(buffer_size);
+				if (buffer == nullptr) {
+					buffer_size = 0;
+					break;
+				}
+
+				DWORD returned_size = GetPrivateProfileSection("Symbols", buffer, buffer_size, filename.c_str());
+				if (returned_size == 0) {
+					buffer_size = 0;
+					break;
+				}
+
+				if (returned_size != buffer_size - 2) {
+					buffer_size = returned_size;
+					break;
+				}
+
+				free(buffer);
+				buffer_size *= 2;
+			}
+			
 			// Parse the .INI file into the map of symbol addresses
-			while (strlen(bufferPtr) > 0) {
+			char* bufferPtr = (char *)buffer;
+			while (buffer_size > 0) {
 				std::string ini_entry(bufferPtr);
 
 				auto separator = ini_entry.find('=');
@@ -219,8 +243,12 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 				uint32_t addr = strtol(value.c_str(), 0, 16);
 
 				g_SymbolAddresses[key] = addr;
-				bufferPtr += strlen(bufferPtr) + 1;
+				int line_len = strlen(bufferPtr) + 1;
+				bufferPtr += line_len;
+				buffer_size -= line_len;
 			}
+
+			free(buffer);
 
 			// Iterate through the map of symbol addresses, calling GetEmuPatchAddr on all functions.	
 			for (auto it = g_SymbolAddresses.begin(); it != g_SymbolAddresses.end(); ++it) {
