@@ -133,7 +133,7 @@ void VerifySymbolAddressAgainstXRef(char *SymbolName, xbaddr Address, int XRef)
 	}
 
 	char Buffer[256];
-	sprintf(Buffer, "Verification of %s failed : XREF was 0x%p while lookup gave 0x%p", SymbolName, XRefAddr, Address);
+	sprintf(Buffer, "Verification of %s failed : XREF was 0x%.8X while lookup gave 0x%.8X", SymbolName, XRefAddr, Address);
 	// For XREF_D3DTSS_TEXCOORDINDEX, Kabuki Warriors hits this case
 	CxbxPopupMessage(Buffer);
 }

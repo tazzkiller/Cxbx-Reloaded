@@ -179,7 +179,7 @@ extern void XTL::EmuExecutePushBufferRaw
         g_PBTrackShowOnce.remove(pdwPushData);
         printf("\n");
         printf("\n");
-        printf("  PushBuffer@0x%.08X...\n", pdwPushData);
+        printf("  PushBuffer@0x%p...\n", pdwPushData);
         printf("\n");
         bShowPB = true;
     }
@@ -210,7 +210,7 @@ extern void XTL::EmuExecutePushBufferRaw
             else {
                 #ifdef _DEBUG_TRACK_PB
                 if (bShowPB) {
-                    printf("PrimitiveType := %d)\n", *pdwPushData);
+                    printf("PrimitiveType := %u)\n", *pdwPushData);
                 }
                 #endif
 
@@ -273,8 +273,8 @@ extern void XTL::EmuExecutePushBufferRaw
             #ifdef _DEBUG_TRACK_PB
             if (bShowPB) {
                 printf("NVPB_InlineVertexArray(...)\n");
-                printf("  dwCount : %d\n", dwCount);
-                printf("  dwVertexShader : 0x%08X\n", dwVertexShader);
+                printf("  dwCount : %u\n", dwCount);
+                printf("  dwVertexShader : 0x%.8X\n", dwVertexShader);
             }
             #endif
 
@@ -297,7 +297,7 @@ extern void XTL::EmuExecutePushBufferRaw
 			// Test case : Turok menu's
             #ifdef _DEBUG_TRACK_PB
             if (bShowPB) {
-                printf("  NVPB_FixLoop(%d)\n", dwCount);
+                printf("  NVPB_FixLoop(%u)\n", dwCount);
                 printf("\n");
                 printf("  Index Array Data...\n");
 				INDEX16 *pIndices = (INDEX16*)(pdwPushData + 1);
@@ -351,7 +351,7 @@ extern void XTL::EmuExecutePushBufferRaw
             pIndexData = (INDEX16*)++pdwPushData;
             #ifdef _DEBUG_TRACK_PB
             if (bShowPB) {
-                printf("  NVPB_InlineIndexArray(0x%.08X, %d)...\n", pIndexData, dwCount);
+                printf("  NVPB_InlineIndexArray(0x%p, %u)...\n", pIndexData, dwCount);
                 printf("\n");
                 printf("  Index Array Data...\n");
                 INDEX16 *pIndices = pIndexData;
@@ -462,7 +462,7 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
 
     // retrieve stream data
     char szFileName[128];
-    sprintf(szFileName, "D:\\_cxbx\\mesh\\CxbxMesh-0x%.08X.x", pIndexData);
+    sprintf(szFileName, "D:\\_cxbx\\mesh\\CxbxMesh-0x%p.x", pIndexData);
     FILE *dbgVertices = fopen(szFileName, "wt");
 
     BYTE *pVBData = (BYTE *)XTL::GetDataFromXboxResource(XTL::Xbox_g_Stream[0].pVertexBuffer);
@@ -484,14 +484,14 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
         fprintf(dbgVertices, "xof 0303txt 0032\n");
         fprintf(dbgVertices, "\n");
         fprintf(dbgVertices, "//\n");
-        fprintf(dbgVertices, "//  Vertex Stream Data (0x%.08X)...\n", pVBData);
+        fprintf(dbgVertices, "//  Vertex Stream Data (0x%p)...\n", pVBData);
         fprintf(dbgVertices, "//\n");
 #if 0
 		fprintf(dbgVertices, "//  Format : %d\n", VBDesc.Format);
         fprintf(dbgVertices, "//  Size   : %d bytes\n", VBDesc.Size);
         fprintf(dbgVertices, "//  FVF    : 0x%.08X\n", VBDesc.FVF);
 #endif
-        fprintf(dbgVertices, "//  iCount : %d\n", dwCount/2);
+        fprintf(dbgVertices, "//  iCount : %u\n", dwCount/2);
         fprintf(dbgVertices, "//\n");
 		fprintf(dbgVertices, "\n");
         fprintf(dbgVertices, "Frame SCENE_ROOT {\n");
@@ -525,7 +525,7 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
                 (v < (max - 1)) ? "," : ";");
         }
 
-        fprintf(dbgVertices, "      %d;\n", dwCount - 2);
+        fprintf(dbgVertices, "      %u;\n", dwCount - 2);
 
 		XTL::INDEX16 *pIndexValues = pIndexData;
 
@@ -539,7 +539,7 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
 
         for(uint i=2;i<max;i++)
         {
-            fprintf(dbgVertices, "      3;%d,%d,%d;%s\n",
+            fprintf(dbgVertices, "      3;%u,%u,%u;%s\n",
                 a,b,c, (i < (max - 1)) ? "," : ";");
 
             a = b;
