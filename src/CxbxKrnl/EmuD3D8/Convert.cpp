@@ -565,7 +565,7 @@ void R5G5B5A1ToARGBRow_C(const uint8* src_r5g5b5a1, uint8* dst_argb, int width) 
 	int x;
 	for (x = 0; x < width; ++x) {
 		uint8 a = src_r5g5b5a1[0] & 1;
-		uint8 b = (src_r5g5b5a1[0] >> 1) & 0x1f;
+		uint8 b = (src_r5g5b5a1[0] & 0x3e) >> 1;
 		uint8 g = (src_r5g5b5a1[0] >> 6) | ((src_r5g5b5a1[1] & 0x07) << 2);
 		uint8 r = (src_r5g5b5a1[1] & 0xf8) >> 3;
 		dst_argb[0] = (b << 3) | (b >> 2);
