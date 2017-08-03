@@ -6332,12 +6332,12 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 						if (ConvertRowToARGB == nullptr)
 							CxbxKrnlCleanup("Unhandled conversion!");
 
-						unsigned int s = 0;
+						DWORD SrcRowOff = 0;
 						uint8 *pDestRow = (uint8 *)pDest;
-						while (s < dwMipSizeInBytes) {
-							ConvertRowToARGB(((uint8 *)pSrc) + s, pDestRow, dwMipWidth);
-							s += dwSrcPitch - dwMipPitch;
-							pDestRow += dwDestPitch - dwDestWidthInBytes;
+						while (SrcRowOff < dwMipSizeInBytes) {
+							ConvertRowToARGB(((uint8 *)pSrc) + SrcRowOff, pDestRow, dwMipWidth);
+							SrcRowOff += dwSrcPitch;
+							pDestRow += dwDestPitch;
 						}
 #endif // !OLD_COLOR_CONVERSION
 					}
