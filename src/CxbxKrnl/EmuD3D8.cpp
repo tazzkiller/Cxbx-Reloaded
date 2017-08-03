@@ -992,7 +992,7 @@ void UpdateDepthStencilFlags(const XTL::X_D3DSurface *pXboxSurface)
 typedef struct {
 	DWORD Hash = 0;
 	//UINT XboxDataSize = 0;
-	//DWORD XboxDataSamples[16] = { }; // Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
+	DWORD XboxDataSamples[16] = { }; // Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
 	void* pConvertedHostResource = nullptr;
 } ConvertedResource;
 
@@ -5779,15 +5779,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	// Make sure D3DDevice_SwitchTexture can associate a Data pointer with this texture
 	g_DataToTexture.insert(pTextureData, (void *)pPixelContainer);
 
-	int Size = g_MemoryManager.QueryAllocationSize(pTextureData);
-
-	// TODO : Don't hash every time (peek at how the vertex buffer cache avoids this)
-	uint32_t uiHash = pPixelContainer->Format ^ pPixelContainer->Size; // seed with characteristics
-	uiHash = XXHash32::hash(pTextureData, (uint64_t)Size, uiHash);
-	if (pPalette != NULL)
-		// TODO : Use actual palette size (but how to retrieve?)
-		uiHash = XXHash32::hash((void *)pPalette, (uint64_t)256 * sizeof(D3DCOLOR), uiHash);
-
 	// TODO : Lock all access to g_ConvertedTextures
 
 	// Poor-mans cache-eviction : Clear when full.
@@ -5812,8 +5803,36 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	// Reference the converted texture (when the texture is not present, it's added) :
 	ConvertedResource &convertedTexture = g_ConvertedTextures[textureKey];
 
-	// Check if the data needs an updated conversion or not
+	// Read the previously converted texture from the cache
 	IDirect3DBaseTexture8 *result = (IDirect3DBaseTexture8 *)convertedTexture.pConvertedHostResource;
+
+	// Check if the data needs an updated conversion or not, first via a few samples
+	if (result != nullptr) {
+		boolean CanReuseCachedTexture = true;
+		for (int i = 0; i < 16; i++) {
+			// TODO : Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
+			DWORD Sample = ((DWORD*)pTextureData)[i];
+
+			if (convertedTexture.XboxDataSamples[i] != Sample)
+				CanReuseCachedTexture = false;
+
+			convertedTexture.XboxDataSamples[i] = Sample; // Always set (no harm done if reuse stays possible, but avoids another loop if not)
+		}
+
+		if (CanReuseCachedTexture)
+			return result;
+	}
+
+
+	int Size = g_MemoryManager.QueryAllocationSize(pTextureData);
+
+	// TODO : Don't hash every time (peek at how the vertex buffer cache avoids this)
+	uint32_t uiHash = pPixelContainer->Format ^ pPixelContainer->Size; // seed with characteristics
+	uiHash = XXHash32::hash(pTextureData, (uint64_t)Size, uiHash);
+	if (pPalette != NULL)
+		uiHash = XXHash32::hash((void *)pPalette, (uint64_t)256 * sizeof(D3DCOLOR), uiHash);
+
+	// Check if the data needs an updated conversion or not, now via the hash
 	if (result != nullptr)
 	{
 		if (uiHash == convertedTexture.Hash)
