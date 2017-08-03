@@ -134,10 +134,10 @@ bool CxbxKrnlVerifyVersion(const char *szVersion);
 void CxbxKrnlMain(int argc, char* argv[]);
 
 /*! initialize emulation */
-void CxbxKrnlInit(HWND hwndParent, void *pTLSData, Xbe::TLS *pTLS, Xbe::LibraryVersion *LibraryVersion, DebugMode DbgMode, const char *szDebugFilename, Xbe::Header *XbeHeader, uint32 XbeHeaderSize, void (*Entry)());
+__declspec(noreturn) void CxbxKrnlInit(HWND hwndParent, void *pTLSData, Xbe::TLS *pTLS, Xbe::LibraryVersion *LibraryVersion, DebugMode DbgMode, const char *szDebugFilename, Xbe::Header *XbeHeader, uint32 XbeHeaderSize, void (*Entry)());
 
 /*! cleanup emulation */
-void CxbxKrnlCleanup(const char *szErrorMessage, ...);
+__declspec(noreturn) void CxbxKrnlCleanup(const char *szErrorMessage, ...);
 
 /*! register a thread handle */
 void CxbxKrnlRegisterThread(HANDLE hThread);
@@ -149,7 +149,7 @@ void CxbxKrnlSuspend();
 void CxbxKrnlResume();
 
 /*! terminate the calling thread */
-void CxbxKrnlTerminateThread();
+__declspec(noreturn) void CxbxKrnlTerminateThread();
 
 /*! kernel panic (trap for unimplemented kernel functions) */
 void CxbxKrnlPanic();

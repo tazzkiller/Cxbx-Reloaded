@@ -630,7 +630,7 @@ const char *GameRegionToString(DWORD aGameRegion)
 	return Regions[index];
 }
 
-void CxbxKrnlInit
+__declspec(noreturn) void CxbxKrnlInit
 (
 	HWND                    hwndParent,
 	void                   *pTLSData,
@@ -923,7 +923,6 @@ void CxbxKrnlInit
     fflush(stdout);
 	//	EmuShared::Cleanup();   FIXME: commenting this line is a bad workaround for issue #617 (https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/issues/617)
     CxbxKrnlTerminateThread();
-    return;
 }
 
 void CxbxInitFilePaths()
@@ -985,7 +984,7 @@ void CxbxRestorePersistentMemoryRegions()
 	// TODO : Restore all other persistent memory regions here too.
 }
 
-void CxbxKrnlCleanup(const char *szErrorMessage, ...)
+__declspec(noreturn) void CxbxKrnlCleanup(const char *szErrorMessage, ...)
 {
     g_bEmuException = true;
 
@@ -1022,8 +1021,6 @@ void CxbxKrnlCleanup(const char *szErrorMessage, ...)
 
 	EmuShared::Cleanup();
     TerminateProcess(g_CurrentProcessHandle, 0);
-
-    return;
 }
 
 void CxbxKrnlRegisterThread(HANDLE hThread)
@@ -1124,7 +1121,7 @@ void CxbxKrnlResume()
     g_bEmuSuspended = false;
 }
 
-void CxbxKrnlTerminateThread()
+__declspec(noreturn) void CxbxKrnlTerminateThread()
 {
     TerminateThread(GetCurrentThread(), 0);
 }
