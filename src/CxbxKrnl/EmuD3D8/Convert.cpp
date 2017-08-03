@@ -56,15 +56,15 @@ extern uint32 g_BuildVersion;
 enum _ComponentEncoding {
 	NoCmpnts = 0, // Format doesn't contain any component (ARGB/QWVU)
 	A1R5G5B5,
-	X1R5G5B5,
+	X1R5G5B5, // NOTE : A=255
 	A4R4G4B4,
 	__R5G6B5, // NOTE : A=255
 	A8R8G8B8,
-	X8R8G8B8,
+	X8R8G8B8, // NOTE : A=255
 	____R8B8, // NOTE : A takes R, G takes B
 	____G8B8, // NOTE : A takes G, R takes B
-	______A8,
-	__R6G5B5,
+	______A8, // TEST : R=G=B= 255
+	__R6G5B5, // NOTE : A=255
 	R5G5B5A1,
 	R4G4B4A4,
 	A8B8G8R8,
