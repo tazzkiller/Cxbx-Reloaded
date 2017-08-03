@@ -888,6 +888,18 @@ const XTL::FormatToARGBRow XTL::EmuXBFormatComponentConverter(X_D3DFORMAT Format
 	return nullptr;
 }
 
+#else // !OLD_COLOR_CONVERSION
+
+const XTL::FormatToARGBRow XTL::EmuXBFormatComponentConverter(X_D3DFORMAT Format)
+{
+	if (Format <= X_D3DFMT_LIN_R8G8B8A8)
+		if (FormatInfos[Format].components != NoCmpnts)
+			return ComponentConverters[FormatInfos[Format].components];
+
+	return nullptr;
+}
+#endif // !OLD_COLOR_CONVERSION
+
 bool XTL::EmuXBFormatRequiresConversionToARGB(X_D3DFORMAT Format)
 {
 #ifdef OLD_COLOR_CONVERSION
