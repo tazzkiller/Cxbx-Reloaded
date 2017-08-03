@@ -145,11 +145,11 @@ static void EnableTracker(ResourceTracker &trackTotal, ResourceTracker &tracker,
                 break;
 
             if(action == ETA_ENABLE)
-                printf("CxbxDbg: #%.02d (0x%.08X) enabled\n", a, cur->pResource);
+				printf("CxbxDbg: #%.02d (0x%p) enabled\n", a, cur->pResource);
             else if(action == ETA_DISABLE)
-                printf("CxbxDbg: #%.02d (0x%.08X) disabled\n", a, cur->pResource);
+                printf("CxbxDbg: #%.02d (0x%p) disabled\n", a, cur->pResource);
             else if(action == ETA_SHOW)
-                printf("CxbxDbg: #%.02d (0x%.08X) queued for show info..\n", a, cur->pResource);
+                printf("CxbxDbg: #%.02d (0x%p) queued for show info..\n", a, cur->pResource);
 
             if(action == ETA_ENABLE)
             {
@@ -242,7 +242,7 @@ void DbgConsole::ParseCommand()
         {
             bool enabled = !g_VBTrackDisable.exists(cur->pResource);
 
-            printf("CxbxDbg: %.02d : 0x%.08X (%s)\n", v++, cur->pResource, enabled ? "enabled" : "disabled");
+            printf("CxbxDbg: %.2d : 0x%p (%s)\n", v++, cur->pResource, enabled ? "enabled" : "disabled");
 
             cur = cur->pNext;
         }
@@ -305,7 +305,7 @@ void DbgConsole::ParseCommand()
         {
             bool enabled = !g_PBTrackDisable.exists(cur->pResource);
 
-            printf("CxbxDbg: %.02d : 0x%.08X (%s)\n", v++, cur->pResource, enabled ? "enabled" : "disabled");
+            printf("CxbxDbg: %.2d : 0x%p (%s)\n", v++, cur->pResource, enabled ? "enabled" : "disabled");
 
             cur = cur->pNext;
         }

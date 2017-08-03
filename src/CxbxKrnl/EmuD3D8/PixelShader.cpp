@@ -439,7 +439,7 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 	printf("\n// --------------------------\n");
 	printf("// Input Textures\n");
 	printf("// --------------------------\n");
-	printf("pPSD.PSInputTexture = PS_INPUTTEXTURE(%d,%d,%d,%d);\n",
+	printf("pPSD.PSInputTexture = PS_INPUTTEXTURE(%u,%u,%u,%u);\n",
 		wTexInput[0],wTexInput[1],wTexInput[2],wTexInput[3]);
 
 	printf("\n// --------------------------\n");
@@ -504,11 +504,11 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 				break;
 			case 0x06:
 				printf("PS_TEXTUREMODES_BUMPENVMAP");
-				WriteCode("texbem t%d, t%d\n", j, wTexInput[j]);
+				WriteCode("texbem t%d, t%u\n", j, wTexInput[j]);
 				break;
 			case 0x07:
 				printf("PS_TEXTUREMODES_BUMPENVMAP_LUM");
-				WriteCode("texbeml t%d, t%d\n", j, wTexInput[j]);
+				WriteCode("texbeml t%d, t%u\n", j, wTexInput[j]);
 				break;
 			case 0x11:
 				printf("PS_TEXTUREMODES_DOTPRODUCT");
@@ -524,7 +524,7 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 				else		   
 					WriteCode("texm3x2pad");
 
-				WriteCode(" t%d, t%d\n", j, wTexInput[j]);
+				WriteCode(" t%d, t%u\n", j, wTexInput[j]);
 				break;
 			case 0x08:
 				printf("PS_TEXTUREMODES_BRDF");
@@ -532,46 +532,46 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 				break;
 			case 0x09:
 				printf("PS_TEXTUREMODES_DOT_ST");
-				WriteCode("texm3x2tex t%d, t%d\n", j, wTexInput[j]);
+				WriteCode("texm3x2tex t%d, t%u\n", j, wTexInput[j]);
 				break;
 			case 0x0A:
 				printf("PS_TEXTUREMODES_DOT_ZW");
 				//WriteCode("texm3x2depth t%d, t%d\n", j, wTexInput[j]);
-				WriteCode("texm3x2tex t%d, t%d\n", j, wTexInput[j]);
+				WriteCode("texm3x2tex t%d, t%u\n", j, wTexInput[j]);
 				break;
 			case 0x0F:
 				printf("PS_TEXTUREMODES_DPNDNT_AR");
-				WriteCode("texreg2ar t%d, t%d\n", j, wTexInput[j]);
+				WriteCode("texreg2ar t%d, t%u\n", j, wTexInput[j]);
 				break;
 			case 0x10:
 				printf("PS_TEXTUREMODES_DPNDNT_GB");
-				WriteCode("texreg2gb t%d, t%d\n", j, wTexInput[j]);
+				WriteCode("texreg2gb t%d, t%u\n", j, wTexInput[j]);
 				break;
 			case 0x0B:
 				// TODO: third param!!!
 				printf("PS_TEXTUREMODES_DOT_RFLCT_DIFF");
-				WriteCode("texm3x3diff t%d, t%d, c0\n", j, wTexInput[j]);
+				WriteCode("texm3x3diff t%d, t%u, c0\n", j, wTexInput[j]);
 				break;
 			case 0x0C:
 				// TODO: third param!!!
 				printf("PS_TEXTUREMODES_DOT_RFLCT_SPEC");
-				WriteCode("texm3x3spec t%d, t%d, c0\n", j, wTexInput[j]);
+				WriteCode("texm3x3spec t%d, t%u, c0\n", j, wTexInput[j]);
 				break;
 			case 0x0D:
 				printf("PS_TEXTUREMODES_DOT_STR_3D");
-				WriteCode("texm3x3tex t%d, t%d\n", j, wTexInput[j]);
+				WriteCode("texm3x3tex t%d, t%u\n", j, wTexInput[j]);
 				break;
 			case 0x0E:
 				printf("PS_TEXTUREMODES_DOT_STR_CUBE");
-				WriteCode("texm3x3vspec t%d, t%d\n", j, wTexInput[j]);
+				WriteCode("texm3x3vspec t%d, t%u\n", j, wTexInput[j]);
 				break;
 			case 0x12:
 				// TODO: third param!!!
 				printf("PS_TEXTUREMODES_DOT_RFLCT_SPEC_CONST");
-				WriteCode("texm3x3spec t%d, t%d, c0\n", j, wTexInput[j]);
+				WriteCode("texm3x3spec t%d, t%u, c0\n", j, wTexInput[j]);
 				break;
 			default:
-				printf("Unknown texture mode %d for stage %d!\n", wTexModes[j], j);
+				printf("Unknown texture mode %u for stage %d!\n", wTexModes[j], j);
 				break;
 		}
 		if(j!=3)
@@ -590,7 +590,7 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 	printf("\n// --------------------------\n");
 	printf("// Combiner Count\n");
 	printf("// --------------------------\n");
-	printf("pPSD.PSCombinerCount = PS_COMBINERCOUNT(%d, ", wCombinerStages);
+	printf("pPSD.PSCombinerCount = PS_COMBINERCOUNT(%u, ", wCombinerStages);
 
 	// MSB/LSB
 	if(wCombinerFlags & 0x0001)
@@ -1608,7 +1608,7 @@ inline void GetRegister(WORD wRegister, char *szRegister, BOOL bUniqueC0, BOOL b
 			strcpy(szRegister, "r0");/* e * f --> combiner input */
 			break;
 		default:
-			printf("/*Unknown register %d*/", wRegister);
+			printf("/*Unknown register %u*/", wRegister);
 			break;
 	}
 }
@@ -1661,7 +1661,7 @@ inline void GetInputMapping(WORD wInputMapping, char *szInputMapping, char *szIn
 			strcpy(szInputMapping, "-");
 			break;
 		default:
-			printf("/*Unknown input mapping %d!*/", wInputMapping);
+			printf("/*Unknown input mapping %u!*/", wInputMapping);
 			break;
 	}
 }
@@ -1691,7 +1691,7 @@ inline void GetChannel(WORD wInputChannel, char *szInput, BOOL bAlpha, BOOL bGlo
 				strcat(szInput, ".a");
 			break;
 		default:
-			printf("/*Unknown channel %d!*/", wInputChannel);
+			printf("/*Unknown channel %u!*/", wInputChannel);
 			break;
 	}
 }
@@ -2943,7 +2943,7 @@ void XTL::PrintPixelShaderDefContents( X_D3DPIXELSHADERDEF* pPSDef )
 			DWORD dwPSCCC1 = ( pPSDef->PSCombinerCount >> 16 ) & 0x1;
 
 			DbgPshPrintf( "PSCombinerCount ->\n" );
-			DbgPshPrintf( "Combiners: %d\n", dwPSCCNumCombiners );
+			DbgPshPrintf( "Combiners: %u\n", dwPSCCNumCombiners );
 			DbgPshPrintf( "Mux:       %s\n", PS_CombinerCountFlags[dwPSCCMux] );
 			DbgPshPrintf( "C0:        %s\n", PS_CombinerCountFlags[dwPSCCC0 == 0 ? 2 : 3] );
 			DbgPshPrintf( "C1:        %s\n", PS_CombinerCountFlags[dwPSCCC1 == 0 ? 4 : 5] );

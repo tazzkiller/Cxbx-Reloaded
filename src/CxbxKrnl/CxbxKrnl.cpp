@@ -778,7 +778,7 @@ __declspec(noreturn) void CxbxKrnlInit
 	{
 		// Dump Xbe certificate
 		if (g_pCertificate != NULL) {
-			printf("EmuMain : XBE TitleID : %p\n", g_pCertificate->dwTitleId);
+			printf("EmuMain : XBE TitleID : %.8X\n", g_pCertificate->dwTitleId);
 			printf("EmuMain : XBE TitleName : %ls\n", g_pCertificate->wszTitleName);
 			printf("EmuMain : XBE Region : %s\n", GameRegionToString(g_pCertificate->dwGameRegion));
 		}
@@ -787,7 +787,7 @@ __declspec(noreturn) void CxbxKrnlInit
 		Xbe::LibraryVersion* libVersionInfo = pLibraryVersion;// (LibraryVersion *)(CxbxKrnl_XbeHeader->dwLibraryVersionsAddr);
 		if (libVersionInfo != NULL) {
 			for (uint32 v = 0; v < CxbxKrnl_XbeHeader->dwLibraryVersions; v++) {
-				printf("EmuMain : XBE Library %d : %.8s (version %d)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
+				printf("EmuMain : XBE Library %u : %.8s (version %d)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
 				libVersionInfo++;
 			}
 		}

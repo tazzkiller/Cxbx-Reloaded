@@ -1734,7 +1734,7 @@ VOID XTL::EmuD3DInit()
 
 		// retrieve resolution from configuration
 		if (!g_XBVideo.GetFullscreen()) { // g_EmuCDPD.NativePresentationParameters.Windowed
-			sscanf(g_XBVideo.GetVideoResolution(), "%d x %d",
+			sscanf(g_XBVideo.GetVideoResolution(), "%u x %u",
 				&PresParam.BackBufferWidth,
 				&PresParam.BackBufferHeight);
 
@@ -1751,7 +1751,7 @@ VOID XTL::EmuD3DInit()
 		else {
 			char szBackBufferFormat[16];
 
-			sscanf(g_XBVideo.GetVideoResolution(), "%d x %d %*dbit %s (%d hz)",
+			sscanf(g_XBVideo.GetVideoResolution(), "%u x %u %*dbit %s (%u hz)",
 				&PresParam.BackBufferWidth,
 				&PresParam.BackBufferHeight,
 				szBackBufferFormat,
