@@ -36,7 +36,7 @@
 
 #include "CxbxKrnl.h"
 
-#define OLD_COLOR_CONVERSION
+#undef OLD_COLOR_CONVERSION
 
 #define VERTICES_PER_TRIANGLE 3
 #define VERTICES_PER_QUAD 4
