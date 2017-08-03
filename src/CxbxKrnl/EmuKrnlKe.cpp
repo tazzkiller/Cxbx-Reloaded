@@ -160,14 +160,14 @@ xboxkrnl::KPRCB *KeGetCurrentPrcb()
 #define KeRaiseIrql(NewIrql, OldIrql) \
 	*OldIrql = KfRaiseIrql(NewIrql)
 
-DWORD BootTickCount = 0;
+ULONGLONG BootTickCount = 0;
 
 // The Xbox GetTickCount is measured in milliseconds, just like the native GetTickCount.
 // The only difference we'll take into account here, is that the Xbox will probably reboot
 // much more often than Windows, so we correct this with a 'BootTickCount' value :
 DWORD CxbxXboxGetTickCount()
 {
-	return GetTickCount() - BootTickCount;
+	return (DWORD)(GetTickCount64() - BootTickCount);
 }
 
 DWORD __stdcall EmuThreadDpcHandler(LPVOID lpVoid)
@@ -279,7 +279,7 @@ void ConnectKeInterruptTimeToThunkTable(); // forward
 
 void CxbxInitPerformanceCounters()
 {
-	BootTickCount = GetTickCount();
+	BootTickCount = GetTickCount64();
 
 	// Measure current host performance counter and frequency
 	QueryPerformanceCounter(&NativePerformanceCounter);
