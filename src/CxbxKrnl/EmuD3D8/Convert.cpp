@@ -535,9 +535,9 @@ void ______A8ToARGBRow_C(const uint8* src_a8, uint8* dst_rgb, int width) {
 	int x;
 	for (x = 0; x < width; ++x) {
 		uint8 a = src_a8[0];
-		dst_rgb[0] = 0u; // TODO : Use 255u ?
-		dst_rgb[1] = 0u; // TODO : Use 255u ?
-		dst_rgb[2] = 0u; // TODO : Use 255u ?
+		dst_rgb[0] = 255u;
+		dst_rgb[1] = 255u;
+		dst_rgb[2] = 255u;
 		dst_rgb[3] = a;
 		dst_rgb += 4;
 		src_a8 += 1;
