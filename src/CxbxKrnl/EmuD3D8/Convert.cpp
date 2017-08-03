@@ -56,15 +56,15 @@ extern uint32 g_BuildVersion;
 enum _ComponentEncoding {
 	NoCmpnts = 0, // Format doesn't contain any component (ARGB/QWVU)
 	A1R5G5B5,
-	X1R5G5B5,
+	X1R5G5B5, // NOTE : A=255
 	A4R4G4B4,
 	__R5G6B5, // NOTE : A=255
 	A8R8G8B8,
-	X8R8G8B8,
+	X8R8G8B8, // NOTE : A=255
 	____R8B8, // NOTE : A takes R, G takes B
 	____G8B8, // NOTE : A takes G, R takes B
-	______A8,
-	__R6G5B5,
+	______A8, // TEST : R=G=B= 255
+	__R6G5B5, // NOTE : A=255
 	R5G5B5A1,
 	R4G4B4A4,
 	A8B8G8R8,
@@ -229,9 +229,9 @@ void ______A8ToARGBRow_C(const uint8* src_a8, uint8* dst_rgb, int width) {
 	int x;
 	for (x = 0; x < width; ++x) {
 		uint8 a = src_a8[0];
-		dst_rgb[0] = 0u; // TODO : Use 255u ?
-		dst_rgb[1] = 0u; // TODO : Use 255u ?
-		dst_rgb[2] = 0u; // TODO : Use 255u ?
+		dst_rgb[0] = 255u;
+		dst_rgb[1] = 255u;
+		dst_rgb[2] = 255u;
 		dst_rgb[3] = a;
 		dst_rgb += 4;
 		src_a8 += 1;
