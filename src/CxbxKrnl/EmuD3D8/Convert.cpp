@@ -416,8 +416,6 @@ void ____DXT1ToARGBRow_C(const uint8* data, uint8* dst_argb, int width) {
 
 #else // !OLD_COLOR_CONVERSION
 
-#define uint8 char // TODO : declare uint8 for libuyv compatibility
-
 // Conversion functions copied from libyuv
 // See https://chromium.googlesource.com/libyuv/libyuv/+/master/source/row_common.cc
 void RGB565ToARGBRow_C(const uint8* src_rgb565, uint8* dst_argb, int width) {
