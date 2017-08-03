@@ -358,9 +358,7 @@ DWORD WINAPI XTL::EMUPATCH(XInputPoll)
 
         for(v=0;v<XINPUT_SETSTATE_SLOTS;v++)
         {
-            HANDLE hDevice = g_pXInputSetStateStatus[v].hDevice;
-
-            if(hDevice == 0)
+            if ((HANDLE)g_pXInputSetStateStatus[v].hDevice == 0)
                 continue;
 
             g_pXInputSetStateStatus[v].dwLatency = 0;

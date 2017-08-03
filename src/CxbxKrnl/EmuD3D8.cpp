@@ -3339,7 +3339,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SelectVertexShader)
 		LOG_FUNC_ARG(Address)
 		LOG_FUNC_END;
 
-	HRESULT hRet;
+	HRESULT hRet = D3D_OK;
 
     if (VshHandleIsVertexShader(Handle)) {
 		CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(Handle);
