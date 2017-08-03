@@ -56,7 +56,7 @@ extern const ComponentEncodingInfo *EmuXBFormatComponentEncodingInfo(X_D3DFORMAT
 
 extern D3DCOLOR DecodeUInt32ToColor(const ComponentEncodingInfo * encoding, const uint32 value);
 #else // !OLD_COLOR_CONVERSION
-typedef void(*FormatToARGBRow)(const char* src, char* dst_argb, int width); // TODO : libyuv uses uint8
+typedef void(*FormatToARGBRow)(const uint8* src, uint8* dst_argb, int width);
 
 extern const FormatToARGBRow EmuXBFormatComponentConverter(X_D3DFORMAT Format);
 #endif // !OLD_COLOR_CONVERSION

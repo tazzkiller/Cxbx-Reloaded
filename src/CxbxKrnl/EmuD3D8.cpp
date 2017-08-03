@@ -6333,9 +6333,9 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 							CxbxKrnlCleanup("Unhandled conversion!");
 
 						unsigned int s = 0;
-						char *pDestRow = (char *)pDest;
+						uint8 *pDestRow = (uint8 *)pDest;
 						while (s < dwMipSizeInBytes) {
-							ConvertRowToARGB((char *)pSrc + s, pDestRow, dwMipWidth);
+							ConvertRowToARGB(((uint8 *)pSrc) + s, pDestRow, dwMipWidth);
 							s += dwSrcPitch - dwMipPitch;
 							pDestRow += dwDestPitch - dwDestWidthInBytes;
 						}
