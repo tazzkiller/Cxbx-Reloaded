@@ -6444,7 +6444,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 						if (ConvertRowToARGB == nullptr)
 							CxbxKrnlCleanup("Unhandled conversion!");
 
-						DWORD dwMipSizeInBytes = dwDataSize;
 						DWORD SrcRowOff = 0;
 						uint8 *pDestRow = (uint8 *)pDest;
 						while (SrcRowOff < dwMipSizeInBytes) {
