@@ -988,13 +988,6 @@ void UpdateDepthStencilFlags(const XTL::X_D3DSurface *pXboxSurface)
 	}
 }
 
-typedef struct {
-	DWORD Hash = 0;
-	//UINT XboxDataSize = 0;
-	DWORD XboxDataSamples[16] = { }; // Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
-	void* pConvertedHostResource = nullptr;
-} ConvertedResource;
-
 static std::map<XTL::X_D3DResource *, XTL::IDirect3DResource8 *> g_XboxToHostResourceMappings;
 
 #if 0 // unused
@@ -2844,11 +2837,11 @@ static void EmuAdjustPower2(UINT *dwWidth, UINT *dwHeight)
 }
 #endif
 
-typedef struct {
+struct ConvertedIndexBuffer {
 	DWORD Hash = 0;
 	DWORD uiIndexCount = 0;
 	XTL::IDirect3DIndexBuffer8 *pConvertedHostIndexBuffer = nullptr;
-} ConvertedIndexBuffer;
+};
 
 XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 (
@@ -5718,12 +5711,19 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
     return result;
 }
 
+struct ConvertedVertexBuffer {
+	DWORD Hash = 0;
+	//UINT XboxDataSize = 0;
+	// DWORD XboxDataSamples[16] = {}; // Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
+	XTL::IDirect3DVertexBuffer8* pConvertedHostVertexBuffer = nullptr;
+};
+
 XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 (
 	const XTL::X_D3DVertexBuffer  *pXboxVertexBuffer
 )
 {
-	static std::map<xbaddr, ConvertedResource> g_ConvertedVertexBuffers;
+	static std::map<xbaddr, ConvertedVertexBuffer> g_ConvertedVertexBuffers;
 
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
@@ -5746,7 +5746,7 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 	if (g_ConvertedVertexBuffers.size() >= MAX_CACHE_SIZE_VERTEXBUFFERS) {
 		DbgPrintf("Vertex buffer cache full - clearing and repopulating");
 		for (auto it = g_ConvertedVertexBuffers.begin(); it != g_ConvertedVertexBuffers.end(); ++it) {
-			auto pHostVertexBuffer = (IDirect3DVertexBuffer8 *)(it->second.pConvertedHostResource);
+			auto pHostVertexBuffer = it->second.pConvertedHostVertexBuffer;
 			if (pHostVertexBuffer != nullptr) {
 				pHostVertexBuffer->Release(); // avoid memory leaks
 			}
@@ -5756,10 +5756,10 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 	}
 
 	// Reference the converted vertex buffer (when it's not present, it's added) :
-	ConvertedResource &convertedVertexBuffer = g_ConvertedVertexBuffers[pVertexBufferData];
+	ConvertedVertexBuffer &convertedVertexBuffer = g_ConvertedVertexBuffers[pVertexBufferData];
 
 	// Check if the data needs an updated conversion or not
-	IDirect3DVertexBuffer8 *result = (IDirect3DVertexBuffer8 *)convertedVertexBuffer.pConvertedHostResource;
+	IDirect3DVertexBuffer8 *result = convertedVertexBuffer.pConvertedHostVertexBuffer;
 	if (result != nullptr)
 	{
 		if (uiHash == convertedVertexBuffer.Hash)
@@ -5819,28 +5819,139 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 
 	result = pNewHostVertexBuffer;
 	result->AddRef();
-	convertedVertexBuffer.pConvertedHostResource = result;
+	convertedVertexBuffer.pConvertedHostVertexBuffer = result;
 
     DbgPrintf("CxbxUpdateVertexBuffer : Successfully Created VertexBuffer (0x%.08X)\n", result);
 
     return result;
 }
 
-// Since the same memory address can be used for multiple textures,
-// this struct construct a key out of all identifiying values.
-// This applies to X_D3DCOMMON_TYPE_TEXTURE and X_D3DCOMMON_TYPE_SURFACE.
-typedef struct {
-	xbaddr TextureData;
-	DWORD Format; // See X_D3DFORMAT_* masks and flags
-	DWORD Size; // See X_D3DSIZE_* masks
-} TextureResourceKey;
+// TODO : Move TextureCache to own file
+// TODO : Split TextureCache into a abstract base class (for all caches) and a specialization for textures
+class TextureCache {
+public:
+	// Since the same memory address can be used for multiple textures,
+	// this struct construct a key out of all identifiying values.
+	// This applies to X_D3DCOMMON_TYPE_TEXTURE and X_D3DCOMMON_TYPE_SURFACE.
+	struct TextureResourceKey {
+		xbaddr TextureData;
+		DWORD Format; // See X_D3DFORMAT_* masks and flags
+		DWORD Size; // See X_D3DSIZE_* masks
 
-// See https://stackoverflow.com/questions/40413309/c2678-binary-no-operator-found-which-takes-a-left-hand-operand-of-type-con
-inline bool operator< (const TextureResourceKey& lhs, const TextureResourceKey& rhs) {
-	// std::tuple's lexicographic ordering does all the actual work for you
-	// and using std::tie means no actual copies are made
-	return std::tie(lhs.TextureData, lhs.Format, lhs.Size) < std::tie(rhs.TextureData, rhs.Format, rhs.Size);
-}
+		inline bool operator< (const struct TextureResourceKey& other) const
+		{
+			// std::tuple's lexicographic ordering does all the actual work for you
+			// and using std::tie means no actual copies are made
+			return std::tie(TextureData, Format, Size) < std::tie(other.TextureData, other.Format, other.Size);
+		}
+	};
+
+	struct TextureCacheEntry {
+		DWORD Hash = 0;
+		//UINT XboxDataSize = 0;
+		DWORD XboxDataSamples[16] = {}; // Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
+		XTL::IDirect3DBaseTexture8* pConvertedHostTexture = nullptr;
+
+#if 0
+		~TextureCacheEntry()
+		{
+			if (pConvertedHostTexture != nullptr) {
+				pConvertedHostTexture->Release();
+				pConvertedHostTexture = nullptr;
+			}
+		}
+#endif
+	};
+
+private:
+	std::mutex m_Mutex;
+	std::map<struct TextureResourceKey, struct TextureCacheEntry> g_TextureCacheEntries;
+
+	void Evict() // this must be called locked
+	{
+		// Poor-mans cache-eviction : Clear when full.
+		if (g_TextureCacheEntries.size() >= MAX_CACHE_SIZE_TEXTURES) {
+			DbgPrintf("Texture cache full - clearing for entire repopulation");
+			for (auto it = g_TextureCacheEntries.begin(); it != g_TextureCacheEntries.end(); ++it) {
+				auto pHostTexture = it->second.pConvertedHostTexture;
+				if (pHostTexture != nullptr) {
+					pHostTexture->Release(); // avoid memory leaks
+				}
+			}
+
+			g_TextureCacheEntries.clear();
+		}
+	}
+
+public:
+	TextureCache() {}
+	~TextureCache()	{ Clear(); }
+
+	void Clear()
+	{
+		m_Mutex.lock();
+		g_TextureCacheEntries.clear();
+		m_Mutex.unlock();
+	}
+
+	struct TextureCacheEntry &Find(const struct TextureResourceKey textureKey, const DWORD *pPalette)
+	{
+		m_Mutex.lock();
+		Evict();
+		// Reference the converted texture (when the entry is not present, it's added) :
+		struct TextureCacheEntry &cacheEntry = g_TextureCacheEntries[textureKey];
+		// Check if the data needs an updated conversion or not, first via a few samples
+		if (cacheEntry.pConvertedHostTexture != nullptr) {
+			boolean CanReuseCachedTexture = true;
+			for (int i = 0; i < 16; i++) {
+				// TODO : Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
+				DWORD Sample = ((DWORD*)textureKey.TextureData)[i];
+				if (cacheEntry.XboxDataSamples[i] != Sample)
+					CanReuseCachedTexture = false;
+
+				cacheEntry.XboxDataSamples[i] = Sample; // Always set (no harm done if reuse stays possible, but avoids another loop if not)
+			}
+
+			if (CanReuseCachedTexture) {
+				m_Mutex.unlock();
+				return cacheEntry;
+			}
+		}
+
+		int Size = g_MemoryManager.QueryAllocationSize((void*)textureKey.TextureData);
+		// TODO : Don't hash every time (see CxbxVertexBufferConverter::ApplyCachedStream)
+		uint32_t uiHash = textureKey.Format ^ textureKey.Size; // seed with characteristics
+		uiHash = XXHash32::hash((void*)textureKey.TextureData, (uint64_t)Size, uiHash);
+		if (pPalette != NULL)
+			uiHash = XXHash32::hash((void *)pPalette, (uint64_t)256 * sizeof(XTL::D3DCOLOR), uiHash);
+
+		// Check if the data needs an updated conversion or not, now via the hash
+		if (cacheEntry.pConvertedHostTexture != nullptr) {
+			if (uiHash == cacheEntry.Hash) {
+				// Hash is still the same - assume the converted resource doesn't require updating
+				// TODO : Maybe, if the converted resource gets too old, an update might still be wise
+				// to cater for differences that didn't cause a hash-difference (slight chance, but still).
+				m_Mutex.unlock();
+				return cacheEntry;
+			}
+
+			cacheEntry.pConvertedHostTexture->Release();
+			cacheEntry.pConvertedHostTexture = nullptr;
+		}
+
+		cacheEntry.Hash = uiHash;
+		m_Mutex.unlock();
+		return cacheEntry;
+	}
+
+	void AddConvertedResource(struct TextureCacheEntry &convertedTexture, XTL::IDirect3DBaseTexture8* pHostTexture)
+	{
+		m_Mutex.lock();
+		pHostTexture->AddRef();
+		convertedTexture.pConvertedHostTexture = pHostTexture;
+		m_Mutex.unlock();
+	}
+};
 
 XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 (
@@ -5848,7 +5959,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	const DWORD *pPalette
 )
 {
-	static std::map<TextureResourceKey, ConvertedResource> g_ConvertedTextures;
+	static TextureCache g_TextureCache; // TODO : Move to own file
 
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
@@ -5887,77 +5998,18 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (pTextureData == NULL)
 		return nullptr; // TODO : Cleanup without data?
 
+	// Construct the identifying key for this Xbox texture
+	const struct TextureCache::TextureResourceKey textureKey = { (xbaddr)pTextureData, pPixelContainer->Format, pPixelContainer->Size };
+
+	// Find a cached host texture
+	auto CacheEntry = g_TextureCache.Find(textureKey, pPalette);
+	if (CacheEntry.pConvertedHostTexture != nullptr)
+		return CacheEntry.pConvertedHostTexture;
+
 	// Make sure D3DDevice_SwitchTexture can associate a Data pointer with this texture
 	g_DataToTexture.insert(pTextureData, (void *)pPixelContainer);
 
-	// TODO : Lock all access to g_ConvertedTextures
-
-	// Poor-mans cache-eviction : Clear when full.
-	if (g_ConvertedTextures.size() >= MAX_CACHE_SIZE_TEXTURES) {
-		DbgPrintf("Texture cache full - clearing and repopulating");
-		for (auto it = g_ConvertedTextures.begin(); it != g_ConvertedTextures.end(); ++it) {
-			auto pHostTexture = (IDirect3DBaseTexture8 *)(it->second.pConvertedHostResource);
-			if (pHostTexture != nullptr) {
-				pHostTexture->Release(); // avoid memory leaks
-			}
-		}
-
-		g_ConvertedTextures.clear();
-	}
-
-	// Construct the identifying key for this Xbox texture
-	TextureResourceKey textureKey;
-	textureKey.TextureData = (xbaddr)pTextureData;
-	textureKey.Format = pPixelContainer->Format;
-	textureKey.Size = pPixelContainer->Size;
-
-	// Reference the converted texture (when the texture is not present, it's added) :
-	ConvertedResource &convertedTexture = g_ConvertedTextures[textureKey];
-
-	// Read the previously converted texture from the cache
-	IDirect3DBaseTexture8 *result = (IDirect3DBaseTexture8 *)convertedTexture.pConvertedHostResource;
-
-	// Check if the data needs an updated conversion or not, first via a few samples
-	if (result != nullptr) {
-		boolean CanReuseCachedTexture = true;
-		for (int i = 0; i < 16; i++) {
-			// TODO : Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
-			DWORD Sample = ((DWORD*)pTextureData)[i];
-
-			if (convertedTexture.XboxDataSamples[i] != Sample)
-				CanReuseCachedTexture = false;
-
-			convertedTexture.XboxDataSamples[i] = Sample; // Always set (no harm done if reuse stays possible, but avoids another loop if not)
-		}
-
-		if (CanReuseCachedTexture)
-			return result;
-	}
-
-
-	int Size = g_MemoryManager.QueryAllocationSize(pTextureData);
-
-	// TODO : Don't hash every time (peek at how the vertex buffer cache avoids this)
-	uint32_t uiHash = pPixelContainer->Format ^ pPixelContainer->Size; // seed with characteristics
-	uiHash = XXHash32::hash(pTextureData, (uint64_t)Size, uiHash);
-	if (pPalette != NULL)
-		uiHash = XXHash32::hash((void *)pPalette, (uint64_t)256 * sizeof(D3DCOLOR), uiHash);
-
-	// Check if the data needs an updated conversion or not, now via the hash
-	if (result != nullptr)
-	{
-		if (uiHash == convertedTexture.Hash)
-			// Hash is still the same - assume the converted resource doesn't require updating
-			// TODO : Maybe, if the converted resource gets too old, an update might still be wise
-			// to cater for differences that didn't cause a hash-difference (slight chance, but still).
-			return result;
-
-		convertedTexture = {};
-		result->Release();
-		result = nullptr;
-	}
-
-	convertedTexture.Hash = uiHash;
+	IDirect3DBaseTexture8 *result = nullptr;
 
 	// Interpret Width/Height/BPP
 	DecodedPixelContainer PixelJar;
@@ -6579,8 +6631,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	}
 #endif
 
-	result->AddRef();
-	g_ConvertedTextures[textureKey].pConvertedHostResource = result;
+	g_TextureCache.AddConvertedResource(CacheEntry, result);
 
 	return result;
 }
