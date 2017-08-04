@@ -35,6 +35,7 @@
 // ******************************************************************
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
+
 #include "xxhash32.h"
 #include <condition_variable>
 
@@ -59,6 +60,7 @@ namespace xboxkrnl
 #include "Logging.h"
 #include "EmuD3D8Logging.h"
 #include "HLEIntercept.h" // for bLLE_GPU
+#include "EmuD3D8\TextureCache.h"
 
 #include <assert.h>
 #include <process.h>
@@ -68,7 +70,6 @@ namespace xboxkrnl
 
 #define MAX_CACHE_SIZE_INDEXBUFFERS 256
 #define MAX_CACHE_SIZE_VERTEXBUFFERS 256
-#define MAX_CACHE_SIZE_TEXTURES 256
 
 // Global(s)
 HWND                                g_hEmuWindow   = nullptr; // rendering window
@@ -5825,133 +5826,6 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 
     return result;
 }
-
-// TODO : Move TextureCache to own file
-// TODO : Split TextureCache into a abstract base class (for all caches) and a specialization for textures
-class TextureCache {
-public:
-	// Since the same memory address can be used for multiple textures,
-	// this struct construct a key out of all identifiying values.
-	// This applies to X_D3DCOMMON_TYPE_TEXTURE and X_D3DCOMMON_TYPE_SURFACE.
-	struct TextureResourceKey {
-		xbaddr TextureData;
-		DWORD Format; // See X_D3DFORMAT_* masks and flags
-		DWORD Size; // See X_D3DSIZE_* masks
-
-		inline bool operator< (const struct TextureResourceKey& other) const
-		{
-			// std::tuple's lexicographic ordering does all the actual work for you
-			// and using std::tie means no actual copies are made
-			return std::tie(TextureData, Format, Size) < std::tie(other.TextureData, other.Format, other.Size);
-		}
-	};
-
-	struct TextureCacheEntry {
-		DWORD Hash = 0;
-		//UINT XboxDataSize = 0;
-		DWORD XboxDataSamples[16] = {}; // Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
-		XTL::IDirect3DBaseTexture8* pConvertedHostTexture = nullptr;
-
-#if 0
-		~TextureCacheEntry()
-		{
-			if (pConvertedHostTexture != nullptr) {
-				pConvertedHostTexture->Release();
-				pConvertedHostTexture = nullptr;
-			}
-		}
-#endif
-	};
-
-private:
-	std::mutex m_Mutex;
-	std::map<struct TextureResourceKey, struct TextureCacheEntry> g_TextureCacheEntries;
-
-	void Evict() // this must be called locked
-	{
-		// Poor-mans cache-eviction : Clear when full.
-		if (g_TextureCacheEntries.size() >= MAX_CACHE_SIZE_TEXTURES) {
-			DbgPrintf("Texture cache full - clearing for entire repopulation");
-			for (auto it = g_TextureCacheEntries.begin(); it != g_TextureCacheEntries.end(); ++it) {
-				auto pHostTexture = it->second.pConvertedHostTexture;
-				if (pHostTexture != nullptr) {
-					pHostTexture->Release(); // avoid memory leaks
-				}
-			}
-
-			g_TextureCacheEntries.clear();
-		}
-	}
-
-public:
-	TextureCache() {}
-	~TextureCache()	{ Clear(); }
-
-	void Clear()
-	{
-		m_Mutex.lock();
-		g_TextureCacheEntries.clear();
-		m_Mutex.unlock();
-	}
-
-	struct TextureCacheEntry &Find(const struct TextureResourceKey textureKey, const DWORD *pPalette)
-	{
-		m_Mutex.lock();
-		Evict();
-		// Reference the converted texture (when the entry is not present, it's added) :
-		struct TextureCacheEntry &cacheEntry = g_TextureCacheEntries[textureKey];
-		// Check if the data needs an updated conversion or not, first via a few samples
-		if (cacheEntry.pConvertedHostTexture != nullptr) {
-			boolean CanReuseCachedTexture = true;
-			for (int i = 0; i < 16; i++) {
-				// TODO : Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
-				DWORD Sample = ((DWORD*)textureKey.TextureData)[i];
-				if (cacheEntry.XboxDataSamples[i] != Sample)
-					CanReuseCachedTexture = false;
-
-				cacheEntry.XboxDataSamples[i] = Sample; // Always set (no harm done if reuse stays possible, but avoids another loop if not)
-			}
-
-			if (CanReuseCachedTexture) {
-				m_Mutex.unlock();
-				return cacheEntry;
-			}
-		}
-
-		int Size = g_MemoryManager.QueryAllocationSize((void*)textureKey.TextureData);
-		// TODO : Don't hash every time (see CxbxVertexBufferConverter::ApplyCachedStream)
-		uint32_t uiHash = textureKey.Format ^ textureKey.Size; // seed with characteristics
-		uiHash = XXHash32::hash((void*)textureKey.TextureData, (uint64_t)Size, uiHash);
-		if (pPalette != NULL)
-			uiHash = XXHash32::hash((void *)pPalette, (uint64_t)256 * sizeof(XTL::D3DCOLOR), uiHash);
-
-		// Check if the data needs an updated conversion or not, now via the hash
-		if (cacheEntry.pConvertedHostTexture != nullptr) {
-			if (uiHash == cacheEntry.Hash) {
-				// Hash is still the same - assume the converted resource doesn't require updating
-				// TODO : Maybe, if the converted resource gets too old, an update might still be wise
-				// to cater for differences that didn't cause a hash-difference (slight chance, but still).
-				m_Mutex.unlock();
-				return cacheEntry;
-			}
-
-			cacheEntry.pConvertedHostTexture->Release();
-			cacheEntry.pConvertedHostTexture = nullptr;
-		}
-
-		cacheEntry.Hash = uiHash;
-		m_Mutex.unlock();
-		return cacheEntry;
-	}
-
-	void AddConvertedResource(struct TextureCacheEntry &convertedTexture, XTL::IDirect3DBaseTexture8* pHostTexture)
-	{
-		m_Mutex.lock();
-		pHostTexture->AddRef();
-		convertedTexture.pConvertedHostTexture = pHostTexture;
-		m_Mutex.unlock();
-	}
-};
 
 XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 (
