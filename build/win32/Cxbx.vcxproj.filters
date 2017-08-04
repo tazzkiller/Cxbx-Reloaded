@@ -576,6 +576,9 @@
     <ClInclude Include="..\..\src\Common\Win32\XBAudio.h">
       <Filter>Shared</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\TextureCache.h">
+      <Filter>EmuD3D8</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\resource\About.jpg">
