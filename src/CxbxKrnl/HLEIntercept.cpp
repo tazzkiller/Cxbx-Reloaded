@@ -118,9 +118,62 @@ void *GetEmuPatchAddr(std::string aFunctionName)
 	return addr;
 }
 
+void VerifySymbolAddressAgainstXRef(char *SymbolName, xbaddr Address, int XRef)
+{
+	// Temporary verification - is XREF_D3DTSS_TEXCOORDINDEX derived correctly?
+	// TODO : Remove this when XREF_D3DTSS_TEXCOORDINDEX derivation is deemed stable
+	xbaddr XRefAddr = XRefDataBase[XRef];
+	if (XRefAddr == Address)
+		return;
+
+	if (XRefAddr == XREF_ADDR_DERIVE) {
+		printf("HLE: XRef #%d derived 0x%.08X -> %s\n", XRef, Address, SymbolName);
+		XRefDataBase[XRef] = Address;
+		return;
+	}
+
+	char Buffer[256];
+	sprintf(Buffer, "Verification of %s failed : XREF was 0x%.8X while lookup gave 0x%.8X", SymbolName, XRefAddr, Address);
+	// For XREF_D3DTSS_TEXCOORDINDEX, Kabuki Warriors hits this case
+	CxbxPopupMessage(Buffer);
+}
+
+void *FindSymbolAddress(char *SymbolName, bool FailWhenNotFound = true)
+{
+	if (g_SymbolAddresses.find(SymbolName) == g_SymbolAddresses.end()) {
+		if (FailWhenNotFound) {
+			CxbxKrnlCleanup("Symbol '%s' not registered!", SymbolName);
+			return nullptr; // never reached
+		}
+
+		EmuWarning("Symbol '%s' not registered!", SymbolName);
+		return nullptr;
+	}
+
+	return (void *)(g_SymbolAddresses[SymbolName]);
+}
+
+void SetGlobalSymbols()
+{
+	// Process fallbacks :
+	if (g_SymbolAddresses.find("D3D__TextureState") == g_SymbolAddresses.end()) {
+		if (g_SymbolAddresses.find("D3DDeferredTextureState") != g_SymbolAddresses.end())
+			// Keep compatibility with HLE caches that contain "D3DDeferredTextureState" instead of "D3D__TextureState"
+			g_SymbolAddresses["D3D__TextureState"] = g_SymbolAddresses["D3DDeferredTextureState"];
+	}
+
+	// Lookup and set all required global symbols
+	XRefDataBase[XREF_D3DDEVICE] = (xbaddr)FindSymbolAddress("D3DDEVICE");
+	XTL::Xbox_D3D__RenderState_Deferred = (DWORD*)FindSymbolAddress("D3DDeferredRenderState");
+	XTL::Xbox_D3D_TextureState = (DWORD*)FindSymbolAddress("D3D__TextureState");
+	XTL::Xbox_g_Stream = (XTL::X_Stream *)FindSymbolAddress("g_Stream", false); // Optional - aerox2 hits this case
+#ifndef PATCH_TEXTURES
+	XTL::Xbox_D3DDevice_m_Textures = (XTL::X_D3DBaseTexture **)((byte *)XTL::g_XboxD3DDevice + (uint)FindSymbolAddress("offsetof(D3DDevice,m_Textures)"));
+#endif
+}
+
 void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 {
-    Xbe::Certificate *pCertificate = (Xbe::Certificate*)pXbeHeader->dwCertificateAddr;
 	Xbe::LibraryVersion *pLibraryVersion = (Xbe::LibraryVersion*)pXbeHeader->dwLibraryVersionsAddr;
 
     printf("\n");
@@ -146,18 +199,42 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 		printf("Found HLE Cache File: %08X.ini\n", uiHash);
 
 		// Verify the version of the cache file against the HLE Database
-		char buffer[SHRT_MAX] = { 0 };
-		char* bufferPtr = buffer;
+		char HLEDatabaseVersion[40] = { 0 }; // Will contain [Info] HLEDatabaseVersion value, normally set to szHLELastCompileTime
 
-		GetPrivateProfileString("Info", "HLEDatabaseVersion", NULL, buffer, sizeof(buffer), filename.c_str());
+		GetPrivateProfileString("Info", "HLEDatabaseVersion", nullptr, HLEDatabaseVersion, sizeof(HLEDatabaseVersion), filename.c_str());
 		g_BuildVersion = GetPrivateProfileInt("Libs", "D3D8_BuildVersion", 0, filename.c_str());
 
-		if (strcmp(buffer, szHLELastCompileTime) == 0) {
+		if (strcmp(HLEDatabaseVersion, szHLELastCompileTime) == 0) {
 			printf("Using HLE Cache\n");
-			GetPrivateProfileSection("Symbols", buffer, sizeof(buffer), filename.c_str());
 
+			LPSTR buffer = nullptr;
+			DWORD buffer_size = SHRT_MAX;
+
+			while (true) {
+				buffer = (LPSTR)malloc(buffer_size);
+				if (buffer == nullptr) {
+					buffer_size = 0;
+					break;
+				}
+
+				DWORD returned_size = GetPrivateProfileSection("Symbols", buffer, buffer_size, filename.c_str());
+				if (returned_size == 0) {
+					buffer_size = 0;
+					break;
+				}
+
+				if (returned_size != buffer_size - 2) {
+					buffer_size = returned_size;
+					break;
+				}
+
+				free(buffer);
+				buffer_size *= 2;
+			}
+			
 			// Parse the .INI file into the map of symbol addresses
-			while (strlen(bufferPtr) > 0) {
+			char* bufferPtr = (char *)buffer;
+			while (buffer_size > 0) {
 				std::string ini_entry(bufferPtr);
 
 				auto separator = ini_entry.find('=');
@@ -166,8 +243,12 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 				uint32_t addr = strtol(value.c_str(), 0, 16);
 
 				g_SymbolAddresses[key] = addr;
-				bufferPtr += strlen(bufferPtr) + 1;
+				int line_len = strlen(bufferPtr) + 1;
+				bufferPtr += line_len;
+				buffer_size -= line_len;
 			}
+
+			free(buffer);
 
 			// Iterate through the map of symbol addresses, calling GetEmuPatchAddr on all functions.	
 			for (auto it = g_SymbolAddresses.begin(); it != g_SymbolAddresses.end(); ++it) {
@@ -210,28 +291,9 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 				printf(output.str().c_str());
 			}
 
-			// Fix up Render state and Texture States
-			if (g_SymbolAddresses.find("D3DDeferredRenderState") == g_SymbolAddresses.end()) {
-				EmuWarning("Xbox_D3D__RenderState_Deferred was not found!");
-			}
-			
-			if (g_SymbolAddresses.find("D3D__TextureState") == g_SymbolAddresses.end()) {
-				if (g_SymbolAddresses.find("D3DDeferredTextureState") != g_SymbolAddresses.end())
-					// Keep compatibility with HLE caches that contain "D3DDeferredTextureState" instead of "D3D__TextureState"
-					g_SymbolAddresses["D3D__TextureState"] = g_SymbolAddresses["D3DDeferredTextureState"];
-				else
-					EmuWarning("D3D__TextureState was not found!");
-			}
-
-			if (g_SymbolAddresses.find("D3DDEVICE") == g_SymbolAddresses.end()) {
-				EmuWarning("D3DDEVICE was not found!");
-			}
-
-			XTL::Xbox_D3D__RenderState_Deferred = (DWORD*)g_SymbolAddresses["D3DDeferredRenderState"];
-			XTL::Xbox_D3D_TextureState = (DWORD*)g_SymbolAddresses["D3D__TextureState"];
-			XRefDataBase[XREF_D3DDEVICE] = g_SymbolAddresses["D3DDEVICE"];
-
 			XTL::DxbxBuildRenderStateMappingTable();
+
+			SetGlobalSymbols();
 
 			XTL::InitD3DDeferredStates();
 
@@ -263,8 +325,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
         uint32 LastUnResolvedXRefs = UnResolvedXRefs+1;
         uint32 OrigUnResolvedXRefs = UnResolvedXRefs;
 
-		bool bFoundD3D = false;
-
 		bXRefFirstPass = true; // Set to false for search speed optimization
 
 		// Mark all Xrefs initially as undetermined
@@ -274,6 +334,8 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 		XRefDataBase[XREF_D3DDEVICE] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_D3DRS_CULLMODE] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] = XREF_ADDR_DERIVE;
+		XRefDataBase[XREF_G_STREAM] = XREF_ADDR_DERIVE;
+		XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES] = XREF_ADDR_DERIVE;
 
 		for(int p=0;UnResolvedXRefs < LastUnResolvedXRefs;p++)
         {
@@ -302,12 +364,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
                 if(BuildVersion == 5933) { BuildVersion = 5849; }   // These XDK versions are pretty much the same
                 
 				std::string LibraryName(pLibraryVersion[v].szName, pLibraryVersion[v].szName + 8);
-				
-				// TODO: HACK: D3DX8 is packed into D3D8 database
-				if (strcmp(LibraryName.c_str(), Lib_D3DX8) == 0)
-				{
-					LibraryName = Lib_D3D8;
-				}
 
 				if (strcmp(LibraryName.c_str(), Lib_D3D8LTCG) == 0)
 				{
@@ -318,7 +374,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 					// Skip LTCG libraries as we cannot reliably detect them
 					continue;
 				}
-				
+
 				if (strcmp(LibraryName.c_str(), Lib_DSOUND) == 0)
                 {
 					// Skip scanning for DSOUND symbols when LLE APU is selected
@@ -387,7 +443,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 						xbaddr lower = pXbeHeader->dwBaseAddr;
 						xbaddr upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
 
-						// locate Xbox "_D3D_RenderState" and put it in Xbox_D3D_RenderState (and a few derived)
+						// Locate Xbox symbol "_D3D_RenderState" and store it's address (and a few derived)
 						{
 							xbaddr pFunc = NULL;
 							int iCodeOffsetFor_X_D3DRS_CULLMODE = 0x2B; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
@@ -406,51 +462,35 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								printf("HLE: Located 0x%.08X -> D3DDevice_SetRenderState_CullMode\n", pFunc);
 
 								// Read address of D3DRS_CULLMODE from D3DDevice_SetRenderState_CullMode
-								xbaddr DerivedAddr_D3DRS_CULLMODE = *(xbaddr*)(pFunc + iCodeOffsetFor_X_D3DRS_CULLMODE);
-								DWORD XDK_D3DRS_CULLMODE = DxbxMapMostRecentToActiveVersion[X_D3DRS_CULLMODE];
-								printf("HLE: Derived 0x%.08X -> D3D__RenderState[%d/*=D3DRS_CULLMODE*/]\n", DerivedAddr_D3DRS_CULLMODE, XDK_D3DRS_CULLMODE);
+								xbaddr DerivedAddr_D3DRS_CULLMODE = *((xbaddr*)(pFunc + iCodeOffsetFor_X_D3DRS_CULLMODE));
+								::DWORD XDK_D3DRS_CULLMODE = DxbxMapMostRecentToActiveVersion[X_D3DRS_CULLMODE];
 
 								// Temporary verification - is XREF_D3DRS_CULLMODE derived correctly?
 								// TODO : Remove this when XREF_D3DRS_CULLMODE derivation is deemed stable
-								if (XRefDataBase[XREF_D3DRS_CULLMODE] != DerivedAddr_D3DRS_CULLMODE)
-								{
-									if (XRefDataBase[XREF_D3DRS_CULLMODE] != XREF_ADDR_DERIVE)
-										CxbxPopupMessage("Second derived XREF_D3DRS_CULLMODE differs from first!");
-
-									XRefDataBase[XREF_D3DRS_CULLMODE] = DerivedAddr_D3DRS_CULLMODE;
-								}
+								VerifySymbolAddressAgainstXRef("D3D__RenderState[D3DRS_CULLMODE]", DerivedAddr_D3DRS_CULLMODE, XREF_D3DRS_CULLMODE);
 
 								// Temporary verification - is XREF_D3DDEVICE derived correctly?
 								// TODO : Remove this when D3DEVICE derivation is deemed stable
 								{
-									xbaddr DerivedAddr_D3DDevice = *(xbaddr*)((xbaddr)pFunc + 0x03);
-									if (XRefDataBase[XREF_D3DDEVICE] != DerivedAddr_D3DDevice)
-									{
-										if (XRefDataBase[XREF_D3DDEVICE] != XREF_ADDR_DERIVE)
-											CxbxPopupMessage("Second derived XREF_D3DDEVICE differs from first!");
-
-										XRefDataBase[XREF_D3DDEVICE] = DerivedAddr_D3DDevice;
-									}
-
+									xbaddr DerivedAddr_D3DDevice = *((xbaddr*)(pFunc + 0x03));
+									VerifySymbolAddressAgainstXRef("D3DDEVICE", DerivedAddr_D3DDevice, XREF_D3DDEVICE);
 									g_SymbolAddresses["D3DDEVICE"] = DerivedAddr_D3DDevice;
-									printf("HLE: Derived 0x%.08X -> D3DDEVICE\n", DerivedAddr_D3DDevice);
 								}
 
-								::DWORD *Xbox_D3D_RenderState = ((::DWORD*)DerivedAddr_D3DRS_CULLMODE) - XDK_D3DRS_CULLMODE;
-								g_SymbolAddresses["D3D__RenderState"] = (xbaddr)Xbox_D3D_RenderState;
-								printf("HLE: Derived 0x%.08X -> D3D__RenderState\n", Xbox_D3D_RenderState);
+
+								::DWORD *Derived_D3D_RenderState = ((::DWORD*)DerivedAddr_D3DRS_CULLMODE) - XDK_D3DRS_CULLMODE;
+								g_SymbolAddresses["D3D__RenderState"] = (xbaddr)Derived_D3D_RenderState;
+								printf("HLE: Derived 0x%.08X -> D3D__RenderState\n", Derived_D3D_RenderState);
 
 								// Derive address of Xbox_D3D__RenderState_Deferred from D3DRS_CULLMODE
-								XTL::Xbox_D3D__RenderState_Deferred = Xbox_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
-
-								g_SymbolAddresses["D3DDeferredRenderState"] = (xbaddr)Xbox_D3D__RenderState_Deferred;
-								printf("HLE: Derived 0x%.08X -> Xbox_D3D__RenderState_Deferred\n", Xbox_D3D__RenderState_Deferred);
-								//DbgPrintf("HLE: 0x%.08X -> XREF_D3DRS_ROPZCMPALWAYSREAD\n", XRefDataBase[XREF_D3DRS_ROPZCMPALWAYSREAD] );
+								::DWORD *Derived_D3D__RenderState_Deferred = Derived_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
+								g_SymbolAddresses["D3DDeferredRenderState"] = (xbaddr)Derived_D3D__RenderState_Deferred;
+								printf("HLE: Derived 0x%.08X -> D3D__RenderState_Deferred\n", Derived_D3D__RenderState_Deferred);
 
 								// Derive address of a few other deferred render state slots (to help xref-based function location)
 								{
 #define DeriveAndPrint(D3DRS) \
-									XRefDataBase[XREF_##D3DRS] = (xbaddr)(Xbox_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_##D3DRS]); \
+									XRefDataBase[XREF_##D3DRS] = (xbaddr)(Derived_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_##D3DRS]); \
 									printf("HLE: Derived XREF_"#D3DRS"(%d) 0x%.08X -> D3D__RenderState[%d/*="#D3DRS"]\n", (int)XREF_##D3DRS, XRefDataBase[XREF_##D3DRS], DxbxMapMostRecentToActiveVersion[X_##D3DRS]);
 
 									DeriveAndPrint(D3DRS_MULTISAMPLERENDERTARGETMODE);
@@ -461,14 +501,9 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 #undef DeriveAndPrint
 								}
 							}
-							else
-							{
-								XTL::Xbox_D3D__RenderState_Deferred = NULL;
-								CxbxKrnlCleanup("Xbox D3D__RenderState_Deferred was not found!");
-							}
 						}
 
-                        // locate Xbox "D3D__TextureState" and put it in Xbox_D3D_TextureState
+						// Locate Xbox symbol "D3D__TextureState" and store it's address
                         {
                             xbaddr pFunc = NULL;
 							int iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x19; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
@@ -485,7 +520,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x18; // unsure
 							} else {
 								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetTextureState_TexCoordIndex_3925, lower, upper);
-								int iX_D3DTSS_TEXCOORDINDEX_Offset = 0x11; // verified for 3911
+								iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX = 0x11; // verified for 3911
 							}
 
 							if (pFunc != NULL)
@@ -493,31 +528,46 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								printf("HLE: Located 0x%.08X -> D3DDevice_SetTextureState_TexCoordIndex\n", pFunc);
 
 								// Read address of D3DTSS_TEXCOORDINDEX from D3DDevice_SetTextureState_TexCoordIndex
-								xbaddr DerivedAddr_D3DTSS_TEXCOORDINDEX = *(xbaddr*)(pFunc + iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX);
-								printf("HLE: Derived 0x%.08X -> D3D__TextureState[/*Stage*/0][D3DTSS_TEXCOORDINDEX]\n", DerivedAddr_D3DTSS_TEXCOORDINDEX);
+								xbaddr DerivedAddr_D3DTSS_TEXCOORDINDEX = *((xbaddr*)(pFunc + iCodeOffsetFor_X_D3DTSS_TEXCOORDINDEX));
+								VerifySymbolAddressAgainstXRef("D3D__TextureState[/*Stage*/0][D3DTSS_TEXCOORDINDEX]", DerivedAddr_D3DTSS_TEXCOORDINDEX, XREF_D3DTSS_TEXCOORDINDEX);
 
-								// Temporary verification - is XREF_D3DTSS_TEXCOORDINDEX derived correctly?
-								// TODO : Remove this when XREF_D3DTSS_TEXCOORDINDEX derivation is deemed stable
-								if (XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] != DerivedAddr_D3DTSS_TEXCOORDINDEX) {
-									if (XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] != XREF_ADDR_DERIVE)
-										CxbxPopupMessage("Second derived XREF_D3DTSS_TEXCOORDINDEX differs from first!");
-
-									XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] = DerivedAddr_D3DTSS_TEXCOORDINDEX;
-								}
-
-								XTL::Xbox_D3D_TextureState = ((::DWORD*)DerivedAddr_D3DTSS_TEXCOORDINDEX) - DxbxFromNewVersion_D3DTSS(X_D3DTSS_TEXCOORDINDEX);
-
-								g_SymbolAddresses["D3D__TextureState"] = (xbaddr)XTL::Xbox_D3D_TextureState;
-								printf("HLE: 0x%.08X -> D3D__TextureState\n", XTL::Xbox_D3D_TextureState);
-                            }
-                            else
-                            {
-                                XTL::Xbox_D3D_TextureState = NULL;
-                                CxbxKrnlCleanup("Xbox D3D__TextureState was not found!");
+								// Derive address of D3D_TextureState from D3DTSS_TEXCOORDINDEX
+								::DWORD *Derived_D3D_TextureState = ((::DWORD*)DerivedAddr_D3DTSS_TEXCOORDINDEX) - DxbxFromNewVersion_D3DTSS(X_D3DTSS_TEXCOORDINDEX);
+								g_SymbolAddresses["D3D__TextureState"] = (xbaddr)Derived_D3D_TextureState;
+								printf("HLE: Derived 0x%.08X -> D3D__TextureState\n", Derived_D3D_TextureState);
                             }
                         }
-					
-						XTL::InitD3DDeferredStates();
+
+						// Locate Xbox symbol "g_Stream" and store it's address
+						{
+							xbaddr pFunc = NULL;
+							int iCodeOffsetFor_g_Stream = 0x22; // verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
+
+							if (BuildVersion >= 4034)
+								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetStreamSource_4034, lower, upper);
+							else {
+								pFunc = EmuLocateFunction((OOVPA*)&D3DDevice_SetStreamSource_3925, lower, upper);
+								iCodeOffsetFor_g_Stream = 0x23; // verified for 3911
+							}
+
+							if (pFunc != NULL)
+							{
+								printf("HLE: Located 0x%.08X -> D3DDevice_SetStreamSource\n", pFunc);
+
+								// Read address of Xbox_g_Stream from D3DDevice_SetStreamSource
+								xbaddr Derived_g_Stream = *((xbaddr*)(pFunc + iCodeOffsetFor_g_Stream));
+
+								// Temporary verification - is XREF_G_STREAM derived correctly?
+								// TODO : Remove this when XREF_G_STREAM derivation is deemed stable
+								VerifySymbolAddressAgainstXRef("g_Stream", Derived_g_Stream, XREF_G_STREAM);
+
+								// Now that both Derived XREF and OOVPA-based function-contents match,
+								// correct base-address (because "g_Stream" is actually "g_Stream"+8") :
+								Derived_g_Stream -= offsetof(X_Stream, pVertexBuffer);
+								g_SymbolAddresses["g_Stream"] = (xbaddr)Derived_g_Stream ;
+								printf("HLE: Derived 0x%.08X -> g_Stream\n", Derived_g_Stream);
+							}
+						}
 					}
                 }
 
@@ -548,21 +598,29 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 	printf("\n");
 
+#ifndef PATCH_TEXTURES
+	g_SymbolAddresses["offsetof(D3DDevice,m_Textures)"] = XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES];
+#endif
+
+	SetGlobalSymbols();
+
+	XTL::InitD3DDeferredStates();
+
 	// Write the HLE Database version string
 	WritePrivateProfileString("Info", "HLEDatabaseVersion", szHLELastCompileTime, filename.c_str());
 
 	// Write the Certificate Details to the cache file
 	char tAsciiTitle[40] = "Unknown";
 	setlocale(LC_ALL, "English");
-	wcstombs(tAsciiTitle, pCertificate->wszTitleName, sizeof(tAsciiTitle));
+	wcstombs(tAsciiTitle, g_pCertificate->wszTitleName, sizeof(tAsciiTitle));
 	WritePrivateProfileString("Certificate", "Name", tAsciiTitle, filename.c_str());
 
 	std::stringstream titleId;
-	titleId << std::hex << pCertificate->dwTitleId;
+	titleId << std::hex << g_pCertificate->dwTitleId;
 	WritePrivateProfileString("Certificate", "TitleID", titleId.str().c_str(), filename.c_str());
 
 	std::stringstream region;
-	region << std::hex << pCertificate->dwGameRegion;
+	region << std::hex << g_pCertificate->dwGameRegion;
 	WritePrivateProfileString("Certificate", "Region", region.str().c_str(), filename.c_str());
 
 	// Write Library Details

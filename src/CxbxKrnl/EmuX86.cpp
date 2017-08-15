@@ -60,19 +60,39 @@
 
 uint32_t EmuX86_IORead32(xbaddr addr)
 {
-	EmuWarning("EmuX86_IORead32(0x%08X) Not Implemented", addr);
+	switch (addr) {
+	case 0x8008:	// TIMER
+		// HACK: This is very wrong.
+		// This timer should count at a specific frequency (3579.545 ticks per ms)
+		// But this is enough to keep NXDK from hanging for now.
+		LARGE_INTEGER performanceCount;
+		QueryPerformanceCounter(&performanceCount);
+		return performanceCount.QuadPart;
+		break;
+	}
+
+	EmuWarning("EmuX86_IORead32(0x%08X) [Unknown address]", addr);
 	return 0;
 }
 
 uint16_t EmuX86_IORead16(xbaddr addr)
 {
-	EmuWarning("EmuX86_IORead16(0x%08X) Not Implemented", addr);
+	EmuWarning("EmuX86_IORead16(0x%08X) [Unknown address]", addr);
 	return 0;
 }
 
+static int field_pin = 0;
 uint8_t EmuX86_IORead8(xbaddr addr)
 {
-	EmuWarning("EmuX86_IORead8(0x%08X) Not Implemented", addr);
+	switch (addr) {
+		case 0x80C0:
+			// field pin from tv encoder?
+			field_pin = (field_pin + 1) & 1;
+			return field_pin << 5;
+			break;
+	}
+
+	EmuWarning("EmuX86_IORead8(0x%08X) [Unknown address]", addr);
 	return 0;
 }
 
@@ -156,11 +176,6 @@ uint32_t EmuX86_Read32Aligned(xbaddr addr)
 	uint32_t value;
 
 	if (addr >= NV2A_ADDR && addr < NV2A_ADDR + NV2A_SIZE) {
-		if (!bLLE_GPU) {
-			EmuWarning("EmuX86_Read32Aligned(0x%08X) Unexpected NV2A access, missing a HLE patch. " \
-				"Please notify https://github.com/Cxbx-Reloaded/Cxbx-Reloaded which title raised this!", addr);
-		}
-
 		// Access NV2A regardless weither HLE is disabled or not 
 		value = EmuNV2A_Read(addr - NV2A_ADDR, 32);
 		// Note : EmuNV2A_Read32 does it's own logging
@@ -201,11 +216,6 @@ uint16_t EmuX86_Read16(xbaddr addr)
 	uint16_t value;
 
 	if (addr >= NV2A_ADDR && addr < NV2A_ADDR + NV2A_SIZE) {
-		if (!bLLE_GPU) {
-			EmuWarning("EmuX86_Read32Aligned(0x%08X) Unexpected NV2A access, missing a HLE patch. " \
-				"Please notify https://github.com/Cxbx-Reloaded/Cxbx-Reloaded which title raised this!", addr);
-		}
-
 		// Access NV2A regardless weither HLE is disabled or not 
 		value = EmuNV2A_Read(addr - NV2A_ADDR, 16);
 		// Note : EmuNV2A_Read32 does it's own logging
@@ -232,11 +242,6 @@ uint8_t EmuX86_Read8(xbaddr addr)
 	uint8_t value;
 
 	if (addr >= NV2A_ADDR && addr < NV2A_ADDR + NV2A_SIZE) {
-		if (!bLLE_GPU) {
-			EmuWarning("EmuX86_Read32Aligned(0x%08X) Unexpected NV2A access, missing a HLE patch. " \
-				"Please notify https://github.com/Cxbx-Reloaded/Cxbx-Reloaded which title raised this!", addr);
-		}
-
 		// Access NV2A regardless weither HLE is disabled or not 
 		value = EmuNV2A_Read(addr - NV2A_ADDR, 8);
 		// Note : EmuNV2A_Read32 does it's own logging
@@ -264,11 +269,6 @@ void EmuX86_Write32Aligned(xbaddr addr, uint32_t value)
 	assert((addr & 3) == 0);
 
 	if (addr >= NV2A_ADDR && addr < NV2A_ADDR + NV2A_SIZE) {
-		if (!bLLE_GPU) {
-			EmuWarning("EmuX86_Write32Aligned(0x%08X, 0x%08X) Unexpected NV2A access, missing a HLE patch. " \
-				"Please notify https://github.com/Cxbx-Reloaded/Cxbx-Reloaded which title raised this!", addr);
-		}
-
 		// Access NV2A regardless weither HLE is disabled or not 
 		EmuNV2A_Write(addr - NV2A_ADDR, value, 32);
 		// Note : EmuNV2A_Write32 does it's own logging
@@ -307,10 +307,6 @@ void EmuX86_Write32(xbaddr addr, uint32_t value)
 void EmuX86_Write16(xbaddr addr, uint16_t value)
 {
 	if (addr >= NV2A_ADDR && addr < NV2A_ADDR + NV2A_SIZE) {
-		if (!bLLE_GPU) {
-			EmuWarning("EmuX86_Write32Aligned(0x%08X, 0x%08X) Unexpected NV2A access, missing a HLE patch. " \
-				"Please notify https://github.com/Cxbx-Reloaded/Cxbx-Reloaded which title raised this!", addr);
-		}
 
 		// Access NV2A regardless weither HLE is disabled or not 
 		EmuNV2A_Write(addr - NV2A_ADDR, value, 16);
@@ -342,11 +338,6 @@ void EmuX86_Write8(xbaddr addr, uint8_t value)
 {
 
 	if (addr >= NV2A_ADDR && addr < NV2A_ADDR + NV2A_SIZE) {
-		if (!bLLE_GPU) {
-			EmuWarning("EmuX86_Write32Aligned(0x%08X, 0x%08X) Unexpected NV2A access, missing a HLE patch. " \
-				"Please notify https://github.com/Cxbx-Reloaded/Cxbx-Reloaded which title raised this!", addr);
-		}
-
 		// Access NV2A regardless weither HLE is disabled or not 
 		EmuNV2A_Write(addr - NV2A_ADDR, value, 8);
 		// Note : EmuNV2A_Write32 does it's own logging
@@ -809,6 +800,37 @@ bool  EmuX86_Opcode_AND(LPEXCEPTION_POINTERS e, _DInst& info)
 	return true;
 }
 
+bool  EmuX86_Opcode_CMP(LPEXCEPTION_POINTERS e, _DInst& info)
+{
+	// Read value from Source and Destination
+	uint32_t src = 0;
+	if (!EmuX86_Operand_Read(e, info, 1, &src))
+		return false;
+
+	uint32_t dest = 0;
+	if (!EmuX86_Operand_Read(e, info, 0, &dest))
+		return false;
+
+	// SUB Destination with src (cmp internally is a discarded subtract)
+	uint64_t result = dest - src;
+
+	EmuX86_SetFlag(e, EMUX86_EFLAG_CF, (result >> 32) > 0);
+	EmuX86_SetFlag(e, EMUX86_EFLAG_OF, (result >> 31) != (dest >> 31));
+	// TODO: Figure out how to calculate this EmuX86_SetFlag(e, EMUX86_EFLAG_AF, 0);
+
+	EmuX86_SetFlag(e, EMUX86_EFLAG_SF, result >> 31);
+	EmuX86_SetFlag(e, EMUX86_EFLAG_ZF, result == 0 ? 1 : 0);
+	// Set Parity flag, based on "Compute parity in parallel" method from
+	// http://graphics.stanford.edu/~seander/bithacks.html#ParityParallel
+	uint32_t v = 255 & dest;
+	v ^= v >> 4;
+	v &= 0xf;
+	EmuX86_SetFlag(e, EMUX86_EFLAG_PF, (0x6996 >> v) & 1);
+
+	return true;
+}
+
+
 bool  EmuX86_Opcode_CMPXCHG(LPEXCEPTION_POINTERS e, _DInst& info)
 {
 	// Read value from Source and Destination
@@ -854,6 +876,60 @@ bool  EmuX86_Opcode_CMPXCHG(LPEXCEPTION_POINTERS e, _DInst& info)
 	return true;
 }
 
+bool EmuX86_Opcode_DEC(LPEXCEPTION_POINTERS e, _DInst& info)
+{
+	uint32_t dest = 0;
+	if (!EmuX86_Operand_Read(e, info, 0, &dest))
+		return false;
+
+	// ADD Destination to src 
+	uint64_t result = dest - 1;
+
+	// Write result back
+	EmuX86_Operand_Write(e, info, 0, result);
+
+	EmuX86_SetFlag(e, EMUX86_EFLAG_OF, (result >> 31) != (dest >> 31));
+	// TODO: Figure out how to calculate this EmuX86_SetFlag(e, EMUX86_EFLAG_AF, 0);
+
+	EmuX86_SetFlag(e, EMUX86_EFLAG_SF, result >> 31);
+	EmuX86_SetFlag(e, EMUX86_EFLAG_ZF, result == 0 ? 1 : 0);
+	// Set Parity flag, based on "Compute parity in parallel" method from
+	// http://graphics.stanford.edu/~seander/bithacks.html#ParityParallel
+	uint32_t v = 255 & dest;
+	v ^= v >> 4;
+	v &= 0xf;
+	EmuX86_SetFlag(e, EMUX86_EFLAG_PF, (0x6996 >> v) & 1);
+
+	return true;
+}
+
+bool EmuX86_Opcode_INC(LPEXCEPTION_POINTERS e, _DInst& info)
+{
+	uint32_t dest = 0;
+	if (!EmuX86_Operand_Read(e, info, 0, &dest))
+		return false;
+
+	// ADD Destination to src 
+	uint64_t result = dest + 1;
+
+	// Write result back
+	EmuX86_Operand_Write(e, info, 0, result);
+
+	EmuX86_SetFlag(e, EMUX86_EFLAG_OF, (result >> 31) != (dest >> 31));
+	// TODO: Figure out how to calculate this EmuX86_SetFlag(e, EMUX86_EFLAG_AF, 0);
+
+	EmuX86_SetFlag(e, EMUX86_EFLAG_SF, result >> 31);
+	EmuX86_SetFlag(e, EMUX86_EFLAG_ZF, result == 0 ? 1 : 0);
+	// Set Parity flag, based on "Compute parity in parallel" method from
+	// http://graphics.stanford.edu/~seander/bithacks.html#ParityParallel
+	uint32_t v = 255 & dest;
+	v ^= v >> 4;
+	v &= 0xf;
+	EmuX86_SetFlag(e, EMUX86_EFLAG_PF, (0x6996 >> v) & 1);
+
+	return true;
+}
+
 bool  EmuX86_Opcode_OR(LPEXCEPTION_POINTERS e, _DInst& info)
 {
 	// Read value from Source and Destination
@@ -879,6 +955,39 @@ bool  EmuX86_Opcode_OR(LPEXCEPTION_POINTERS e, _DInst& info)
 	EmuX86_SetFlag(e, EMUX86_EFLAG_OF, 0);
 	EmuX86_SetFlag(e, EMUX86_EFLAG_SF, dest >> 31);
 	EmuX86_SetFlag(e, EMUX86_EFLAG_ZF, dest == 0 ? 1 : 0);
+	// Set Parity flag, based on "Compute parity in parallel" method from
+	// http://graphics.stanford.edu/~seander/bithacks.html#ParityParallel
+	uint32_t v = 255 & dest;
+	v ^= v >> 4;
+	v &= 0xf;
+	EmuX86_SetFlag(e, EMUX86_EFLAG_PF, (0x6996 >> v) & 1);
+
+	return true;
+}
+
+bool EmuX86_Opcode_SUB(LPEXCEPTION_POINTERS e, _DInst& info)
+{
+	// Read value from Source and Destination
+	uint32_t src = 0;
+	if (!EmuX86_Operand_Read(e, info, 1, &src))
+		return false;
+
+	uint32_t dest = 0;
+	if (!EmuX86_Operand_Read(e, info, 0, &dest))
+		return false;
+
+	// SUB Destination with src 
+	uint64_t result = dest - src;
+
+	// Write result back
+	EmuX86_Operand_Write(e, info, 0, result);
+
+	EmuX86_SetFlag(e, EMUX86_EFLAG_CF, (result >> 32) > 0);
+	EmuX86_SetFlag(e, EMUX86_EFLAG_OF, (result >> 31) != (dest >> 31));
+	// TODO: Figure out how to calculate this EmuX86_SetFlag(e, EMUX86_EFLAG_AF, 0);
+
+	EmuX86_SetFlag(e, EMUX86_EFLAG_SF, result >> 31);
+	EmuX86_SetFlag(e, EMUX86_EFLAG_ZF, result == 0 ? 1 : 0);
 	// Set Parity flag, based on "Compute parity in parallel" method from
 	// http://graphics.stanford.edu/~seander/bithacks.html#ParityParallel
 	uint32_t v = 255 & dest;
@@ -970,6 +1079,36 @@ void  EmuX86_Opcode_CPUID(LPEXCEPTION_POINTERS e, _DInst& info)
 	}
 }
 
+bool EmuX86_Opcode_IN(LPEXCEPTION_POINTERS e, _DInst& info)
+{
+	uint32_t value = 0;
+	uint32_t addr;
+
+	if (!EmuX86_Operand_Read(e, info, 1, &addr))
+		return false;
+	
+	switch (info.ops[0].size) {
+		case 8:
+			value = EmuX86_IORead8(addr);
+			break;
+		case 16:
+			value = EmuX86_IORead16(addr);
+			break;
+		case 32: 
+			value = EmuX86_IORead32(addr);
+			break;
+		default:
+			return false;
+	}
+
+	if (!EmuX86_Operand_Write(e, info, 0, value)) {
+		return false;
+	}
+
+	return true;
+}
+
+
 bool  EmuX86_Opcode_OUT(LPEXCEPTION_POINTERS e, _DInst& info)
 {
 	// OUT will address the first operand :
@@ -1056,6 +1195,10 @@ bool EmuX86_DecodeException(LPEXCEPTION_POINTERS e)
 			if (EmuX86_Opcode_AND(e, info))
 				break;
 			goto unimplemented_opcode;
+		case I_CMP:
+			if (EmuX86_Opcode_CMP(e, info))
+				break;
+			goto unimplemented_opcode;
 		case I_CMPXCHG:
 			if (EmuX86_Opcode_CMPXCHG(e, info))
 				break;
@@ -1063,6 +1206,20 @@ bool EmuX86_DecodeException(LPEXCEPTION_POINTERS e)
 		case I_CPUID:
 			EmuX86_Opcode_CPUID(e, info);
 			break;
+		case I_DEC:
+			if (EmuX86_Opcode_DEC(e, info))
+				break;
+
+			goto unimplemented_opcode;
+		case I_IN:
+			if (EmuX86_Opcode_IN(e, info))
+				break;
+
+			goto unimplemented_opcode;
+		case I_INC:
+			if (EmuX86_Opcode_INC(e, info))
+				break;
+			goto unimplemented_opcode;
 		case I_INVD: // Flush internal caches; initiate flushing of external caches.
 			 // We can safely ignore this
 			break;
@@ -1084,6 +1241,10 @@ bool EmuX86_DecodeException(LPEXCEPTION_POINTERS e)
 			if (EmuX86_Opcode_OUT(e, info))
 				break;
 
+			goto unimplemented_opcode;
+		case I_SUB:
+			if (EmuX86_Opcode_SUB(e, info))
+				break;
 			goto unimplemented_opcode;
 		case I_TEST:
 			if (EmuX86_Opcode_TEST(e, info))

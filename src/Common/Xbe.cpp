@@ -9,7 +9,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Core->Xbe.cpp
+// *   Cxbx->Common->Xbe.cpp
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -134,6 +134,30 @@ Xbe::Xbe(const char *x_szFilename)
         printf("OK\n");
 
         printf("Xbe::Xbe: Title identified as %s\n", m_szAsciiTitle);
+
+		// Detect empty title :
+		int len = strlen(m_szAsciiTitle);
+		while (len > 0 && m_szAsciiTitle[len-1] <= ' ')
+			len--;
+		if (len <= 0) {
+			// Try to fix empty title; first, try the executable name:
+			char Dir[_MAX_DIR];
+			char Filename[_MAX_FNAME];
+			_splitpath(x_szFilename, nullptr, Dir, Filename, nullptr);
+			if (stricmp(Filename, "default") != 0) {
+				strcpy(m_szAsciiTitle, Filename);
+			}
+			else {
+				// If executable is named "default.xbe", try the parent folder name:
+				len = strlen(Dir);
+				if (len > 0) {
+					Dir[len - 1] = '\0';
+					_splitpath(Dir, nullptr, nullptr, m_szAsciiTitle, nullptr);
+				}
+			}
+
+			printf("Xbe::Xbe: Replaced empty title with fallback : %s\n", m_szAsciiTitle);
+		}
     }
 
     // read Xbe section headers
@@ -966,4 +990,17 @@ uint08 *Xbe::GetLogoBitmap(uint32 x_dwSize)
     }
 
     return 0;
+}
+
+void *Xbe::FindSection(char *zsSectionName)
+{
+	for (uint32 v = 0; v < m_Header.dwSections; v++) {
+		if (strcmp(m_szSectionName[v], zsSectionName) == 0) {
+			if (m_SectionHeader[v].dwVirtualAddr > 0 && m_SectionHeader[v].dwVirtualSize > 0) {
+				return m_bzSection[v];
+			}
+		}
+	}
+
+	return NULL;
 }

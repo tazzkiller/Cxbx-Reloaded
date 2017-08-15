@@ -52,6 +52,7 @@ namespace XTL {
 
 // TODO : Set these after symbols are scanned/loaded :
 DWORD *Xbox_D3D__Device = NULL; // The Xbox1 D3D__Device
+X_Stream *Xbox_g_Stream = {}; // The Xbox1 g_Stream[16] array
 DWORD *Xbox_D3D__RenderState = NULL;
 // Texture state lookup table (same size in all XDK versions, so defined as a fixed size array) :
 DWORD *Xbox_D3D_TextureState = NULL; // [X_D3DTSS_STAGECOUNT][X_D3DTSS_STAGESIZE] = [(Stage * X_D3DTSS_STAGESIZE) + Offset]
@@ -101,7 +102,6 @@ void DxbxBuildRenderStateMappingTable()
 			// If it is available, register this offset in the various mapping tables we use :
 			DxbxMapActiveVersionToMostRecent[XDKVersion_D3DRS] = State;
 			DxbxMapMostRecentToActiveVersion[State] = XDKVersion_D3DRS;
-			EmuMappedD3DRenderState[State] = &(Xbox_D3D__RenderState[XDKVersion_D3DRS]);
 			// Step to the next offset :
 			XDKVersion_D3DRS++;
 		}
@@ -111,13 +111,14 @@ void DxbxBuildRenderStateMappingTable()
 			// so the mapping table will correspond to the actual (version dependent) layout :
 			// DxbxMapActiveVersionToMostRecent shouldn't be set here, as there's no element for this state!
 			DxbxMapMostRecentToActiveVersion[State] = X_D3DRS_UNSUPPORTED;
-			EmuMappedD3DRenderState[State] = DummyRenderState;
 		}
 	}
 }
 
-void DxbxBuildRenderStateMappingTable2()
+void CxbxInitializeEmuMappedD3DRenderState()
 {
+	int delta = 0;
+
 	// Log the start address of the "deferred" render states (not needed anymore, just to keep logging the same) :
 	if (Xbox_D3D__RenderState != NULL)
 	{
@@ -130,30 +131,35 @@ void DxbxBuildRenderStateMappingTable2()
 		}
 		else
 			if (Xbox_D3D__RenderState_Deferred != Xbox_D3D__RenderState + XDKVersion_D3DRS_DEFERRED_FIRST)
-				CxbxKrnlCleanup("DxbxBuildRenderStateMappingTable2 : Xbox D3D__RenderState_Deferred already set differently?");
+				CxbxKrnlCleanup("CxbxInitializeEmuMappedD3DRenderState : Xbox D3D__RenderState_Deferred already set differently?");
 	}
 	else
 	{
 		// TEMPORARY work-around until Xbox_D3D__RenderState is determined via OOVPA symbol scanning;
-		// map all render states based on the first deferred render state (which we have the address
+		// Map all render states based on the first deferred render state (which we have the address
 		// of in Xbox_D3D__RenderState_Deferred) :
-
-		// assert(Xbox_D3D__RenderState_Deferred != NULL);
-
-		int delta = (int)(Xbox_D3D__RenderState_Deferred - DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST]);
-		for (X_D3DRENDERSTATETYPE State = X_D3DRS_FIRST; State <= X_D3DRS_LAST; State++) {
-			if (EmuMappedD3DRenderState[State] != DummyRenderState) {
-				DWORD XDKVersion_D3DRS = DxbxMapMostRecentToActiveVersion[State];
-				EmuMappedD3DRenderState[State] += delta / sizeof(DWORD); // Increment per DWORD (not per 4!)
-				RegisterAddressLabel(EmuMappedD3DRenderState[State], "D3D__RenderState[%d/*=%s*/]", 
-					XDKVersion_D3DRS,
-					GetDxbxRenderStateInfo(State).S + 2); // Skip "X_" prefix
-				// TODO : Should we label "g_Device." members too?
-			}
-		}
-
-		Xbox_D3D__RenderState = EmuMappedD3DRenderState[X_D3DRS_FIRST];
+		if (Xbox_D3D__RenderState_Deferred != NULL)
+			delta = (int)(Xbox_D3D__RenderState_Deferred - DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST]);
+		else
+			CxbxKrnlCleanup("CxbxInitializeEmuMappedD3DRenderState : Missing Xbox D3D__RenderState and D3D__RenderState_Deferred!");
 	}
+
+	for (X_D3DRENDERSTATETYPE rs = X_D3DRS_FIRST; rs <= X_D3DRS_LAST; rs++) {
+		DWORD XDKVersion_D3DRS = DxbxMapMostRecentToActiveVersion[rs];
+		if (XDKVersion_D3DRS != X_D3DRS_UNSUPPORTED) {
+			EmuMappedD3DRenderState[rs] = &(Xbox_D3D__RenderState[XDKVersion_D3DRS]);
+			EmuMappedD3DRenderState[rs] += delta / sizeof(DWORD); // Increment per DWORD (not per 4!)
+			RegisterAddressLabel(EmuMappedD3DRenderState[rs], "D3D__RenderState[%d/*=%s*/]",
+				XDKVersion_D3DRS,
+				GetDxbxRenderStateInfo(rs).S + 2); // Skip "X_" prefix
+			// TODO : Should we label "g_Device." members too?
+		}
+		else
+			EmuMappedD3DRenderState[rs] = DummyRenderState;
+	}
+
+	if (Xbox_D3D__RenderState == NULL)
+		Xbox_D3D__RenderState = EmuMappedD3DRenderState[X_D3DRS_FIRST];
 
 	// Initialize the dummy render state :
 	EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED] = DummyRenderState;
@@ -217,9 +223,6 @@ DWORD TransferredRenderStateValues[X_D3DRS_LAST + 1] = { X_D3DRS_UNKNOWN };
 
 DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue)
 {
-	D3DRENDERSTATETYPE PCRenderState;
-	DWORD PCValue;
-
 //	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	TransferredRenderStateValues[XboxRenderState] = XboxValue;
@@ -233,23 +236,20 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 		return XboxValue;
 	}
 
-	// Skip Xbox extensions :
-	if (Info.PC == D3DRS_UNSUPPORTED)
+	// Map the Xbox state to a PC state, and check if it's supported :
+	if (Info.PC == D3DRS_UNSUPPORTED) {
+		// TODO : Log once per state. // EmuWarning("%s is not supported!", Info.S);
+		// Skip Xbox extensions :
 		return XboxValue;
+	}
 
 	// Disabled, as it messes up Nvidia rendering too much :
 	//  // Dxbx addition : Hack for Smashing drive (on ATI X1300), don't transfer fog (or everything becomes opaque) :
 	//  if (IsRunning(TITLEID_SmashingDrive)
 	//      && (XboxRenderState  in [X_D3DRS_FOGSTART, X_D3DRS_FOGEND, X_D3DRS_FOGDENSITY]))
-	//    return Result;
+	//    return XboxValue;
 
-	// Pixel shader constants are handled in DxbxUpdateActivePixelShader :
-	if (XboxRenderState >= X_D3DRS_PSCONSTANT0_0 && XboxRenderState <= X_D3DRS_PSCONSTANT1_7)
-		return XboxValue;
-	if (XboxRenderState == X_D3DRS_PSFINALCOMBINERCONSTANT0)
-		return XboxValue;
-	if (XboxRenderState == X_D3DRS_PSFINALCOMBINERCONSTANT1)
-		return XboxValue;
+	// Pixel shader constants are handled in DxbxUpdateActivePixelShader (already skipped because of D3DRS_UNSUPPORTED)
 
 	if (XboxRenderState >= X_D3DRS_DEFERRED_FIRST && XboxRenderState <= X_D3DRS_DEFERRED_LAST)
 	{
@@ -274,29 +274,12 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	break;
 	}
 	*/
-	if (XboxRenderState == X_D3DRS_FILLMODE)
-	{
-		// Configurable override on fillmode :
-		switch (g_iWireframe) {
-		case 0: break; // Use fillmode specified by the XBE
-		case 1: XboxValue = (DWORD)X_D3DFILL_WIREFRAME; break;
-		default: XboxValue = (DWORD)X_D3DFILL_POINT;
-		}
-	}
-
-	// Map the Xbox state to a PC state, and check if it's supported :
-	PCRenderState = Info.PC;
-	if (PCRenderState == D3DRS_UNSUPPORTED)
-	{
-		EmuWarning("%s is not supported!", Info.S);
-		return XboxValue;
-	}
 
 	if (g_pD3DDevice8 == nullptr)
 		return XboxValue;
 
 	// Convert the value from Xbox format into PC format, and set it locally :
-	PCValue = DxbxRenderStateXB2PCCallback[XboxRenderState](XboxValue);
+	DWORD PCValue = DxbxRenderStateXB2PCCallback[XboxRenderState](XboxValue);
 
 	HRESULT hRet;
 	switch (XboxRenderState) {
@@ -323,10 +306,10 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 		XTL::CxbxSetFillMode(PCValue);
 		break;
 	}
-	default:
-		hRet = g_pD3DDevice8->SetRenderState(PCRenderState, PCValue);
+	default: {
+		hRet = g_pD3DDevice8->SetRenderState(Info.PC, PCValue);
 		//	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
-		break;
+	}
 	}
 
 	return PCValue;
@@ -501,7 +484,7 @@ void DxbxUpdateDeferredStates()
 
 void CxbxInitializeTextureStageStates()
 {
-	for (int Stage = X_D3DTSS_FIRST; Stage <= X_D3DTSS_STAGECOUNT; Stage++) {
+	for (int Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++) {
 		for (X_D3DTEXTURESTAGESTATETYPE State = X_D3DTSS_FIRST; State <= X_D3DTSS_LAST; State++) {
 			DWORD NewVersion_TSS = DxbxFromOldVersion_D3DTSS(State); // Map old to new
 			void *Addr = &(Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + State]);
@@ -516,12 +499,23 @@ void InitD3DDeferredStates()
 {
 	CxbxInitializeTextureStageStates();
 
-	DxbxBuildRenderStateMappingTable2();
+	CxbxInitializeEmuMappedD3DRenderState();
 
 #if 1 // Prevent CxbxKrnlCleanup calls from EmuXB2PC_* functions, by resetting cases without a 0 value
 
 	// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DBLENDOP
 	*EmuMappedD3DRenderState[X_D3DRS_BLENDOP] = X_D3DRS_UNKNOWN;
+
+	// Set RenderStates such that the correspond with default values (tested using apitrace on gamepad)
+	*EmuMappedD3DRenderState[X_D3DRS_COLORVERTEX] = 1;
+	*EmuMappedD3DRenderState[X_D3DRS_DIFFUSEMATERIALSOURCE] = 1;
+	*EmuMappedD3DRenderState[X_D3DRS_FOGDENSITY] = 1;
+	*EmuMappedD3DRenderState[X_D3DRS_FOGEND] = 1;
+	*EmuMappedD3DRenderState[X_D3DRS_LOCALVIEWER] = 1;
+	*EmuMappedD3DRenderState[X_D3DRS_POINTSCALE_A] = 1;
+	*EmuMappedD3DRenderState[X_D3DRS_POINTSIZE] = 1;
+	*EmuMappedD3DRenderState[X_D3DRS_POINTSIZE_MAX] = 256;
+	*EmuMappedD3DRenderState[X_D3DRS_SPECULARMATERIALSOURCE] = 2;
 
 	for (int s = 0; s < X_D3DTSS_STAGECOUNT; s++) {
 		// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DTEXTUREADDRESS
@@ -531,6 +525,11 @@ void InitD3DDeferredStates()
 		// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DTEXTUREOP
 		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_COLOROP)] = X_D3DTSS_UNKNOWN;
 		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ALPHAOP)] = X_D3DTSS_UNKNOWN;
+
+		// Set TextureStageStates such that the correspond with default values (tested using apitrace on gamepad)
+		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ALPHAARG2)] = 0;
+		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_COLORARG2)] = 0;
+
 #if 0
 		// Fake all transfers, perhaps that helps X-Marbles?
 		for (int v = 0; v < X_D3DTSS_STAGESIZE; v++) {

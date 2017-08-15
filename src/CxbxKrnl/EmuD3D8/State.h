@@ -50,6 +50,15 @@ inline DWORD CxbxGetRenderState(XTL::X_D3DRENDERSTATETYPE XboxRenderState)
 
 extern DWORD DxbxMapMostRecentToActiveVersion[X_D3DRS_LAST + 1];
 
+struct X_Stream
+{
+	DWORD Stride;
+	DWORD Offset;
+	XTL::X_D3DVertexBuffer *pVertexBuffer;
+};
+
+extern X_Stream *Xbox_g_Stream; // The Xbox1 g_Stream[16] array
+
 extern DWORD *Xbox_D3D__RenderState_Deferred;
 
 extern DWORD *Xbox_D3D_TextureState; // [X_D3DTSS_STAGECOUNT][X_D3DTSS_STAGESIZE] = [(Stage * X_D3DTSS_STAGESIZE) + Offset]

@@ -40,9 +40,11 @@
 /*! \{ */
 typedef signed int     sint;
 typedef unsigned int   uint;
+typedef char           int8;
 typedef char           int08;
 typedef short          int16;
 typedef long           int32;
+typedef unsigned char  uint8;
 typedef unsigned char  uint08;
 typedef unsigned short uint16;
 typedef unsigned long  uint32;
@@ -71,6 +73,8 @@ typedef signed long    sint32;
 #define _DEBUG_WARNINGS
 /*! define this to trace vertex shader constants */
 #define _DEBUG_TRACK_VS_CONST
+/*! define this to print current configuration at kernel startup */
+#define _DEBUG_PRINT_CURRENT_CONF
 
 /*! define this to dump textures that have been set */
 //#define _DEBUG_DUMP_TEXTURE_SETTEXTURE "D:\\xbox\\_textures\\"

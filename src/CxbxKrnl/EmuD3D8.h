@@ -52,12 +52,18 @@ extern VOID CxbxSetPixelContainerHeader1
 	DWORD           	Common,
 	UINT				Width,
 	UINT				Height,
-	XTL::X_D3DFORMAT	Format,
 	UINT				Levels,
+	XTL::X_D3DFORMAT	Format,
 	UINT				Dimensions,
 	UINT				Pitch
 );
 #endif
+
+extern uint8 *ConvertD3DTextureToARGB(
+	XTL::X_D3DPixelContainer *pXboxPixelContainer,
+	uint8 *pSrc,
+	int *pWidth, int *pHeight
+);
 
 // initialize direct3d
 extern VOID EmuD3DInit();
@@ -68,11 +74,24 @@ extern VOID EmuD3DCleanup();
 // EmuD3DTileCache (8 tiles maximum)
 extern X_D3DTILE EmuD3DTileCache[0x08];
 
-// EmuD3DTextureStages
+extern DWORD g_XboxD3DDevice[64 * ONE_KB / sizeof(DWORD)];
+
+#ifdef PATCH_TEXTURES
 extern X_D3DBaseTexture *EmuD3DTextureStages[X_D3DTSS_STAGECOUNT];
 
-XTL::IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, const DWORD *pPalette);
-XTL::IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer *pXboxVertexBuffer);
+inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return EmuD3DTextureStages[uiStage]; }
+#else
+extern X_D3DBaseTexture **Xbox_D3DDevice_m_Textures;
+
+inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return Xbox_D3DDevice_m_Textures[uiStage]; }
+#endif
+
+extern void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource);
+
+IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, const DWORD *pPalette);
+IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer *pXboxVertexBuffer);
+
+extern void CxbxSetFillMode(DWORD CurrentFillMode);
 
 extern void CxbxSetFillMode(DWORD CurrentFillMode);
 
@@ -569,7 +588,7 @@ VOID WINAPI EMUPATCH(D3DDevice_SetTexture)
 VOID __fastcall EMUPATCH(D3DDevice_SwitchTexture)
 (
     DWORD           Method,
-    DWORD           Data,
+    PVOID           Data,
     DWORD           Format
 );
 
@@ -1280,6 +1299,16 @@ XTL::X_D3DVertexBuffer* WINAPI EMUPATCH(D3DDevice_GetStreamSource)
 );
 
 // ******************************************************************
+// * patch: D3DDevice_GetStreamSource2
+// ******************************************************************
+HRESULT WINAPI EMUPATCH(D3DDevice_GetStreamSource2)
+(
+	UINT                StreamNumber,
+	X_D3DVertexBuffer **ppStreamData,
+	UINT               *pStride
+);
+
+// ******************************************************************
 // * patch: D3DDevice_SetStreamSource
 // ******************************************************************
 VOID WINAPI EMUPATCH(D3DDevice_SetStreamSource)
@@ -1755,6 +1784,16 @@ HRESULT WINAPI EMUPATCH(D3DDevice_DrawRectPatch)
 );
 
 // ******************************************************************
+// * patch: D3DDevice_DrawTriPatch
+// ******************************************************************
+HRESULT WINAPI EMUPATCH(D3DDevice_DrawTriPatch)
+(
+	UINT					Handle,
+	CONST FLOAT				*pNumSegs,
+	CONST X_D3DTRIPATCH_INFO* pTriPatchInfo
+);
+
+// ******************************************************************
 // * patch: D3DDevice_GetProjectionViewportMatrix
 // ******************************************************************
 VOID WINAPI EMUPATCH(D3DDevice_GetProjectionViewportMatrix)
@@ -1925,7 +1964,7 @@ HRESULT WINAPI EMUPATCH(D3D_GetAdapterIdentifier)
 // ******************************************************************
 // * patch: D3D::MakeRequestedSpace
 // ******************************************************************
-PDWORD WINAPI EMUPATCH(D3D_MakeRequestedSpace)
+PDWORD WINAPI EMUPATCH(MakeRequestedSpace)
 (
 	DWORD MinimumSpace,
 	DWORD RequestedSpace
