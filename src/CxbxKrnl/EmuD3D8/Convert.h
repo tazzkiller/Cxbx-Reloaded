@@ -36,9 +36,16 @@
 
 #include "CxbxKrnl.h"
 
+#undef OLD_COLOR_CONVERSION
+
+#define VERTICES_PER_TRIANGLE 3
+#define VERTICES_PER_QUAD 4
+#define TRIANGLES_PER_QUAD 2
+
 // Convert a 'method' DWORD into it's associated 'pixel-shader' or 'simple' render state.
 extern X_D3DRENDERSTATETYPE DxbxXboxMethodToRenderState(const NV2AMETHOD aMethod);
 
+#ifdef OLD_COLOR_CONVERSION
 typedef struct _ComponentEncodingInfo
 {
 	int8_t ABits, RBits, GBits, BBits;
@@ -48,6 +55,11 @@ typedef struct _ComponentEncodingInfo
 extern const ComponentEncodingInfo *EmuXBFormatComponentEncodingInfo(X_D3DFORMAT Format);
 
 extern D3DCOLOR DecodeUInt32ToColor(const ComponentEncodingInfo * encoding, const uint32 value);
+#else // !OLD_COLOR_CONVERSION
+typedef void(*FormatToARGBRow)(const uint8* src, uint8* dst_argb, int width);
+
+extern const FormatToARGBRow EmuXBFormatComponentConverter(X_D3DFORMAT Format);
+#endif // !OLD_COLOR_CONVERSION
 
 bool EmuXBFormatRequiresConversionToARGB(X_D3DFORMAT Format);
 
@@ -79,6 +91,11 @@ extern std::string BOOL2String(DWORD Value);
 
 extern std::string DxbxXBDefaultToString(DWORD Value);
 
+#define D3DFORMAT2PCHAR(Value) TYPE2PCHAR(D3DFORMAT)((D3DFORMAT)Value)
+
+#define ForwardTYPE2STRToString(Type) \
+extern std::string Type##2String(DWORD Value);
+
 // TODO : Back-port these
 #define X_D3DBLEND2String DxbxXBDefaultToString
 #define X_D3DBLENDOP2String DxbxXBDefaultToString
@@ -86,37 +103,41 @@ extern std::string DxbxXBDefaultToString(DWORD Value);
 #define X_D3DCMPFUNC2String DxbxXBDefaultToString
 #define X_D3DCOLORWRITEENABLE2String DxbxXBDefaultToString
 #define X_D3DCUBEMAP_FACES2String DxbxXBDefaultToString
-#define X_D3DCULL2String DxbxXBDefaultToString // TYPE2STR(X_D3DCULL)
+ForwardTYPE2STRToString(X_D3DCULL)
 #define X_D3DDCC2String DxbxXBDefaultToString
 #define X_D3DFILLMODE2String DxbxXBDefaultToString
 #define X_D3DFOGMODE2String DxbxXBDefaultToString
-#define X_D3DFORMAT2String DxbxXBDefaultToString // TYPE2STR(X_D3DFORMAT)
+ForwardTYPE2STRToString(X_D3DFORMAT)
 #define X_D3DFRONT2String DxbxXBDefaultToString
 #define X_D3DLOGICOP2String DxbxXBDefaultToString
 #define X_D3DMCS2String DxbxXBDefaultToString
 #define X_D3DMULTISAMPLE_TYPE2String DxbxXBDefaultToString
 #define X_D3DMULTISAMPLEMODE2String DxbxXBDefaultToString
-#define X_D3DPRIMITIVETYPE2String DxbxXBDefaultToString // TYPE2STR(X_D3DPRIMITIVETYPE)
-#define X_D3DRESOURCETYPE2String DxbxXBDefaultToString // TYPE2STR(X_D3DRESOURCETYPE)
+ForwardTYPE2STRToString(X_D3DPRIMITIVETYPE)
+ForwardTYPE2STRToString(X_D3DRESOURCETYPE)
 #define X_D3DSAMPLEALPHA2String DxbxXBDefaultToString
 #define X_D3DSHADEMODE2String DxbxXBDefaultToString
 #define X_D3DSTENCILOP2String DxbxXBDefaultToString
 #define X_D3DSWATH2String DxbxXBDefaultToString
+#define X_D3DTA2String DxbxXBDefaultToString
 #define X_D3DTEXTUREADDRESS2String DxbxXBDefaultToString
 #define X_D3DTEXTURECOORDINDEX2String DxbxXBDefaultToString
 #define X_D3DTEXTUREOP2String DxbxXBDefaultToString
 #define X_D3DTEXTURESTAGESTATETYPE2String DxbxXBDefaultToString
+#define X_D3DTEXTURETRANSFORMFLAGS2String DxbxXBDefaultToString
 #define X_D3DTRANSFORMSTATETYPE2String DxbxXBDefaultToString
 #define X_D3DVERTEXBLENDFLAGS2String DxbxXBDefaultToString
 #define X_D3DVSDE2String DxbxXBDefaultToString
 #define X_D3DWRAP2String DxbxXBDefaultToString
+
+#undef ForwardTYPE2STRToString
 
 extern std::string DWFloat2String(DWORD Value);
 
 
 //// Xbox-to-host conversion functions
 
-extern DWORD DxbxXB2PC_NOP(DWORD Value);
+extern DWORD EmuXB2PC_Copy(DWORD Value);
 
 // convert from pc to xbox color formats
 extern X_D3DFORMAT EmuPC2XB_D3DFormat(D3DFORMAT Format);
@@ -158,7 +179,18 @@ extern D3DVERTEXBLENDFLAGS EmuXB2PC_D3DVERTEXBLENDFLAGS(X_D3DVERTEXBLENDFLAGS Va
 extern DWORD EmuXB2PC_D3DWRAP(DWORD Value);
 
 // table used for vertex->primitive count conversion
-extern UINT EmuD3DVertexToPrimitive[X_D3DPT_POLYGON + 1][2];
+extern int EmuD3DVertexToPrimitive[X_D3DPT_POLYGON + 1][2];
+
+inline bool EmuD3DValidVertexCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int VertexCount)
+{
+	// Are there more vertices than required for setup?
+	if (VertexCount > EmuD3DVertexToPrimitive[XboxPrimitiveType][1])
+		// Are the additional vertices exact multiples of the required additional vertices per primitive?
+		if (0 == ((VertexCount - EmuD3DVertexToPrimitive[XboxPrimitiveType][1]) % EmuD3DVertexToPrimitive[XboxPrimitiveType][0]))
+			return true;
+
+	return false;
+}
 
 // convert from vertex count to primitive count (Xbox)
 inline int EmuD3DVertex2PrimitiveCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int VertexCount)
@@ -166,10 +198,17 @@ inline int EmuD3DVertex2PrimitiveCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int
     return (VertexCount - EmuD3DVertexToPrimitive[XboxPrimitiveType][1]) / EmuD3DVertexToPrimitive[XboxPrimitiveType][0];
 }
 
+#if 0 // unused
 // convert from primitive count to vertex count (Xbox)
 inline int EmuD3DPrimitive2VertexCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int PrimitiveCount)
 {
     return (PrimitiveCount * EmuD3DVertexToPrimitive[XboxPrimitiveType][0]) + EmuD3DVertexToPrimitive[XboxPrimitiveType][1];
+}
+#endif
+
+inline int EmuD3DIndexCountToVertexCount(X_D3DPRIMITIVETYPE XboxPrimitiveType, int IndexCount)
+{
+	return IndexCount;
 }
 
 extern void EmuUnswizzleRect
@@ -1688,10 +1727,12 @@ typedef enum _TXBType {
 	xtD3DSHADEMODE,
 	xtD3DSTENCILOP,
 	xtD3DSWATH,
+	xtD3DTA,
 	xtD3DTEXTUREADDRESS, // Used for TextureStageState X_D3DTSS_ADDRESSU, X_D3DTSS_ADDRESSV and X_D3DTSS_ADDRESSW
 	xtD3DTEXTUREFILTERTYPE, // Used for TextureStageState X_D3DTSS_MAGFILTER, X_D3DTSS_MINFILTER and X_D3DTSS_MIPFILTER
 	xtD3DTEXTUREOP, // Used for TextureStageState X_D3DTSS_COLOROP and X_D3DTSS_ALPHAOP
 	xtD3DTEXTURESTAGESTATETYPE,
+	xtD3DTEXTURETRANSFORMFLAGS,
 	xtD3DTRANSFORMSTATETYPE,
 	xtD3DTSS_TCI,
 	xtD3DVERTEXBLENDFLAGS,

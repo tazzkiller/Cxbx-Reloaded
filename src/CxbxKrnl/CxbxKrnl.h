@@ -121,7 +121,12 @@ typedef uint32 xbaddr;
 #define VECTOR2IRQ(vector)  ((vector)-IRQ_BASE)
 #define VECTOR2IRQL(vector) (PROFILE_LEVEL - VECTOR2IRQ(vector))
 
-void CxbxPopupMessage(const char *message);
+void CxbxPopupMessage(const char *message, ...);
+
+#define LOG_TEST_CASE(message) do { static bool bPopupShown = false; if (!bPopupShown) { bPopupShown = true; CxbxPopupMessage("Please report that %ls shows this test-case: %s\nIn %s (%s)", g_pCertificate->wszTitleName, message, __func__, __FILE__); } } while(0)
+
+extern Xbe::Certificate *g_pCertificate;
+
 
 /*! validate version string match */
 bool CxbxKrnlVerifyVersion(const char *szVersion);
@@ -130,10 +135,10 @@ bool CxbxKrnlVerifyVersion(const char *szVersion);
 void CxbxKrnlMain(int argc, char* argv[]);
 
 /*! initialize emulation */
-void CxbxKrnlInit(HWND hwndParent, void *pTLSData, Xbe::TLS *pTLS, Xbe::LibraryVersion *LibraryVersion, DebugMode DbgMode, const char *szDebugFilename, Xbe::Header *XbeHeader, uint32 XbeHeaderSize, void (*Entry)());
+__declspec(noreturn) void CxbxKrnlInit(HWND hwndParent, void *pTLSData, Xbe::TLS *pTLS, Xbe::LibraryVersion *LibraryVersion, DebugMode DbgMode, const char *szDebugFilename, Xbe::Header *XbeHeader, uint32 XbeHeaderSize, void (*Entry)());
 
 /*! cleanup emulation */
-void CxbxKrnlCleanup(const char *szErrorMessage, ...);
+__declspec(noreturn) void CxbxKrnlCleanup(const char *szErrorMessage, ...);
 
 /*! register a thread handle */
 void CxbxKrnlRegisterThread(HANDLE hThread);
@@ -145,7 +150,7 @@ void CxbxKrnlSuspend();
 void CxbxKrnlResume();
 
 /*! terminate the calling thread */
-void CxbxKrnlTerminateThread();
+__declspec(noreturn) void CxbxKrnlTerminateThread();
 
 /*! kernel panic (trap for unimplemented kernel functions) */
 void CxbxKrnlPanic();

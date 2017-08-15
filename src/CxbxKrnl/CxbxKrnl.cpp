@@ -78,6 +78,7 @@ Xbe::Header *CxbxKrnl_XbeHeader = NULL;
 HWND CxbxKrnl_hEmuParent = NULL;
 DebugMode CxbxKrnl_DebugMode = DebugMode::DM_NONE;
 char* CxbxKrnl_DebugFileName = NULL;
+Xbe::Certificate *g_pCertificate = NULL;
 
 /*! thread handles */
 static HANDLE g_hThreads[MAXIMUM_XBOX_THREADS] = { 0 };
@@ -117,10 +118,8 @@ XbeType GetXbeType(Xbe::Header *pXbeHeader)
 
 void ApplyMediaPatches()
 {
-	Xbe::Certificate *pCertificate = (Xbe::Certificate*)CxbxKrnl_XbeHeader->dwCertificateAddr;
-
 	// Patch the XBE Header to allow running from all media types
-	pCertificate->dwAllowedMedia |= 0
+	g_pCertificate->dwAllowedMedia |= 0
 		| XBEIMAGE_MEDIA_TYPE_HARD_DISK
 		| XBEIMAGE_MEDIA_TYPE_DVD_X2
 		| XBEIMAGE_MEDIA_TYPE_DVD_CD
@@ -131,7 +130,7 @@ void ApplyMediaPatches()
 		| XBEIMAGE_MEDIA_TYPE_DVD_9_RW
 		;
 	// Patch the XBE Header to allow running on all regions
-	pCertificate->dwGameRegion = 0
+	g_pCertificate->dwGameRegion = 0
 		| XBEIMAGE_GAME_REGION_MANUFACTURING
 		| XBEIMAGE_GAME_REGION_NA
 		| XBEIMAGE_GAME_REGION_JAPAN
@@ -142,28 +141,27 @@ void ApplyMediaPatches()
 	// This works as our structure is large enough to fit the newer certificate size, 
 	// while dwSize is the actual size of the certificate in the Xbe.
 	// Source: Various Hacked Kernels
-	if (pCertificate->dwSize >= sizeof(Xbe::Certificate)) {
-		pCertificate->dwSecurityFlags &= ~1;
+	if (g_pCertificate->dwSize >= sizeof(Xbe::Certificate)) {
+		g_pCertificate->dwSecurityFlags &= ~1;
 	}
 }
 
 void SetupPerTitleKeys()
 {
 	// Generate per-title keys from the XBE Certificate
-	Xbe::Certificate *pCertificate = (Xbe::Certificate*)CxbxKrnl_XbeHeader->dwCertificateAddr;
 	UCHAR Digest[20] = {};
 
 	// Set the LAN Key
-	xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, pCertificate->bzLanKey, xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
+	xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, g_pCertificate->bzLanKey, xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
 	memcpy(xboxkrnl::XboxLANKey, Digest, xboxkrnl::XBOX_KEY_LENGTH);
 
 	// Signature Key
-	xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, pCertificate->bzSignatureKey, xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
+	xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, g_pCertificate->bzSignatureKey, xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
 	memcpy(xboxkrnl::XboxSignatureKey, Digest, xboxkrnl::XBOX_KEY_LENGTH);
 
 	// Alternate Signature Keys
 	for (int i = 0; i < xboxkrnl::ALTERNATE_SIGNATURE_COUNT; i++) {
-		xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, pCertificate->bzTitleAlternateSignatureKey[i], xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
+		xboxkrnl::XcHMAC(xboxkrnl::XboxCertificateKey, xboxkrnl::XBOX_KEY_LENGTH, g_pCertificate->bzTitleAlternateSignatureKey[i], xboxkrnl::XBOX_KEY_LENGTH, NULL, 0, Digest);
 		memcpy(xboxkrnl::XboxAlternateSignatureKeys[i], Digest, xboxkrnl::XBOX_KEY_LENGTH);
 	}
 
@@ -320,10 +318,17 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 
 #pragma optimize("", off)
 
-void CxbxPopupMessage(const char *message)
+void CxbxPopupMessage(const char *message, ...)
 {
-	DbgPrintf("Popup : %s\n", message);
-	MessageBox(NULL, message, TEXT("Cxbx-Reloaded"), MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST | MB_SETFOREGROUND);
+	char Buffer[1024];
+	va_list argp;
+
+	va_start(argp, message);
+	vsprintf(Buffer, message, argp);
+	va_end(argp);
+
+	DbgPrintf("Popup : %s\n", Buffer);
+	MessageBox(NULL, Buffer, TEXT("Cxbx-Reloaded"), MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST | MB_SETFOREGROUND);
 }
 
 void CxbxKrnlMain(int argc, char* argv[])
@@ -560,7 +565,7 @@ const char *GameRegionToString(DWORD aGameRegion)
 	return Regions[index];
 }
 
-void CxbxKrnlInit
+__declspec(noreturn) void CxbxKrnlInit
 (
 	HWND                    hwndParent,
 	void                   *pTLSData,
@@ -579,6 +584,7 @@ void CxbxKrnlInit
 	CxbxKrnl_hEmuParent = IsWindow(hwndParent) ? hwndParent : NULL;
 	CxbxKrnl_DebugMode = DbgMode;
 	CxbxKrnl_DebugFileName = (char*)szDebugFilename;
+	g_pCertificate = (Xbe::Certificate *)(CxbxKrnl_XbeHeader->dwCertificateAddr);
 	// for unicode conversions
 	setlocale(LC_ALL, "English");
 	g_CurrentProcessHandle = GetCurrentProcess();
@@ -719,7 +725,7 @@ void CxbxKrnlInit
 	std::string xbeDirectory(szBuffer);
 	CxbxBasePathHandle = CreateFile(CxbxBasePath.c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
 	memset(szBuffer, 0, MAX_PATH);
-	sprintf(szBuffer, "%08X", ((Xbe::Certificate*)pXbeHeader->dwCertificateAddr)->dwTitleId);
+	sprintf(szBuffer, "%08X", g_pCertificate->dwTitleId);
 	std::string titleId(szBuffer);
 	// Games may assume they are running from CdRom :
 	CxbxDefaultXbeDriveIndex = CxbxRegisterDeviceHostPath(DeviceCdrom0, xbeDirectory);
@@ -771,18 +777,17 @@ void CxbxKrnlInit
 	// Dump Xbe information
 	{
 		// Dump Xbe certificate
-		Xbe::Certificate *pCertificate = (Xbe::Certificate*)(pXbeHeader->dwCertificateAddr);
-		if (pCertificate != NULL) {
-			printf("EmuMain : XBE TitleID : %p\n", pCertificate->dwTitleId);
-			printf("EmuMain : XBE TitleName : %ls\n", pCertificate->wszTitleName);
-			printf("EmuMain : XBE Region : %s\n", GameRegionToString(pCertificate->dwGameRegion));
+		if (g_pCertificate != NULL) {
+			printf("EmuMain : XBE TitleID : %.8X\n", g_pCertificate->dwTitleId);
+			printf("EmuMain : XBE TitleName : %ls\n", g_pCertificate->wszTitleName);
+			printf("EmuMain : XBE Region : %s\n", GameRegionToString(g_pCertificate->dwGameRegion));
 		}
 
 		// Dump Xbe library build numbers
 		Xbe::LibraryVersion* libVersionInfo = pLibraryVersion;// (LibraryVersion *)(CxbxKrnl_XbeHeader->dwLibraryVersionsAddr);
 		if (libVersionInfo != NULL) {
 			for (uint32 v = 0; v < CxbxKrnl_XbeHeader->dwLibraryVersions; v++) {
-				printf("EmuMain : XBE Library %d : %.8s (version %d)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
+				printf("EmuMain : XBE Library %u : %.8s (version %d)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
 				libVersionInfo++;
 			}
 		}
@@ -863,7 +868,6 @@ void CxbxKrnlInit
     fflush(stdout);
 	EmuShared::Cleanup();
     CxbxKrnlTerminateThread();
-    return;
 }
 
 void CxbxInitFilePaths()
@@ -925,7 +929,7 @@ void CxbxRestorePersistentMemoryRegions()
 	// TODO : Restore all other persistent memory regions here too.
 }
 
-void CxbxKrnlCleanup(const char *szErrorMessage, ...)
+__declspec(noreturn) void CxbxKrnlCleanup(const char *szErrorMessage, ...)
 {
     g_bEmuException = true;
 
@@ -934,21 +938,14 @@ void CxbxKrnlCleanup(const char *szErrorMessage, ...)
     // print out error message (if exists)
     if(szErrorMessage != NULL)
     {
-        char szBuffer1[255];
-        char szBuffer2[255];
-
+        char szBuffer2[1024];
         va_list argp;
-
-        sprintf(szBuffer1, "[0x%X] EmuMain: Received Fatal Message:\n\n* ", GetCurrentThreadId());
 
         va_start(argp, szErrorMessage);
         vsprintf(szBuffer2, szErrorMessage, argp);
         va_end(argp);
 
-        strcat(szBuffer1, szBuffer2);
-        strcat(szBuffer1, "\n");
-
-		CxbxPopupMessage(szBuffer1); // Will also DbgPrintf
+		CxbxPopupMessage("[0x%X] EmuMain: Received Fatal Message:\n\n* %s\n", GetCurrentThreadId(), szBuffer2); // Will also DbgPrintf
     }
 
     printf("CxbxKrnl: Terminating Process\n");
@@ -969,8 +966,6 @@ void CxbxKrnlCleanup(const char *szErrorMessage, ...)
 
 	EmuShared::Cleanup();
     TerminateProcess(g_CurrentProcessHandle, 0);
-
-    return;
 }
 
 void CxbxKrnlRegisterThread(HANDLE hThread)
@@ -1071,7 +1066,7 @@ void CxbxKrnlResume()
     g_bEmuSuspended = false;
 }
 
-void CxbxKrnlTerminateThread()
+__declspec(noreturn) void CxbxKrnlTerminateThread()
 {
     TerminateThread(GetCurrentThread(), 0);
 }

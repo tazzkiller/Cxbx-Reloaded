@@ -211,6 +211,7 @@ $(SOLUTIONDIR)Export.bat</Command>
     <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\PixelShader.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\PushBuffer.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\State.h" />
+    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\TextureCache.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\VertexBuffer.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\VertexShader.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\EmuDInput.h" />
