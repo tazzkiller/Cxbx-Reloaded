@@ -869,9 +869,9 @@ static void VshWriteShader(VSH_XBOX_SHADER *pShader,
             VshWriteOutputMask(pIntermediate->Output.Mask, pDisassembly, &DisassemblyPos);
         }
         // Print the parameters
-        for (int i = 0; i < 3; i++)
+        for (int p = 0; p < 3; p++)
         {
-            VSH_IMD_PARAMETER *pParameter = &pIntermediate->Parameters[i];
+            VSH_IMD_PARAMETER *pParameter = &pIntermediate->Parameters[p];
             if(pParameter->Active)
             {
                 VshWriteParameter(pParameter, pDisassembly, &DisassemblyPos);
@@ -1692,13 +1692,13 @@ XTL::D3DDECLUSAGE Xb2PCRegisterType
 			PCRegisterType = D3DVSDE_TEXCOORD3;
 			break;
 		default:
-			DbgVshPrintf("%d /* unknown register */", VertexRegister);
+			DbgVshPrintf("%u /* unknown register */", VertexRegister);
 			PCRegisterType = D3DDECLUSAGE_UNSUPPORTED;
 			break;
 		}
 	} else {
 		PCRegisterType = (D3DDECLUSAGE)VertexRegister;
-		DbgVshPrintf("%d", VertexRegister);
+		DbgVshPrintf("%u", VertexRegister);
 	}
 
     return PCRegisterType;
@@ -1742,13 +1742,13 @@ static DWORD VshConvertToken_CONSTMEM(DWORD *pToken)
     DWORD ConstantAddress = (*pToken & X_D3DVSD_CONSTADDRESSMASK) >> X_D3DVSD_CONSTADDRESSSHIFT;
     DWORD Count           = (*pToken & X_D3DVSD_CONSTCOUNTMASK) >> X_D3DVSD_CONSTCOUNTSHIFT;
 
-    DbgVshPrintf("%d, %d),\n", ConstantAddress, Count);
+    DbgVshPrintf("%u, %u),\n", ConstantAddress, Count);
 
     //pToken = D3DVSD_CONST(ConstantAddress, Count);
 
     for (uint i = 0; i < Count; i++)
     {
-        DbgVshPrintf("\t0x%08X,\n", pToken);
+        DbgVshPrintf("\t0x%.8X,\n", *pToken);
     }
     return Count;
 }
@@ -1795,7 +1795,7 @@ static boolean VshAddStreamPatch(VSH_PATCH_DATA *pPatchData)
 
     if(CurrentStream >= 0)
     {
-        DbgVshPrintf("NeedPatching: %d\n", pPatchData->NeedPatching);
+        DbgVshPrintf("NeedPatching: %s\n", pPatchData->NeedPatching ? "Yes" : "No");
 
         XTL::CxbxStreamDynamicPatch* pStreamPatch = &pPatchData->StreamPatchData.pStreamPatches[CurrentStream];
 
@@ -1826,7 +1826,7 @@ static void VshConvertToken_STREAM(DWORD          *pToken,
     else
     {
         XTL::DWORD StreamNumber = VshGetVertexStream(*pToken);
-        DbgVshPrintf("\tD3DVSD_STREAM(%d),\n", StreamNumber);
+        DbgVshPrintf("\tD3DVSD_STREAM(%u),\n", StreamNumber);
 
         // new stream
         // copy current data to structure
@@ -1851,7 +1851,7 @@ static void VshConvertToken_STREAMDATA_SKIP(DWORD *pToken)
     using namespace XTL;
 
     XTL::DWORD SkipCount = (*pToken & X_D3DVSD_SKIPCOUNTMASK) >> X_D3DVSD_SKIPCOUNTSHIFT;
-    DbgVshPrintf("\tD3DVSD_SKIP(%d),\n", SkipCount);
+    DbgVshPrintf("\tD3DVSD_SKIP(%u),\n", SkipCount);
 }
 
 static void VshConvertToken_STREAMDATA_SKIPBYTES(DWORD *pToken)
@@ -1859,7 +1859,7 @@ static void VshConvertToken_STREAMDATA_SKIPBYTES(DWORD *pToken)
     using namespace XTL;
 
     XTL::DWORD SkipBytesCount = (*pToken & X_D3DVSD_SKIPCOUNTMASK) >> X_D3DVSD_SKIPCOUNTSHIFT;
-    DbgVshPrintf("\tD3DVSD_SKIPBYTES(%d), /* xbox ext. */\n", SkipBytesCount);
+    DbgVshPrintf("\tD3DVSD_SKIPBYTES(%u), /* xbox ext. */\n", SkipBytesCount);
     if(SkipBytesCount % sizeof(XTL::DWORD))
     {
         EmuWarning("D3DVSD_SKIPBYTES can't be converted to D3DVSD_SKIP, not divisble by 4.");
@@ -2077,7 +2077,7 @@ static DWORD VshRecompileToken(DWORD          *pToken,
         break;
     }
     default:
-        DbgVshPrintf("Unknown token type: %d\n", VshGetTokenType(*pToken));
+        DbgVshPrintf("Unknown token type: %u\n", VshGetTokenType(*pToken));
         break;
     }
 
@@ -2123,7 +2123,7 @@ DWORD XTL::EmuRecompileVshDeclaration
 	VshAddStreamPatch(&PatchData);
     DbgVshPrintf("\tD3DVSD_END()\n};\n");
 
-    DbgVshPrintf("NbrStreams: %d\n", PatchData.StreamPatchData.NbrStreams);
+    DbgVshPrintf("NbrStreams: %u\n", PatchData.StreamPatchData.NbrStreams);
 
     // Copy the patches to the vertex shader struct
     DWORD StreamsSize = PatchData.StreamPatchData.NbrStreams * sizeof(CxbxStreamDynamicPatch);
@@ -2216,14 +2216,18 @@ extern HRESULT XTL::EmuRecompileVshFunction
         // HACK: Azurik. Prevent Direct3D from trying to assemble this.
 		if(!strcmp(pShaderDisassembly, "vs.1.1\n"))
 		{
-			EmuWarning("Cannot assemble empty vertex shader!");
-			EmuWarning("Attempting to use vertex declaration instead...");
+			EmuWarning("Replacing empty vertex shader with fallback");
 
-			// Attempt to use the vertex declaration for a fixed pipeline
-			// vertex shader instead...
-			*pbUseDeclarationOnly = 1;
+			static const char dummy[] =
+				"vs.1.1\n"
+				"mov oPos, v0\n";
 
-			hRet = S_OK;
+			hRet = D3DXAssembleShader(dummy,
+				strlen(dummy),
+				D3DXASM_SKIPVALIDATION,
+				NULL,
+				ppRecompiled,
+				NULL);
 		}
 		else
 		{

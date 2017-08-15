@@ -127,7 +127,7 @@ void XTL::CxbxVertexBufferConverter::DumpCache(void)
         if (pCachedStream != nullptr)
         {
             // TODO: Write nicer dump presentation
-            printf("Key: 0x%.08X Cache Hits: %d IsUP: %s OrigStride: %d NewStride: %d HashCount: %d HashFreq: %d Length: %d Hash: 0x%.08X\n",
+            printf("Key: 0x%p Cache Hits: %u IsUP: %s OrigStride: %u NewStride: %u HashCount: %u HashFreq: %u Length: %u Hash: 0x%.8X\n",
                    pNode->pKey, pCachedStream->uiCacheHitCount, pCachedStream->Stream.bCacheIsStreamZeroDrawUP ? "YES" : "NO",
                    pCachedStream->Stream.uiCachedXboxVertexStride, pCachedStream->Stream.uiCachedHostVertexStride,
                    pCachedStream->uiCheckCount, pCachedStream->uiCheckFrequency,

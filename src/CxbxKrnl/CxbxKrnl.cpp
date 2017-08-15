@@ -565,7 +565,7 @@ const char *GameRegionToString(DWORD aGameRegion)
 	return Regions[index];
 }
 
-void CxbxKrnlInit
+__declspec(noreturn) void CxbxKrnlInit
 (
 	HWND                    hwndParent,
 	void                   *pTLSData,
@@ -778,7 +778,7 @@ void CxbxKrnlInit
 	{
 		// Dump Xbe certificate
 		if (g_pCertificate != NULL) {
-			printf("EmuMain : XBE TitleID : %p\n", g_pCertificate->dwTitleId);
+			printf("EmuMain : XBE TitleID : %.8X\n", g_pCertificate->dwTitleId);
 			printf("EmuMain : XBE TitleName : %ls\n", g_pCertificate->wszTitleName);
 			printf("EmuMain : XBE Region : %s\n", GameRegionToString(g_pCertificate->dwGameRegion));
 		}
@@ -787,7 +787,7 @@ void CxbxKrnlInit
 		Xbe::LibraryVersion* libVersionInfo = pLibraryVersion;// (LibraryVersion *)(CxbxKrnl_XbeHeader->dwLibraryVersionsAddr);
 		if (libVersionInfo != NULL) {
 			for (uint32 v = 0; v < CxbxKrnl_XbeHeader->dwLibraryVersions; v++) {
-				printf("EmuMain : XBE Library %d : %.8s (version %d)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
+				printf("EmuMain : XBE Library %u : %.8s (version %d)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
 				libVersionInfo++;
 			}
 		}
@@ -868,7 +868,6 @@ void CxbxKrnlInit
     fflush(stdout);
 	EmuShared::Cleanup();
     CxbxKrnlTerminateThread();
-    return;
 }
 
 void CxbxInitFilePaths()
@@ -930,7 +929,7 @@ void CxbxRestorePersistentMemoryRegions()
 	// TODO : Restore all other persistent memory regions here too.
 }
 
-void CxbxKrnlCleanup(const char *szErrorMessage, ...)
+__declspec(noreturn) void CxbxKrnlCleanup(const char *szErrorMessage, ...)
 {
     g_bEmuException = true;
 
@@ -967,8 +966,6 @@ void CxbxKrnlCleanup(const char *szErrorMessage, ...)
 
 	EmuShared::Cleanup();
     TerminateProcess(g_CurrentProcessHandle, 0);
-
-    return;
 }
 
 void CxbxKrnlRegisterThread(HANDLE hThread)
@@ -1069,7 +1066,7 @@ void CxbxKrnlResume()
     g_bEmuSuspended = false;
 }
 
-void CxbxKrnlTerminateThread()
+__declspec(noreturn) void CxbxKrnlTerminateThread()
 {
     TerminateThread(GetCurrentThread(), 0);
 }

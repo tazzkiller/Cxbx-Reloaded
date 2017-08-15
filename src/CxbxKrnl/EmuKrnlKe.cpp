@@ -160,14 +160,14 @@ xboxkrnl::KPRCB *KeGetCurrentPrcb()
 #define KeRaiseIrql(NewIrql, OldIrql) \
 	*OldIrql = KfRaiseIrql(NewIrql)
 
-DWORD BootTickCount = 0;
+ULONGLONG BootTickCount = 0;
 
 // The Xbox GetTickCount is measured in milliseconds, just like the native GetTickCount.
 // The only difference we'll take into account here, is that the Xbox will probably reboot
 // much more often than Windows, so we correct this with a 'BootTickCount' value :
 DWORD CxbxXboxGetTickCount()
 {
-	return GetTickCount() - BootTickCount;
+	return (DWORD)(GetTickCount64() - BootTickCount);
 }
 
 DWORD __stdcall EmuThreadDpcHandler(LPVOID lpVoid)
@@ -279,7 +279,7 @@ void ConnectKeInterruptTimeToThunkTable(); // forward
 
 void CxbxInitPerformanceCounters()
 {
-	BootTickCount = GetTickCount();
+	BootTickCount = GetTickCount64();
 
 	// Measure current host performance counter and frequency
 	QueryPerformanceCounter(&NativePerformanceCounter);
@@ -398,16 +398,16 @@ XBSYSAPI EXPORTNUM(96) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeBugCheckEx
 
 	char buffer[1024];
 	sprintf(buffer, "The running software triggered KeBugCheck with the following information\n"
-		"BugCheckCode: 0x%08X\n"
-		"BugCheckParameter1: 0x%08X\n"
-		"BugCheckParameter2: 0x%08X\n"
-		"BugCheckParameter3: 0x%08X\n"
-		"BugCheckParameter4: 0x%08X\n"
+		"BugCheckCode: 0x%.8X\n"
+		"BugCheckParameter1: 0x%p\n"
+		"BugCheckParameter2: 0x%p\n"
+		"BugCheckParameter3: 0x%p\n"
+		"BugCheckParameter4: 0x%p\n"
 		"\nThis is the Xbox equivalent to a BSOD and would cause the console to automatically reboot\n"
 		"\nContinue Execution (Not Recommended)?\n",
 		BugCheckCode, BugCheckParameter1, BugCheckParameter2, BugCheckParameter3, BugCheckParameter4);
 
-	HRESULT result = MessageBoxA(g_hEmuWindow, buffer, "KeBugCheck", MB_YESNO | MB_ICONWARNING);
+	int result = MessageBoxA(g_hEmuWindow, buffer, "KeBugCheck", MB_YESNO | MB_ICONWARNING);
 
 	if (result == IDNO)	{
 		CxbxKrnlCleanup(NULL);
@@ -1660,13 +1660,14 @@ XBSYSAPI EXPORTNUM(158) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForMultipleObje
 
 	NTSTATUS ret = STATUS_SUCCESS;
 
-	for (uint i = 0; i < Count; i++)
-		if (IsEmuHandle(Object[i]))
-		{
+	for (uint i = 0; i < Count; i++) {
+		DbgPrintf("Object: 0x%08X\n", Object[i]);
+		if (IsEmuHandle(Object[i]))	{
 			ret = WAIT_FAILED;
 			EmuWarning("WaitFor EmuHandle not supported!");
 			break;
 		}
+	}
 
 	if (ret == STATUS_SUCCESS)
 	{
