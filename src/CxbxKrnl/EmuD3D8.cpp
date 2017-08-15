@@ -62,12 +62,16 @@ namespace xboxkrnl
 #include "HLEIntercept.h" // for GetXboxFunctionPointer()
 #include "Logging.h"
 #include "EmuD3D8Logging.h"
+#include "EmuD3D8\TextureCache.h"
 
 #include <assert.h>
 #include <process.h>
 #include <clocale>
 
 // This doesn't work : #include <dxerr8.h> // See DXGetErrorString8A below
+
+#define MAX_CACHE_SIZE_INDEXBUFFERS 256
+#define MAX_CACHE_SIZE_VERTEXBUFFERS 256
 
 // Global(s)
 HWND                                g_hEmuWindow   = nullptr; // rendering window
@@ -122,7 +126,7 @@ static GUID                         g_ddguid;               // DirectDraw driver
 static XTL::LPDIRECT3D8             g_pD3D8 = nullptr;		// Direct3D8
 static XTL::D3DCAPS8                g_D3DCaps;              // Direct3D8 Caps
 
-// wireframe toggle
+// Wireframe toggle. Default 0=Xbox pass-through. Overrides: 1=D3DFILL_WIREFRAME,2=D3DFILL_POINT,3=D3DFILL_SOLID
 int                                 g_iWireframe = 0;
 // version-dependent correction on shader constant numbers
 int                                 X_D3DSCM_CORRECTION_VersionDependent = 0;
@@ -935,13 +939,6 @@ void UpdateDepthStencilFlags(const XTL::X_D3DSurface *pXboxSurface)
 	}
 }
 
-typedef struct {
-	DWORD Hash = 0;
-	//UINT XboxDataSize = 0;
-	//DWORD XboxDataSamples[16] = { }; // Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
-	void* pConvertedHostResource = nullptr;
-} ConvertedResource;
-
 void *XTL::GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 {
 	// Don't pass in unassigned Xbox resources
@@ -1264,7 +1261,7 @@ void CxbxUpdateActiveRenderTarget()
 	// This tries to fix VolumeFog on ATI :
 	if (FAILED(hRet))
 	{
-		// TODO : Maybe some info : http://forums.create.msdn.com/forums/t/2124.aspx
+		// TODO : Maybe some info : http://xboxforums.create.msdn.com/forums/t/2124.aspx
 		EmuWarning("SetRenderTarget failed! Trying ATI fix");
 		hRet = g_pD3DDevice8->SetRenderTarget(g_pActiveHostRenderTarget, nullptr);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderTarget [second]");
@@ -1289,6 +1286,25 @@ void CxbxUpdateNativeD3DResources()
 	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
 }
 
+void XTL::CxbxSetFillMode(DWORD CurrentFillMode)
+{
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
+	g_CurrentFillMode = CurrentFillMode;
+
+	// Configurable override on fillmode :
+	DWORD dwFillMode;
+	switch (g_iWireframe) {
+	case 0: dwFillMode = CurrentFillMode; break; // Use fillmode specified by the XBE
+	case 1: dwFillMode = D3DFILL_WIREFRAME; break;
+	case 2: dwFillMode = D3DFILL_POINT; break;
+	default: dwFillMode = D3DFILL_SOLID; break;
+	}
+
+	HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_FILLMODE, dwFillMode);
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+}
+ 
 void CxbxInternalSetRenderState
 (
 	char *Caller,
@@ -1407,7 +1423,7 @@ VOID XTL::EmuD3DInit()
 	// create default device
 	{
 		// Keep this static, as members might be addressed later
-		static XTL::X_D3DPRESENT_PARAMETERS PresParam = {};
+		static X_D3DPRESENT_PARAMETERS PresParam = {};
 
 		// Defaults, probably overwritten by settings below
 		PresParam.BackBufferWidth = 640;
@@ -1419,11 +1435,11 @@ VOID XTL::EmuD3DInit()
 
 		// retrieve resolution from configuration
 		if (!g_XBVideo.GetFullscreen()) { // g_EmuCDPD.NativePresentationParameters.Windowed
-			sscanf(g_XBVideo.GetVideoResolution(), "%d x %d",
+			sscanf(g_XBVideo.GetVideoResolution(), "%u x %u",
 				&PresParam.BackBufferWidth,
 				&PresParam.BackBufferHeight);
 
-			XTL::D3DDISPLAYMODE D3DDisplayMode = {};
+			D3DDISPLAYMODE D3DDisplayMode = {};
 			g_pD3D8->GetAdapterDisplayMode(g_XBVideo.GetDisplayAdapter(), &D3DDisplayMode);
 
 			if (D3DDisplayMode.Format == D3DFMT_X8R8G8B8)
@@ -1436,7 +1452,7 @@ VOID XTL::EmuD3DInit()
 		else {
 			char szBackBufferFormat[16];
 
-			sscanf(g_XBVideo.GetVideoResolution(), "%d x %d %*dbit %s (%d hz)",
+			sscanf(g_XBVideo.GetVideoResolution(), "%u x %u %*dbit %s (%u hz)",
 				&PresParam.BackBufferWidth,
 				&PresParam.BackBufferHeight,
 				szBackBufferFormat,
@@ -1454,14 +1470,14 @@ VOID XTL::EmuD3DInit()
 
 		PresParam.SwapEffect = g_XBVideo.GetVSync() ? X_D3DSWAPEFFECT_COPY_VSYNC : X_D3DSWAPEFFECT_DISCARD;
 
-		XTL::EMUPATCH(Direct3D_CreateDevice)(0, XTL::D3DDEVTYPE_HAL, 0, D3DCREATE_HARDWARE_VERTEXPROCESSING, &PresParam, &g_pD3DDevice8);
+		EMUPATCH(Direct3D_CreateDevice)(0, D3DDEVTYPE_HAL, 0, D3DCREATE_HARDWARE_VERTEXPROCESSING, &PresParam, &g_pD3DDevice8);
     }
 }
 
 // cleanup Direct3D
 VOID XTL::EmuD3DCleanup()
 {
-    XTL::EmuDInputCleanup();
+    EmuDInputCleanup();
 }
 
 // enumeration procedure for locating display device GUIDs
@@ -1745,7 +1761,7 @@ static LRESULT WINAPI EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
             }
             else if(wParam == VK_F11)
             {
-                if(g_iWireframe++ >= 2)
+                if(g_iWireframe++ > 2)
                     g_iWireframe = 0;
             }
             else if(wParam == VK_F12)
@@ -2170,7 +2186,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				if (FAILED(g_EmuCDPD.hRet))
                     CxbxKrnlCleanup("IDirect3D8::CreateDevice failed");
 
-				// 
+				// cache device pointer
 				g_pD3DDevice8 = *g_EmuCDPD.ppReturnedDeviceInterface;
 
 				// Update Xbox PresentationParameters :
@@ -2448,11 +2464,11 @@ static void EmuAdjustPower2(UINT *dwWidth, UINT *dwHeight)
 }
 #endif
 
-typedef struct {
+struct ConvertedIndexBuffer {
 	DWORD Hash = 0;
 	DWORD uiIndexCount = 0;
 	XTL::IDirect3DIndexBuffer8 *pConvertedHostIndexBuffer = nullptr;
-} ConvertedIndexBuffer;
+};
 
 XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 (
@@ -2476,14 +2492,27 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 	uint32_t uiHash = 0; // TODO : seed with characteristics
 	uiHash = XXHash32::hash((void *)pIndexBufferData, (uint64_t)uiIndexBufferSize, uiHash);
 
-	// TODO : Lock this
+	// TODO : Lock all access to g_ConvertedIndexBuffers
+
+	// Poor-mans cache-eviction : Clear when full.
+	if (g_ConvertedIndexBuffers.size() >= MAX_CACHE_SIZE_INDEXBUFFERS) {
+		DbgPrintf("Index buffer cache full - clearing and repopulating");
+		for (auto it = g_ConvertedIndexBuffers.begin(); it != g_ConvertedIndexBuffers.end(); ++it) {
+			auto pHostIndexBuffer = (XTL::IDirect3DIndexBuffer8 *)(it->second.pConvertedHostIndexBuffer);
+			if (pHostIndexBuffer != nullptr) {
+				pHostIndexBuffer->Release(); // avoid memory leaks
+			}
+		}
+
+		g_ConvertedIndexBuffers.clear();
+	}
 
 	// Reference the converted index buffer (when it's not present, it's added) 
 	ConvertedIndexBuffer& convertedIndexBuffer = g_ConvertedIndexBuffers[pIndexBufferData];
 
 	// Check if the data needs an updated conversion or not
-	XTL::IDirect3DIndexBuffer8 *pHostIndexBuffer = convertedIndexBuffer.pConvertedHostIndexBuffer;
-	if (pHostIndexBuffer != nullptr)
+	XTL::IDirect3DIndexBuffer8 *result = convertedIndexBuffer.pConvertedHostIndexBuffer;
+	if (result != nullptr)
 	{
 		// Only re-use if the size hasn't changed (we can't use larger buffers,
 		// since those will have have different hashes from smaller buffers)
@@ -2494,13 +2523,13 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 				// Hash is still the same - assume the converted resource doesn't require updating
 				// TODO : Maybe, if the converted resource gets too old, an update might still be wise
 				// to cater for differences that didn't cause a hash-difference (slight chance, but still).
-				return pHostIndexBuffer;
+				return result;
 			}
 		}
 
 		convertedIndexBuffer = {};
-		pHostIndexBuffer->Release();
-		pHostIndexBuffer = nullptr;
+		result->Release();
+		result = nullptr;
 	}
 
 	// Create a new native index buffer of the above determined size :
@@ -2509,7 +2538,7 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 		D3DUSAGE_WRITEONLY,
 		XTL::D3DFMT_INDEX16,
 		XTL::D3DPOOL_MANAGED,
-		&pHostIndexBuffer);
+		&result);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateIndexBuffer");
 
 	if (FAILED(hRet))
@@ -2517,24 +2546,26 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 
 	// Update the host index buffer
 	BYTE* pData = nullptr;
-	hRet = pHostIndexBuffer->Lock(0, 0, &pData, D3DLOCK_DISCARD);
+	hRet = result->Lock(0, 0, &pData, D3DLOCK_DISCARD);
 	DEBUG_D3DRESULT(hRet, "result->Lock");
 
 	if (pData == nullptr)
 		CxbxKrnlCleanup("CxbxUpdateIndexBuffer: Could not lock index buffer!");
 
 	memcpy(pData, pIndexBufferData, uiIndexBufferSize);
-	hRet = pHostIndexBuffer->Unlock();
+	hRet = result->Unlock();
 	DEBUG_D3DRESULT(hRet, "result->Unlock");
 
 	// Update the Index Count and the hash
 	convertedIndexBuffer.Hash = uiHash;
 	convertedIndexBuffer.uiIndexCount = uiIndexCount;
-	convertedIndexBuffer.pConvertedHostIndexBuffer = pHostIndexBuffer;
+	// Store the resource in the cache
+	result->AddRef();
+	convertedIndexBuffer.pConvertedHostIndexBuffer = result;
 
 	DbgPrintf("D3D8: Copied %d indices (D3DFMT_INDEX16)\n", uiIndexCount);
 
-	return pHostIndexBuffer;
+	return result;
 }
 
 void CxbxUpdateActiveIndexBuffer
@@ -2661,10 +2692,6 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 		*((DWORD*)XRefDataBase[XREF_D3DDEVICE]) = (DWORD)g_XboxD3DDevice;
 	}
 
-	// TODO : What to set in *ppReturnedDeviceInterface?
-	// cache device pointer
-	// *ppReturnedDeviceInterface = g_pD3DDevice8;
-
 	// Finally, set all default render and texture states
 	// All commented out states are unsupported on this version of DirectX 8
 	g_pD3DDevice8->SetRenderState(D3DRS_ZFUNC, D3DCMP_LESSEQUAL);
@@ -2770,7 +2797,7 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 		//g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLORKEYOP, D3DTCOLORKEYOP_DISABLE);
 		//g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLORSIGN, 0);
 		//g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_ALPHAKILL, D3DTALPHAKILL_DISABLE);
-		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_DISABLE);
+		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLOROP, D3DTOP_SELECTARG1); //  D3DTOP_DISABLE caused textures to go opaque
 		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLORARG0, D3DTA_CURRENT);
 		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLORARG1, D3DTA_TEXTURE);
 		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLORARG2, D3DTA_CURRENT);
@@ -2790,6 +2817,7 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 		g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_BORDERCOLOR, 0);
 		//g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLORKEYCOLOR, 0);
 	}
+
     return g_EmuCDPD.hRet;
 }
 
@@ -2982,7 +3010,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SelectVertexShader)
 		LOG_FUNC_ARG(Address)
 		LOG_FUNC_END;
 
-	HRESULT hRet;
+	HRESULT hRet = D3D_OK;
 
     if (VshHandleIsVertexShader(Handle)) {
 		CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(Handle);
@@ -4474,22 +4502,11 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 	{
 		HRESULT hRet;
 
-		{ // TODO : Dxbx doesn't do this - should we?
-			DWORD dwFillMode;
-
-			if (g_iWireframe == 0)
-				dwFillMode = g_CurrentFillMode;
-			else if (g_iWireframe == 1)
-				dwFillMode = D3DFILL_WIREFRAME;
-			else
-				dwFillMode = D3DFILL_POINT;
-
-			hRet = g_pD3DDevice8->SetRenderState(D3DRS_FILLMODE, dwFillMode);
-			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
-		}
-
 		// Before clearing, make sure the correct output surfaces are used
-		CxbxUpdateActiveRenderTarget(); // TODO : Or should we have to call DxbxUpdateNativeD3DResources ?
+		CxbxUpdateActiveRenderTarget(); // No need to call full-fledged CxbxUpdateNativeD3DResources
+
+		// TODO : Dxbx doesn't do this - should we?
+		CxbxSetFillMode(g_CurrentFillMode);
 
 		hRet = g_pD3DDevice8->Clear(Count, pRects, PCFlags, Color, Z, Stencil);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
@@ -4647,13 +4664,126 @@ void CxbxGetNv2ATextureInfo(int Stage, DWORD &Format, DWORD &Pitch, DWORD &Heigh
 
 }
 
+struct ConvertedVertexBuffer {
+	DWORD Hash = 0;
+	//UINT XboxDataSize = 0;
+	// DWORD XboxDataSamples[16] = {}; // Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
+	XTL::IDirect3DVertexBuffer8* pConvertedHostVertexBuffer = nullptr;
+};
+
+XTL::IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer
+(
+	const XTL::X_D3DVertexBuffer  *pXboxVertexBuffer
+)
+{
+	static std::map<xbaddr, ConvertedVertexBuffer> g_ConvertedVertexBuffers;
+
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
+	if (pXboxVertexBuffer == NULL)
+		return nullptr;
+
+	xbaddr pVertexBufferData = (xbaddr)GetDataFromXboxResource((XTL::X_D3DResource *)pXboxVertexBuffer);
+	if (pVertexBufferData == NULL)
+		return nullptr; // TODO : Cleanup without data?
+
+	int Size = g_MemoryManager.QueryAllocationSize((void *)pVertexBufferData); // TODO : Use g_MemoryManager.QueryRemainingAllocationSize
+
+	// TODO : Don't hash every time (peek at how the vertex buffer cache avoids this)
+	uint32_t uiHash = 0; // TODO : seed with characteristics
+	uiHash = XXHash32::hash((void *)pVertexBufferData, (uint64_t)Size, uiHash);
+
+	// TODO : Lock all access to g_ConvertedVertexBuffers
+
+	// Poor-mans cache-eviction : Clear when full.
+	if (g_ConvertedVertexBuffers.size() >= MAX_CACHE_SIZE_VERTEXBUFFERS) {
+		DbgPrintf("Vertex buffer cache full - clearing and repopulating");
+		for (auto it = g_ConvertedVertexBuffers.begin(); it != g_ConvertedVertexBuffers.end(); ++it) {
+			auto pHostVertexBuffer = it->second.pConvertedHostVertexBuffer;
+			if (pHostVertexBuffer != nullptr) {
+				pHostVertexBuffer->Release(); // avoid memory leaks
+			}
+		}
+
+		g_ConvertedVertexBuffers.clear();
+	}
+
+	// Reference the converted vertex buffer (when it's not present, it's added) :
+	ConvertedVertexBuffer &convertedVertexBuffer = g_ConvertedVertexBuffers[pVertexBufferData];
+
+	// Check if the data needs an updated conversion or not
+	XTL::IDirect3DVertexBuffer8 *result = convertedVertexBuffer.pConvertedHostVertexBuffer;
+	if (result != nullptr)
+	{
+		if (uiHash == convertedVertexBuffer.Hash)
+			// Hash is still the same - assume the converted resource doesn't require updating
+			// TODO : Maybe, if the converted resource gets too old, an update might still be wise
+			// to cater for differences that didn't cause a hash-difference (slight chance, but still).s
+			return result;
+
+		convertedVertexBuffer = {};
+		result->Release();
+		result = nullptr;
+	}
+
+	convertedVertexBuffer.Hash = uiHash;
+
+	HRESULT hRet = D3D_OK;
+
+    DbgPrintf("CxbxUpdateVertexBuffer : Creating VertexBuffer...\n");
+
+	XTL::IDirect3DVertexBuffer8  *pNewHostVertexBuffer = nullptr;
+
+    // create vertex buffer
+    hRet = g_pD3DDevice8->CreateVertexBuffer
+    (
+        Size, 0/*D3DUSAGE_WRITEONLY?*/, 0, XTL::D3DPOOL_MANAGED,
+        &pNewHostVertexBuffer
+    );
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateVertexBuffer");
+
+	if(FAILED(hRet))
+		CxbxKrnlCleanup("CreateVertexBuffer Failed!\n\nVB Size = 0x%X\n\nError: \nDesc: ", Size/*,
+			DXGetErrorString8A(hRet)*//*, DXGetErrorDescription8A(hRet)*/);
+
+    #ifdef _DEBUG_TRACK_VB
+    g_VBTrackTotal.insert(pNewHostVertexBuffer);
+    #endif
+
+    BYTE *pNativeData = nullptr;
+
+    hRet = pNewHostVertexBuffer->Lock(
+		/*OffsetToLock=*/0, 
+		/*SizeToLock=*/0/*=entire buffer*/, 
+		&pNativeData, 
+		/*Flags=*/D3DLOCK_DISCARD);
+	DEBUG_D3DRESULT(hRet, "pNewHostVertexBuffer->Lock");
+
+	if(FAILED(hRet))
+        CxbxKrnlCleanup("VertexBuffer Lock Failed!\n\nError: \nDesc: "/*,
+			DXGetErrorString8A(hRet)*//*, DXGetErrorDescription8A(hRet)*/);
+
+	// TODO : Apply CxbxVertexBufferConverter here once
+
+    memcpy(pNativeData, (void*)pVertexBufferData, Size);
+    pNewHostVertexBuffer->Unlock();
+
+	result = pNewHostVertexBuffer;
+	result->AddRef();
+	convertedVertexBuffer.pConvertedHostVertexBuffer = result;
+
+    DbgPrintf("CxbxUpdateVertexBuffer : Successfully Created VertexBuffer (0x%.08X)\n", result);
+
+    return result;
+}
+
 XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 (
 	XTL::X_D3DPixelContainer *pPixelContainer,
 	int Stage
 )
 {
-	static std::map<xbaddr, ConvertedResource> g_ConvertedTextures;
+	static TextureCache g_TextureCache; // TODO : Move to own file
 
 	int NrPaletteEntries;
 	const D3DCOLOR *pPalette = CxbxGetNv2APalette(Stage, NrPaletteEntries);
@@ -4664,22 +4794,22 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		return nullptr;
 
 	if (pPixelContainer == g_pInitialXboxBackBuffer)
-		return (XTL::IDirect3DBaseTexture8 *)g_pInitialHostBackBuffer;
+		return (IDirect3DBaseTexture8 *)g_pInitialHostBackBuffer;
 
 	if (pPixelContainer == g_pInitialXboxRenderTarget)
-		return (XTL::IDirect3DBaseTexture8 *)g_pInitialHostRenderTarget;
+		return (IDirect3DBaseTexture8 *)g_pInitialHostRenderTarget;
 
 	if (pPixelContainer == g_pInitialXboxDepthStencil)
-		return (XTL::IDirect3DBaseTexture8 *)g_pInitialHostDepthStencil;
+		return (IDirect3DBaseTexture8 *)g_pInitialHostDepthStencil;
 
 	if (pPixelContainer == g_pActiveXboxBackBuffer)
-		return (XTL::IDirect3DBaseTexture8 *)g_pActiveHostBackBuffer;
+		return (IDirect3DBaseTexture8 *)g_pActiveHostBackBuffer;
 
 	if (pPixelContainer == g_pActiveXboxRenderTarget)
-		return (XTL::IDirect3DBaseTexture8 *)g_pActiveHostRenderTarget;
+		return (IDirect3DBaseTexture8 *)g_pActiveHostRenderTarget;
 
 	if (pPixelContainer == g_pActiveXboxDepthStencil)
-		return (XTL::IDirect3DBaseTexture8 *)g_pActiveHostDepthStencil;
+		return (IDirect3DBaseTexture8 *)g_pActiveHostDepthStencil;
 
 	X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pPixelContainer);
 	if (X_Format == X_D3DFMT_P8)
@@ -4690,52 +4820,19 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (pTextureData == NULL)
 		return nullptr; // TODO : Cleanup without data?
 
-	DWORD Format;
-	DWORD Pitch;
-	DWORD Height;
-	DWORD Width;
-	CxbxGetNv2ATextureInfo(Stage, OUT Format, OUT Pitch, OUT Height, OUT Width);
+	// Construct the identifying key for this Xbox texture
+	const struct TextureCache::TextureResourceKey textureKey = { (xbaddr)pTextureData, pPixelContainer->Format, pPixelContainer->Size };
 
-	int Size = g_MemoryManager.QueryAllocationSize(pTextureData);
+	// Find a cached host texture
+	auto CacheEntry = g_TextureCache.Find(textureKey, pPalette);
+	if (CacheEntry.pConvertedHostTexture != nullptr)
+		return CacheEntry.pConvertedHostTexture;
 
-	// TODO : Don't hash every time (peek at how the vertex buffer cache avoids this)
-	uint32_t uiHash = Format ^ Pitch ^ Height ^ Width; // seed with characteristics
-	uiHash = XXHash32::hash(pTextureData, (uint64_t)Size, uiHash);
-	if (pPalette != NULL)
-		uiHash = XXHash32::hash((void *)pPalette, (uint64_t)NrPaletteEntries * sizeof(D3DCOLOR), uiHash);
-
-	// Reference the converted texture (when the texture is not present, it's added) :
-	ConvertedResource &convertedTexture = g_ConvertedTextures[(xbaddr)pTextureData];
-
-	// Check if the data needs an updated conversion or not
-	IDirect3DBaseTexture8 *result = (XTL::IDirect3DBaseTexture8 *)convertedTexture.pConvertedHostResource;
-	if (result != nullptr)
-	{
-		if (uiHash == convertedTexture.Hash)
-			// Hash is still the same - assume the converted resource doesn't require updating
-			// TODO : Maybe, if the converted resource gets too old, an update might still be wise
-			// to cater for differences that didn't cause a hash-difference (slight chance, but still).s
-			return result;
-
-		convertedTexture = {};
-		result->Release();
-		result = nullptr;
-	}
-
-	convertedTexture.Hash = uiHash;
+	IDirect3DBaseTexture8 *result = nullptr;
 
 	// Interpret Width/Height/BPP
 	DecodedPixelContainer PixelJar;
-
-	Decoded_D3DFormat decodedFormat;
-	DecodeD3DFormat(Format, decodedFormat);
-
-	Decoded_D3DSize decodedSize;
-	decodedSize.uiPitch = Pitch;
-	decodedSize.uiHeight = Height;
-	decodedSize.uiWidth = Width;
-
-	CombineDecodeD3DFormatAndSize(decodedFormat, decodedSize, OUT PixelJar);
+	DecodeD3DFormatAndSize(pPixelContainer, pPixelContainer->Format, pPixelContainer->Size, OUT PixelJar);
 
 #if 0 // TODO : Why was this?
 	if (PixelJar.bIsSwizzled || PixelJar.bIsCompressed)
@@ -4753,8 +4850,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		}
 	}
 #endif
-
-	bool bConvertToARGB = false;
 
 	// TODO: HACK: Temporary?
 	switch (X_Format)
@@ -4798,26 +4893,27 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	}
 	}
 
-	if (X_Format == X_D3DFMT_P8 && !g_bSupportsP8)
-	{
-		// Since most modern graphics cards don't support palettized textures,
-		// we need to convert these to ARGB texture format (see X_D3DFMT_P8 below)
-		if (!g_bSupportsP8)
+	// Determine if a conversion to ARGB is needed
+	bool bConvertToARGB = false;
+	if (X_Format == X_D3DFMT_P8) {
+		if (!g_bSupportsP8) {
+			// Since most modern graphics cards don't support palettized textures,
+			// we need to convert these to ARGB texture format (see X_D3DFMT_P8 below)
 			bConvertToARGB = true;
-	} else
-	{
-		if (EmuXBFormatRequiresConversionToARGB(X_Format))
-		{
+		}
+	}
+	else {
+		if (EmuXBFormatRequiresConversionToARGB(X_Format)) {
 			EmuWarning("X_Format RequiresConversionToARGB");
 			bConvertToARGB = true;
 		}
 	}
 
 	// One of these will be created :
-	XTL::IDirect3DSurface8 *pNewHostSurface = nullptr;
-	XTL::IDirect3DCubeTexture8 *pNewHostCubeTexture = nullptr;
-	XTL::IDirect3DVolumeTexture8 *pNewHostVolumeTexture = nullptr;
-	XTL::IDirect3DTexture8 *pNewHostTexture = nullptr;
+	IDirect3DSurface8 *pNewHostSurface = nullptr;
+	IDirect3DCubeTexture8 *pNewHostCubeTexture = nullptr;
+	IDirect3DVolumeTexture8 *pNewHostVolumeTexture = nullptr;
+	IDirect3DTexture8 *pNewHostTexture = nullptr;
 
 	// Note : For now, we create and fill textures only once (Xbox changes are put
 	// in new host resources), so it seems using D3DUSAGE_DYNAMIC and D3DPOOL_DEFAULT
@@ -4834,9 +4930,9 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		X_D3DRESOURCETYPE ResourceType;
 		
 		// Was GetXboxD3DResourceType(pPixelContainer)
-		if (decodedFormat.bIsCubeMap)
+		if (PixelJar.bIsCubeMap)
 			ResourceType = X_D3DRTYPE_CUBETEXTURE;
-		else if (decodedFormat.uiDimensions > 2)
+		else if (PixelJar.bIs3D)
 			ResourceType = X_D3DRTYPE_VOLUMETEXTURE;
 		else
 			ResourceType = X_D3DRTYPE_TEXTURE;
@@ -4851,7 +4947,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	// TODO : Remove by splitting this over texture and surface variants
 	if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE) // X_D3DRTYPE_SURFACE
 	{
-		XTL::X_D3DBaseTexture *pSurfaceParent = ((X_D3DSurface*)pPixelContainer)->Parent;
+		X_D3DBaseTexture *pSurfaceParent = ((X_D3DSurface*)pPixelContainer)->Parent;
 		// Retrieve the PC resource that represents the parent of this surface,
 		// including it's contents (updated if necessary) :
 		// Samples like CubeMap show that render target formats must be applied to both surface and texture:
@@ -5133,7 +5229,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 							dwDestPitch = dwMipPitch;
 						}
 
-						XTL::EmuUnswizzleRect
+						EmuUnswizzleRect
 						(
 							pSrc, dwMipWidth, dwMipHeight, PixelJar.dwDepth,
 							pDest, dwDestPitch, PixelJar.dwBPP / 8
@@ -5184,6 +5280,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 					{
 						EmuWarning("Unsupported texture format, expanding to D3DFMT_A8R8G8B8");
 
+#ifdef OLD_COLOR_CONVERSION
 						const ComponentEncodingInfo *encoding = EmuXBFormatComponentEncodingInfo(X_Format);
 						unsigned int x = 0, s = 0, d = 0;
 						switch (PixelJar.dwBPP) {
@@ -5229,6 +5326,20 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 						default:
 							CxbxKrnlCleanup("Unhandled BPP");
 						}
+#else // !OLD_COLOR_CONVERSION
+						// Convert a row at a time, using a libyuv-like callback approach :
+						const FormatToARGBRow ConvertRowToARGB = EmuXBFormatComponentConverter(X_Format);
+						if (ConvertRowToARGB == nullptr)
+							CxbxKrnlCleanup("Unhandled conversion!");
+
+						DWORD SrcRowOff = 0;
+						uint8 *pDestRow = (uint8 *)pDest;
+						while (SrcRowOff < dwMipSizeInBytes) {
+							ConvertRowToARGB(((uint8 *)pSrc) + SrcRowOff, pDestRow, dwMipWidth);
+							SrcRowOff += dwSrcPitch;
+							pDestRow += dwDestPitch;
+						}
+#endif // !OLD_COLOR_CONVERSION
 					}
 
 					// Flush temporary data buffer
@@ -5293,7 +5404,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		}
 	}
 
-	g_ConvertedTextures[(xbaddr)pTextureData].pConvertedHostResource = result;
+	g_TextureCache.AddConvertedResource(CacheEntry, result);
 
 	return result;
 }
@@ -5547,14 +5658,14 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_UpdateOverlay)
 		// initialize overlay surface
 		if (g_bYUY2OverlaysSupported)
 		{
-			XTL::DDSURFACEDESC2 ddsd2 = { 0 };
+			DDSURFACEDESC2 ddsd2 = { 0 };
 
 			ddsd2.dwSize = sizeof(ddsd2);
 			ddsd2.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT | DDSD_PIXELFORMAT;
 			ddsd2.ddsCaps.dwCaps = DDSCAPS_OVERLAY;
 			ddsd2.dwWidth = g_dwOverlayW;
 			ddsd2.dwHeight = g_dwOverlayH;
-			ddsd2.ddpfPixelFormat.dwSize = sizeof(XTL::DDPIXELFORMAT);
+			ddsd2.ddpfPixelFormat.dwSize = sizeof(DDPIXELFORMAT);
 			ddsd2.ddpfPixelFormat.dwFlags = DDPF_FOURCC;
 			ddsd2.ddpfPixelFormat.dwFourCC = MAKEFOURCC('Y', 'U', 'Y', '2');
 
@@ -8076,8 +8187,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetBackMaterial)
 	LOG_FUNC_ONE_ARG(pMaterial);
 
 	LOG_NOT_SUPPORTED();
-
-	g_pBackMaterial = *pMaterial;
 }
 
 PPUSH WINAPI XTL::EMUPATCH(MakeRequestedSpace)
@@ -8215,11 +8324,14 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetPixelShader)
 	*pHandle = g_dwCurrentPixelShader;
 }
 
-VOID WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface)(X_D3DSurface **ppSurface)
+VOID WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface)
+(
+	OUT X_D3DSurface **ppSurface
+)
 {
 	FUNC_EXPORTS
 
-	LOG_FUNC_ONE_ARG(ppSurface);
+	LOG_FUNC_ONE_ARG_OUT(ppSurface);
 
 	// Attempt to load the persisted surface from persisted_surface.bmp
 

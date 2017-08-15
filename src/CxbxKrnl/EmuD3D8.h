@@ -83,7 +83,9 @@ inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return Xbox_D3DDevic
 extern void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource);
 
 extern void CxbxPresent();
-XTL::IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, int Stage);
+IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, int Stage);
+
+extern void CxbxSetFillMode(DWORD CurrentFillMode);
 
 // ******************************************************************
 // * patch: Direct3D_CreateDevice

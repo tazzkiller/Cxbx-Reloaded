@@ -40,6 +40,7 @@
 /*! \{ */
 typedef unsigned int   uint;
 typedef long           int32;
+typedef unsigned char  uint8;
 typedef unsigned char  uint08;
 typedef unsigned short uint16;
 typedef unsigned long  uint32;

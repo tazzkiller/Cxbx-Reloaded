@@ -224,9 +224,6 @@ DWORD TransferredRenderStateValues[X_D3DRS_LAST + 1] = { X_D3DRS_UNKNOWN };
 
 DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue)
 {
-	D3DRENDERSTATETYPE PCRenderState;
-	DWORD PCValue;
-
 //	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	TransferredRenderStateValues[XboxRenderState] = XboxValue;
@@ -240,23 +237,20 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 		return XboxValue;
 	}
 
-	// Skip Xbox extensions :
-	if (Info.PC == D3DRS_UNSUPPORTED)
+	// Map the Xbox state to a PC state, and check if it's supported :
+	if (Info.PC == D3DRS_UNSUPPORTED) {
+		// TODO : Log once per state. // EmuWarning("%s is not supported!", Info.S);
+		// Skip Xbox extensions :
 		return XboxValue;
+	}
 
 	// Disabled, as it messes up Nvidia rendering too much :
 	//  // Dxbx addition : Hack for Smashing drive (on ATI X1300), don't transfer fog (or everything becomes opaque) :
 	//  if (IsRunning(TITLEID_SmashingDrive)
 	//      && (XboxRenderState  in [X_D3DRS_FOGSTART, X_D3DRS_FOGEND, X_D3DRS_FOGDENSITY]))
-	//    return Result;
+	//    return XboxValue;
 
-	// Pixel shader constants are handled in DxbxUpdateActivePixelShader :
-	if (XboxRenderState >= X_D3DRS_PSCONSTANT0_0 && XboxRenderState <= X_D3DRS_PSCONSTANT1_7)
-		return XboxValue;
-	if (XboxRenderState == X_D3DRS_PSFINALCOMBINERCONSTANT0)
-		return XboxValue;
-	if (XboxRenderState == X_D3DRS_PSFINALCOMBINERCONSTANT1)
-		return XboxValue;
+	// Pixel shader constants are handled in DxbxUpdateActivePixelShader (already skipped because of D3DRS_UNSUPPORTED)
 
 	if (XboxRenderState >= X_D3DRS_DEFERRED_FIRST && XboxRenderState <= X_D3DRS_DEFERRED_LAST)
 	{
@@ -281,23 +275,6 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	break;
 	}
 	*/
-	if (XboxRenderState == X_D3DRS_FILLMODE)
-	{
-		// Configurable override on fillmode :
-		switch (g_iWireframe) {
-		case 0: break; // Use fillmode specified by the XBE
-		case 1: XboxValue = (DWORD)X_D3DFILL_WIREFRAME; break;
-		default: XboxValue = (DWORD)X_D3DFILL_POINT;
-		}
-	}
-
-	// Map the Xbox state to a PC state, and check if it's supported :
-	PCRenderState = Info.PC;
-	if (PCRenderState == D3DRS_UNSUPPORTED)
-	{
-		EmuWarning("%s is not supported!", Info.S);
-		return XboxValue;
-	}
 
 	if (g_pD3DDevice8 == nullptr)
 		return XboxValue;
@@ -308,11 +285,11 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	}
 
 	// Convert the value from Xbox format into PC format, and set it locally :
-	PCValue = DxbxRenderStateXB2PCCallback[XboxRenderState](XboxValue);
+	DWORD PCValue = DxbxRenderStateXB2PCCallback[XboxRenderState](XboxValue);
 
 	HRESULT hRet;
-#if DXBX_USE_D3D9
 	switch (XboxRenderState) {
+#if DXBX_USE_D3D9
 	case X_D3DRS_EDGEANTIALIAS:
 		break; // TODO -oDxbx : What can we do to support this?
 	case X_D3DRS_ZBIAS:
@@ -329,14 +306,18 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
 		break;
 	}
-	default:
-		hRet = g_pD3DDevice8->SetRenderState(PCRenderState, PCValue);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
-	}
-#else
-	hRet = g_pD3DDevice8->SetRenderState(PCRenderState, PCValue);
-	//	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
 #endif
+	case X_D3DRS_FILLMODE: {
+		// Store actual dwFillMode for when g_iWireframe is changed
+		XTL::CxbxSetFillMode(PCValue);
+		break;
+	}
+	default: {
+		hRet = g_pD3DDevice8->SetRenderState(Info.PC, PCValue);
+		//	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+		break;
+	}
+	}
 
 	return PCValue;
 }

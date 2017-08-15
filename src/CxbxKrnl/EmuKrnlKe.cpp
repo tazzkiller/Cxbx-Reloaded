@@ -76,7 +76,7 @@ static DpcData g_DpcData = { 0 }; // Note : g_DpcData is initialized in InitDpcA
 
 static xboxkrnl::PKINTERRUPT EmuInterruptList[256] = { NULL }; // MAX_BUS_INTERRUPT_LEVEL + 1 ?
 
-static DWORD BootTickCount = 0;
+static ULONGLONG BootTickCount = 0;
 
 xboxkrnl::ULONGLONG LARGE_INTEGER2ULONGLONG(xboxkrnl::LARGE_INTEGER value)
 {
@@ -171,7 +171,7 @@ xboxkrnl::KPRCB *KeGetCurrentPrcb()
 // much more often than Windows, so we correct this with a 'BootTickCount' value :
 DWORD CxbxXboxGetTickCount()
 {
-	return GetTickCount() - BootTickCount;
+	return (DWORD)(GetTickCount64() - BootTickCount);
 }
 
 DWORD ExecuteDpcQueue()
@@ -302,7 +302,7 @@ void ConnectKeInterruptTimeToThunkTable(); // forward
 
 void CxbxInitPerformanceCounters()
 {
-	BootTickCount = GetTickCount();
+	BootTickCount = GetTickCount64();
 
 	// Measure current host performance counter and frequency
 	QueryPerformanceCounter(&NativePerformanceCounter);
@@ -422,15 +422,15 @@ XBSYSAPI EXPORTNUM(96) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeBugCheckEx
 	char buffer[1024];
 	sprintf(buffer, "The running software triggered KeBugCheck with the following information\n"
 		"BugCheckCode: 0x%.8X\n"
-		"BugCheckParameter1: 0x%.8X\n"
-		"BugCheckParameter2: 0x%.8X\n"
-		"BugCheckParameter3: 0x%.8X\n"
-		"BugCheckParameter4: 0x%.8X\n"
+		"BugCheckParameter1: 0x%p\n"
+		"BugCheckParameter2: 0x%p\n"
+		"BugCheckParameter3: 0x%p\n"
+		"BugCheckParameter4: 0x%p\n"
 		"\nThis is the Xbox equivalent to a BSOD and would cause the console to automatically reboot\n"
 		"\nContinue Execution (Not Recommended)?\n",
 		BugCheckCode, BugCheckParameter1, BugCheckParameter2, BugCheckParameter3, BugCheckParameter4);
 
-	HRESULT result = MessageBoxA(g_hEmuWindow, buffer, "KeBugCheck", MB_YESNO | MB_ICONWARNING);
+	int result = MessageBoxA(g_hEmuWindow, buffer, "KeBugCheck", MB_YESNO | MB_ICONWARNING);
 
 	if (result == IDNO)	{
 		CxbxKrnlCleanup(NULL);
@@ -1692,13 +1692,14 @@ XBSYSAPI EXPORTNUM(158) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForMultipleObje
 
 	NTSTATUS ret = STATUS_SUCCESS;
 
-	for (uint i = 0; i < Count; i++)
-		if (IsEmuHandle(Object[i]))
-		{
+	for (uint i = 0; i < Count; i++) {
+		DbgPrintf("Object: 0x%08X\n", Object[i]);
+		if (IsEmuHandle(Object[i]))	{
 			ret = WAIT_FAILED;
 			EmuWarning("WaitFor EmuHandle not supported!");
 			break;
 		}
+	}
 
 	if (ret == STATUS_SUCCESS)
 	{

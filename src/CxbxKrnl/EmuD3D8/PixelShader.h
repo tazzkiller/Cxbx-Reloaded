@@ -131,6 +131,8 @@ enum PS_TEXTUREMODES
 // MINUS1_TO_1_GL      :rgb->(r,g,b): 0x80=>-1.0, 0x7f=>1.0
 // MINUS1_TO_1         :rgb->(r,g,b): 0x80=>-128/127, 0x81=>-1.0, 0x0=>0.0, 0x7f=>1.0
 // HILO_1              :HL->(H,L,1.0): 0x0000=>0.0, 0xffff=>1.0
+// HILO_HEMISPHERE_D3D :HL->(H,L,sqrt(1-H*H-L*L)): 0x8000=>-1.0, 0x0=>0.0, 0x7fff=32767/32768
+// HILO_HEMISPHERE_GL  :HL->(H,L,sqrt(1-H*H-L*L)): 0x8000=>-1.0, 0x7fff=>1.0
 // HILO_HEMISPHERE     :HL->(H,L,sqrt(1-H*H-L*L)): 0x8001=>-1.0, 0x0=>0.0, 0x7fff=>1.0, 0x8000=>-32768/32767
 
 enum PS_DOTMAPPING
@@ -140,7 +142,9 @@ enum PS_DOTMAPPING
     PS_DOTMAPPING_MINUS1_TO_1_GL=      0x02L, // - * * *
     PS_DOTMAPPING_MINUS1_TO_1=         0x03L, // - * * *
     PS_DOTMAPPING_HILO_1=              0x04L, // - * * *
-    PS_DOTMAPPING_HILO_HEMISPHERE=     0x07L, // - * * *
+	PS_DOTMAPPING_HILO_HEMISPHERE_D3D= 0x05L, // - * * *
+	PS_DOTMAPPING_HILO_HEMISPHERE_GL=  0x06L, // - * * *
+	PS_DOTMAPPING_HILO_HEMISPHERE=     0x07L, // - * * *
 };
 
 // =========================================================================================================

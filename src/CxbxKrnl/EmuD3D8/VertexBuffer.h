@@ -130,12 +130,12 @@ extern struct _D3DIVB
 	FLOAT			 Blend4;	 // Dxbx addition : for D3DFVF_XYZB4
     XTL::D3DXVECTOR3 Normal;
 	// FLOAT            PointSize; // TODO : Is this in here?
-	D3DCOLOR    Diffuse;
-	D3DCOLOR    Specular;
+	D3DCOLOR		Diffuse;
+	D3DCOLOR		Specular;
 #if 0
 	FLOAT            Fog; // TODO : Handle
-	D3DCOLOR    BackDiffuse; // TODO : Handle
-	D3DCOLOR    BackSpecular; // TODO  : Handle
+	D3DCOLOR		BackDiffuse; // TODO : Handle
+	D3DCOLOR		BackSpecular; // TODO  : Handle
 #endif
     XTL::D3DXVECTOR3 TexCoord1;
     XTL::D3DXVECTOR3 TexCoord2;

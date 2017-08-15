@@ -644,7 +644,7 @@ void CxbxKrnlMain(int argc, char* argv[])
 }
 #pragma optimize("", on)
 
-void CxbxKrnlInit
+__declspec(noreturn) void CxbxKrnlInit
 (
 	HWND                    hwndParent,
 	void                   *pTLSData,
@@ -828,7 +828,7 @@ void CxbxKrnlInit
 	{
 		// Dump Xbe certificate
 		if (g_pCertificate != NULL) {
-			printf("[0x%.4X] INIT: XBE TitleID : %p\n", GetCurrentThreadId(), g_pCertificate->dwTitleId);
+			printf("[0x%.4X] INIT: XBE TitleID : %.8X\n", GetCurrentThreadId(), g_pCertificate->dwTitleId);
 			printf("[0x%.4X] INIT: XBE TitleName : %ls\n", GetCurrentThreadId(), g_pCertificate->wszTitleName);
 			printf("[0x%.4X] INIT: XBE Region : %s\n", GetCurrentThreadId(), GameRegionToString(g_pCertificate->dwGameRegion));
 		}
@@ -837,7 +837,7 @@ void CxbxKrnlInit
 		Xbe::LibraryVersion* libVersionInfo = pLibraryVersion;// (LibraryVersion *)(CxbxKrnl_XbeHeader->dwLibraryVersionsAddr);
 		if (libVersionInfo != NULL) {
 			for (uint32 v = 0; v < CxbxKrnl_XbeHeader->dwLibraryVersions; v++) {
-				printf("[0x%.4X] INIT: XBE Library %d : %.8s (version %d)\n", GetCurrentThreadId(), v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
+				printf("[0x%.4X] INIT: XBE Library %u : %.8s (version %d)\n", GetCurrentThreadId(), v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
 				libVersionInfo++;
 			}
 		}
@@ -915,7 +915,6 @@ void CxbxKrnlInit
     fflush(stdout);
 	EmuShared::Cleanup();
     CxbxKrnlTerminateThread();
-    return;
 }
 
 void CxbxInitFilePaths()
@@ -977,7 +976,7 @@ void CxbxRestorePersistentMemoryRegions()
 	// TODO : Restore all other persistent memory regions here too.
 }
 
-void CxbxKrnlCleanup(const char *szErrorMessage, ...)
+__declspec(noreturn) void CxbxKrnlCleanup(const char *szErrorMessage, ...)
 {
     g_bEmuException = true;
 
@@ -1014,8 +1013,6 @@ void CxbxKrnlCleanup(const char *szErrorMessage, ...)
 
 	EmuShared::Cleanup();
     TerminateProcess(g_CurrentProcessHandle, 0);
-
-    return;
 }
 
 void CxbxKrnlRegisterThread(HANDLE hThread)
@@ -1116,7 +1113,7 @@ void CxbxKrnlResume()
     g_bEmuSuspended = false;
 }
 
-void CxbxKrnlTerminateThread()
+__declspec(noreturn) void CxbxKrnlTerminateThread()
 {
     TerminateThread(GetCurrentThread(), 0);
 }

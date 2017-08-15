@@ -509,7 +509,7 @@ void NVPB_FixLoop() // 0x1808
 	// Test case : Turok menu's
 #ifdef _DEBUG_TRACK_PB
 	if (bShowPB) {
-		printf("  NVPB_FixLoop(%d)\n", dwCount);
+		printf("  NVPB_FixLoop(%u)\n", dwCount);
 		printf("\n");
 		printf("  Index Array Data...\n");
 		INDEX16 *pIndices = (INDEX16*)pdwPushArguments;
@@ -1159,7 +1159,7 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
 
     // retrieve stream data
     char szFileName[128];
-    sprintf(szFileName, "D:\\_cxbx\\mesh\\CxbxMesh-0x%.8X.x", pIndexData);
+    sprintf(szFileName, "D:\\_cxbx\\mesh\\CxbxMesh-0x%p.x", pIndexData);
     FILE *dbgVertices = fopen(szFileName, "wt");
 
     BYTE *pVBData = (BYTE *)XTL::GetDataFromXboxResource(XTL::Xbox_g_Stream[0].pVertexBuffer);
@@ -1181,14 +1181,14 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
         fprintf(dbgVertices, "xof 0303txt 0032\n");
         fprintf(dbgVertices, "\n");
         fprintf(dbgVertices, "//\n");
-        fprintf(dbgVertices, "//  Vertex Stream Data (0x%.8X)...\n", pVBData);
+        fprintf(dbgVertices, "//  Vertex Stream Data (0x%p)...\n", pVBData);
         fprintf(dbgVertices, "//\n");
 #if 0
 		fprintf(dbgVertices, "//  Format : %d\n", VBDesc.Format);
         fprintf(dbgVertices, "//  Size   : %d bytes\n", VBDesc.Size);
         fprintf(dbgVertices, "//  FVF    : 0x%.8X\n", VBDesc.FVF);
 #endif
-        fprintf(dbgVertices, "//  iCount : %d\n", dwCount/2);
+        fprintf(dbgVertices, "//  iCount : %u\n", dwCount/2);
         fprintf(dbgVertices, "//\n");
 		fprintf(dbgVertices, "\n");
         fprintf(dbgVertices, "Frame SCENE_ROOT {\n");
@@ -1222,7 +1222,7 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
                 (v < (max - 1)) ? "," : ";");
         }
 
-        fprintf(dbgVertices, "      %d;\n", dwCount - 2);
+        fprintf(dbgVertices, "      %u;\n", dwCount - 2);
 
 		XTL::INDEX16 *pIndexValues = pIndexData;
 
@@ -1236,7 +1236,7 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
 
         for(uint i=2;i<max;i++)
         {
-            fprintf(dbgVertices, "      3;%d,%d,%d;%s\n",
+            fprintf(dbgVertices, "      3;%u,%u,%u;%s\n",
                 a,b,c, (i < (max - 1)) ? "," : ";");
 
             a = b;
