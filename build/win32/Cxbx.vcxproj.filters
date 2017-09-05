@@ -190,8 +190,11 @@
     <ClCompile Include="..\..\src\Common\Win32\XBAudio.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\PhysicalMemory.cpp">
+    <ClCompile Include="..\..\src\CxbxVersion.cpp">
       <Filter>Emulator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\CxbxKrnl\PhysicalMemory.cpp">
+      <Filter>Shared</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\CxbxKrnl\VMManager.cpp">
       <Filter>Emulator</Filter>

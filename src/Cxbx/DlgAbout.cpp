@@ -88,8 +88,10 @@ INT_PTR CALLBACK DlgAboutProc(HWND hWndDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			GetClientRect(GetDlgItem(hWndDlg, IDC_TAB1), &tabRect);
 			SendMessage(GetDlgItem(hWndDlg, IDC_TAB1), TCM_ADJUSTRECT, FALSE, (LPARAM)&tabRect);
 			// Tab Pane 1
+			char TabPane1Message[270];
+			sprintf(TabPane1Message, "\nCxbx-Reloaded\nVersion %s\n© The Cxbx-Reloaded Team", CxbxVersionStr);
 			HWND tab = CreateWindowEx
-        	(NULL, "STATIC", "\nCxbx-Reloaded\nVersion " _CXBX_VERSION "\n© The Cxbx-Reloaded Team",
+			(NULL, "STATIC", TabPane1Message,
 				WS_CHILD | WS_VISIBLE,
 				tabRect.left + 10, tabRect.top + 10,
 				tabRect.right - tabRect.left,
