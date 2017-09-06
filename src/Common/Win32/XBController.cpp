@@ -451,7 +451,7 @@ bool XBController::ConfigPoll(char *szStatus)
 
                 printf("Cxbx-Reloaded: Detected Button %d on SysMouse\n", dwHow);
 
-                sprintf(szStatus, "Success: %s Mapped to Button %d on SysMouse", m_DeviceNameLookup[CurConfigObject], dwHow);
+                sprintf(szStatus, "Success: %s Mapped to Button %u on SysMouse", m_DeviceNameLookup[CurConfigObject], dwHow);
 
                 return true;
             }

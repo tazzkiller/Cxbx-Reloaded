@@ -490,18 +490,18 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 								::DWORD *Derived_D3D_RenderState = ((::DWORD*)DerivedAddr_D3DRS_CULLMODE) - XDK_D3DRS_CULLMODE;
 								g_SymbolAddresses["D3D__RenderState"] = (xbaddr)Derived_D3D_RenderState;
-								printf("HLE: Derived 0x%.08X -> D3D__RenderState\n", Derived_D3D_RenderState);
+								printf("HLE: Derived 0x%p -> D3D__RenderState\n", Derived_D3D_RenderState);
 
 								// Derive address of Xbox_D3D__RenderState_Deferred from D3DRS_CULLMODE
 								::DWORD *Derived_D3D__RenderState_Deferred = Derived_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
 								g_SymbolAddresses["D3DDeferredRenderState"] = (xbaddr)Derived_D3D__RenderState_Deferred;
-								printf("HLE: Derived 0x%.08X -> D3D__RenderState_Deferred\n", Derived_D3D__RenderState_Deferred);
+								printf("HLE: Derived 0x%p -> D3D__RenderState_Deferred\n", Derived_D3D__RenderState_Deferred);
 
 								// Derive address of a few other deferred render state slots (to help xref-based function location)
 								{
 #define DeriveAndPrint(D3DRS) \
 									XRefDataBase[XREF_##D3DRS] = (xbaddr)(Derived_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_##D3DRS]); \
-									printf("HLE: Derived XREF_"#D3DRS"(%d) 0x%.08X -> D3D__RenderState[%d/*="#D3DRS"]\n", (int)XREF_##D3DRS, XRefDataBase[XREF_##D3DRS], DxbxMapMostRecentToActiveVersion[X_##D3DRS]);
+									printf("HLE: Derived XREF_"#D3DRS"(%d) 0x%.08X -> D3D__RenderState[%u/*="#D3DRS"]\n", (int)XREF_##D3DRS, XRefDataBase[XREF_##D3DRS], DxbxMapMostRecentToActiveVersion[X_##D3DRS]);
 
 									DeriveAndPrint(D3DRS_MULTISAMPLERENDERTARGETMODE);
 									DeriveAndPrint(D3DRS_STENCILCULLENABLE);
@@ -544,7 +544,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								// Derive address of D3D_TextureState from D3DTSS_TEXCOORDINDEX
 								::DWORD *Derived_D3D_TextureState = ((::DWORD*)DerivedAddr_D3DTSS_TEXCOORDINDEX) - DxbxFromNewVersion_D3DTSS(X_D3DTSS_TEXCOORDINDEX);
 								g_SymbolAddresses["D3D__TextureState"] = (xbaddr)Derived_D3D_TextureState;
-								printf("HLE: Derived 0x%.08X -> D3D__TextureState\n", Derived_D3D_TextureState);
+								printf("HLE: Derived 0x%p -> D3D__TextureState\n", Derived_D3D_TextureState);
                             }
                         }
 
@@ -581,7 +581,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 					}
                 }
 
-				printf("HLE: * Searching HLE database for %s version 1.0.%d... ", LibraryName.c_str(), BuildVersion);
+				printf("HLE: * Searching HLE database for %s version 1.0.%u... ", LibraryName.c_str(), BuildVersion);
 
                 const HLEData *FoundHLEData = nullptr;
                 for(uint32 d = 0; d < HLEDataBaseCount; d++) {

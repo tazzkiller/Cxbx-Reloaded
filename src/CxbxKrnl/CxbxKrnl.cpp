@@ -787,7 +787,7 @@ __declspec(noreturn) void CxbxKrnlInit
 		Xbe::LibraryVersion* libVersionInfo = pLibraryVersion;// (LibraryVersion *)(CxbxKrnl_XbeHeader->dwLibraryVersionsAddr);
 		if (libVersionInfo != NULL) {
 			for (uint32 v = 0; v < CxbxKrnl_XbeHeader->dwLibraryVersions; v++) {
-				printf("EmuMain : XBE Library %u : %.8s (version %d)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
+				printf("EmuMain : XBE Library %u : %.8s (version %u)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
 				libVersionInfo++;
 			}
 		}

@@ -1661,7 +1661,7 @@ XBSYSAPI EXPORTNUM(158) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForMultipleObje
 	NTSTATUS ret = STATUS_SUCCESS;
 
 	for (uint i = 0; i < Count; i++) {
-		DbgPrintf("Object: 0x%08X\n", Object[i]);
+		DbgPrintf("Object: 0x%p\n", Object[i]);
 		if (IsEmuHandle(Object[i]))	{
 			ret = WAIT_FAILED;
 			EmuWarning("WaitFor EmuHandle not supported!");

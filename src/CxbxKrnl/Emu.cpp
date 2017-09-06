@@ -320,9 +320,9 @@ void EmuPrintStackTrace(PCONTEXT ContextRecord)
 
         SymGetModuleInfo64(g_CurrentProcessHandle, frame.AddrPC.Offset, &module);
         if(module.ModuleName)
-            printf(" %2d: %-8s 0x%.08X", i, module.ModuleName, frame.AddrPC.Offset);
+            printf(" %2d: %-8s 0x%.08X", i, module.ModuleName, (uintptr_t)frame.AddrPC.Offset);
         else
-            printf(" %2d: %8c 0x%.08X", i, ' ', frame.AddrPC.Offset);
+            printf(" %2d: %8c 0x%.08X", i, ' ', (uintptr_t)frame.AddrPC.Offset);
 
 		BYTE symbol[sizeof(SYMBOL_INFO) + SYMBOL_MAXLEN] = { 0 };
 		std::string symbolName = "";
@@ -350,7 +350,7 @@ void EmuPrintStackTrace(PCONTEXT ContextRecord)
         }
 
         if(symbolName.length() > 0)
-            printf(" %s+0x%.04X\n", symbolName.c_str(), dwDisplacement);
+            printf(" %s+0x%.04X\n", symbolName.c_str(), (uintptr_t)dwDisplacement);
         else
             printf("\n");
     }

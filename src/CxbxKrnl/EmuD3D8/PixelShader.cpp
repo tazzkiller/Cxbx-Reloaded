@@ -814,7 +814,7 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 	}
 	__except(EXCEPTION_EXECUTE_HANDLER)
 	{
-		DbgPrintf("Pixel Shader : Exception while creating pixel shader 0x%.8X\n", pPSD);
+		DbgPrintf("Pixel Shader : Exception while creating pixel shader 0x%p\n", pPSD);
 	}
 	if (pCompilationErrors)
 	{

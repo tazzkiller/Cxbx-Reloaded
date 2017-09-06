@@ -739,7 +739,7 @@ struct DecodedPixelContainer {
 
 void DumpDecodedPixelContainer(DecodedPixelContainer &decoded)
 {
-	DbgPrintf("pPixelContainer = 0x%.08X\n", decoded.pPixelContainer);
+	DbgPrintf("pPixelContainer = 0x%p\n", decoded.pPixelContainer);
 	DbgPrintf("X_Format = 0x%.02X (%s)\n", decoded.X_Format, TYPE2PCHAR(X_D3DFORMAT)(decoded.X_Format));
 	DbgPrintf("dwBPP = %d\n", decoded.dwBPP);
 	DbgPrintf("bIsSwizzled = %d\n", decoded.bIsSwizzled);
@@ -1743,7 +1743,7 @@ VOID XTL::EmuD3DInit()
 			PresParam.FullScreen_RefreshRateInHz = 0; // D3DDisplayMode.RefreshRate ??
 		}
 		else {
-			char szBackBufferFormat[16];
+			char szBackBufferFormat[16] = {};
 
 			sscanf(g_XBVideo.GetVideoResolution(), "%u x %u %*dbit %s (%u hz)",
 				&PresParam.BackBufferWidth,
@@ -4343,7 +4343,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePixelShader)
     }
     else
     {
-        DbgPrintf("pHandle = 0x%.08X (0x%.08X)\n", pHandle, *pHandle);
+        DbgPrintf("pHandle = 0x%p (0x%.08X)\n", pHandle, *pHandle);
     }
 
     
@@ -5024,7 +5024,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 			}
 		}
 
-		DbgPrintf("Switching Data 0x%.08X Texture 0x%.08X (0x%.08X) @ Stage %d\n", Data, pTexture, pHostBaseTexture, Stage);
+		DbgPrintf("Switching Data 0x%p Texture 0x%p (0x%p) @ Stage %u\n", Data, pTexture, pHostBaseTexture, Stage);
 
         HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, pHostBaseTexture);
 
@@ -5956,8 +5956,8 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		}
 
 		SetHostSurface((X_D3DResource *)pPixelContainer, pNewHostSurface);
-		DbgPrintf("CxbxUpdateTexture : Successfully created surface (0x%.08X, 0x%.08X)\n", pPixelContainer, pNewHostSurface);
-		DbgPrintf("CxbxUpdateTexture : Width : %d, Height : %d, Format : %d\n", PixelJar.dwWidth, PixelJar.dwHeight, PCFormat);
+		DbgPrintf("CxbxUpdateTexture : Successfully created surface (0x%p, 0x%p)\n", pPixelContainer, pNewHostSurface);
+		DbgPrintf("CxbxUpdateTexture : Width : %u, Height : %u, Format : %u\n", PixelJar.dwWidth, PixelJar.dwHeight, PCFormat);
 
 		result = (IDirect3DBaseTexture8 *)pNewHostSurface;
 	}

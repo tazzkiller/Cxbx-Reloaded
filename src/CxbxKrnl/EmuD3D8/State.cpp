@@ -149,7 +149,7 @@ void CxbxInitializeEmuMappedD3DRenderState()
 		if (XDKVersion_D3DRS != X_D3DRS_UNSUPPORTED) {
 			EmuMappedD3DRenderState[rs] = &(Xbox_D3D__RenderState[XDKVersion_D3DRS]);
 			EmuMappedD3DRenderState[rs] += delta / sizeof(DWORD); // Increment per DWORD (not per 4!)
-			RegisterAddressLabel(EmuMappedD3DRenderState[rs], "D3D__RenderState[%d/*=%s*/]",
+			RegisterAddressLabel(EmuMappedD3DRenderState[rs], "D3D__RenderState[%u/*=%s*/]",
 				XDKVersion_D3DRS,
 				GetDxbxRenderStateInfo(rs).S + 2); // Skip "X_" prefix
 			// TODO : Should we label "g_Device." members too?
@@ -488,7 +488,7 @@ void CxbxInitializeTextureStageStates()
 		for (X_D3DTEXTURESTAGESTATETYPE State = X_D3DTSS_FIRST; State <= X_D3DTSS_LAST; State++) {
 			DWORD NewVersion_TSS = DxbxFromOldVersion_D3DTSS(State); // Map old to new
 			void *Addr = &(Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + State]);
-			RegisterAddressLabel(Addr, "D3D__TextureState[/*Stage*/%d][%d/*=%s*/]",
+			RegisterAddressLabel(Addr, "D3D__TextureState[/*Stage*/%u][%u/*=%s*/]",
 				Stage, State,
 				DxbxTextureStageStateInfo[NewVersion_TSS].S + 2); // Skip "X_" prefix
 		}

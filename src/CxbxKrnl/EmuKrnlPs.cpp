@@ -142,7 +142,7 @@ static unsigned int WINAPI PCSTProxy
 			if (pfnNotificationRoutine == NULL)
 				continue;
 
-			DbgPrintf("EmuKrnl: Calling pfnNotificationRoutine[%d] (0x%.08X)\n", g_iThreadNotificationCount, pfnNotificationRoutine);
+			DbgPrintf("EmuKrnl: Calling pfnNotificationRoutine[%d] (0x%p)\n", g_iThreadNotificationCount, pfnNotificationRoutine);
 
 			pfnNotificationRoutine(TRUE);
 		}
@@ -409,7 +409,7 @@ XBSYSAPI EXPORTNUM(258) xboxkrnl::VOID NTAPI xboxkrnl::PsTerminateSystemThread
 			if (pfnNotificationRoutine == NULL)
 				continue;
 
-			DbgPrintf("EmuKrnl: Calling pfnNotificationRoutine[%d] (0x%.08X)\n", g_iThreadNotificationCount, pfnNotificationRoutine);
+			DbgPrintf("EmuKrnl: Calling pfnNotificationRoutine[%d] (0x%p)\n", g_iThreadNotificationCount, pfnNotificationRoutine);
 
 			pfnNotificationRoutine(FALSE);
 		}

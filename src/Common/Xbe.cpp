@@ -745,7 +745,7 @@ void Xbe::DumpInformation(FILE *x_file)
                 tmp[8] = '\0';
 
                 fprintf(x_file, "Library Name                     : %s\n", tmp);
-                fprintf(x_file, "Version                          : %d.%d.%d\n", m_LibraryVersion[v].wMajorVersion, m_LibraryVersion[v].wMinorVersion, m_LibraryVersion[v].wBuildVersion);
+                fprintf(x_file, "Version                          : %u.%u.%u\n", m_LibraryVersion[v].wMajorVersion, m_LibraryVersion[v].wMinorVersion, m_LibraryVersion[v].wBuildVersion);
 
                 // print flags
                 {
