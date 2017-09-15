@@ -42,9 +42,6 @@
 //#include <windef.h> // For MAX_PATH
 // The above leads to 55 compile errors, so until we've sorted out why that happens, declare MAX_PATH ourselves for now :
 #define MAX_PATH 260
-#define XPR_IMAGE_WH 128
-#define XPR_IMAGE_DATA_SIZE (XPR_IMAGE_WH * XPR_IMAGE_WH) / 2
-#define XPR_IMAGE_HDR_SIZE 2048
 
 // Xbe (Xbox Executable) file object
 class Xbe : public Error
@@ -269,21 +266,7 @@ class Xbe : public Error
         };
 
 	public:
-		// used to decode game logo bitmap data
-		#include "AlignPrefix1.h"
-		struct X_D3DResourceLoc
-		{
-			uint32 Common;
-			uint32 Data;
-			uint32 Lock;
-			uint32 Format;
-			uint32 Size;
-		}
-		#include "AlignPosfix1.h"
-		;
-
-		#include "AlignPrefix1.h"
-		// XPR structures
+		// XPR structure
 
 		// Purpose:
 		//   The XPR file format allows multiple graphics resources to be pre-defined
@@ -296,34 +279,15 @@ class Xbe : public Error
 			uint32 dwXprMagic; // 'XPR0' or 'XPR1'
 			uint32 dwXprTotalSize;
 			uint32 dwXprHeaderSize;
-		}
-		#include "AlignPosfix1.h"
-		*m_xprHeader;
+		};
+		// uint SizeOfResourceHeaders = pXprHeader->dwXprHeaderSize - sizeof(Xbe::XprHeader);
+		// uint SizeOfResourceData = pXprHeader->dwXprTotalSize - pXprHeader->dwXprHeaderSize;
+		// uint8 *ResourceHeaders = pSection + sizeof(Xbe::XprHeader);
+		// uint8 *ResourceData = ResourceHeaders + SizeOfResourceHeaders;
 
-		#include "AlignPrefix1.h"
-		// Layout of SaveImage.xbx saved game image file
-		//
-		// File is XPR0 format. Since the XPR will always contain only a single
-		// 256x256 DXT1 image, we know exactly what the header portion will look like
-		struct XprImageHeader
-		{
-			XprHeader xprHeader; // Standard XPR struct
-			X_D3DResourceLoc d3dTexture; // Standard D3D texture struct
-			uint32 dwEndOfHeader; // $FFFFFFFF
-		}
-		#include "AlignPosfix1.h"
-		*m_xprImageHeader;
-
-
-		#include "AlignPrefix1.h"
-		struct XprImage
-		{
-			XprImageHeader xprImageHeader;
-			char strPad[XPR_IMAGE_HDR_SIZE - sizeof(XprImageHeader)];
-			unsigned char pBits;
-		}
-		#include "AlignPosfix1.h"
-		*m_xprImage;
+		// In words :
+		// At XprHeader + sizeof(XprHeader), are zero or more D3DResource headers (possibly terminated by 0xFFFFFFFF)
+		// At XprHeader + dwXprHeaderSize, resides the resource data. Datasize (delta) is dependent on resource type.
 };
 
 // debug/retail XOR keys

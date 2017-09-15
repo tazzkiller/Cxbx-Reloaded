@@ -337,68 +337,80 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
             // initialize back buffer
             {
                 HDC hDC = GetDC(hwnd);
+				if (hDC != NULL) {
+					if (m_BackBmp != NULL) {
+						DeleteObject(m_BackBmp);
+					}
 
-                m_BackBmp = CreateCompatibleBitmap(hDC, m_w, m_h);
+					m_BackBmp = CreateCompatibleBitmap(hDC, m_w, m_h);
 
-                // decompress jpeg, convert to bitmap resource
-                {
-                    HRSRC hSrc = FindResource(NULL, MAKEINTRESOURCE(IDR_JPEG_SPLASH), "JPEG");
-                    HGLOBAL hRes = LoadResource(NULL, hSrc);
+					// decompress jpeg, convert to bitmap resource
+					{
+						HRSRC hSrc = FindResource(NULL, MAKEINTRESOURCE(IDR_JPEG_SPLASH), "JPEG");
+						HGLOBAL hRes = LoadResource(NULL, hSrc);
 
-                    uint08 *jpgData = (uint08*)LockResource(hRes);
-                    uint32 jpgFileSize = SizeofResource(NULL, hSrc);
-                    uint32 bmpFileSize = 0;
-                    uint32 bmpWidth = 0;
-                    uint32 bmpHeight = 0;
+						uint08 *jpgData = (uint08*)LockResource(hRes);
+						uint32 jpgFileSize = SizeofResource(NULL, hSrc);
+						uint32 bmpFileSize = 0;
+						uint32 bmpWidth = 0;
+						uint32 bmpHeight = 0;
 
-                    uint08 *bmpBuff = reinterpret_cast<uint08*>
-                    (
-                        stbi_load_from_memory
-                        (
-                            reinterpret_cast<const stbi_uc*>(jpgData),
-                            static_cast<int>(jpgFileSize),
-                            reinterpret_cast<int*>(&bmpWidth),
-                            reinterpret_cast<int*>(&bmpHeight),
-                            nullptr,
-                            STBI_rgb
-                        )
-                    );
+						uint08 *bmpBuff = reinterpret_cast<uint08*>
+							(
+								stbi_load_from_memory
+								(
+									reinterpret_cast<const stbi_uc*>(jpgData),
+									static_cast<int>(jpgFileSize),
+									reinterpret_cast<int*>(&bmpWidth),
+									reinterpret_cast<int*>(&bmpHeight),
+									nullptr,
+									STBI_rgb
+								)
+								);
 
-                    // create bitmap
-                    {
-                        BITMAPINFO BmpInfo;
+						// create bitmap
+						{
+							BITMAPINFO BmpInfo;
 
-                        BmpInfo.bmiHeader.biSize          = sizeof(BITMAPINFO) - sizeof(RGBQUAD);
-                        BmpInfo.bmiHeader.biWidth         = bmpWidth;
-                        BmpInfo.bmiHeader.biHeight        = 0 - (long)bmpHeight;
-                        BmpInfo.bmiHeader.biPlanes        = 1;
-                        BmpInfo.bmiHeader.biBitCount      = 24;
-                        BmpInfo.bmiHeader.biCompression   = BI_RGB;
-                        BmpInfo.bmiHeader.biSizeImage     = 0;
-                        BmpInfo.bmiHeader.biXPelsPerMeter = 0;
-                        BmpInfo.bmiHeader.biYPelsPerMeter = 0;
-                        BmpInfo.bmiHeader.biClrUsed       = 0;
-                        BmpInfo.bmiHeader.biClrImportant  = 0;
+							BmpInfo.bmiHeader.biSize = sizeof(BITMAPINFO) - sizeof(RGBQUAD);
+							BmpInfo.bmiHeader.biWidth = bmpWidth;
+							BmpInfo.bmiHeader.biHeight = 0 - (long)bmpHeight;
+							BmpInfo.bmiHeader.biPlanes = 1;
+							BmpInfo.bmiHeader.biBitCount = 24;
+							BmpInfo.bmiHeader.biCompression = BI_RGB;
+							BmpInfo.bmiHeader.biSizeImage = 0;
+							BmpInfo.bmiHeader.biXPelsPerMeter = 0;
+							BmpInfo.bmiHeader.biYPelsPerMeter = 0;
+							BmpInfo.bmiHeader.biClrUsed = 0;
+							BmpInfo.bmiHeader.biClrImportant = 0;
 
-                        SetDIBits(hDC, m_BackBmp, 0, bmpHeight, bmpBuff, &BmpInfo, DIB_RGB_COLORS);
-                    }
-					
-                    stbi_image_free(bmpBuff);
+							SetDIBits(hDC, m_BackBmp, 0, bmpHeight, bmpBuff, &BmpInfo, DIB_RGB_COLORS);
+						}
 
-                    FreeResource(hRes);
-                    UnlockResource(hRes);
-                }
+						stbi_image_free(bmpBuff);
 
-                m_LogoBmp  = (HBITMAP)LoadImage(m_hInstance, MAKEINTRESOURCE(IDB_LOGO), IMAGE_BITMAP, 0, 0, 0);
+						UnlockResource(hRes);
+						FreeResource(hRes);
+					}
 
-                m_BackDC   = CreateCompatibleDC(hDC);
-                m_LogoDC   = CreateCompatibleDC(hDC);
-				
-                m_OrigBmp  = (HBITMAP)SelectObject(m_BackDC, m_BackBmp);
-                m_OrigLogo = (HBITMAP)SelectObject(m_LogoDC, m_LogoBmp);
+					m_LogoBmp = (HBITMAP)LoadImage(m_hInstance, MAKEINTRESOURCE(IDB_LOGO), IMAGE_BITMAP, 0, 0, 0);
 
-                if(hDC != NULL)
-                    ReleaseDC(hwnd, hDC);
+					if (m_BackDC != NULL) {
+						DeleteObject(m_BackDC);
+					}
+
+					m_BackDC = CreateCompatibleDC(hDC);
+					if (m_LogoDC != NULL) {
+						DeleteObject(m_LogoDC);
+					}
+
+					m_LogoDC = CreateCompatibleDC(hDC);
+
+					m_OrigBmp = (HBITMAP)SelectObject(m_BackDC, m_BackBmp);
+					m_OrigLogo = (HBITMAP)SelectObject(m_LogoDC, m_LogoBmp);
+
+					ReleaseDC(hwnd, hDC);
+				}
             }
 
             SetClassLong(hwnd, GCL_HICON, (LONG)LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_CXBX)));
@@ -491,9 +503,32 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
                 BitBlt(hDC, 0, 0, m_w, m_h, m_BackDC, 0, 0, SRCCOPY);
 
-				BitBlt(hDC, m_w - gameLogoWidth - 3, m_h - nLogoBmpH - 12 - gameLogoHeight, gameLogoWidth, gameLogoHeight, m_GameLogoDC, 0, 0, SRCCOPY);
+#if 1 // This code draws logo's with transparency. Test case "Baku Baku 2" went all-transparent by that, so leave it disabled for now.
+				BLENDFUNCTION blf;
+				// See https://msdn.microsoft.com/en-us/library/windows/desktop/dd183393(v=vs.85).aspx
+				blf.BlendOp = AC_SRC_OVER;
+				blf.BlendFlags = 0;
+				blf.SourceConstantAlpha = 255;
+				blf.AlphaFormat = AC_SRC_ALPHA;
 
-                BitBlt(hDC, m_w-nLogoBmpW-4, m_h-nLogoBmpH-4, nLogoBmpW, nLogoBmpH, m_LogoDC, 0, 0, SRCCOPY);
+#pragma comment(lib, "MSIMG32.LIB") // See https://social.msdn.microsoft.com/Forums/vstudio/en-US/c50130f8-608f-4b85-8ae1-c0d3899f6fbf/alphablend-problem?forum=vclanguage
+				bool drawnTransparently = AlphaBlend(
+					hDC, 
+					m_w - gameLogoWidth - 3, 
+					m_h - nLogoBmpH - 12 - gameLogoHeight, 
+					gameLogoWidth,
+					gameLogoHeight,
+					m_GameLogoDC,
+					0, 
+					0, 
+					gameLogoWidth,
+					gameLogoHeight,
+					blf);
+				if (!drawnTransparently)
+#endif
+					BitBlt(hDC, m_w - gameLogoWidth - 3, m_h - nLogoBmpH - 12 - gameLogoHeight, gameLogoWidth, gameLogoHeight, m_GameLogoDC, 0, 0, SRCCOPY);
+
+				BitBlt(hDC, m_w-nLogoBmpW-4, m_h-nLogoBmpH-4, nLogoBmpW, nLogoBmpH, m_LogoDC, 0, 0, SRCCOPY);
 
                 int nHeight = -MulDiv(8, GetDeviceCaps(hDC, LOGPIXELSY), 72);
 
@@ -1202,27 +1237,47 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
         {
             FreeConsole();
 
-            HDC hDC = GetDC(hwnd);
+			if (m_LogoDC != NULL) {
+				if (m_OrigLogo != NULL) {
+					SelectObject(m_LogoDC, m_OrigLogo);
+				}
 
-            SelectObject(m_LogoDC, m_OrigLogo);
+				DeleteObject(m_LogoDC);
+				m_LogoDC = NULL;
+			}
 
-            SelectObject(m_BackDC, m_OrigBmp);
+			if (m_BackDC != NULL) {
+				if (m_OrigBmp != NULL) {
+					SelectObject(m_BackDC, m_OrigBmp);
+				}
 
-			SelectObject(m_GameLogoDC, m_OrigGameLogo);
+				DeleteObject(m_BackDC);
+				m_BackDC = NULL;
+			}
 
-            DeleteObject(m_LogoDC);
+			if (m_GameLogoDC != NULL) {
+				if (m_OrigGameLogo != NULL) {
+					SelectObject(m_GameLogoDC, m_OrigGameLogo);
+				}
 
-            DeleteObject(m_BackDC);
+				DeleteObject(m_GameLogoDC);
+				m_GameLogoDC = NULL;
+			}
 
-			DeleteObject(m_GameLogoDC);
+			if (m_LogoBmp != NULL) {
+				DeleteObject(m_LogoBmp);
+				m_LogoBmp = NULL;
+			}
 
-            DeleteObject(m_LogoBmp);
+			if (m_BackBmp != NULL) {
+				DeleteObject(m_BackBmp);
+				m_BackBmp = NULL;
+			}
 
-            DeleteObject(m_BackBmp);
-
-			DeleteObject(m_GameLogoBMP);
-
-            ReleaseDC(hwnd, hDC);
+			if (m_GameLogoBMP != NULL) {
+				DeleteObject(m_GameLogoBMP);
+				m_GameLogoBMP = NULL;
+			}
 
             delete m_Xbe;
 
@@ -1332,6 +1387,9 @@ typedef struct {
 // load game logo bitmap
 void WndMain::LoadGameLogo()
 {
+	gameLogoWidth = 0;
+	gameLogoHeight = 0;
+
 	// Export Game Logo bitmap (XTIMAG or XSIMAG)
 	uint8 *pSection = (uint8 *)m_Xbe->FindSection("$$XTIMAG"); // Check for XTIMAGE
 	if (!pSection) {
@@ -1341,12 +1399,7 @@ void WndMain::LoadGameLogo()
 		}
 	}
 
-	gameLogoWidth = 0;
-	gameLogoHeight = 0;	
-
-	uint8 *ImageData = NULL;
-	XTL::X_D3DPixelContainer XboxPixelContainer = {};
-	XTL::X_D3DPixelContainer *pXboxPixelContainer = &XboxPixelContainer;
+	XTL::PixelCopyInfo info = {};
 
 	switch (*(DWORD*)pSection) {
 	case MAKEFOURCC('D', 'D', 'S', ' '): {
@@ -1366,34 +1419,26 @@ void WndMain::LoadGameLogo()
 		if (Format == XTL::D3DFMT_UNKNOWN)
 			return;
 
-		ImageData = (uint8 *)(pSection + sizeof(DWORD) + pDDSHeader->dwSize);
-		//gameLogoHeight = pDDSHeader->dwHeight;
-		//gameLogoWidth = pDDSHeader->dwWidth;
-		
-		// TODO : Use PixelCopy code here to decode. For now, fake it :
-		XTL::CxbxSetPixelContainerHeader(&XboxPixelContainer,
-			0, // Common - could be X_D3DCOMMON_TYPE_TEXTURE
-			(XTL::UINT)pDDSHeader->dwWidth,
-			(XTL::UINT)pDDSHeader->dwHeight,
-			1,
-			XTL::EmuPC2XB_D3DFormat(Format),
-			2,
-			(XTL::UINT)pDDSHeader->dwPitchOrLinearSize);
+		info.X_Format = XTL::EmuPC2XB_D3DFormat(Format);
+		info.iWidth = pDDSHeader->dwWidth;
+		info.iHeight = pDDSHeader->dwHeight;
+		info.pSrc = (uint8 *)(pSection + sizeof(DWORD) + pDDSHeader->dwSize);;
+		info.iSrcPitch = XTL::CxbxFormatAndWidthToRowSizeInBytes(info.X_Format, pDDSHeader->dwHeight); // pDDSHeader->dwPitchOrLinearSize is not to be trusted
 		break;
 	}
 	case MAKEFOURCC('X', 'P', 'R', '0'):
 	case MAKEFOURCC('X', 'P', 'R', '1'): {
+		XTL::X_D3DPixelContainer *pXboxPixelContainer = (XTL::X_D3DPixelContainer *)(pSection + sizeof(Xbe::XprHeader));
+#if 0 // TODO : Enable this check :
+		// If the resource is not a texture, do not decode it
+		if (GetXboxCommonResourceType(pXboxPixelContainer) != X_D3DCOMMON_TYPE_TEXTURE)
+			return;
+
+#endif
+		XTL::GetPixelCopyInfo(info, pXboxPixelContainer);
+
 		struct Xbe::XprHeader *pXprHeader = (struct Xbe::XprHeader*)pSection;
-
-		uint SizeOfResourceHeaders = pXprHeader->dwXprHeaderSize - sizeof(Xbe::XprHeader);
-		uint SizeOfResourceData = pXprHeader->dwXprTotalSize - pXprHeader->dwXprHeaderSize;
-
-		uint8 *ResourceHeaders = pSection + sizeof(Xbe::XprHeader);
-		uint8 *ResourceData = ResourceHeaders + SizeOfResourceHeaders;
-
-		pXboxPixelContainer = (XTL::X_D3DPixelContainer*)ResourceHeaders;
-		ImageData = ResourceData;
-
+		info.pSrc = pSection + pXprHeader->dwXprHeaderSize;
 		break;
 	}
 	default: {
@@ -1401,41 +1446,54 @@ void WndMain::LoadGameLogo()
 	}
 	}
 
-	void *bitmapData = XTL::ConvertD3DTextureToARGB(pXboxPixelContainer, ImageData, &gameLogoWidth, &gameLogoHeight);
-	if (!bitmapData)
-		return;
+	SetPixelCopyTargetFormat(info, XTL::D3DFMT_A8R8G8B8);
+	info.pDest = (uint8*)malloc(info.iHeight * info.iDestPitch);
+	if (XTL::CopyPixels(info)) {
+		gameLogoWidth = info.iWidth;
+		gameLogoHeight = info.iHeight;
 
-	HDC hDC = GetDC(m_hwnd);
-	m_GameLogoBMP = CreateCompatibleBitmap(hDC, gameLogoWidth, gameLogoHeight);
+		HDC hDC = GetDC(m_hwnd);
+		if (hDC != NULL) {
+			if (m_GameLogoBMP != NULL) {
+				DeleteObject(m_GameLogoBMP);
+			}
 
-	// create bitmap
-	{
-		BITMAPINFO BmpInfo;
+			m_GameLogoBMP = CreateCompatibleBitmap(hDC, gameLogoWidth, gameLogoHeight);
 
-		BmpInfo.bmiHeader.biSize = sizeof(BITMAPINFO) - sizeof(RGBQUAD);
-		BmpInfo.bmiHeader.biWidth = gameLogoWidth;
-		BmpInfo.bmiHeader.biHeight = 0 - (long)gameLogoHeight; //  If biHeight is negative, the bitmap is a top-down DIB and its origin is the upper-left corner.
-		BmpInfo.bmiHeader.biPlanes = 1;
-		BmpInfo.bmiHeader.biBitCount = 32;
-		BmpInfo.bmiHeader.biCompression = BI_RGB;
-		BmpInfo.bmiHeader.biSizeImage = 0;
-		BmpInfo.bmiHeader.biXPelsPerMeter = 0;
-		BmpInfo.bmiHeader.biYPelsPerMeter = 0;
-		BmpInfo.bmiHeader.biClrUsed = 0;
-		BmpInfo.bmiHeader.biClrImportant = 0;
+			// create bitmap
+			{
+				BITMAPINFO BmpInfo;
 
-		SetDIBits(hDC, m_GameLogoBMP, 0, gameLogoHeight, bitmapData, &BmpInfo, DIB_RGB_COLORS);
+				BmpInfo.bmiHeader.biSize = sizeof(BITMAPINFO) - sizeof(RGBQUAD);
+				BmpInfo.bmiHeader.biWidth = gameLogoWidth;
+				BmpInfo.bmiHeader.biHeight = 0 - (long)gameLogoHeight; //  If biHeight is negative, the bitmap is a top-down DIB and its origin is the upper-left corner.
+				BmpInfo.bmiHeader.biPlanes = 1;
+				BmpInfo.bmiHeader.biBitCount = 32;
+				BmpInfo.bmiHeader.biCompression = BI_RGB;
+				BmpInfo.bmiHeader.biSizeImage = 0;
+				BmpInfo.bmiHeader.biXPelsPerMeter = 0;
+				BmpInfo.bmiHeader.biYPelsPerMeter = 0;
+				BmpInfo.bmiHeader.biClrUsed = 0;
+				BmpInfo.bmiHeader.biClrImportant = 0;
+
+				SetDIBits(hDC, m_GameLogoBMP, 0, gameLogoHeight, info.pDest, &BmpInfo, DIB_RGB_COLORS);
+			}
+
+			if (m_GameLogoDC != NULL) {
+				DeleteObject(m_GameLogoDC);
+			}
+
+			m_GameLogoDC = CreateCompatibleDC(hDC);
+			m_OrigGameLogo = (HBITMAP)SelectObject(m_GameLogoDC, m_GameLogoBMP);
+
+			RedrawWindow(m_hwnd, NULL, NULL, RDW_INVALIDATE);
+
+			ReleaseDC(m_hwnd, hDC);
+		}
 	}
 
-	m_GameLogoDC = CreateCompatibleDC(hDC);
-	m_OrigGameLogo = (HBITMAP)SelectObject(m_GameLogoDC, m_GameLogoBMP);
-
-	RedrawWindow(m_hwnd, NULL, NULL, RDW_INVALIDATE);
-
-	if (hDC != NULL)
-		ReleaseDC(m_hwnd, hDC);
-
-	free(bitmapData);
+	free(info.pUnswizleBuffer);
+	free(info.pDest);
 }
 
 
@@ -1811,9 +1869,16 @@ void WndMain::CloseXbe()
     }
 
 	// clear game logo bitmap
-	SelectObject(m_GameLogoDC, m_OrigGameLogo);
-	DeleteObject(m_GameLogoDC);
-	DeleteObject(m_GameLogoBMP);
+	if (m_GameLogoDC != NULL) {
+		SelectObject(m_GameLogoDC, m_OrigGameLogo);
+		DeleteObject(m_GameLogoDC);
+		m_GameLogoDC = NULL;
+	}
+
+	if (m_GameLogoBMP != NULL) {
+		DeleteObject(m_GameLogoBMP);
+		m_GameLogoBMP = NULL;
+	}
 
     RedrawWindow(m_hwnd, NULL, NULL, RDW_INVALIDATE);
 }
