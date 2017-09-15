@@ -955,6 +955,22 @@ VOID XTL::CxbxSetPixelContainerHeader
 		;
 }
 
+UINT XTL::CxbxFormatAndWidthToRowSizeInBytes(
+	XTL::X_D3DFORMAT X_Format,
+	UINT uWidth
+)
+{
+	// Calculate the size of a row, based on the number of bits per pixel of the given format
+	DWORD dwBPP = EmuXBFormatBitsPerPixel(X_Format);
+	UINT uPitch = uWidth * dwBPP / 8;
+
+	// Compressed formats encode 4 lines per row, so adjust pitch accordingly
+	if (EmuXBFormatIsCompressed(X_Format))
+		uPitch *= 4;
+
+	return uPitch;
+}
+
 VOID CxbxGetPixelContainerMeasures
 (
 	XTL::X_D3DPixelContainer *pPixelContainer,
@@ -978,79 +994,131 @@ VOID CxbxGetPixelContainerMeasures
 	{
 		DWORD l2w = (pPixelContainer->Format & X_D3DFORMAT_USIZE_MASK) >> X_D3DFORMAT_USIZE_SHIFT;
 		DWORD l2h = (pPixelContainer->Format & X_D3DFORMAT_VSIZE_MASK) >> X_D3DFORMAT_VSIZE_SHIFT;
-		DWORD dwBPP = EmuXBFormatBitsPerPixel(X_Format);
 
 		*pHeight = 1 << l2h;
 		*pWidth = 1 << l2w;
-		*pPitch = *pWidth * dwBPP / 8;
+		*pPitch = CxbxFormatAndWidthToRowSizeInBytes(X_Format, *pWidth);
 	}
 
 	*pSize = *pHeight * *pPitch;
 
+	// Compressed formats encode 4 lines per row, so adjust size accordingly
 	if (EmuXBFormatIsCompressed(X_Format)) {
-		*pPitch *= 4;
+		*pSize /= 4;
 	}
 }
 
-uint8 *XTL::ConvertD3DTextureToARGB(
-	XTL::X_D3DPixelContainer *pXboxPixelContainer,
-	uint8 *pSrc,
-	int *pWidth, int *pHeight
+void XTL::GetPixelCopyInfo(
+	PixelCopyInfo &info,
+	X_D3DPixelContainer *pXboxPixelContainer
 )
 {
-	XTL::X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pXboxPixelContainer);
-	const XTL::FormatToARGBRow ConvertRowToARGB = EmuXBFormatComponentConverter(X_Format);
-	if (ConvertRowToARGB == nullptr)
-		return nullptr; // Unhandled conversion
-
-	uint SrcPitch, SrcSize;
+	UINT DummySrcSize;
+	info.X_Format = GetXboxPixelContainerFormat(pXboxPixelContainer);
 	CxbxGetPixelContainerMeasures(
 		pXboxPixelContainer,
 		0, // dwLevel
-		(UINT*)pWidth,
-		(UINT*)pHeight,
-		&SrcPitch,
-		&SrcSize
+		(UINT*)&info.iWidth,
+		(UINT*)&info.iHeight,
+		(UINT*)&info.iSrcPitch,
+		&DummySrcSize
 	);
+}
 
-	int DestPitch = *pWidth * sizeof(DWORD);
-	uint8 *pDest = (uint8 *)malloc(DestPitch * *pHeight);
+void XTL::SetPixelCopyTargetFormat(
+	PixelCopyInfo &info,
+	D3DFORMAT PCFormat
+)
+{
+	info.PCFormat = PCFormat;
+	info.iDestPitch = CxbxFormatAndWidthToRowSizeInBytes(EmuPC2XB_D3DFormat(PCFormat), info.iWidth);
+}
 
-	uint8 *unswizleBuffer = nullptr;
-	if (XTL::EmuXBFormatIsSwizzled(X_Format)) {
-		unswizleBuffer = (uint8*)malloc(SrcPitch * *pHeight); // TODO : Reuse buffer when performance is important
-		// First we need to unswizzle the texture data
-		XTL::EmuUnswizzleRect(
-			pSrc, *pWidth, *pHeight, 1, unswizleBuffer,
-			SrcPitch, {}, {}, EmuXBFormatBytesPerPixel(X_Format)
-		);
-		// Convert colors from the unswizzled buffer
-		pSrc = unswizleBuffer;
-	}
-
-	DWORD SrcRowOff = 0;
-	uint8 *pDestRow = pDest;
-	if (EmuXBFormatIsCompressed(X_Format)) {
-		// All compressed formats (DXT1, DXT3 and DXT5) encode blocks of 4 pixels on 4 lines
-		for (int y = 0; y < *pHeight; y+=4) {
-			*(int*)pDestRow = DestPitch; // Dirty hack, to avoid an extra parameter to all conversion callbacks
-			ConvertRowToARGB(pSrc + SrcRowOff, pDestRow, *pWidth);
-			SrcRowOff += SrcPitch;
-			pDestRow += DestPitch * 4;
-		}
+void CxbxPitchedCopy(BYTE *pDest, BYTE *pSrc, DWORD dwDestPitch, DWORD dwSrcPitch, DWORD dwWidthInBytes, DWORD dwHeight)
+{
+	// No conversion needed, copy as efficient as possible
+	if ((dwSrcPitch == dwWidthInBytes) && (dwDestPitch == dwWidthInBytes)) {
+		// source and destination rows align, so copy all rows in one go
+		memcpy(pDest, pSrc, dwHeight * dwWidthInBytes);
 	}
 	else {
-		while (SrcRowOff < SrcSize) {
-			ConvertRowToARGB(pSrc + SrcRowOff, pDestRow, *pWidth);
-			SrcRowOff += SrcPitch;
-			pDestRow += DestPitch;
+		// copy source to destination per row
+		for (DWORD v = 0; v < dwHeight; v++) {
+			memcpy(pDest, pSrc, dwWidthInBytes);
+			pDest += dwDestPitch;
+			pSrc += dwSrcPitch;
 		}
 	}
+}
 
-	if (unswizleBuffer)
-		free(unswizleBuffer);
+bool XTL::CopyPixels(
+	PixelCopyInfo &info,
+	uint32 LineData // default = 0
+)
+{
+	uint8 *pSrcRow = info.pSrc;
 
-	return pDest;
+	// First we need to unswizzle the texture data
+	if (XTL::EmuXBFormatIsSwizzled(info.X_Format)) {
+		// Make sure the intermediate unswizzle buffer is big enough
+		int iRequiredBufferSize = info.iSrcPitch * info.iHeight;
+		if (info.iUnswizleBufferSize < iRequiredBufferSize) {
+			free(info.pUnswizleBuffer);
+			info.pUnswizleBuffer = (uint8*)malloc(iRequiredBufferSize);
+			info.iUnswizleBufferSize = iRequiredBufferSize;
+		}
+
+		XTL::EmuUnswizzleRect(
+			info.pSrc, 
+			info.iWidth, 
+			info.iHeight, 
+			1, // Depth 1?
+			info.pUnswizleBuffer,
+			info.iSrcPitch, 
+			{}, 
+			{}, 
+			EmuXBFormatBytesPerPixel(info.X_Format)
+		);
+		// Convert colors from the unswizzled buffer
+		pSrcRow = info.pUnswizleBuffer;
+	}
+
+	// No conversion to ARGB needed?
+	if (info.PCFormat != XTL::D3DFMT_A8R8G8B8)
+		if (g_bSupportsTextureFormat[info.X_Format]) {
+			CxbxPitchedCopy(
+				info.pDest,
+				pSrcRow,
+				info.iDestPitch,
+				info.iSrcPitch,
+				CxbxFormatAndWidthToRowSizeInBytes(info.X_Format, info.iWidth),
+				info.iHeight);
+			return true;
+		}
+
+	const XTL::FormatToARGBRow ConvertRowToARGB = EmuXBFormatComponentConverter(info.X_Format);
+	if (ConvertRowToARGB == nullptr)
+		return false; // Unhandled conversion
+
+	// All compressed formats (DXT1, DXT3 and DXT5) encode blocks of 4 pixels on 4 lines
+	int BlockSize = EmuXBFormatIsCompressed(info.X_Format) ? 4 : 1;
+	uint8 *pDestRow = info.pDest;
+	// Assume LineData contains a palette pointer for P8, set LineData to DestPitch (for DXT* decoders)
+	if (info.X_Format == XTL::X_D3DFMT_P8) {
+		assert(LineData != NULL);
+	} else {
+		LineData = info.iDestPitch;
+	}
+
+	// Decode rows of pixels using a libyuv-like callback
+	for (int y = 0; y < info.iHeight; y += BlockSize) {
+		*(uint32*)pDestRow = LineData; // Dirty hack, to avoid an extra parameter to all conversion callbacks
+		ConvertRowToARGB(pSrcRow, pDestRow, info.iWidth);
+		pSrcRow += info.iSrcPitch;
+		pDestRow += info.iDestPitch * BlockSize;
+	}
+
+	return true;
 }
 
 VOID CxbxReleaseBackBufferLock()
@@ -5101,7 +5169,7 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
 		LOG_FUNC_ARG(pBase)
 		LOG_FUNC_END;
 
-    HRESULT hRet = D3D_OK;
+	HRESULT hRet = D3D_OK;
 
 	const int TextureStage = 0;
 
@@ -5112,7 +5180,10 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
     // add the offset of the current texture to the base
     pBase = (PVOID)((DWORD)pBase + pResource->Data);
 
-    // Determine the resource type, and initialize
+if (pBase == (PVOID)0x80151000) // TODO : Remove once pixel-copy is finished
+	pBase = (PVOID)((DWORD)pBase + pResource->Data);
+
+	// Determine the resource type, and initialize
     switch(dwCommonType)
     {
         case X_D3DCOMMON_TYPE_VERTEXBUFFER:
@@ -5221,125 +5292,30 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
 
             X_D3DPixelContainer *pPixelContainer = (X_D3DPixelContainer*)pResource;
 
-            X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pPixelContainer);
-            D3DFORMAT   PCFormat = EmuXB2PC_D3DFormat(X_Format);
-            D3DFORMAT   CacheFormat = (XTL::D3DFORMAT)0;
-            // TODO: check for dimensions
+			XTL::PixelCopyInfo _PixelCopyInfo = {};
+			XTL::GetPixelCopyInfo(_PixelCopyInfo, pPixelContainer);
 
-            // TODO: HACK: Temporary?
-            if(X_Format == X_D3DFMT_LIN_D24S8)
-            {
-                /*CxbxKrnlCleanup*/EmuWarning("D3DFMT_LIN_D24S8 not yet supported!");
-                X_Format = X_D3DFMT_LIN_A8R8G8B8;
-                PCFormat = D3DFMT_A8R8G8B8;
-            }
+			DWORD dwWidth = _PixelCopyInfo.iWidth;
+			DWORD dwHeight = _PixelCopyInfo.iHeight;
+			DWORD dwPitch = _PixelCopyInfo.iSrcPitch;
+			DWORD dwBPP = _PixelCopyInfo.iSrcPitch / _PixelCopyInfo.iWidth;
+			DWORD dwMipMapLevels = 1;
+			BOOL bSwizzled = EmuXBFormatIsSwizzled(_PixelCopyInfo.X_Format);
+			BOOL bCompressed = EmuXBFormatIsCompressed(_PixelCopyInfo.X_Format);
+            BOOL bCubemap = pPixelContainer->Format & X_D3DFORMAT_CUBEMAP;
 
-			if(X_Format == X_D3DFMT_LIN_D16)
-            {
-                /*CxbxKrnlCleanup*/EmuWarning("D3DFMT_LIN_D16 not yet supported!");
-                X_Format = X_D3DFMT_LIN_R5G6B5;
-                PCFormat = D3DFMT_R5G6B5;
-            }
-
-			// TODO: HACK: Since I have trouble with this texture format on modern hardware,
-			// Let's try using some 16-bit format instead...
-			if(X_Format == X_D3DFMT_X1R5G5B5 )
-			{
-				EmuWarning( "X_D3DFMT_X1R5G5B5 -> D3DFMT_R5GB5" );
-				X_Format = X_D3DFMT_R5G6B5;
-				PCFormat = D3DFMT_R5G6B5;
+			D3DFORMAT PCFormat = EmuXB2PC_D3DFormat(_PixelCopyInfo.X_Format);
+			bool bIsSupportedFormat = g_bSupportsTextureFormat[_PixelCopyInfo.X_Format];
+			if (!bIsSupportedFormat) {
+				EmuWarning("X_Format RequiresConversionToARGB");
+				PCFormat = D3DFMT_A8R8G8B8;   // ARGB
 			}
 
-            DWORD dwWidth, dwHeight, dwBPP, dwDepth = 1, dwPitch = 0, dwMipMapLevels = 1;
-            BOOL  bSwizzled = EmuXBFormatIsSwizzled(X_Format), bCompressed = FALSE, dwCompressedSize = 0;
-            BOOL  bCubemap = pPixelContainer->Format & X_D3DFORMAT_CUBEMAP;
-			dwBPP = EmuXBFormatBytesPerPixel(X_Format);
-
-            // Interpret Width/Height/BPP
-            if(X_Format == X_D3DFMT_X8R8G8B8 || X_Format == X_D3DFMT_A8R8G8B8
-			|| X_Format == X_D3DFMT_A8B8G8R8)
-            {
-                // Swizzled 32 Bit
-                dwWidth  = 1 << ((pPixelContainer->Format & X_D3DFORMAT_USIZE_MASK) >> X_D3DFORMAT_USIZE_SHIFT);
-                dwHeight = 1 << ((pPixelContainer->Format & X_D3DFORMAT_VSIZE_MASK) >> X_D3DFORMAT_VSIZE_SHIFT);
-                dwMipMapLevels = (pPixelContainer->Format & X_D3DFORMAT_MIPMAP_MASK) >> X_D3DFORMAT_MIPMAP_SHIFT;
-                dwDepth  = 1;// HACK? 1 << ((pPixelContainer->Format & X_D3DFORMAT_PSIZE_MASK) >> X_D3DFORMAT_PSIZE_SHIFT);
-                dwPitch  = dwWidth * dwBPP;
-            }
-            else if(X_Format == X_D3DFMT_R5G6B5 || X_Format == X_D3DFMT_A4R4G4B4
-                 || X_Format == X_D3DFMT_A1R5G5B5 || X_Format == X_D3DFMT_X1R5G5B5
-                 || X_Format == X_D3DFMT_G8B8 || X_Format == X_D3DFMT_A8L8)
-            {
-                // Swizzled 16 Bit
-                dwWidth  = 1 << ((pPixelContainer->Format & X_D3DFORMAT_USIZE_MASK) >> X_D3DFORMAT_USIZE_SHIFT);
-                dwHeight = 1 << ((pPixelContainer->Format & X_D3DFORMAT_VSIZE_MASK) >> X_D3DFORMAT_VSIZE_SHIFT);
-                dwMipMapLevels = (pPixelContainer->Format & X_D3DFORMAT_MIPMAP_MASK) >> X_D3DFORMAT_MIPMAP_SHIFT;
-                dwDepth  = 1;// HACK? 1 << ((pPixelContainer->Format & X_D3DFORMAT_PSIZE_MASK) >> X_D3DFORMAT_PSIZE_SHIFT);
-                dwPitch  = dwWidth * dwBPP;
-            }
-            else if(X_Format == X_D3DFMT_L8 || X_Format == X_D3DFMT_P8
-                || X_Format == X_D3DFMT_AL8
-                || X_Format == X_D3DFMT_A8)
-            {
-                // Swizzled 8 Bit
-                dwWidth  = 1 << ((pPixelContainer->Format & X_D3DFORMAT_USIZE_MASK) >> X_D3DFORMAT_USIZE_SHIFT);
-                dwHeight = 1 << ((pPixelContainer->Format & X_D3DFORMAT_VSIZE_MASK) >> X_D3DFORMAT_VSIZE_SHIFT);
-                dwMipMapLevels = (pPixelContainer->Format & X_D3DFORMAT_MIPMAP_MASK) >> X_D3DFORMAT_MIPMAP_SHIFT;
-                dwDepth  = 1;// HACK? 1 << ((pPixelContainer->Format & X_D3DFORMAT_PSIZE_MASK) >> X_D3DFORMAT_PSIZE_SHIFT);
-                dwPitch  = dwWidth * dwBPP;
-            }
-            else if(X_Format == X_D3DFMT_LIN_X8R8G8B8 || X_Format == X_D3DFMT_LIN_A8R8G8B8
-				 || X_Format == X_D3DFMT_LIN_D24S8 || X_Format == X_D3DFMT_LIN_A8B8G8R8)
-            {
-                // Linear 32 Bit
-                dwWidth  = (pPixelContainer->Size & X_D3DSIZE_WIDTH_MASK) + 1;
-                dwHeight = ((pPixelContainer->Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
-                dwPitch  = (((pPixelContainer->Size & X_D3DSIZE_PITCH_MASK) >> X_D3DSIZE_PITCH_SHIFT)+1)*64;
-            }
-            else if(X_Format == X_D3DFMT_LIN_R5G6B5 || X_Format == X_D3DFMT_LIN_D16
-				 || X_Format == X_D3DFMT_LIN_A4R4G4B4 || X_Format == X_D3DFMT_LIN_A1R5G5B5
-				 || X_Format == X_D3DFMT_LIN_X1R5G5B5 )
-            {
-                // Linear 16 Bit
-                dwWidth  = (pPixelContainer->Size & X_D3DSIZE_WIDTH_MASK) + 1;
-                dwHeight = ((pPixelContainer->Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
-                dwPitch  = (((pPixelContainer->Size & X_D3DSIZE_PITCH_MASK) >> X_D3DSIZE_PITCH_SHIFT)+1)*64;
-            }
-            else if(X_Format == X_D3DFMT_DXT1 || X_Format == X_D3DFMT_DXT3 || X_Format == X_D3DFMT_DXT5)
-            {
-                bCompressed = TRUE;
-
-                // Compressed
-                dwWidth  = 1 << ((pPixelContainer->Format & X_D3DFORMAT_USIZE_MASK) >> X_D3DFORMAT_USIZE_SHIFT);
-                dwHeight = 1 << ((pPixelContainer->Format & X_D3DFORMAT_VSIZE_MASK) >> X_D3DFORMAT_VSIZE_SHIFT);
-                dwDepth  = 1 << ((pPixelContainer->Format & X_D3DFORMAT_PSIZE_MASK) >> X_D3DFORMAT_PSIZE_SHIFT);
-                dwMipMapLevels = (pPixelContainer->Format & X_D3DFORMAT_MIPMAP_MASK) >> X_D3DFORMAT_MIPMAP_SHIFT;
-
-                // D3DFMT_DXT2...D3DFMT_DXT5 : 128bits per block/per 16 texels
-                dwCompressedSize = dwWidth*dwHeight;
-
-                if(X_Format == X_D3DFMT_DXT1) // D3DFMT_DXT1 : 64bits per block/per 16 texels
-                    dwCompressedSize /= 2;
-            }
-            else if(X_Format == X_D3DFMT_YUY2)
-            {
-                // Linear 32 Bit
-                dwWidth  = (pPixelContainer->Size & X_D3DSIZE_WIDTH_MASK) + 1;
-                dwHeight = ((pPixelContainer->Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
-                dwPitch  = (((pPixelContainer->Size & X_D3DSIZE_PITCH_MASK) >> X_D3DSIZE_PITCH_SHIFT)+1)*64;
-            }
-            else
-            {
-                CxbxKrnlCleanup("0x%.08X is not a supported format!\n", X_Format);
-            }
-
-            if(X_Format == X_D3DFMT_YUY2)
-            {
+            if(_PixelCopyInfo.X_Format == X_D3DFMT_YUY2) {
                 // cache the overlay size
                 g_dwOverlayW = dwWidth;
                 g_dwOverlayH = dwHeight;
                 g_dwOverlayP = RoundUp(g_dwOverlayW, 64) * dwBPP;
-
                 // If YUY2 is not supported in hardware, we'll actually mark this as a special fake texture
 				// Note : This is the only change to the pResource argument passed into D3DResource_Register !
                 pPixelContainer->Data = X_D3DRESOURCE_DATA_YUV_SURFACE;
@@ -5347,15 +5323,13 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
             }
             else
             {
-                if(bSwizzled || bCompressed)
-                {
+				XTL::SetPixelCopyTargetFormat(_PixelCopyInfo, PCFormat);
+
+				if(bSwizzled || bCompressed) {
                     uint32 w = dwWidth;
                     uint32 h = dwHeight;
-
-                    for(uint32 v=0;v<dwMipMapLevels;v++)
-                    {
-                        if( ((1u << v) >= w) || ((1u << v) >= h))
-                        {
+                    for(uint32 v=0;v<dwMipMapLevels;v++) {
+                        if( ((1u << v) >= w) || ((1u << v) >= h)) {
                             dwMipMapLevels = v + 1;
                             break;
                         }
@@ -5368,9 +5342,7 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
 				XTL::IDirect3DTexture8 *pNewHostTexture = nullptr;
 
                 // create the happy little texture
-                if(dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
-                {
-
+                if(dwCommonType == X_D3DCOMMON_TYPE_SURFACE) {
 					hRet = g_pD3DDevice8->CreateImageSurface(dwWidth, dwHeight, PCFormat, &pNewHostSurface);
 					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateImageSurface");
 
@@ -5382,48 +5354,25 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
 					DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created ImageSurface (0x%.08X, 0x%.08X)\n", pResource, pNewHostSurface);
                     DbgPrintf("EmuIDirect3DResource8_Register : Width : %d, Height : %d, Format : %d\n", dwWidth, dwHeight, PCFormat);
                 }
-                else
-                {
+                else {
                     // TODO: HACK: Figure out why this is necessary!
                     // TODO: This is necessary for DXT1 textures at least (4x4 blocks minimum)
-                    if(dwWidth < 4)
-                    {
+                    if (dwWidth < 4) {
                         EmuWarning("Expanding texture width (%d->4)", dwWidth);
                         dwWidth = 4;
-
                         dwMipMapLevels = 3;
                     }
 
-                    if(dwHeight < 4)
-                    {
+                    if (dwHeight < 4) {
                         EmuWarning("Expanding texture height (%d->4)", dwHeight);
                         dwHeight = 4;
-
                         dwMipMapLevels = 3;
                     }
 
-                    // HACK HACK HACK HACK HACK HACK HACK HACK HACK HACK
-                    // Since most modern graphics cards does not support
-                    // palette based textures we need to expand it to
-                    // ARGB texture format
-					if ((PCFormat == D3DFMT_P8 && !g_bSupportsTextureFormat[X_D3DFMT_P8]) || EmuXBFormatRequiresConversionToARGB(X_Format))
-                    {
-						if (PCFormat == D3DFMT_P8) //Palette
-							EmuWarning("D3DFMT_P8 -> D3DFMT_A8R8G8B8");
-						else
-							EmuWarning("X_Format RequiresConversionToARGB");
-
-                        CacheFormat = PCFormat;       // Save this for later
-                        PCFormat = D3DFMT_A8R8G8B8;   // ARGB
-                    }
-
-                    if(bCubemap)
-                    {
+                    if (bCubemap) {
                         DbgPrintf("CreateCubeTexture(%d, %d, 0, %d, D3DPOOL_MANAGED)\n", dwWidth,
                             dwMipMapLevels, PCFormat);
-
-                        hRet = g_pD3DDevice8->CreateCubeTexture
-                        (
+                        hRet = g_pD3DDevice8->CreateCubeTexture(
                             dwWidth, dwMipMapLevels, 0, PCFormat,
                             D3DPOOL_MANAGED, &pNewHostCubeTexture
                         );
@@ -5436,8 +5385,7 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
 						SetHostCubeTexture(pResource, pNewHostCubeTexture);
 						DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created CubeTexture (0x%.08X, 0x%.08X)\n", pResource, pNewHostCubeTexture);
                     }
-                    else
-                    {
+                    else {
                     //    printf("CreateTexture(%d, %d, %d, 0, %d (X=0x%.08X), D3DPOOL_MANAGED)\n", dwWidth, dwHeight,
                      //       dwMipMapLevels, PCFormat, X_Format);
 
@@ -5448,8 +5396,7 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
 							dwMipMapLevels = 1;
 						}*/
 
-						hRet = g_pD3DDevice8->CreateTexture
-                        (
+						hRet = g_pD3DDevice8->CreateTexture(
                             dwWidth, dwHeight, dwMipMapLevels, 0, PCFormat,
                             D3DPOOL_MANAGED, &pNewHostTexture
                         );
@@ -5457,8 +5404,7 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
 
 						/*if(FAILED(hRet))
 						{
-							hRet = g_pD3DDevice8->CreateTexture
-							(
+							hRet = g_pD3DDevice8->CreateTexture(
 								dwWidth, dwHeight, dwMipMapLevels, 0, PCFormat,
 								D3DPOOL_SYSTEMMEM, &pNewHostTexture
 							);
@@ -5469,297 +5415,82 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
 						if(FAILED(hRet))
 							EmuWarning("CreateTexture Failed!\n\n"
 								"Error: 0x%X\nFormat: %d\nDimensions: %dx%d", hRet, PCFormat, dwWidth, dwHeight);
-						else
-						{
+						else {
 							DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created Texture (0x%.08X, 0x%.08X)\n", pResource, pNewHostTexture);
-
 							SetHostTexture(pResource, pNewHostTexture);
 						}
 					}
 				}
 
 				uint32 stop = bCubemap ? 6 : 1;
-
-				for(uint32 r=0;r<stop;r++)
-                {
+				for(uint32 r=0;r<stop;r++) {
                     // as we iterate through mipmap levels, we'll adjust the source resource offset
-                    DWORD dwCompressedOffset = 0;
-
-                    DWORD dwMipOffs = 0;
+                    DWORD dwLevelOffset = 0;
                     DWORD dwMipWidth = dwWidth;
                     DWORD dwMipHeight = dwHeight;
                     DWORD dwMipPitch = dwPitch;
 
                     // iterate through the number of mipmap levels
-                    for(uint level=0;level<dwMipMapLevels;level++)
-                    {
+                    for(uint level=0;level<dwMipMapLevels;level++) {
                         D3DLOCKED_RECT LockedRect;
 
                         // copy over data (deswizzle if necessary)
-                        if(dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
+                        if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
                             hRet = pNewHostSurface->LockRect(&LockedRect, NULL, 0);
-                        else
-                        {
+                        else {
                             if(bCubemap)
-                            {
                                 hRet = pNewHostCubeTexture->LockRect((D3DCUBEMAP_FACES)r, 0, &LockedRect, NULL, 0);
-                            }
                             else
-                            {
                                 hRet = pNewHostTexture->LockRect(level, &LockedRect, NULL, 0);
-                            }
                         }
 
                         BYTE *pSrc = (BYTE*)pBase; // TODO : Fix (look at Dxbx) this, as it gives cube textures identical sides
 
-                        if(( pResource->Data == X_D3DRESOURCE_DATA_BACK_BUFFER)
-                         ||( (DWORD)pBase == X_D3DRESOURCE_DATA_BACK_BUFFER))
-                        {
-                            EmuWarning("Attempt to registered to another resource's data (eww!)");
+						_PixelCopyInfo.iWidth = dwMipWidth;
+						_PixelCopyInfo.iHeight = dwMipHeight;
+						_PixelCopyInfo.pSrc = pSrc + dwLevelOffset;
+						_PixelCopyInfo.iSrcPitch = dwMipPitch;
+						_PixelCopyInfo.pDest = (uint8 *)LockedRect.pBits;
+						_PixelCopyInfo.iDestPitch = LockedRect.Pitch;
 
-                            // TODO: handle this horrible situation
-                            BYTE *pDest = (BYTE*)LockedRect.pBits;
-                            for(DWORD v=0;v<dwMipHeight;v++)
-                            {
-                                memset(pDest, 0, dwMipWidth*dwBPP);
+						// Convert a row at a time, using a libyuv-like callback approach :
+						if (!XTL::CopyPixels(_PixelCopyInfo, (uint32)g_pCurrentPalette[TextureStage])) // Palette is for D3DFMT_P8
+							CxbxKrnlCleanup("Unhandled conversion!");
 
-                                pDest += LockedRect.Pitch;
-                                pSrc  += dwMipPitch;
-                            }
-                        }
-						else
-						{
-							if (level == 0)
-								pResource->Data = (DWORD)pSrc;
-
-							if((DWORD)pSrc == 0x80000000)
-							{
-								// TODO: Fix or handle this situation..?
-								// This is probably an unallocated resource, mapped into contiguous memory (0x80000000)
-							}
-							else if (pSrc == nullptr)
-							{
-								// TODO: Fix or handle this situation..?
-							}
-							else
-							{
-								if (bSwizzled)
-								{
-									RECT  iRect = { 0,0,0,0 };
-									POINT iPoint = { 0,0 };
-
-									// First we need to unswizzle the texture data
-									XTL::EmuUnswizzleRect
-									(
-										pSrc + dwMipOffs, dwMipWidth, dwMipHeight, dwDepth, LockedRect.pBits,
-										LockedRect.Pitch, iRect, iPoint, dwBPP
-									);
-								}
-								else if (bCompressed)
-								{
-									// NOTE: compressed size is (dwWidth/2)*(dwHeight/2)/2, so each level divides by 4
-
-									memcpy(LockedRect.pBits, pSrc + dwCompressedOffset, dwCompressedSize >> (level * 2));
-
-									dwCompressedOffset += (dwCompressedSize >> (level * 2));
-								}
-								else
-								{
-									/* TODO : // Let DirectX convert the surface (including palette formats) :
-									if(!EmuXBFormatRequiresConversionToARGB) {
-										D3DXLoadSurfaceFromMemory(
-											GetHostSurface(pResource),
-											nullptr, // no destination palette
-											&destRect,
-											pSrc, // Source buffer
-											dwMipPitch, // Source pitch
-											g_pCurrentPalette,
-											&SrcRect,
-											D3DX_DEFAULT, // D3DX_FILTER_NONE,
-											0 // No ColorKey?
-											);
-									} else {
-									*/
-									BYTE *pDest = (BYTE*)LockedRect.pBits;
-
-									if ((DWORD)LockedRect.Pitch == dwMipPitch && dwMipPitch == dwMipWidth*dwBPP)
-									{
-										memcpy(pDest, pSrc + dwMipOffs, dwMipWidth*dwMipHeight*dwBPP);
-									}
-									else
-									{
-										for (DWORD v = 0; v < dwMipHeight; v++)
-										{
-											memcpy(pDest, pSrc + dwMipOffs, dwMipWidth*dwBPP);
-
-											pDest += LockedRect.Pitch;
-											pSrc += dwMipPitch;
-										}
-									}
-								}
-
-								if (CacheFormat != 0) // Do we need to convert to ARGB?
-								{
-									EmuWarning("Unsupported texture format, expanding to D3DFMT_A8R8G8B8");
-
-									BYTE *pPixelData = (BYTE*)LockedRect.pBits;
-									DWORD dwDataSize = dwMipWidth*dwMipHeight;
-									DWORD* pExpandedTexture = (DWORD*)malloc(dwDataSize * sizeof(DWORD));
-
-									//__asm int 3;
-									unsigned int w = 0;
-									unsigned int x = 0;
-									if (CacheFormat == D3DFMT_P8) // Palette
-									{
-										DWORD* pTexturePalette = (DWORD*)g_pCurrentPalette[TextureStage]; // For D3DFMT_P8
-
-										for (unsigned int y = 0;y < dwDataSize;y++)
-										{
-											if (pTexturePalette != nullptr) {
-												// Read P8 pixel :
-												unsigned char p = (unsigned char)pPixelData[w++];
-
-												// Read the corresponding ARGB from the palette and store it in the new texture :
-												// HACK: Prevent crash if a pallete has not been loaded yet
-												pExpandedTexture[y] = pTexturePalette[p];
-											} else {
-												pExpandedTexture[y] = 0;
-											}
-
-											// are we at the end of a line?
-											if (++x == dwMipWidth)
-											{
-												x = 0;
-												// Since P8 contains byte pixels instead of dword ARGB pixels,
-												// the next line resides 3 bytes additional per pixel further :
-												w += dwMipWidth * (sizeof(DWORD) - dwBPP);
-											}
-										}
-									}
-									else
-									{
-#ifdef OLD_COLOR_CONVERSION
-										const ComponentEncodingInfo *encoding = EmuXBFormatComponentEncodingInfo(X_Format);
-
-										for (unsigned int y = 0; y < dwDataSize; y++)
-										{
-											uint32 value = 0;
-
-											switch (dwBPP) {
-											case 1:
-												value = pPixelData[w++];
-												break;
-											case 2:
-												value = ((WORD *)pPixelData)[w++];
-												break;
-											case 4:
-												value = ((DWORD *)pPixelData)[w++];
-												break;
-											}
-
-											pExpandedTexture[y] = DecodeUInt32ToColor(encoding, value);
-											// are we at the end of a line?
-											if(++x == dwMipWidth)
-											{
-												x = 0;
-												w += dwMipWidth * (sizeof(DWORD) - dwBPP);
-											}
-										}
-#else // !OLD_COLOR_CONVERSION
-										// Convert a row at a time, using a libyuv-like callback approach :
-										const FormatToARGBRow ConvertRowToARGB = EmuXBFormatComponentConverter(X_Format);
-										if (ConvertRowToARGB == nullptr)
-											CxbxKrnlCleanup("Unhandled conversion!");
-										
-										uint8 *pSrc = pPixelData;
-										uint8 *pDest = (uint8 *)pExpandedTexture;
-										DWORD dwSrcPitch = dwMipWidth * sizeof(DWORD);
-										DWORD dwDestPitch = dwMipWidth * sizeof(DWORD);
-										DWORD dwMipSizeInBytes = dwDataSize;
-
-										DWORD SrcRowOff = 0;
-										uint8 *pDestRow = (uint8 *)pDest;
-										while (SrcRowOff < dwMipSizeInBytes) {
-											ConvertRowToARGB(((uint8 *)pSrc) + SrcRowOff, pDestRow, dwMipWidth);
-											SrcRowOff += dwSrcPitch;
-											pDestRow += dwDestPitch;
-										}
-#endif // !OLD_COLOR_CONVERSION
-									}
-
-									//__asm int 3;
-									// Copy the expanded texture back to the buffer
-									memcpy(pPixelData, pExpandedTexture, dwDataSize * sizeof(DWORD));
-
-									// Flush unused data buffers
-									free(pExpandedTexture);
-								}
-							}
-						}
-
-                        if(dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
+                        if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
 							pNewHostSurface->UnlockRect();
-                        else
-                        {
-                            if(bCubemap)
+                        else {
+                            if (bCubemap)
 								pNewHostCubeTexture->UnlockRect((D3DCUBEMAP_FACES)r, 0);
-                            else
+							else {
 								pNewHostTexture->UnlockRect(level);
+#ifdef _DEBUG_DUMP_TEXTURE_REGISTER
+								// Debug Texture Dumping
+								static int dwDumpTex = 0;
+
+								char szBuffer[255];
+
+								sprintf(szBuffer, "%.03d-RegTexture%.03d.dds", _PixelCopyInfo.X_Format, dwDumpTex++);
+								D3DXSaveTextureToFile(szBuffer, D3DXIFF_DDS, pNewHostTexture, NULL);
+#endif
+							}
                         }
 
-                        dwMipOffs += dwMipWidth*dwMipHeight*dwBPP;
+						if (bCompressed)
+							// DWORD dwCompressedSize = dwMipPitch * dwMipHeight / 4;
+							dwLevelOffset += dwMipPitch * dwMipHeight / 4;
+						else
+							dwLevelOffset += dwMipWidth*dwBPP*dwMipHeight; // TODO : Why Width*BPP instead of Pitch?
 
                         dwMipWidth /= 2;
                         dwMipHeight /= 2;
                         dwMipPitch /= 2;
-                    }
-                }
-
-                // Debug Texture Dumping
-                #ifdef _DEBUG_DUMP_TEXTURE_REGISTER
-                if(dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
-                {
-                    static int dwDumpSurface = 0;
-
-                    char szBuffer[255];
-
-                    sprintf(szBuffer, _DEBUG_DUMP_TEXTURE_REGISTER "%.03d-RegSurface%.03d.dds", X_Format, dwDumpSurface++);
-
-                    D3DXSaveSurfaceToFile(szBuffer, D3DXIFF_DDS, GetHostSurface(pResource), NULL, NULL);
-                }
-                else
-                {
-                    if(bCubemap)
-                    {
-                        static int dwDumpCube = 0;
-
-                        char szBuffer[255];
-
-                        for(int v=0;v<6;v++)
-                        {
-                            IDirect3DSurface8 *pSurface=0;
-
-                            sprintf(szBuffer, _DEBUG_DUMP_TEXTURE_REGISTER "%.03d-RegCubeTex%.03d-%d.dds", X_Format, dwDumpCube++, v);
-
-							GetHostCubeTexture(pResource)->GetCubeMapSurface((D3DCUBEMAP_FACES)v, 0, &pSurface);
-
-                            D3DXSaveSurfaceToFile(szBuffer, D3DXIFF_DDS, pSurface, NULL, NULL);
-                        }
-                    }
-                    else
-                    {
-                        static int dwDumpTex = 0;
-
-                        char szBuffer[255];
-
-                        sprintf(szBuffer, _DEBUG_DUMP_TEXTURE_REGISTER "%.03d-RegTexture%.03d.dds", X_Format, dwDumpTex++);
-
-                        D3DXSaveTextureToFile(szBuffer, D3DXIFF_DDS, GetHostTexture(pResource), NULL);
-                    }
-                }
-                #endif
+                    } // for level
+                } // for r (1 or 6 cube sides)
             }
-        }
+
+			free(_PixelCopyInfo.pUnswizleBuffer);
+		}
         break;
 
         case X_D3DCOMMON_TYPE_PALETTE:

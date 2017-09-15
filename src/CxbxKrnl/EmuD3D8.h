@@ -57,11 +57,27 @@ extern VOID CxbxSetPixelContainerHeader
 	UINT				Pitch
 );
 
-extern uint8 *ConvertD3DTextureToARGB(
-	XTL::X_D3DPixelContainer *pXboxPixelContainer,
-	uint8 *pSrc,
-	int *pWidth, int *pHeight
+typedef struct PixelCopyInfo {
+	XTL::X_D3DFORMAT X_Format;
+	int iWidth;
+	int iHeight;
+	int iSrcPitch;
+	XTL::D3DFORMAT PCFormat;
+	int iDestPitch;
+	uint8 *pSrc; // Either a pointer in an XPR section, or a Xbox D3D texture address
+	uint8 *pDest; // Either an externally allocated buffer, or a host D3D texture address
+	int iUnswizleBufferSize;
+	uint8 *pUnswizleBuffer; // allocated with malloc
+} PixelCopyInfo;
+
+extern UINT CxbxFormatAndWidthToRowSizeInBytes(
+	XTL::X_D3DFORMAT X_Format,
+	UINT uWidth
 );
+
+extern void GetPixelCopyInfo(PixelCopyInfo &info, X_D3DPixelContainer *pXboxPixelContainer);
+extern void SetPixelCopyTargetFormat(PixelCopyInfo &info, D3DFORMAT PCFormat);
+extern bool CopyPixels(PixelCopyInfo &info, uint32 LineData = 0);
 
 // initialize direct3d
 extern VOID EmuD3DInit();
