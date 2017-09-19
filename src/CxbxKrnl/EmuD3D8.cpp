@@ -1797,7 +1797,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					// (This check avoids an error message in EmuXB2PC_D3DFormat)
 					if (!XTL::EmuXBFormatRequiresConversionToARGB((XTL::X_D3DFORMAT)X_Format)) {
 						// Convert the Xbox format into host format (without warning, thanks to the above restriction)
-						XTL::D3DFORMAT PCFormat = XTL::EmuXB2PC_D3DFormat((XTL::X_D3DFORMAT)X_Format);
+						PCFormat = XTL::EmuXB2PC_D3DFormat((XTL::X_D3DFORMAT)X_Format);
 					}
 
 					for (int ResourceType = XTL::D3DRTYPE_SURFACE; ResourceType <= XTL::D3DRTYPE_CUBETEXTURE; ResourceType++) {
