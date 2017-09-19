@@ -58,6 +58,7 @@ extern VOID CxbxSetPixelContainerHeader
 );
 
 typedef struct PixelCopyInfo {
+	int ResourceType;
 	XTL::X_D3DFORMAT X_Format;
 	int iWidth;
 	int iHeight;
