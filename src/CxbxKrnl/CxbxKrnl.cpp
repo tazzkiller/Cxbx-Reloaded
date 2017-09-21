@@ -320,13 +320,21 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 
 #pragma optimize("", off)
 
-void CxbxPopupMessage(char *message)
+void CxbxPopupMessage(const char *message, ...)
 {
-	DbgPrintf("Popup : %s\n", message);
-	MessageBox(NULL, message, "Cxbx-Reloaded", MB_OK | MB_ICONEXCLAMATION);
+	char Buffer[1024];
+	va_list argp;
+
+	va_start(argp, message);
+	vsprintf(Buffer, message, argp);
+	va_end(argp);
+
+	DbgPrintf("Popup : %s\n", Buffer);
+	MessageBox(NULL, Buffer, TEXT("Cxbx-Reloaded"), MB_OK | MB_ICONEXCLAMATION | MB_TOPMOST | MB_SETFOREGROUND);
 }
 
-void PrintCurrentConfigurationLog() {
+void PrintCurrentConfigurationLog()
+{
 	// Print current LLE configuration
 	{
 		printf("---------------------------- LLE CONFIG ----------------------------\n");
@@ -623,7 +631,7 @@ const char *GameRegionToString(DWORD aGameRegion)
 	return Regions[index];
 }
 
-void CxbxKrnlInit
+__declspec(noreturn) void CxbxKrnlInit
 (
 	HWND                    hwndParent,
 	void                   *pTLSData,
@@ -916,7 +924,6 @@ void CxbxKrnlInit
     fflush(stdout);
 	//	EmuShared::Cleanup();   FIXME: commenting this line is a bad workaround for issue #617 (https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/issues/617)
     CxbxKrnlTerminateThread();
-    return;
 }
 
 void CxbxInitFilePaths()
@@ -978,7 +985,7 @@ void CxbxRestorePersistentMemoryRegions()
 	// TODO : Restore all other persistent memory regions here too.
 }
 
-void CxbxKrnlCleanup(const char *szErrorMessage, ...)
+__declspec(noreturn) void CxbxKrnlCleanup(const char *szErrorMessage, ...)
 {
     g_bEmuException = true;
 
@@ -987,21 +994,14 @@ void CxbxKrnlCleanup(const char *szErrorMessage, ...)
     // print out error message (if exists)
     if(szErrorMessage != NULL)
     {
-        char szBuffer1[255];
-        char szBuffer2[255];
-
+        char szBuffer2[1024];
         va_list argp;
-
-        sprintf(szBuffer1, "[0x%X] EmuMain: Received Fatal Message:\n\n* ", GetCurrentThreadId());
 
         va_start(argp, szErrorMessage);
         vsprintf(szBuffer2, szErrorMessage, argp);
         va_end(argp);
 
-        strcat(szBuffer1, szBuffer2);
-        strcat(szBuffer1, "\n");
-
-		CxbxPopupMessage(szBuffer1); // Will also DbgPrintf
+		CxbxPopupMessage("[0x%X] EmuMain: Received Fatal Message:\n\n* %s\n", GetCurrentThreadId(), szBuffer2); // Will also DbgPrintf
     }
 
     printf("CxbxKrnl: Terminating Process\n");
@@ -1022,8 +1022,6 @@ void CxbxKrnlCleanup(const char *szErrorMessage, ...)
 
 	EmuShared::Cleanup();
     TerminateProcess(g_CurrentProcessHandle, 0);
-
-    return;
 }
 
 void CxbxKrnlRegisterThread(HANDLE hThread)
@@ -1124,7 +1122,7 @@ void CxbxKrnlResume()
     g_bEmuSuspended = false;
 }
 
-void CxbxKrnlTerminateThread()
+__declspec(noreturn) void CxbxKrnlTerminateThread()
 {
     TerminateThread(GetCurrentThread(), 0);
 }
