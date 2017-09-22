@@ -80,6 +80,7 @@
 #include "CxbxKrnl/CxbxKrnl.h" // For CxbxKrnlCleanup()
 
 typedef uint8_t uint8; // TODO : Remove
+#define X_D3DTS_STAGECOUNT X_D3DTSS_STAGECOUNT // TODO : Remove
 
 #include <assert.h> // assert()
 
@@ -622,7 +623,7 @@ constexpr int FakeRegNr_Prod = 3;
 constexpr int FakeRegNr_Xmm1 = 4;
 constexpr int FakeRegNr_Xmm2 = 5;
 
-constexpr int XFC_COMBINERSTAGENR = XTL::X_PSH_COMBINECOUNT; // Always call XFC 'stage 9', 1 after the 8th combiner
+constexpr int XFC_COMBINERSTAGENR = X_PSH_COMBINECOUNT; // Always call XFC 'stage 9', 1 after the 8th combiner
 
 constexpr int PSH_XBOX_MAX_C_REGISTER_COUNT = 16;
 constexpr int PSH_XBOX_MAX_R_REGISTER_COUNT = 2;
@@ -858,19 +859,19 @@ typedef struct _PSH_RECOMPILED_SHADER {
 
 struct PSH_XBOX_SHADER {
 	// Reserve enough slots for all shaders, so we need space for 2 constants, 4 texture addressing codes and 5 lines per opcode : :
-	PSH_INTERMEDIATE_FORMAT Intermediate[2 + XTL::X_D3DTS_STAGECOUNT + (XTL::X_PSH_COMBINECOUNT * 5) + 1];
+	PSH_INTERMEDIATE_FORMAT Intermediate[2 + X_D3DTSS_STAGECOUNT + (X_PSH_COMBINECOUNT * 5) + 1];
 	int IntermediateCount;
 
-	PS_TEXTUREMODES PSTextureModes[XTL::X_D3DTS_STAGECOUNT];
-	PS_DOTMAPPING PSDotMapping[XTL::X_D3DTS_STAGECOUNT];
-	DWORD PSCompareMode[XTL::X_D3DTS_STAGECOUNT];
-	int PSInputTexture[XTL::X_D3DTS_STAGECOUNT];
+	PS_TEXTUREMODES PSTextureModes[X_D3DTSS_STAGECOUNT];
+	PS_DOTMAPPING PSDotMapping[X_D3DTSS_STAGECOUNT];
+	DWORD PSCompareMode[X_D3DTSS_STAGECOUNT];
+	int PSInputTexture[X_D3DTSS_STAGECOUNT];
 
 	PS_FINALCOMBINERSETTING FinalCombinerFlags;
 	// Note : The following constants are only needed for PSH_XBOX_SHADER::DecodedToString,
 	// they are not involved in the actual pixel shader recompilation anymore :
 	RPSFinalCombiner FinalCombiner;
-	RPSCombinerStage Combiners[XTL::X_PSH_COMBINECOUNT];
+	RPSCombinerStage Combiners[X_PSH_COMBINECOUNT];
 	int NumberOfCombiners;
 	DWORD CombinerCountFlags; // For PS_COMBINERCOUNTFLAGS
 	// Read from CombinerCountFlags :
@@ -1999,7 +2000,7 @@ PSH_RECOMPILED_SHADER PSH_XBOX_SHADER::Decode(XTL::X_D3DPIXELSHADERDEF *pPSDef)
 
   ZeroMemory(this, sizeof(PSH_XBOX_SHADER)); // TODO : Use constructor (to prevent memory leaks)
 
-  for (i = 0; i < XTL::X_D3DTS_STAGECOUNT; i++)
+  for (i = 0; i < X_D3DTSS_STAGECOUNT; i++)
   {
     PSTextureModes[i] = (PS_TEXTUREMODES)((pPSDef->PSTextureModes >> (i*5)) & 0x1F);
     PSCompareMode[i] = (pPSDef->PSCompareMode >> (i*4)) & 0xF;
@@ -2024,7 +2025,7 @@ PSH_RECOMPILED_SHADER PSH_XBOX_SHADER::Decode(XTL::X_D3DPIXELSHADERDEF *pPSDef)
 
   // Backwards compatible decoding (purely for logging) :
   {
-    for (i = 0; i < XTL::X_PSH_COMBINECOUNT; i++)
+    for (i = 0; i < X_PSH_COMBINECOUNT; i++)
     {
       Combiners[i].RGB.Decode(pPSDef->PSRGBInputs[i], pPSDef->PSRGBOutputs[i]);
       Combiners[i].Alpha.Decode(pPSDef->PSAlphaInputs[i], pPSDef->PSAlphaOutputs[i], /*IsAlpha=*/true);
@@ -2254,7 +2255,7 @@ std::string PSH_XBOX_SHADER::DecodedToString(XTL::X_D3DPIXELSHADERDEF *pPSDef)
 
   bool PSH_XBOX_SHADER::_NextIs2D(int Stage)
   {
-    if (Stage < XTL::X_D3DTS_STAGECOUNT-1)
+    if (Stage < X_D3DTSS_STAGECOUNT-1)
       return (PSTextureModes[Stage + 1] & (PS_TEXTUREMODES_DOT_ST | PS_TEXTUREMODES_DOT_ZW)) > 0;
     else
       return false;
@@ -2275,7 +2276,7 @@ bool PSH_XBOX_SHADER::DecodeTextureModes(XTL::X_D3DPIXELSHADERDEF *pPSDef)
 
 #ifdef CXBX_USE_PS_2_0
   Ins.Initialize(PO_DCL);
-  for (Stage = 0; Stage < XTL::X_D3DTS_STAGECOUNT; Stage++)
+  for (Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++)
   {
     if (PSTextureModes[Stage] != PS_TEXTUREMODES_NONE)
     {
@@ -2288,7 +2289,7 @@ bool PSH_XBOX_SHADER::DecodeTextureModes(XTL::X_D3DPIXELSHADERDEF *pPSDef)
 #endif
 
   Ins.Initialize(PO_TEX);
-  for (Stage = 0; Stage < XTL::X_D3DTS_STAGECOUNT; Stage++)
+  for (Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++)
   {
     // TODO : Apply conversions when PS_GLOBALFLAGS_TEXMODE_ADJUST is set (but ... how to check the texture type? read D3DRS_PSTEXTUREMODES?)
 
@@ -4035,9 +4036,6 @@ static const
   }
   return Result;
 } // DxbxRecompilePixelShader
-
-// TODO : Initialize this :
-DWORD *XTL::EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED]; // 1 extra for the unsupported value
 
 PPSH_RECOMPILED_SHADER RecompiledShaders_Head = nullptr;
 

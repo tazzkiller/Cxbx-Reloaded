@@ -55,6 +55,7 @@ OOVPA_NO_XREF(Direct3D_CreateDevice, 4432, 8)
         { 0xA1, 0x18 },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DDevice_GetRenderTarget
 // ******************************************************************
@@ -83,6 +84,7 @@ OOVPA_NO_XREF(D3DDevice_GetRenderTarget, 4432, 11)
         { 0x1D, 0xC2 },
         { 0x1E, 0x04 },
 OOVPA_END;
+
 #if 0 // No longer used, replaced by generic 3911 version
 // ******************************************************************
 // * D3DDevice_GetDepthStencilSurface
@@ -113,6 +115,7 @@ OOVPA_NO_XREF(D3DDevice_GetDepthStencilSurface, 4432, 11)
         { 0x26, 0x04 },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DDevice_SetPixelShader
 // ******************************************************************
@@ -524,6 +527,7 @@ OOVPA_NO_XREF(D3DDevice_SetFlickerFilter, 4432, 11)
         { 0x40, 0x04 },
 OOVPA_END;
 #endif
+
 #if 0 // No longer used, replaced by generic 4134 version
 // ******************************************************************
 // * D3DDevice_SetFlickerFilter
@@ -549,6 +553,7 @@ OOVPA_NO_XREF(D3DDevice_SetSoftDisplayFilter, 4432, 12)
         { 0x4F, 0x04 },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DVertexBuffer_Lock
 // ******************************************************************
@@ -587,6 +592,7 @@ OOVPA_NO_XREF(D3DDevice_GetProjectionViewportMatrix, 4432, 7)
         { 0x16, 0x00 },
         { 0x1A, 0x5E },
 OOVPA_END;
+
 #if 0 // Moved to 4039
 // ******************************************************************
 // * D3DDevice_SetModelView
@@ -602,6 +608,7 @@ OOVPA_NO_XREF(D3DDevice_SetModelView, 4432, 7)
         { 0x9F, 0x75 },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DDevice_GetDisplayFieldStatus
 // ******************************************************************

@@ -113,6 +113,7 @@ OOVPA_NO_XREF(D3DDevice_SetRenderState_ZEnable, 5028, 8)
         { 0x7C, 0xCE },
         { 0x8E, 0x00 },
 OOVPA_END;
+
 #if 0 // Moved to 4627
 // ******************************************************************
 // * D3DDevice_SetRenderState_SampleAlpha
@@ -128,6 +129,7 @@ OOVPA_NO_XREF(D3DDevice_SetRenderState_SampleAlpha, 5028, 7)
         { 0x44, 0x83 },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DDevice_CreateTexture2
 // ******************************************************************
@@ -821,6 +823,7 @@ OOVPA_NO_XREF(D3DDevice_UpdateOverlay, 5028, 8)
         { 0x80, 0xCA },
         { 0x88, 0x8B },
 OOVPA_END;
+
 #if 0 // No longer used, replaced by generic 3911 version
 // ******************************************************************
 // * D3DDevice_GetOverlayUpdateStatus
@@ -848,6 +851,7 @@ OOVPA_NO_XREF(D3DDevice_GetOverlayUpdateStatus, 5028, 12)
         { 0x1C, 0xC3 },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3D::CDevice::KickOff
 // ******************************************************************
@@ -1185,7 +1189,7 @@ OOVPATable D3D8_5028[] = {
 	REGISTER_OOVPA(D3DDevice_SetRenderState_YuvEnable, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTransform, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetTransform, 4039, PATCH),
-	REGISTER_OOVPA(D3DDevice_GetStreamSource2, 4627, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetStreamSource, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetStreamSource, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawVerticesUP, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShader, 5028, PATCH),

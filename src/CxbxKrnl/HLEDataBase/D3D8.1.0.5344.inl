@@ -62,6 +62,7 @@ OOVPA_NO_XREF(Direct3D_CreateDevice, 5344, 20) // ONLY for 5344, 5558 and later 
 		{ 0x1F, 0xC7 },
 OOVPA_END;
 #endif
+
 #if 0 // Moved to 5028
 // ******************************************************************
 // * MakeRequestedSpace
@@ -102,6 +103,7 @@ OOVPA_XREF(MakeRequestedSpace, 5344, 28,
 		{ 0x1F, 0x03 },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DDevice_SetRenderState_Dxt1NoiseEnable
 // ******************************************************************
@@ -352,6 +354,7 @@ OOVPA_NO_XREF(D3DDevice_SetSoftDisplayFilter, 5344, 12)
         { 0x4F, 0x04 },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DDevice_SetMaterial
 // ******************************************************************
@@ -415,6 +418,7 @@ OOVPA_NO_XREF(D3DDevice_SetFlickerFilter, 5344, 12)
         { 0x40, 0x04 },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DDevice_SetViewport
 // ******************************************************************
@@ -629,6 +633,7 @@ OOVPA_NO_XREF(D3DDevice_DrawVerticesUP, 5344, 10)
         { 0xC5, 0xFE },
         { 0xC6, 0x80 },
 OOVPA_END;
+
 #if 0 // Used 4361
 // ******************************************************************
 // * D3DDevice_SetVertexDataColor
@@ -645,6 +650,7 @@ OOVPA_NO_XREF(D3DDevice_SetVertexDataColor, 5344, 8)
         { 0x1C, 0x19 },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DDevice_End
 // ******************************************************************
@@ -685,6 +691,7 @@ OOVPA_NO_XREF(D3DDevice_CreatePixelShader, 5344, 11)
         { 0x45, 0xC2 },
         { 0x46, 0x08 },
 OOVPA_END;
+
 #if 0 // Moved to 5233
 // ******************************************************************
 // * D3DDevice_SetPixelShaderConstant
@@ -702,6 +709,7 @@ OOVPA_NO_XREF(D3DDevice_SetPixelShaderConstant, 5344, 9)
         { 0x68, 0x2D },
 OOVPA_END;
 #endif
+
 #if 0 // No longer used, replaced by generic 3911 version
 // ******************************************************************
 // * D3DDevice_GetOverlayUpdateStatus
@@ -729,6 +737,7 @@ OOVPA_NO_XREF(D3DDevice_GetOverlayUpdateStatus, 5344, 12)
         { 0x1C, 0xC3 },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DDevice_UpdateOverlay
 // ******************************************************************
@@ -762,6 +771,7 @@ OOVPA_NO_XREF(D3DDevice_Release, 5344, 8)
         { 0x36, 0xC3 },
 OOVPA_END;
 #endif
+
 #if 0 // Moved to 5233
 // ******************************************************************
 // * D3DDevice_GetVisibilityTestResult
@@ -777,6 +787,7 @@ OOVPA_NO_XREF(D3DDevice_GetVisibilityTestResult, 5344, 7)
         { 0x5F, 0x0C },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DDevice_PersistDisplay
 // ******************************************************************
@@ -1232,7 +1243,7 @@ OOVPATable D3D8_5344[] = {
 	REGISTER_OOVPA(D3DDevice_SetVertexData4s, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_PrimeVertexCache, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_InsertCallback, 5028, PATCH),
-	REGISTER_OOVPA(D3DDevice_GetStreamSource2, 4627, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetStreamSource, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetVertexShader, 5028, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetVertexShaderConstant, 5028, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShaderInputDirect, 4361, PATCH),
@@ -1260,7 +1271,7 @@ OOVPATable D3D8_5344[] = {
 	REGISTER_OOVPA(D3DDevice_EndPushBuffer, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_RunPushBuffer, 5120, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetPushBufferOffset, 4627, PATCH),
-	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, DISABLED),
+	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawRectPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetScissors, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_CreateVolumeTexture, 4627, PATCH),

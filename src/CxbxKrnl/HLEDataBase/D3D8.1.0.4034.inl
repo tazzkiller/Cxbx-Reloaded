@@ -324,14 +324,46 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetStreamSource
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetStreamSource, 4034, 14)
+OOVPA_XREF(D3DDevice_SetStreamSource, 4034, 1+14, // 1+4+4+20+10
 
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x22, XREF_G_STREAM), // Derived
+#if 0
+		{ 0x00, 0x8B },
+		{ 0x01, 0x0D },
+
+		{ 0x06, 0x56 },
+		{ 0x07, 0x57 },	  
+#endif
         // D3DDevice_SetStreamSource+0x08 : mov edi, [esp+8+0x04]
         { 0x08, 0x8B },
         { 0x09, 0x7C },
         { 0x0A, 0x24 },
         { 0x0B, 0x10 },
-
+#if 0
+		{ 0x0C, 0x85 },
+		{ 0x0D, 0xFF },
+		{ 0x0E, 0x74 },
+		{ 0x0F, 0x06 },
+		{ 0x10, 0x81 },
+		{ 0x11, 0x07 },
+		{ 0x12, 0x00 },
+		{ 0x13, 0x00 },
+		{ 0x14, 0x08 },
+		{ 0x15, 0x00 },
+		{ 0x16, 0x8B },
+		{ 0x17, 0x44 },
+		{ 0x18, 0x24 },
+		{ 0x19, 0x0C },
+		{ 0x1A, 0x8D },
+		{ 0x1B, 0x34 },
+		{ 0x1C, 0x40 },
+		{ 0x1D, 0xC1 },
+		{ 0x1E, 0xE6 },
+		{ 0x1F, 0x02 },
+#endif
         // D3DDevice_SetStreamSource+0x28 : jz +0x26
         { 0x28, 0x74 },
         { 0x29, 0x26 },
@@ -707,6 +739,7 @@ OOVPA_NO_XREF(D3DDevice_SetRenderState_VertexBlend, 4034, 7)
         { 0x34, 0x08 },
         { 0x3D, 0x5E },
 OOVPA_END;
+
 #if 0 // Moved to 3911
 // ******************************************************************
 // * D3D_CheckDeviceFormat
@@ -722,6 +755,7 @@ OOVPA_NO_XREF(D3D_CheckDeviceFormat, 4034, 7)
         { 0x6E, 0x3C },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * Get2DSurfaceDesc
 // ******************************************************************
@@ -2305,7 +2339,7 @@ OOVPATable D3D8_4034[] = {
 	REGISTER_OOVPA(D3DDevice_LoadVertexShader, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetVisibilityTestResult, 3925, PATCH),
 	REGISTER_OOVPA(D3DDevice_DeleteVertexShader, 3925, PATCH),
-	REGISTER_OOVPA(D3DDevice_DrawRectPatch, 3911, PATCH), // TODO: Unused?
+	REGISTER_OOVPA(D3DDevice_DrawRectPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetIndices, 4034, DISABLED),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_EdgeAntiAlias, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_FillMode, 4034, PATCH),
@@ -2359,7 +2393,7 @@ OOVPATable D3D8_4034[] = {
 	// Provisional registration functions in XDK 4034
 	// TODO: Need test cases
 	// ******************************************************************
-	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, DISABLED),
+	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_Present, 3925, PATCH),
 	REGISTER_OOVPA(D3D_RecordStateBlock, 3911, XREF),
 //	REGISTER_OOVPA(D3DDevice_EndStateBlock, 4134, PATCH),

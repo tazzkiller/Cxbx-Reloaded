@@ -338,15 +338,15 @@ void PrintCurrentConfigurationLog()
 	// Print current LLE configuration
 	{
 		printf("---------------------------- LLE CONFIG ----------------------------\n");
-		printf("EmuMain: LLE for APU is %s\n", bLLE_APU ? "enabled" : "disabled");
-		printf("EmuMain: LLE for GPU is %s\n", bLLE_GPU ? "enabled" : "disabled");
-		printf("EmuMain: LLE for JIT is %s\n", bLLE_JIT ? "enabled" : "disabled");
+		printf("LLE for APU is %s\n", bLLE_APU ? "enabled" : "disabled");
+		printf("LLE for GPU is %s\n", bLLE_GPU ? "enabled" : "disabled");
+		printf("LLE for JIT is %s\n", bLLE_JIT ? "enabled" : "disabled");
 	}
 
 	// Print current INPUT configuration
 	{
 		printf("--------------------------- INPUT CONFIG ---------------------------\n");
-		printf("EmuMain: Using %s\n", g_XInputEnabled ? "XInput" : "DirectInput");
+		printf("Using %s\n", g_XInputEnabled ? "XInput" : "DirectInput");
 	}
 
 	// Print current video configuration
@@ -355,11 +355,11 @@ void PrintCurrentConfigurationLog()
 		g_EmuShared->GetXBVideo(&XBVideoConf);
 
 		printf("--------------------------- VIDEO CONFIG ---------------------------\n");
-		printf("EmuMain: Direct3D Device: %s\n", XBVideoConf.GetDirect3DDevice() == 0 ? "Direct3D HAL (Hardware Accelerated)" : "Direct3D REF (Software)");
-		printf("EmuMain: Video Resolution: %s\n", XBVideoConf.GetVideoResolution());
-		printf("EmuMain: Force VSync is %s\n", XBVideoConf.GetVSync() ? "enabled" : "disabled");
-		printf("EmuMain: Fullscreen is %s\n", XBVideoConf.GetFullscreen() ? "enabled" : "disabled");
-		printf("EmuMain: Hardware YUV is %s\n", XBVideoConf.GetHardwareYUV() ? "enabled" : "disabled");
+		printf("Direct3D Device: %s\n", XBVideoConf.GetDirect3DDevice() == 0 ? "Direct3D HAL (Hardware Accelerated)" : "Direct3D REF (Software)");
+		printf("Video Resolution: %s\n", XBVideoConf.GetVideoResolution());
+		printf("Force VSync is %s\n", XBVideoConf.GetVSync() ? "enabled" : "disabled");
+		printf("Fullscreen is %s\n", XBVideoConf.GetFullscreen() ? "enabled" : "disabled");
+		printf("Hardware YUV is %s\n", XBVideoConf.GetHardwareYUV() ? "enabled" : "disabled");
 	}
 
 	// Print current audio configuration
@@ -368,11 +368,11 @@ void PrintCurrentConfigurationLog()
 		g_EmuShared->GetXBAudio(&XBAudioConf);
 
 		printf("--------------------------- AUDIO CONFIG ---------------------------\n");
-		printf("EmuMain: Audio Adapter: %s\n", XBAudioConf.GetAudioAdapter().Data1 == 0 ? "Primary Audio Device" : "Secondary Audio Device");
-		printf("EmuMain: Legacy Audio Hack is %s\n", XBAudioConf.GetLegacyAudioHack() ? "enabled" : "disabled");
-		printf("EmuMain: PCM is %s\n", XBAudioConf.GetPCM() ? "enabled" : "disabled");
-		printf("EmuMain: XADPCM is %s\n", XBAudioConf.GetXADPCM() ? "enabled" : "disabled");
-		printf("EmuMain: Unknown Codec is %s\n", XBAudioConf.GetUnknownCodec() ? "enabled" : "disabled");
+		printf("Audio Adapter: %s\n", XBAudioConf.GetAudioAdapter().Data1 == 0 ? "Primary Audio Device" : "Secondary Audio Device");
+		printf("Legacy Audio Hack is %s\n", XBAudioConf.GetLegacyAudioHack() ? "enabled" : "disabled");
+		printf("PCM is %s\n", XBAudioConf.GetPCM() ? "enabled" : "disabled");
+		printf("XADPCM is %s\n", XBAudioConf.GetXADPCM() ? "enabled" : "disabled");
+		printf("Unknown Codec is %s\n", XBAudioConf.GetUnknownCodec() ? "enabled" : "disabled");
 	}
 
 	printf("------------------------- END OF CONFIG LOG ------------------------\n");

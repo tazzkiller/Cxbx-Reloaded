@@ -36,7 +36,9 @@
 
 #include "OOVPA.h"
 
+extern LOOVPA<1+10> D3DDevice_SetTextureState_TexCoordIndex_4034;
 extern LOOVPA<2+14> D3DDevice_SetRenderState_CullMode_4034;
+extern LOOVPA<1+14> D3DDevice_SetStreamSource_4034;
 
 extern OOVPATable D3D8_4034[];
 extern uint32     D3D8_4034_SIZE;

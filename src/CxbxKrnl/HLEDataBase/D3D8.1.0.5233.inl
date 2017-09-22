@@ -78,6 +78,7 @@ OOVPA_NO_XREF(D3DDevice_SetVertexShaderConstantNotInlineFast, 5233, 13)
         { 0x43, 0x0F },
 OOVPA_END;
 #endif
+
 #if 0 // No longer used, replaced by generic 4627 version
 // ******************************************************************
 // * D3DDevice_SetPixelShader
@@ -240,6 +241,7 @@ OOVPA_NO_XREF(D3DDevice_GetOverlayUpdateStatus, 5233, 12)
         { 0x1C, 0xC3 },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DDevice_BlockUntilVerticalBlank
 // ******************************************************************
@@ -466,6 +468,7 @@ OOVPA_NO_XREF(D3DDevice_SetFlickerFilter, 5233, 12)
         { 0x40, 0x04 },
 OOVPA_END;
 #endif
+
 #if 0 // No longer used, replaced by generic 4134 version
 // ******************************************************************
 // * D3DDevice_SetFlickerFilter
@@ -760,7 +763,7 @@ OOVPATable D3D8_5233[] = {
 	REGISTER_OOVPA(D3DDevice_SetBackBufferScale, 4039, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderTargetFast, 5233, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetVisibilityTestResult, 5233, PATCH),
-	REGISTER_OOVPA(D3DDevice_GetStreamSource2, 4627, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetStreamSource, 4627, PATCH),
 
 	REGISTER_OOVPA(D3DDevice_IsBusy, 5028, PATCH),
 	REGISTER_OOVPA(D3DDevice_SelectVertexShader, 4627, PATCH),
