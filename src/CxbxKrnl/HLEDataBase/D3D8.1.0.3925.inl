@@ -431,7 +431,13 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetStreamSource
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetStreamSource, 3925, 12)
+OOVPA_XREF(D3DDevice_SetStreamSource, 3925, 1+12,
+
+	XRefNoSaveIndex,
+	XRefOne)
+	
+		XREF_ENTRY(0x23, XREF_G_STREAM), // Derived
+
         // D3DDevice_SetStreamSource+0x39 : add edx, 0xFFF80000
         { 0x39, 0x81 },
         { 0x3A, 0xC2 },
@@ -1788,6 +1794,7 @@ OOVPA_NO_XREF(D3DDevice_GetDepthStencilSurface, 3925, 10)
         { 0x26, 0x04 },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DDevice_CreateVertexBuffer
 // ******************************************************************
@@ -4666,7 +4673,7 @@ OOVPATable D3D8_3925[] = {
 	REGISTER_OOVPA(CMiniport_InitHardware, 3911, PATCH),
 	REGISTER_OOVPA(CMiniport_CreateCtxDmaObject, 3911, PATCH),
 	REGISTER_OOVPA(D3D_CMiniport_GetDisplayCapabilities, 3911, PATCH),
-	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, DISABLED),
+	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DBaseTexture_GetLevelCount, 3911, PATCH),
 	REGISTER_OOVPA(D3DCubeTexture_GetCubeMapSurface, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetCreationParameters, 3911, PATCH),
