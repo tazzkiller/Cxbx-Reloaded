@@ -1614,11 +1614,7 @@ static DWORD VshGetDeclarationSize(DWORD *pDeclaration)
     return (Pos + 1) * sizeof(DWORD);
 }
 
-typedef DWORD D3DDECLUSAGE;
-
-#define D3DDECLUSAGE_UNSUPPORTED ((D3DDECLUSAGE)-1)
-
-D3DDECLUSAGE Xb2PCRegisterType
+XTL::D3DDECLUSAGE Xb2PCRegisterType
 (
 	DWORD VertexRegister,
 	boolean IsFixedFunction

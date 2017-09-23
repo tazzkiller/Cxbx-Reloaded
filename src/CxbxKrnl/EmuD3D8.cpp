@@ -1283,14 +1283,19 @@ void CxbxInternalSetRenderState
 	{
 		const XTL::RenderStateInfo &Info = XTL::GetDxbxRenderStateInfo(XboxRenderState);
 
-		if (PCValue != XboxValue)
-			DbgPrintf("  %s := 0x%.08X (converted from Xbox)\n", 
+		if (Info.PC == (XTL::D3DRENDERSTATETYPE)0) // D3DRS_UNSUPPORTED
+			EmuWarning("RenderState (%s, 0x%.08X) is unsupported!",
 				Info.S + 2,  // Skip "X_" prefix
 				PCValue);
 		else
-			DbgPrintf("  %s := 0x%.08X\n", 
-				Info.S + 2,  // Skip "X_" prefix
-				PCValue);
+			if (PCValue != XboxValue)
+				DbgPrintf("  Set %s := 0x%.08X (converted from Xbox)\n", 
+					Info.S + 2,  // Skip "X_" prefix
+					PCValue);
+			else
+				DbgPrintf("  Set %s := 0x%.08X\n",
+					Info.S + 2,  // Skip "X_" prefix
+					PCValue);
 	}
 }
 
@@ -7377,8 +7382,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderState_NormalizeNormals)
 )
 {
 	FUNC_EXPORTS
-
-	LOG_FUNC_ONE_ARG(Value);
 
 	CxbxInternalSetRenderState(__func__, X_D3DRS_NORMALIZENORMALS, Value);
 }
