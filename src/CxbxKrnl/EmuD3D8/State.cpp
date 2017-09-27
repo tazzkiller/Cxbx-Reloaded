@@ -166,10 +166,10 @@ void CxbxInitializeEmuMappedD3DRenderState() // TODO : Rename to distinct from D
 // Converts the input render state from a version-dependent into a version-neutral value.
 X_D3DRENDERSTATETYPE DxbxVersionAdjust_D3DRS(const X_D3DRENDERSTATETYPE XboxRenderState_VersionDependent)
 {
-	if (XboxRenderState_VersionDependent < X_D3DRS_LAST)
+	if (XboxRenderState_VersionDependent <= X_D3DRS_LAST)
 		return DxbxMapActiveVersionToMostRecent[XboxRenderState_VersionDependent];
 	else
-		return X_D3DRS_UNSUPPORTED;
+		return (X_D3DRENDERSTATETYPE )X_D3DRS_UNSUPPORTED;
 }
 
 const DWORD OLD_X_D3DTSS_COLOROP = 0;
