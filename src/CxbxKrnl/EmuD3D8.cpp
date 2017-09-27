@@ -68,7 +68,7 @@ namespace xboxkrnl
 // This doesn't work : #include <dxerr8.h> // See DXGetErrorString8A below
 
 // Global(s)
-HWND                                g_hEmuWindow   = NULL; // rendering window
+HWND                                g_hEmuWindow   = nullptr; // rendering window
 XTL::LPDIRECT3DDEVICE8              g_pD3DDevice8  = nullptr; // Direct3D8 Device
 XTL::LPDIRECTDRAWSURFACE7           g_pDDSPrimary  = nullptr; // DirectDraw7 Primary Surface
 XTL::LPDIRECTDRAWSURFACE7           g_pDDSOverlay7 = nullptr; // DirectDraw7 Overlay Surface
@@ -112,7 +112,6 @@ static XTL::X_D3DSWAPCALLBACK		g_pSwapCallback = NULL;	// Swap/Present callback 
 static XTL::X_D3DCALLBACK			g_pCallback		= NULL;	// D3DDevice::InsertCallback routine
 static XTL::X_D3DCALLBACKTYPE		g_CallbackType;			// Callback type
 static DWORD						g_CallbackParam;		// Callback param
-static BOOL                         g_bHasDepthStencilSurface = FALSE; // Does device have a Depth/Stencil surface?
 static BOOL                         g_bHasDepthBits = FALSE;    // Has the Depth/Stencil surface a depth component?
 static BOOL                         g_bHasStencilBits = FALSE;  // Has the Depth/Stencil surface a stencil component?
 static clock_t						g_DeltaTime = 0;			 // Used for benchmarking/fps count
@@ -492,7 +491,7 @@ VOID XTL::CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize)
   // create vblank handling thread
     {
         dwThreadId = 0;
-        {hThread :=} CreateThread(NULL, 0, EmuThreadHandleVBlank, NULL, 0, &dwThreadId);
+        {hThread :=} CreateThread(nullptr, 0, EmuThreadHandleVBlank, nullptr, 0, &dwThreadId);
     }
 */
     // create window message processing thread
@@ -837,8 +836,7 @@ void UpdateDepthStencilFlags(const XTL::X_D3DSurface *pXboxSurface)
 {
 	g_bHasDepthBits = FALSE;
 	g_bHasStencilBits = FALSE;
-	g_bHasDepthStencilSurface = (pXboxSurface != NULL); // Prevents D3D error in EMUPATCH(D3DDevice_Clear)
-	if (g_bHasDepthStencilSurface)
+	if (pXboxSurface != NULL) // Prevents D3D error in EMUPATCH(D3DDevice_Clear)
 	{
 		const XTL::X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pXboxSurface);
 		switch (X_Format)
@@ -1930,6 +1928,37 @@ static DWORD WINAPI EmuUpdateTickCount(LPVOID)
     }
 }
 
+// A wrapper for Present() with an extra safeguard to restore 'device lost' errors
+void CxbxPresent()
+{
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
+	HRESULT hRet;
+
+//	CxbxReleaseSurface(&g_pActiveHostBackBuffer);
+
+	hRet = g_pD3DDevice8->EndScene();
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->EndScene");
+
+	hRet = g_pD3DDevice8->Present(nullptr, nullptr, 0, nullptr);
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Present");
+
+	if (hRet == D3DERR_DEVICELOST)
+		while (hRet != D3D_OK)
+		{
+			hRet = g_pD3DDevice8->TestCooperativeLevel();
+			if (hRet == D3DERR_DEVICELOST) // Device is lost and cannot be reset yet
+				Sleep(500); // Wait a bit so we don't burn through cycles for no reason
+			else
+				if (hRet == D3DERR_DEVICENOTRESET) // Lost but we can reset it now
+;//					hRet = g_pD3DDevice8->Reset(&(g_EmuCDPD.NativePresentationParameters));
+		}
+
+	hRet = g_pD3DDevice8->BeginScene();
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
+
+//	CxbxGetActiveHostBackBuffer();
+}
 // thread dedicated to create devices
 static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 {
@@ -2110,32 +2139,37 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					}
 				}
 
-                // default NULL guid
-                ZeroMemory(&g_ddguid, sizeof(GUID));
-
 				HRESULT hRet;
 
+				hRet = g_pD3DDevice8->BeginScene();
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
+
+                // default NULL guid
+                g_ddguid = { 0 };
+
                 // enumerate device guid for this monitor, for directdraw
-				hRet = XTL::DirectDrawEnumerateExA(EmuEnumDisplayDevices, NULL, DDENUM_ATTACHEDSECONDARYDEVICES);
+				hRet = XTL::DirectDrawEnumerateExA(EmuEnumDisplayDevices, nullptr, DDENUM_ATTACHEDSECONDARYDEVICES);
 				DEBUG_D3DRESULT(hRet, "DirectDrawEnumerateExA");
 
                 // create DirectDraw7
                 {
                     if(FAILED(hRet)) {
-                        hRet = XTL::DirectDrawCreateEx(NULL, (void**)&g_pDD7, XTL::IID_IDirectDraw7, NULL);
+                        hRet = XTL::DirectDrawCreateEx(nullptr, (void**)&g_pDD7, XTL::IID_IDirectDraw7, nullptr);
 						DEBUG_D3DRESULT(hRet, "XTL::DirectDrawCreateEx(NULL)");
 					} else {
-						hRet = XTL::DirectDrawCreateEx(&g_ddguid, (void**)&g_pDD7, XTL::IID_IDirectDraw7, NULL);
+						hRet = XTL::DirectDrawCreateEx(&g_ddguid, (void**)&g_pDD7, XTL::IID_IDirectDraw7, nullptr);
 						DEBUG_D3DRESULT(hRet, "XTL::DirectDrawCreateEx(&g_ddguid)");
 					}
 
 					if(FAILED(hRet))
                         CxbxKrnlCleanup("Could not initialize DirectDraw7");
 
+					g_DriverCaps = {};
+					g_DriverCaps.dwSize = sizeof(XTL::DDCAPS);
 					hRet = g_pDD7->GetCaps(&g_DriverCaps, nullptr);
 					DEBUG_D3DRESULT(hRet, "g_pDD7->GetCaps");
 
-                    hRet = g_pDD7->SetCooperativeLevel(0, DDSCL_NORMAL);
+                    hRet = g_pDD7->SetCooperativeLevel(NULL, DDSCL_NORMAL);
 					DEBUG_D3DRESULT(hRet, "g_pDD7->SetCooperativeLevel");
 
                     if(FAILED(hRet))
@@ -2209,15 +2243,14 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 // initialize primary surface
                 if(g_bSupportsYUY2Overlay)
                 {
-                    XTL::DDSURFACEDESC2 ddsd2;
+                    XTL::DDSURFACEDESC2 ddsd2 = { 0 };
 					HRESULT hRet;
 
-                    ZeroMemory(&ddsd2, sizeof(ddsd2));
                     ddsd2.dwSize = sizeof(ddsd2);
                     ddsd2.dwFlags = DDSD_CAPS;
                     ddsd2.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 
-                    hRet = g_pDD7->CreateSurface(&ddsd2, &g_pDDSPrimary, 0);
+                    hRet = g_pDD7->CreateSurface(&ddsd2, &g_pDDSPrimary, nullptr);
 					DEBUG_D3DRESULT(hRet, "g_pDD7->CreateSurface");
 
 					if (FAILED(hRet))
@@ -2245,8 +2278,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				hRet = g_pD3DDevice8->GetDepthStencilSurface(&pNewHostSurface);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetDepthStencilSurface");
 
-				g_bHasDepthStencilSurface = SUCCEEDED(hRet);
-				if (g_bHasDepthStencilSurface)
+				if(SUCCEEDED(hRet))
 					SetHostSurface(g_pCachedDepthStencil, pNewHostSurface);
 
 				UpdateDepthStencilFlags(g_pCachedDepthStencil); // TODO : g_pActiveXboxDepthStencil
@@ -2258,8 +2290,9 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 );
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateVertexBuffer");
 
-                for(int Streams = 0; Streams < 8; Streams++)
+                for(int Streams = 0; Streams < MAX_NBR_STREAMS; Streams++)
                 {
+					// Dxbx note : Why do we need a dummy stream at all?
                     hRet = g_pD3DDevice8->SetStreamSource(Streams, g_pDummyBuffer, 1);
 					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetStreamSource");
 				}
@@ -2273,25 +2306,13 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 hRet = g_pD3DDevice8->Clear(
 					/*Count=*/0, 
 					/*pRects=*/nullptr, 
-					D3DCLEAR_TARGET | (g_bHasDepthStencilSurface ? D3DCLEAR_ZBUFFER|D3DCLEAR_STENCIL : 0),
+					D3DCLEAR_TARGET | (g_bHasDepthBits ? D3DCLEAR_ZBUFFER : 0) | (g_bHasStencilBits ? D3DCLEAR_STENCIL : 0),
 					/*Color=*/0xFF000000, // TODO : Use constant for this
-					/*Z=*/g_bHasDepthStencilSurface ? 1.0f : 0.0f,
-					/*Stencil=*/0);
+					/*Z=*/g_bHasDepthBits ? 1.0f : 0.0f,
+					/*Stencil=*/g_bHasStencilBits ? 0 : 0); // TODO : What to set these to?
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
 
-				hRet = g_pD3DDevice8->BeginScene();
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
-
-				hRet = g_pD3DDevice8->EndScene();
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->EndScene");
-
-				hRet = g_pD3DDevice8->Present(0, 0, 0, 0);
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Present");
-
-                // begin scene
-                hRet = g_pD3DDevice8->BeginScene();
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene(2nd)");
-
+				CxbxPresent();
                 // signal completion
                 g_EmuCDPD.bReady = false;
             }
@@ -3865,9 +3886,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
             hRet = D3DXAssembleShader(dummy,
                                       strlen(dummy),
                                       D3DXASM_SKIPVALIDATION,
-                                      NULL,
+                                      nullptr,
                                       &pRecompiledBuffer,
-                                      NULL);
+                                      nullptr);
 			DEBUG_D3DRESULT(hRet, "D3DXAssembleShader");
 
 			hRet = g_pD3DDevice8->CreateVertexShader
@@ -5455,8 +5476,8 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
 //	g_pDD7->WaitForVerticalBlank( DDWAITVB_BLOCKEND, NULL );
 
 	clock_t currentDrawFunctionCallTime = clock();
-	HRESULT hRet = g_pD3DDevice8->Present(0, 0, 0, 0);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Present");
+
+	CxbxPresent();
 
 	g_DeltaTime += currentDrawFunctionCallTime - lastDrawFunctionCallTime;
 	lastDrawFunctionCallTime = currentDrawFunctionCallTime;
@@ -7214,7 +7235,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_UpdateOverlay)
 			// Update overlay if present was not called since the last call to
 			// EmuD3DDevice_UpdateOverlay.
 			if(g_bHackUpdateSoftwareOverlay)
-				g_pD3DDevice8->Present(0, 0, 0, 0);
+				CxbxPresent();
 
 			g_bHackUpdateSoftwareOverlay = TRUE;
 		}

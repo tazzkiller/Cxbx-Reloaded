@@ -181,7 +181,7 @@ LOG_SANITIZE_HEADER(sanitized_wchar_pointer, wchar_t *)
 			output_wchar(os, *v++);
 	}
 	else
-		os << v;
+		os << v; // TODO : FIXME - VS2015 doesn''t render this string (instead, it shows a hexadecimal memory address)
 
 	return os << "\"";
 }
