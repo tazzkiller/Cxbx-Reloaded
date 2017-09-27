@@ -75,6 +75,10 @@ extern void DxbxUpdateDeferredStates();
 
 extern X_D3DTEXTURESTAGESTATETYPE DxbxFromNewVersion_D3DTSS(const X_D3DTEXTURESTAGESTATETYPE NewValue);
 
+extern X_D3DTEXTURESTAGESTATETYPE DxbxFromOldVersion_D3DTSS(const X_D3DTEXTURESTAGESTATETYPE OldValue);
+
+extern X_D3DRENDERSTATETYPE DxbxVersionAdjust_D3DRS(const X_D3DRENDERSTATETYPE XboxRenderState_VersionDependent);
+
 extern DWORD Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue);
 
 extern DWORD Cxbx_SetTextureStageState(DWORD Sampler, X_D3DTEXTURESTAGESTATETYPE Type, DWORD XboxValue);

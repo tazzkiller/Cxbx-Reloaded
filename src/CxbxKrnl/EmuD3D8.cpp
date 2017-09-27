@@ -1268,6 +1268,11 @@ void CxbxInternalSetRenderState
 
 	LOG_FINIT
 
+	if (XboxRenderState > XTL::X_D3DRS_LAST) {
+		// TODO : EmuWarning("Xbox would fail - emulate how");
+		return;
+	}
+
 	// Set this value into the RenderState structure too (so other code will read the new current value) :
 	*(XTL::EmuMappedD3DRenderState[XboxRenderState]) = XboxValue;
 	// TODO : Update the D3D DirtyFlags too?
@@ -1320,6 +1325,16 @@ void CxbxInternalSetTextureStageState
 
 	LOG_FINIT
 
+	if (Stage >= X_D3DTSS_STAGECOUNT) {
+		// TODO : EmuWarning("Xbox would fail - emulate how");
+		return;
+	}
+
+	if (XboxTextureStageState >= XTL::X_D3DTSS_UNSUPPORTED) {
+		// TODO : EmuWarning("Xbox would fail - emulate how");
+		return;
+	}
+
 	// Set this value into the TextureState structure too (so other code will read the new current value)
 	XTL::Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + XTL::DxbxFromNewVersion_D3DTSS(XboxTextureStageState)] = XboxValue;
 	// TODO : Update the D3D DirtyFlags too?
@@ -1331,14 +1346,19 @@ void CxbxInternalSetTextureStageState
 	{
 		const XTL::TextureStageStateInfo &Info = XTL::DxbxTextureStageStateInfo[XboxTextureStageState];
 
-		if (PCValue != XboxValue)
-			DbgPrintf("  %s := 0x%.08X (converted from Xbox)\n", 
+		if (Info.PC == (XTL::D3DSAMPLERSTATETYPE)0) // D3DSAMP_UNSUPPORTED
+			EmuWarning("TextureStageState (%s, 0x%.08X) is unsupported!",
 				Info.S + 2,  // Skip "X_" prefix
 				PCValue);
 		else
-			DbgPrintf("  %s := 0x%.08X\n", 
-				Info.S + 2,  // Skip "X_" prefix
-				PCValue);
+			if (PCValue != XboxValue)
+				DbgPrintf("  Set %s := 0x%.08X (converted from Xbox)\n", 
+					Info.S + 2,  // Skip "X_" prefix
+					PCValue);
+			else
+				DbgPrintf("  Set %s := 0x%.08X\n", 
+					Info.S + 2,  // Skip "X_" prefix
+					PCValue);
 	}
 }
 
@@ -7296,7 +7316,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureState_BumpEnv)
 {
 	FUNC_EXPORTS
 
-	CxbxInternalSetTextureStageState(__func__, Stage, Type, Value);
+	CxbxInternalSetTextureStageState(__func__, Stage, XTL::DxbxFromOldVersion_D3DTSS(Type), Value);
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureStageStateNotInline)
@@ -7308,7 +7328,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTextureStageStateNotInline)
 {
 	FUNC_EXPORTS
 
-	CxbxInternalSetTextureStageState(__func__, Stage, Type, Value);
+	CxbxInternalSetTextureStageState(__func__, Stage, XTL::DxbxFromOldVersion_D3DTSS(Type), Value);
 }
 
 // ******************************************************************
@@ -7785,7 +7805,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderStateNotInline)
 {
 	FUNC_EXPORTS
 
-	CxbxInternalSetRenderState(__func__, (X_D3DRENDERSTATETYPE)State, Value);
+	CxbxInternalSetRenderState(__func__, XTL::DxbxVersionAdjust_D3DRS((X_D3DRENDERSTATETYPE)State), Value);
 }
 
 #if 0 // Dxbx note : Disabled, as we DO have Xbox_D3D__RenderState_Deferred pin-pointed correctly
