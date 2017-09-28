@@ -1662,7 +1662,7 @@ void XTL::CxbxSetFillMode(DWORD CurrentFillMode)
 
 void CxbxInternalSetRenderState
 (
-	char *Caller,
+	const char *Caller,
 	XTL::X_D3DRENDERSTATETYPE XboxRenderState,
 	DWORD XboxValue
 )
@@ -1717,7 +1717,7 @@ void CxbxInternalSetRenderState
 
 void CxbxInternalSetTextureStageState
 (
-	char *Caller,
+	const char *Caller,
 	DWORD Stage,
 	XTL::X_D3DTEXTURESTAGESTATETYPE XboxTextureStageState,
 	DWORD XboxValue
