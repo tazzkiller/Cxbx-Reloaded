@@ -72,8 +72,10 @@ extern VOID EmuD3DCleanup();
 // EmuD3DTileCache (8 tiles maximum)
 extern X_D3DTILE EmuD3DTileCache[0x08];
 
-// EmuD3DActiveTexture
-extern X_D3DBaseTexture *EmuD3DActiveTexture[X_D3DTSS_STAGECOUNT];
+// EmuD3DTextureStages
+extern X_D3DBaseTexture *EmuD3DTextureStages[X_D3DTSS_STAGECOUNT];
+
+inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return EmuD3DTextureStages[uiStage]; }
 
 extern void CxbxSetFillMode(D3DFILLMODE CurrentFillMode);
 
