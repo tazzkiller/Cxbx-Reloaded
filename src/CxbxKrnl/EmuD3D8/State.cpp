@@ -167,7 +167,10 @@ void CxbxInitializeEmuMappedD3DRenderState()
 // Converts the input render state from a version-dependent into a version-neutral value.
 X_D3DRENDERSTATETYPE XTL::DxbxVersionAdjust_D3DRS(const DWORD XboxRenderState_VersionDependent)
 {
-	return DxbxMapActiveVersionToMostRecent[XboxRenderState_VersionDependent];
+	if (XboxRenderState_VersionDependent < X_D3DRS_LAST)
+		return DxbxMapActiveVersionToMostRecent[XboxRenderState_VersionDependent];
+	else
+		return (X_D3DRENDERSTATETYPE)X_D3DRS_UNSUPPORTED;
 }
 
 const DWORD OLD_X_D3DTSS_COLOROP = 0;
@@ -197,7 +200,7 @@ X_D3DTEXTURESTAGESTATETYPE DxbxFromNewVersion_D3DTSS(const X_D3DTEXTURESTAGESTAT
 	return Result;
 }
 
-X_D3DTEXTURESTAGESTATETYPE DxbxFromOldVersion_D3DTSS(const X_D3DTEXTURESTAGESTATETYPE OldValue)
+X_D3DTEXTURESTAGESTATETYPE XTL::DxbxFromOldVersion_D3DTSS(const X_D3DTEXTURESTAGESTATETYPE OldValue)
 {
 	X_D3DTEXTURESTAGESTATETYPE Result = OldValue;
 	if (g_BuildVersion <= 3925)

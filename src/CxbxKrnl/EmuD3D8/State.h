@@ -38,7 +38,7 @@
 #define X_D3DRS_UNSUPPORTED (X_D3DRS_LAST + 1)
 
 // Host version
-#define D3DRS_UNSUPPORTED (D3DRENDERSTATETYPE)0
+#define D3DRS_UNSUPPORTED ((D3DRENDERSTATETYPE)0) // Marks unsupported renderstate on host 
 
 // XDK version independent renderstate table, containing pointers to the original locations.
 extern DWORD *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED + 1]; // 1 extra for the unsupported value itself
@@ -71,9 +71,11 @@ extern void InitD3DDeferredStates();
 
 extern void DxbxUpdateDeferredStates();
 
-extern X_D3DRENDERSTATETYPE DxbxVersionAdjust_D3DRS(const DWORD XboxRenderState_VersionDependent);
-
 extern X_D3DTEXTURESTAGESTATETYPE DxbxFromNewVersion_D3DTSS(const X_D3DTEXTURESTAGESTATETYPE NewValue);
+
+extern X_D3DTEXTURESTAGESTATETYPE DxbxFromOldVersion_D3DTSS(const X_D3DTEXTURESTAGESTATETYPE OldValue);
+
+extern X_D3DRENDERSTATETYPE DxbxVersionAdjust_D3DRS(const DWORD XboxRenderState_VersionDependent);
 
 extern DWORD Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue);
 

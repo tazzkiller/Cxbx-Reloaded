@@ -1061,8 +1061,6 @@ const XBTypeInfo DxbxXBTypeInfo[] = {
     {"LONG",                     &EmuXB2PC_Copy},                                               // Xbox = PC
 };
 
-#define D3DRS_NONE ((D3DRENDERSTATETYPE)0) // Marks unsupported renderstate on host 
-
 // The below list of XDK-dependent RenderStates is entirely verified for 3911, 4627, 5558, 5788, 5849 and 5933
 // XDK 4627 has a total of 143 render states,
 // XDK 5558 and higher has 165 render states.
@@ -1149,10 +1147,10 @@ const RenderStateInfo DxbxRenderStateInfo[] = {
 	{ "X_D3DRS_BLENDCOLOR"                  /*=  75*/, 3424, xtD3DCOLOR,            NV2A_BLEND_COLOR, D3DRS_BLENDFACTOR, "D3DCOLOR for D3DBLEND_CONSTANTCOLOR" },
 	// D3D9 D3DRS_BLENDFACTOR : D3DCOLOR used for a constant blend factor during alpha blending for devices that support D3DPBLENDCAPS_BLENDFACTOR
 #else
-	{ "X_D3DRS_BLENDCOLOR"                  /*=  75*/, 3424, xtD3DCOLOR,            NV2A_BLEND_COLOR, D3DRS_NONE, "D3DCOLOR for D3DBLEND_CONSTANTCOLOR" },
+	{ "X_D3DRS_BLENDCOLOR"                  /*=  75*/, 3424, xtD3DCOLOR,            NV2A_BLEND_COLOR, D3DRS_UNSUPPORTED, "D3DCOLOR for D3DBLEND_CONSTANTCOLOR" },
 #endif
 	{ "X_D3DRS_SWATHWIDTH"                  /*=  76*/, 3424, xtD3DSWATH,            NV2A_SWATH_WIDTH },
-	{ "X_D3DRS_POLYGONOFFSETZSLOPESCALE"    /*=  77*/, 3424, xtFloat,               NV2A_POLYGON_OFFSET_FACTOR, D3DRS_NONE, "float Z factor for shadow maps" },
+	{ "X_D3DRS_POLYGONOFFSETZSLOPESCALE"    /*=  77*/, 3424, xtFloat,               NV2A_POLYGON_OFFSET_FACTOR, D3DRS_UNSUPPORTED, "float Z factor for shadow maps" },
 	{ "X_D3DRS_POLYGONOFFSETZOFFSET"        /*=  78*/, 3424, xtFloat,               NV2A_POLYGON_OFFSET_UNITS },
 	{ "X_D3DRS_POINTOFFSETENABLE"           /*=  79*/, 3424, xtBOOL,                NV2A_POLYGON_OFFSET_POINT_ENABLE },
 	{ "X_D3DRS_WIREFRAMEOFFSETENABLE"       /*=  80*/, 3424, xtBOOL,                NV2A_POLYGON_OFFSET_LINE_ENABLE },
@@ -1204,7 +1202,7 @@ const RenderStateInfo DxbxRenderStateInfo[] = {
 	{ "X_D3DRS_PATCHEDGESTYLE"              /*= 124*/, 3424, xtDWORD,               0, D3DRS_PATCHEDGESTYLE }, // D3DPATCHEDGESTYLE
 	{ "X_D3DRS_PATCHSEGMENTS"               /*= 125*/, 3424, xtDWORD,               0, D3DRS_PATCHSEGMENTS }, // DWORD number of segments per edge when drawing patches
 	// TODO -oDxbx : Is X_D3DRS_SWAPFILTER really a xtD3DMULTISAMPLE_TYPE?
-	{ "X_D3DRS_SWAPFILTER"                  /*= 126*/, 4039, xtD3DMULTISAMPLE_TYPE, 0, D3DRS_NONE, "D3DTEXF_LINEAR etc. filter to use for Swap" }, // nsp.
+	{ "X_D3DRS_SWAPFILTER"                  /*= 126*/, 4039, xtD3DMULTISAMPLE_TYPE, 0, D3DRS_UNSUPPORTED, "D3DTEXF_LINEAR etc. filter to use for Swap" }, // nsp.
 	{ "X_D3DRS_PRESENTATIONINTERVAL"        /*= 127*/, 4627, xtDWORD,               0 }, // nsp. TODO : Use 4361?
 	{ "X_D3DRS_DEFERRED_UNUSED8"            /*= 128*/, 4627, xtDWORD,               0 },
 	{ "X_D3DRS_DEFERRED_UNUSED7"            /*= 129*/, 4627, xtDWORD,               0 },
