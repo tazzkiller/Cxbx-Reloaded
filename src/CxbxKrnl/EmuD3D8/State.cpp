@@ -167,7 +167,7 @@ void CxbxInitializeEmuMappedD3DRenderState()
 // Converts the input render state from a version-dependent into a version-neutral value.
 X_D3DRENDERSTATETYPE XTL::DxbxVersionAdjust_D3DRS(const DWORD XboxRenderState_VersionDependent)
 {
-	if (XboxRenderState_VersionDependent < X_D3DRS_LAST)
+	if (XboxRenderState_VersionDependent <= X_D3DRS_LAST)
 		return DxbxMapActiveVersionToMostRecent[XboxRenderState_VersionDependent];
 	else
 		return (X_D3DRENDERSTATETYPE)X_D3DRS_UNSUPPORTED;
