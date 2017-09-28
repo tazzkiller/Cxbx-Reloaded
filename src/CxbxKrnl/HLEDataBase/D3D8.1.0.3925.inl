@@ -601,58 +601,14 @@ OOVPA_NO_XREF(D3DDevice_SetTexture, 3925, 12) // Deprecated in favor of 3911 bel
 OOVPA_END;
 
 // ******************************************************************
-// * D3DDevice_GetTexture, named with 2 suffix to match EMUPATCH(D3DDevice_GetTexture2)
-// ******************************************************************
-#if 0 // Derived XREF_OFFSET_D3DDEVICE_M_TEXTURES is not Implemented yet.
-OOVPA_XREF(D3DDevice_GetTexture2, 3911, 1 + 21, // Also for 4361
-
-	XRefNoSaveIndex,
-	XRefOne)
-
-	XREF_ENTRY( 0x0E, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
-#endif
-
-OOVPA_NO_XREF(D3DDevice_GetTexture2, 3911, 21) // Also for 4361
-
-		{ 0x00, 0x8B },
-		{ 0x01, 0x44 },
-		{ 0x02, 0x24 },
-		{ 0x03, 0x04 },
-		{ 0x04, 0x8B },
-		{ 0x05, 0x0D },
-
-		{ 0x0A, 0x56 },
-		{ 0x0B, 0x8D },
-		{ 0x0C, 0xB4 },
-		{ 0x0D, 0x81 },
-
-		{ 0x10, 0x00 },
-		{ 0x11, 0x00 },
-		{ 0x12, 0x8B },
-		{ 0x13, 0x06 },
-		{ 0x14, 0x85 },
-		{ 0x15, 0xC0 },
-		{ 0x16, 0x74 },
-
-		{ 0x18, 0x50 },
-		{ 0x19, 0xE8 },
-
-		{ 0x1E, 0x8B },
-		{ 0x1F, 0x16 },
-OOVPA_END;
-
-// ******************************************************************
 // * D3DDevice_SetTexture
 // ******************************************************************
-#if 0 // Derived XREF_OFFSET_D3DDEVICE_M_TEXTURES is not Implemented yet.
 OOVPA_XREF(D3DDevice_SetTexture, 3911, 1+28,
 
     XRefNoSaveIndex,
     XRefOne)
 
 		XREF_ENTRY( 0x11, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
-#endif
-OOVPA_NO_XREF(D3DDevice_SetTexture, 3911, 28)
 
 		{ 0x00, 0x51 },
 		{ 0x01, 0x53 },
@@ -764,7 +720,7 @@ OOVPA_XREF(D3DDevice_GetTexture2, 3911, 1 + 21, // Also for 4361
 	XRefNoSaveIndex,
 	XRefOne)
 
-	XREF_ENTRY( 0x0E, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
+		XREF_ENTRY( 0x0E, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
 
 		{ 0x00, 0x8B },
 		{ 0x01, 0x44 },
@@ -791,118 +747,6 @@ OOVPA_XREF(D3DDevice_GetTexture2, 3911, 1 + 21, // Also for 4361
 
 		{ 0x1E, 0x8B },
 		{ 0x1F, 0x16 },
-OOVPA_END;
-
-// ******************************************************************
-// * D3DDevice_SetTexture
-// ******************************************************************
-OOVPA_XREF(D3DDevice_SetTexture, 3911, 1+28,
-
-    XRefNoSaveIndex,
-    XRefOne)
-
-		XREF_ENTRY( 0x11, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
-
-		{ 0x00, 0x51 },
-		{ 0x01, 0x53 },
-		{ 0x02, 0x8B },
-		{ 0x03, 0x5C },
-		{ 0x04, 0x24 },
-		{ 0x05, 0x0C },
-		{ 0x06, 0x55 },
-		{ 0x07, 0x57 },
-		{ 0x08, 0x8B },
-		{ 0x09, 0x3D },
-
-		{ 0x0E, 0x8B },
-		{ 0x0F, 0x84 },
-		{ 0x10, 0x9F },
-		{ 0x11, 0xA0 },
-		{ 0x12, 0x0B },
-		{ 0x13, 0x00 },
-		{ 0x14, 0x00 },
-		{ 0x15, 0x85 },
-		{ 0x16, 0xC0 },
-		{ 0x17, 0x89 },
-		{ 0x18, 0x44 },
-		{ 0x19, 0x24 },
-		{ 0x1A, 0x0C },
-		{ 0x1B, 0x74 },
-		{ 0x1C, 0x20 },
-		{ 0x1D, 0x8B },
-		{ 0x1E, 0x4F },
-		{ 0x1F, 0x1C },
-OOVPA_END;
-
-// ******************************************************************
-// * D3DDevice_DrawRectPatch
-// ******************************************************************
-OOVPA_NO_XREF(D3DDevice_DrawRectPatch, 3911, 27) // Also verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
-		{ 0x00, 0x83 },
-		{ 0x01, 0xEC },
-		{ 0x02, 0x38 },
-		{ 0x03, 0xA1 },
-
-		{ 0x08, 0x8B },
-		{ 0x09, 0x48 },
-		// { 0x0A, 0x0C }, // 0x08 for 4361 and up
-		{ 0x0B, 0x53 },
-		{ 0x0C, 0x55 },
-		{ 0x0D, 0x56 },
-		{ 0x0E, 0x57 },
-		{ 0x0F, 0x8B },
-		{ 0x10, 0x7C },
-		{ 0x11, 0x24 },
-		{ 0x12, 0x50 },
-		{ 0x13, 0x33 },
-		{ 0x14, 0xED },
-		{ 0x15, 0x81 },
-		{ 0x16, 0xC9 },
-		{ 0x17, 0x00 },
-		{ 0x18, 0x08 },
-		{ 0x19, 0x00 },
-		{ 0x1A, 0x00 },
-		{ 0x1B, 0x85 },
-		{ 0x1C, 0xFF },
-		{ 0x1D, 0x89 },
-		{ 0x1E, 0x6C },
-		{ 0x1F, 0x24 },
-OOVPA_END;
-
-// ******************************************************************
-// * D3DDevice_DrawTriPatch
-// ******************************************************************
-OOVPA_NO_XREF(D3DDevice_DrawTriPatch, 3911, 27) // Also verified for 4361, 4627, 5344, 5558, 5659, 5788, 5849, 5933
-
-		{ 0x00, 0x83 },
-		{ 0x01, 0xEC },
-		{ 0x02, 0x14 },
-		{ 0x03, 0xA1 },
-
-		{ 0x08, 0x8B },
-		{ 0x09, 0x48 },
-		// { 0x0A, 0x0C }, // 0x08 for 4361 and up
-		{ 0x0B, 0x53 },
-		{ 0x0C, 0x55 },
-		{ 0x0D, 0x56 },
-		{ 0x0E, 0x57 },
-		{ 0x0F, 0x8B },
-		{ 0x10, 0x7C },
-		{ 0x11, 0x24 },
-		{ 0x12, 0x2C },
-		{ 0x13, 0x81 },
-		{ 0x14, 0xC9 },
-		{ 0x15, 0x00 },
-		{ 0x16, 0x08 },
-		{ 0x17, 0x00 },
-		{ 0x18, 0x00 },
-		{ 0x19, 0x33 },
-		{ 0x1A, 0xDB },
-		{ 0x1B, 0x85 },
-		{ 0x1C, 0xFF },
-		{ 0x1D, 0x89 },
-		{ 0x1E, 0x44 },
-		{ 0x1F, 0x24 },
 OOVPA_END;
 
 // ******************************************************************

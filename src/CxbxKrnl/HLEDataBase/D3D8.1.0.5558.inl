@@ -1163,6 +1163,7 @@ OOVPA_NO_XREF(D3DDevice_SetScreenSpaceOffset, 5558, 8)
         { 0x47, 0x08 },
 OOVPA_END;
 #endif
+
 #if 0 // No longer used, replaced by generic 4034 version
 // ******************************************************************
 // * D3DDevice_SetRenderState_LineWidth
@@ -1790,7 +1791,7 @@ OOVPATable D3D8_5558[] = {
 	REGISTER_OOVPA(D3DDevice_DrawVerticesUP, 5558, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawRectPatch, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_DrawTriPatch, 3911, PATCH),
-	REGISTER_OOVPA(D3DDevice_GetTransform, 3925, PATCH),
+	// REGISTER_OOVPA(D3DDevice_GetTransform, 3925, PATCH), // Duplicate. TODO : Use 4039, or add rollback from 3925 to 5344?
 	REGISTER_OOVPA(D3DDevice_GetTransform, 4039, PATCH),
 	REGISTER_OOVPA(D3DDevice_CreateIndexBuffer2, 5344, DISABLED),
 	REGISTER_OOVPA(D3DDevice_CreateIndexBuffer, 5558, DISABLED),
@@ -1913,7 +1914,7 @@ OOVPATable D3D8_5558[] = {
 	REGISTER_OOVPA(D3DDevice_CreateImageSurface, 4627, PATCH),
 
 	// PatrickvL addition
-	REGISTER_OOVPA(D3DDevice_GetLightEnable, 5558, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetLightEnable, 5344, PATCH),
 };
 
 // ******************************************************************

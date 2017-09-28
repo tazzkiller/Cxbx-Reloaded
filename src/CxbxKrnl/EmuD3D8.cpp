@@ -196,7 +196,7 @@ static DWORD                        g_VertexShaderSlots[136];
 // cached palette pointer
 static DWORD *g_pTexturePaletteStages[X_D3DTSS_STAGECOUNT] = { NULL, NULL, NULL, NULL };
 
-static XTL::X_D3DSHADERCONSTANTMODE g_VertexShaderConstantMode = XTL::X_D3DSCM_192CONSTANTS;
+static XTL::X_D3DSHADERCONSTANTMODE g_VertexShaderConstantMode = X_D3DSCM_192CONSTANTS;
 
 // cached Direct3D tiles
 XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
@@ -233,7 +233,7 @@ void CxbxClearGlobals()
 	g_bHackUpdateSoftwareOverlay = FALSE;
 
 	g_hMonitor = NULL;
-	g_bYUY2OverlaysSupported = FALSE;
+	g_bSupportsYUY2Overlay = FALSE;
 	g_pDD7 = nullptr;
 	g_DriverCaps = { 0 };
 
@@ -296,7 +296,7 @@ void CxbxClearGlobals()
 	g_dwVertexShaderUsage = 0;
 	memset(g_VertexShaderSlots, 0, 136 * sizeof(DWORD)); // TODO : Use ARRAY_SIZE() and/or countof()
 	// g_pTexturePaletteStages = { nullptr, nullptr, nullptr, nullptr };
-	g_VertexShaderConstantMode = XTL::X_D3DSCM_192CONSTANTS;
+	g_VertexShaderConstantMode = X_D3DSCM_192CONSTANTS;
 	//XTL::EmuD3DTileCache = { 0 };
 #ifdef PATCH_TEXTURES
 	//XTL::EmuD3DTextureStages = { 0 };
@@ -1401,8 +1401,8 @@ XTL::X_D3DPalette *EmuNewD3DPalette()
 }
 #endif
 
-#if 1 // temporarily used by ConvertHostSurfaceHeaderToXbox
-VOID CxbxSetPixelContainerHeader
+#if 1 // temporarily used by ConvertHostSurfaceHeaderToXbox() and WndMain::LoadGameLogo()
+VOID XTL::CxbxSetPixelContainerHeader
 (
 	XTL::X_D3DPixelContainer* pPixelContainer,
 	DWORD				Common,
@@ -1463,7 +1463,7 @@ void ConvertHostSurfaceHeaderToXbox
 	const uint Dimensions = 2;
 	uint Pitch = HostSurfaceDesc.Width * EmuXBFormatBitsPerPixel(X_Format) / 8;
 
-	CxbxSetPixelContainerHeader(pPixelContainer,
+	XTL::CxbxSetPixelContainerHeader(pPixelContainer,
 		pPixelContainer->Common,
 		HostSurfaceDesc.Width,
 		HostSurfaceDesc.Height,
@@ -1551,7 +1551,7 @@ uint8 *XTL::ConvertD3DTextureToARGB(
 		// First we need to unswizzle the texture data
 		XTL::EmuUnswizzleRect(
 			pSrc, *pWidth, *pHeight, 1, unswizleBuffer,
-			SrcPitch, {}, {}, EmuXBFormatBytesPerPixel(X_Format)
+			SrcPitch, EmuXBFormatBytesPerPixel(X_Format)
 		);
 		// Convert colors from the unswizzled buffer
 		pSrc = unswizleBuffer;
@@ -2515,6 +2515,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				g_pD3DDevice8 = *g_EmuCDPD.ppReturnedDeviceInterface;
 
 				// Which texture formats does this device support?
+				memset(g_bSupportsTextureFormat, 0, sizeof(g_bSupportsTextureFormat));
 				for (int X_Format = XTL::X_D3DFMT_L8; X_Format <= XTL::X_D3DFMT_LIN_R8G8B8A8; X_Format++) {
 					// Only process Xbox formats that are directly mappable to host
 					if (!XTL::EmuXBFormatRequiresConversionToARGB((XTL::X_D3DFORMAT)X_Format)) {
@@ -3213,7 +3214,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_CheckDeviceFormat)
     X_D3DFORMAT                 CheckFormat
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Adapter)
@@ -3370,7 +3371,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDeviceCaps)
     X_D3DCAPS                   *pCaps
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(pCaps);
 
@@ -3495,10 +3496,10 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_BeginStateBlock)()
 	DEBUG_D3DRESULT(ret, "g_pD3DDevice8->BeginStateBlock");
 }
 
-/*
+#if 0
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginStateBig)()
 {
-    FUNC_EXPORTS
+//    FUNC_EXPORTS
 
    	LOG_FUNC();
 
@@ -3509,7 +3510,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginStateBig)()
     CxbxKrnlCleanup("BeginStateBig is not implemented");    
 
     return hRet;
-}*/
+}
+#endif
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_CaptureStateBlock)(DWORD Token)
 {
@@ -3602,7 +3604,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateImageSurface)
     X_D3DSurface      **ppSurface
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Width)
@@ -4524,7 +4526,7 @@ XTL::X_D3DResource * WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture2)
     X_D3DRESOURCETYPE   D3DResource
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
     X_D3DTexture *pTexture = NULL;
 
@@ -4567,7 +4569,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture)
     X_D3DTexture  **ppTexture
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Width)
@@ -4720,7 +4722,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVolumeTexture)
     X_D3DVolumeTexture **ppVolumeTexture
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Width)
@@ -4809,7 +4811,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateCubeTexture)
     X_D3DCubeTexture  **ppCubeTexture
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(EdgeLength)
@@ -4876,7 +4878,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer)
     X_D3DIndexBuffer   **ppIndexBuffer
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Length)
@@ -4924,7 +4926,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer)
 #if 0 // patch disabled
 XTL::X_D3DIndexBuffer * WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer2)(UINT Length)
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
     X_D3DIndexBuffer *pIndexBuffer = NULL;
 
@@ -4952,7 +4954,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetIndices)
     UINT                BaseVertexIndex
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pIndexData)
@@ -5956,21 +5958,10 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	}
 
 	// Determine if a conversion to ARGB is needed
-	bool bConvertToARGB = false;
-	if (X_Format == X_D3DFMT_P8) {
-		if (!g_bSupportsP8) {
-			// Since most modern graphics cards don't support palettized textures,
-			// we need to convert these to ARGB texture format (see X_D3DFMT_P8 below)
-			bConvertToARGB = true;
-		}
-	}
-	else {
-		if (EmuXBFormatRequiresConversionToARGB(X_Format)) {
-			EmuWarning("X_Format RequiresConversionToARGB");
-			bConvertToARGB = true;
-		}
-	}
-//if ((PCFormat == D3DFMT_P8 && !g_bSupportsTextureFormat[X_D3DFMT_P8]) || EmuXBFormatRequiresConversionToARGB(X_Format))
+	bool bConvertToARGB = !g_bSupportsTextureFormat[X_Format];
+	if (bConvertToARGB)
+		if (!EmuXBFormatRequiresConversionToARGB(X_Format))
+			CxbxKrnlCleanup("Texture Format not supported on device, and no conversion available!");
 
 	// One of these will be created :
 	IDirect3DSurface8 *pNewHostSurface = nullptr;
@@ -6513,7 +6504,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_AddRef)
     X_D3DResource      *pThis
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(pThis);
 
@@ -6555,7 +6546,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
     X_D3DResource      *pThis
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(pThis);
 
@@ -6651,7 +6642,7 @@ XTL::X_D3DRESOURCETYPE WINAPI XTL::EMUPATCH(D3DResource_GetType)
     X_D3DResource      *pThis
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(pThis);
 
@@ -6691,7 +6682,7 @@ VOID WINAPI XTL::EMUPATCH(Lock2DSurface)
     DWORD                Flags
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pPixelContainer)
@@ -6729,7 +6720,7 @@ VOID WINAPI XTL::EMUPATCH(Lock3DSurface)
 	DWORD				Flags
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pPixelContainer)
@@ -6809,7 +6800,7 @@ VOID WINAPI XTL::EMUPATCH(D3DSurface_GetDesc)
     X_D3DSURFACE_DESC  *pDesc
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pThis)
@@ -6880,7 +6871,7 @@ VOID WINAPI XTL::EMUPATCH(D3DSurface_LockRect)
     DWORD               Flags
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pThis)
@@ -6959,7 +6950,7 @@ DWORD WINAPI XTL::EMUPATCH(D3DBaseTexture_GetLevelCount)
     X_D3DBaseTexture   *pThis
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(pThis);
 
@@ -6986,7 +6977,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel2)
     UINT            Level
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pThis)
@@ -7041,7 +7032,7 @@ VOID WINAPI XTL::EMUPATCH(D3DTexture_LockRect)
     DWORD           Flags
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pThis)
@@ -7103,7 +7094,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel)
     X_D3DSurface      **ppSurfaceLevel
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FORWARD("D3DTexture_GetSurfaceLevel2");
 
@@ -7123,7 +7114,7 @@ VOID WINAPI XTL::EMUPATCH(D3DVolumeTexture_LockBox)
     DWORD               Flags
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pThis)
@@ -7154,7 +7145,7 @@ VOID WINAPI XTL::EMUPATCH(D3DCubeTexture_LockRect)
     DWORD               Flags
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pThis)
@@ -7216,7 +7207,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DDevice_Release)()
     X_D3DVertexBuffer **ppVertexBuffer
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FORWARD("D3DDevice_CreateVertexBuffer2");
 
@@ -7232,7 +7223,7 @@ XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexBuffer2)
     UINT Length
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(Length);
 
@@ -7367,7 +7358,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_UpdateOverlay)
 	}
 
 	// manually copy data over to overlay
-	if(g_bYUY2OverlaysSupported)
+	if(g_bSupportsYUY2Overlay)
 	{
 		// Make sure the overlay is allocated before using it
 		if (g_pDDSOverlay7 == nullptr) {
@@ -7938,7 +7929,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderStateNotInline)
 {
 	FUNC_EXPORTS
 
-	CxbxInternalSetRenderState(__func__, State, Value);
+	CxbxInternalSetRenderState(__func__, XTL::DxbxVersionAdjust_D3DRS(State), Value);
 }
 
 #if 0 // Dxbx note : Disabled, as we DO have Xbox_D3D__RenderState_Deferred pin-pointed correctly
@@ -7948,7 +7939,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Deferred)
 	DWORD Value
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(State)
@@ -8076,7 +8067,7 @@ XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource)
     UINT *pStride
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(StreamNumber)
@@ -8107,7 +8098,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetStreamSource2)
 	UINT               *pStride
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FORWARD("D3DDevice_GetStreamSource");
 
@@ -8124,7 +8115,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
     UINT                Stride
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(StreamNumber)
@@ -8987,7 +8978,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette)
     X_D3DPalette      **ppPalette
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FORWARD("D3DDevice_CreatePalette2");
 
@@ -9016,7 +9007,7 @@ XTL::X_D3DPalette * WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette2)
     X_D3DPALETTESIZE    Size
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(Size);
 
@@ -9084,7 +9075,7 @@ VOID WINAPI XTL::EMUPATCH(D3DPalette_Lock)
     DWORD           Flags
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FORWARD("D3DPalette_Lock2");
 
@@ -9107,7 +9098,7 @@ XTL::D3DCOLOR * WINAPI XTL::EMUPATCH(D3DPalette_Lock2)
     DWORD           Flags
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pThis)
@@ -9514,7 +9505,7 @@ PVOID WINAPI XTL::EMUPATCH(D3D_AllocContiguousMemory)
     DWORD dwAllocAttributes
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(dwSize)
@@ -9555,7 +9546,7 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CheckDeviceMultiSampleType)
     X_D3DMULTISAMPLE_TYPE  MultiSampleType
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Adapter)
@@ -9624,7 +9615,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_GetDeviceCaps)
     X_D3DCAPS   *pCaps
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Adapter)
@@ -9649,7 +9640,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_SetPushBufferSize)
     DWORD KickOffSize
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(PushBufferSize)
@@ -9728,7 +9719,7 @@ VOID WINAPI XTL::EMUPATCH(D3DVertexBuffer_GetDesc)
     X_D3DVERTEXBUFFER_DESC *pDesc
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pThis)
@@ -10122,7 +10113,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_PersistDisplay)()
 #if 0 // disabled, calls AvSendTVEncoderOption which calls our AvQueryAvCapabilities
 DWORD WINAPI XTL::EMUPATCH(D3D_CMiniport_GetDisplayCapabilities)()
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC();
 
@@ -10296,7 +10287,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_GetAdapterIdentifier)
 	X_D3DADAPTER_IDENTIFIER *pIdentifier
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Adapter)
@@ -10367,7 +10358,7 @@ PDWORD WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 #if 0 // patch disabled
 void WINAPI XTL::EMUPATCH(D3DDevice_MakeSpace)()
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC();
 
@@ -10446,7 +10437,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DCubeTexture_GetCubeMapSurface)
 	X_D3DSurface**		ppCubeMapSurface
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pThis)
@@ -10482,7 +10473,7 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DCubeTexture_GetCubeMapSurface2)
 	UINT				Level
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FORWARD("D3DCubeTexture_GetCubeMapSurface");
 

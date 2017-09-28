@@ -41,7 +41,7 @@
 #define D3DRS_UNSUPPORTED (D3DRENDERSTATETYPE)0
 
 // XDK version independent renderstate table, containing pointers to the original locations.
-extern X_D3DRENDERSTATETYPE *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED + 1]; // 1 extra for the unsupported value itself
+extern DWORD *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED + 1]; // 1 extra for the unsupported value itself
 
 inline DWORD CxbxGetRenderState(XTL::X_D3DRENDERSTATETYPE XboxRenderState)
 {
@@ -70,6 +70,8 @@ extern void DxbxBuildRenderStateMappingTable();
 extern void InitD3DDeferredStates();
 
 extern void DxbxUpdateDeferredStates();
+
+extern X_D3DRENDERSTATETYPE DxbxVersionAdjust_D3DRS(const DWORD XboxRenderState_VersionDependent);
 
 extern X_D3DTEXTURESTAGESTATETYPE DxbxFromNewVersion_D3DTSS(const X_D3DTEXTURESTAGESTATETYPE NewValue);
 

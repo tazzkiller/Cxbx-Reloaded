@@ -1216,7 +1216,7 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_GetTransform
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_GetTransform, 4039, 12)
+OOVPA_NO_XREF(D3DDevice_GetTransform, 4039, 12) // Also for 4134
 
         // D3DDevice_GetTransform+0x0A : shl ecx, 0x06
         { 0x0A, 0xC1 },

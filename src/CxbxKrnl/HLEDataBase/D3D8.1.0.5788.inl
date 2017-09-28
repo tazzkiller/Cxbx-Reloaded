@@ -709,7 +709,7 @@ OOVPA_XREF(D3D_Unknown, 5788, 6,
     XRefNoSaveIndex,
     XRefOne)
 
-	XREF_ENTRY( 0x0A, XREF_MakeRequestedSpace ),
+	XREF_ENTRY( 0x0A, XREF_D3D_MakeRequestedSpace ),
 
         { 0x05, 0x50 },
         { 0x06, 0xD1 },
@@ -1125,8 +1125,8 @@ OOVPATable D3D8_5788[] = {
 	REGISTER_OOVPA(D3DDevice_CreateVertexBuffer2, 5558, DISABLED),
 	REGISTER_OOVPA(D3DVertexBuffer_Lock, 5788, PATCH),
 	REGISTER_OOVPA(D3DVertexBuffer_Lock2, 5788, PATCH),
-	REGISTER_OOVPA(D3DDevice_LightEnable, 5788, PATCH),
-	REGISTER_OOVPA(D3DDevice_GetLightEnable, 5788, PATCH),
+	REGISTER_OOVPA(D3DDevice_LightEnable, 5344, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetLightEnable, 5344, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetModelView, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_PersistDisplay, 5558, PATCH),
 	REGISTER_OOVPA(D3D_SetPushBufferSize, 3925, DISABLED),

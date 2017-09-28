@@ -1193,7 +1193,7 @@ OOVPATable D3D8_5344[] = {
 	REGISTER_OOVPA(D3DDevice_IsFencePending, 5028, PATCH),
 	REGISTER_OOVPA(D3D_BlockOnTime, 5028, XREF),
 	REGISTER_OOVPA(D3DDevice_BlockOnFence, 5233, PATCH),
-	REGISTER_OOVPA(D3DDevice_GetTransform, 3925, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetTransform, 3925, PATCH), // TODO : Use 4039, or add rollback from 3925 to 5344?
 	REGISTER_OOVPA(D3DDevice_SetPalette, 5344, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetCreationParameters, 3911, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetFlickerFilter, 4134, PATCH),
@@ -1234,7 +1234,7 @@ OOVPATable D3D8_5344[] = {
 	REGISTER_OOVPA(D3DDevice_SetVertexData4s, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_PrimeVertexCache, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_InsertCallback, 5028, PATCH),
-	REGISTER_OOVPA(D3DDevice_GetStreamSource, 4627, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetStreamSource2, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetVertexShader, 5028, PATCH),
 	REGISTER_OOVPA(D3DDevice_GetVertexShaderConstant, 5028, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShaderInputDirect, 4361, PATCH),

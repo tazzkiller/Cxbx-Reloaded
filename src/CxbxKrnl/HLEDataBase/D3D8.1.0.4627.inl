@@ -2111,7 +2111,7 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_GetStreamSource2 (Maybe same in older versions)
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_GetStreamSource, 4627, 7)
+OOVPA_NO_XREF(D3DDevice_GetStreamSource2, 4627, 7)
 
         { 0x06, 0x34 },
         { 0x12, 0x85 },
@@ -2426,17 +2426,14 @@ OOVPA_XREF(D3DDevice_KickPushBuffer, 4627, 4,
 OOVPA_END;
 
 // ******************************************************************
-// * D3DDevice_GetTexture2
+// * D3DDevice_GetTexture, named with 2 suffix to match EMUPATCH(D3DDevice_GetTexture2)
 // ******************************************************************
-#if 0 // Derived XREF_OFFSET_D3DDEVICE_M_TEXTURES is not Implemented yet.
 OOVPA_XREF(D3DDevice_GetTexture2, 4627, 1 + 21, // Also for 5344, 5558, 5659, 5788, 5849, 5933
 
 	XRefNoSaveIndex,
 	XRefOne)
 
 		XREF_ENTRY( 0x0E, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
-#endif
-OOVPA_NO_XREF(D3DDevice_GetTexture2, 4627, 21)
 
 		{ 0x00, 0x8B },
 		{ 0x01, 0x44 },
@@ -3321,8 +3318,8 @@ OOVPATable D3D8_4627[] = {
 	REGISTER_OOVPA(D3DDevice_SwitchTexture, 4361, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetRenderState_YuvEnable, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetTransform, 4134, PATCH),
-	REGISTER_OOVPA(D3DDevice_GetTransform, 4134, PATCH),
-	REGISTER_OOVPA(D3DDevice_GetStreamSource, 4627, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetTransform, 4039, PATCH),
+	REGISTER_OOVPA(D3DDevice_GetStreamSource2, 4627, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetStreamSource, 4034, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShader, 4134, PATCH),
 	REGISTER_OOVPA(D3DDevice_SetVertexShader, 4134, PATCH),

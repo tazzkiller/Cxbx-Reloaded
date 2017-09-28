@@ -422,11 +422,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 					if (bLLE_GPU)
 						continue;
 
-					// Prevent scanning D3D8 again (since D3D8X is packed into it above)
-					if (bFoundD3D)
-						continue;
-
-					bFoundD3D = true;
 					// Some 3911 titles have different D3D8 builds
 					if (BuildVersion <= 3948)
 						BuildVersion = 3925;

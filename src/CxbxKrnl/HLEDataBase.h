@@ -149,7 +149,7 @@ enum XRefDataBaseOffset
     XREF_D3D_CreateStandAloneSurface,
     XREF_D3D_SETFENCE,
 	XREF_D3D_KickOffAndWaitForIdle,
-	XREF_MakeRequestedSpace,
+	XREF_D3D_MakeRequestedSpace,
 	XREF_D3D_KickOff,
 	XREF_D3DPalette_Lock2,
     XREF_XNINIT,

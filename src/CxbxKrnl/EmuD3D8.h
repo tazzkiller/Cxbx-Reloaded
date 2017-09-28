@@ -45,11 +45,11 @@
 // initialize render window
 extern VOID CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize);
 
-#if 0 // unused
-extern VOID CxbxSetPixelContainerHeader1
+#if 1 // temporarily used by ConvertHostSurfaceHeaderToXbox() and WndMain::LoadGameLogo()
+extern VOID CxbxSetPixelContainerHeader
 (
 	XTL::X_D3DPixelContainer* pPixelContainer,
-	DWORD           	Common,
+	DWORD				Common,
 	UINT				Width,
 	UINT				Height,
 	UINT				Levels,

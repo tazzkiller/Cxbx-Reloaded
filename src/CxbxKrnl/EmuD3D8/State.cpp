@@ -61,12 +61,11 @@ DWORD *Xbox_D3D_TextureState = NULL; // [X_D3DTSS_STAGECOUNT][X_D3DTSS_STAGESIZE
 DWORD *Xbox_D3D__RenderState_Deferred = NULL;
 
 // Dxbx addition : Dummy value (and pointer to that) to transparently ignore unsupported render states :
-X_D3DRENDERSTATETYPE DummyRenderStateValue = X_D3DRS_FIRST;
-X_D3DRENDERSTATETYPE *DummyRenderState = &DummyRenderStateValue; // Unsupported states share this pointer value
+DWORD DummyRenderStateValue = X_D3DRS_FIRST;
+DWORD *DummyRenderState = &DummyRenderStateValue; // Unsupported states share this pointer value
 
 // XDK version independent renderstate table, containing pointers to the original locations.
-X_D3DRENDERSTATETYPE *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED + 1] = { NULL }; // 1 extra for the unsupported value itself
-
+DWORD *XTL::EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED + 1] = { NULL }; // 1 extra for the unsupported value itself
 
 DWORD (*DxbxTextureStageStateXB2PCCallback[X_D3DTSS_LAST + 1])(DWORD Value);
 DWORD (*DxbxRenderStateXB2PCCallback[X_D3DRS_LAST + 1])(DWORD Value);
@@ -94,13 +93,13 @@ void DxbxBuildRenderStateMappingTable()
 
 	// Loop over all latest (5911) states :
 	DWORD XDKVersion_D3DRS = X_D3DRS_FIRST;
-	for (X_D3DRENDERSTATETYPE State = X_D3DRS_FIRST; State <= X_D3DRS_LAST; State++)
+	for (int /*X_D3DRENDERSTATETYPE*/ State = X_D3DRS_FIRST; State <= X_D3DRS_LAST; State++)
 	{
 		// Check if this state is available in the active SDK version :
 		if (g_BuildVersion >= GetDxbxRenderStateInfo(State).V)
 		{
 			// If it is available, register this offset in the various mapping tables we use :
-			DxbxMapActiveVersionToMostRecent[XDKVersion_D3DRS] = State;
+			DxbxMapActiveVersionToMostRecent[XDKVersion_D3DRS] = (X_D3DRENDERSTATETYPE)State;
 			DxbxMapMostRecentToActiveVersion[State] = XDKVersion_D3DRS;
 			// Step to the next offset :
 			XDKVersion_D3DRS++;
@@ -144,7 +143,7 @@ void CxbxInitializeEmuMappedD3DRenderState()
 			CxbxKrnlCleanup("CxbxInitializeEmuMappedD3DRenderState : Missing Xbox D3D__RenderState and D3D__RenderState_Deferred!");
 	}
 
-	for (X_D3DRENDERSTATETYPE rs = X_D3DRS_FIRST; rs <= X_D3DRS_LAST; rs++) {
+	for (int /*X_D3DRENDERSTATETYPE*/ rs = X_D3DRS_FIRST; rs <= X_D3DRS_LAST; rs++) {
 		DWORD XDKVersion_D3DRS = DxbxMapMostRecentToActiveVersion[rs];
 		if (XDKVersion_D3DRS != X_D3DRS_UNSUPPORTED) {
 			EmuMappedD3DRenderState[rs] = &(Xbox_D3D__RenderState[XDKVersion_D3DRS]);
@@ -166,7 +165,7 @@ void CxbxInitializeEmuMappedD3DRenderState()
 }
 
 // Converts the input render state from a version-dependent into a version-neutral value.
-X_D3DRENDERSTATETYPE DxbxVersionAdjust_D3DRS(const X_D3DRENDERSTATETYPE XboxRenderState_VersionDependent)
+X_D3DRENDERSTATETYPE XTL::DxbxVersionAdjust_D3DRS(const DWORD XboxRenderState_VersionDependent)
 {
 	return DxbxMapActiveVersionToMostRecent[XboxRenderState_VersionDependent];
 }
@@ -546,7 +545,7 @@ void InitD3DDeferredStates()
 
 #if 0
 	for (int v = X_D3DRS_FIRST; v <= X_D3DRS_LAST; v++) {
-		DWORD XboxValue = *EmuMappedD3DRenderState[v];
+		DWORD XboxValue = CxbxGetRenderState(v);
 		printf("Initial Xbox_D3D_RenderState[%d/*=%s*/] = 0x%.08X \n", v,
 			GetDxbxRenderStateInfo(v).S, XboxValue);
 		TransferredRenderStateValues[v] = XboxValue;
