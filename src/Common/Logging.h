@@ -139,6 +139,20 @@ LOG_SANITIZE(sanitized_wchar_pointer, wchar_t *);
 // Function (and argument) logging defines
 //
 
+constexpr bool string_has_prefix(char const * str, char const * prefix) {
+	while (*prefix)
+		if (*str++ != *prefix++)
+			return false;
+	return true;
+}
+
+constexpr const char* cleanup_func_name(const char *func) {
+	// return an empty string when func isn't given
+	// skip EmuPatch_ prefix if it's present
+	return (func == nullptr) ? "" : (string_has_prefix(func, "EmuPatch_") ? func + 9 : func);
+}
+
+
 #define LOG_ARG_START "\n   " << std::setw(20) << std::left 
 #define LOG_ARG_OUT_START "\n OUT " << std::setw(18) << std::left 
 
@@ -160,7 +174,7 @@ extern thread_local std::string _logPrefix;
 	static thread_local std::string _logFuncPrefix; \
 	if (_logFuncPrefix.length() == 0) {	\
 		std::stringstream tmp; \
-		tmp << _logPrefix << __FILENAME__ << " : " << (func != nullptr ? func : ""); \
+		tmp << _logPrefix << __FILENAME__ << " : " << cleanup_func_name(func); \
 		_logFuncPrefix = tmp.str(); \
 	}
 
