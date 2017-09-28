@@ -2746,6 +2746,8 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					UpdateDepthStencilFlags(g_pActiveXboxDepthStencil);
 				}
 
+				UpdateDepthStencilFlags(g_pCachedDepthStencil); // TODO : g_pActiveXboxDepthStencil
+
 				hRet = g_pD3DDevice8->CreateVertexBuffer
                 (
                     1, 0, 0, XTL::D3DPOOL_MANAGED,
@@ -5581,6 +5583,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 
     // make adjustments to parameters to make sense with windows d3d
     DWORD PCFlags = EmuXB2PC_D3DCLEAR_FLAGS(Flags);
+#if 0 // TODO : Enable once texture-headers all correctly set (especially the format, as UpdateDepthStencilFlags needs that to correctly determine g_bHasDepthBits and g_bHasStencilBits)
     {
 
 		if (Flags & X_D3DCLEAR_TARGET) {
@@ -5611,6 +5614,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
         if(Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL))
             EmuWarning("Unsupported Flag(s) for D3DDevice_Clear : 0x%.08X", Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL));
     }
+#endif
 
 	// Since we filter the flags, make sure there are some left (else, clear isn't necessary) :
 	if (PCFlags > 0)
@@ -8989,6 +8993,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 		g_pActiveXboxRenderTarget = pRenderTarget;
 
 	g_pActiveXboxDepthStencil = pNewZStencil;
+	UpdateDepthStencilFlags(pNewZStencil);
+
 	UpdateDepthStencilFlags(pNewZStencil);
 
     // TODO: Follow that stencil!
