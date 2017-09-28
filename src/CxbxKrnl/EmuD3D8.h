@@ -89,9 +89,8 @@ inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return Xbox_D3DDevic
 extern void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource);
 
 IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, const DWORD *pPalette);
-IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer *pXboxVertexBuffer);
 
-extern void CxbxSetFillMode(DWORD CurrentFillMode);
+IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer *pXboxVertexBuffer);
 
 extern void CxbxSetFillMode(DWORD CurrentFillMode);
 

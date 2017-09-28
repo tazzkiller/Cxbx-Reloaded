@@ -303,7 +303,6 @@ void CxbxClearGlobals()
 	// KEEP g_EmuCDPD = { 0 };
 }
 
-
 // information passed to the create device proxy thread
 struct EmuD3D8CreateDeviceProxyData
 {
@@ -1050,8 +1049,8 @@ XTL::IDirect3DSurface8 *GetHostSurface(XTL::X_D3DResource *pXboxResource)
 	if (pXboxResource == NULL)
 		return nullptr;
 
-	if(GetXboxCommonResourceType(pXboxResource) != X_D3DCOMMON_TYPE_SURFACE) // Allows breakpoint below
-		assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_SURFACE);
+	if (GetXboxCommonResourceType(pXboxResource) != X_D3DCOMMON_TYPE_SURFACE) // Allows breakpoint below
+		return nullptr; // TODO : Jet Set Radio Future hits this assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_SURFACE);
 
 	return (XTL::IDirect3DSurface8 *)GetHostResource(pXboxResource);
 }
@@ -8551,6 +8550,9 @@ void XTL::CxbxDrawPrimitiveUP(CxbxDrawContext &DrawContext)
 	VertexBufferConverter.Restore();
 }
 
+// ******************************************************************
+// * patch: D3DDevice_DrawVertices
+// ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 (
     X_D3DPRIMITIVETYPE PrimitiveType,
@@ -9559,6 +9561,27 @@ PVOID WINAPI XTL::EMUPATCH(D3D_AllocContiguousMemory)
     }
 
 	RETURN(pRet);
+}
+#endif
+
+#if 0 // DISABLED (Just calls Get2DSurfaceDesc)
+// ******************************************************************
+// * patch: IDirect3DTexture8_GetLevelDesc
+// ******************************************************************
+HRESULT WINAPI XTL::EMUPATCH(D3DTexture_GetLevelDesc)
+(
+    UINT Level,
+    X_D3DSURFACE_DESC* pDesc
+)
+{
+//	FUNC_EXPORTS
+
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(Level)
+		LOG_FUNC_ARG(pDesc)
+		LOG_FUNC_END;    
+
+    return D3D_OK;
 }
 #endif
 
