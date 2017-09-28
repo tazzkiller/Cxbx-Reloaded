@@ -123,7 +123,6 @@ static XTL::X_D3DSWAPCALLBACK		g_pSwapCallback = NULL;	// Swap/Present callback 
 static XTL::X_D3DCALLBACK			g_pCallback		= NULL;	// D3DDevice::InsertCallback routine
 static XTL::X_D3DCALLBACKTYPE		g_CallbackType;			// Callback type
 static DWORD						g_CallbackParam;		// Callback param
-static BOOL                         g_bHasDepthStencilSurface = FALSE; // Does device have a Depth/Stencil surface?
 static BOOL                         g_bHasDepthBits = FALSE;    // Has the Depth/Stencil surface a depth component?
 static BOOL                         g_bHasStencilBits = FALSE;  // Has the Depth/Stencil surface a stencil component?
 static clock_t						g_DeltaTime = 0;			 // Used for benchmarking/fps count
@@ -971,8 +970,7 @@ void UpdateDepthStencilFlags(const XTL::X_D3DSurface *pXboxSurface)
 {
 	g_bHasDepthBits = FALSE;
 	g_bHasStencilBits = FALSE;
-	g_bHasDepthStencilSurface = (pXboxSurface != NULL); // Prevents D3D error in EMUPATCH(D3DDevice_Clear)
-	if (g_bHasDepthStencilSurface)
+	if (pXboxSurface != NULL) // Prevents D3D error in EMUPATCH(D3DDevice_Clear)
 	{
 		const XTL::X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pXboxSurface);
 		switch (X_Format)
@@ -2666,7 +2664,8 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                 // initialize primary surface
                 if(g_bSupportsYUY2Overlay)
                 {
-					XTL::DDSURFACEDESC2 ddsd2 = { 0 };
+                    XTL::DDSURFACEDESC2 ddsd2 = { 0 };
+					HRESULT hRet;
 
                     ddsd2.dwSize = sizeof(ddsd2);
                     ddsd2.dwFlags = DDSD_CAPS;
@@ -2745,8 +2744,6 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 
 					UpdateDepthStencilFlags(g_pActiveXboxDepthStencil);
 				}
-
-				UpdateDepthStencilFlags(g_pCachedDepthStencil); // TODO : g_pActiveXboxDepthStencil
 
 				hRet = g_pD3DDevice8->CreateVertexBuffer
                 (

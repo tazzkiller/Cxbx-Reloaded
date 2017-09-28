@@ -79,8 +79,6 @@
 
 #include "CxbxKrnl/CxbxKrnl.h" // For CxbxKrnlCleanup()
 
-typedef uint8_t uint8; // TODO : Remove
-
 #include <assert.h> // assert()
 
 #include <process.h>
@@ -4056,18 +4054,22 @@ bool g_EmuD3DActivePixelShader = (pPSDef != NULL);
   // Our SetPixelShader patch remembered the latest set pixel shader, see if it's assigned :
   if (g_EmuD3DActivePixelShader)
   {
-/* TODO : Do Dxbx post-translation on this code :
-	DWORD *XTL_D3D__RenderState = XTL::EmuMappedD3DRenderState[0];
+	DWORD *XTL_D3D__RenderState = XTL::EmuMappedD3DRenderState[X_D3DRS_PS_FIRST];
 
     // We could read g_EmuD3DActivePixelShader.PshDef, but since this is copied into
     // D3D__RenderState (which contents might have been changed after the call to
     // SetPixelShader), we use the address of XTL_D3D__RenderState as the real pixel
     // shader definition :
-    pPSDef = (XTL::X_D3DPIXELSHADERDEF*)(XTL_D3D__RenderState); 
-    if (pPSDef == NULL)
+	pPSDef = (XTL::X_D3DPIXELSHADERDEF*)(XTL_D3D__RenderState); // Same as XTL::Xbox_D3D__RenderState
+    if (pPSDef == NULL) {
+	  // New Cxbx : Check for g_CurrentPixelShader (it's a pointer, while g_EmuD3DActivePixelShader was a value)
+	  if (g_CurrentPixelShader == nullptr)
+	    return S_FALSE; // TODO : What should we return, and how's this handled?
+
       // If we haven't found the symbol, then we can fall back to the given definition :
-      pPSDef = g_EmuD3DActivePixelShader.PshDef;
-*/
+      pPSDef = &(g_CurrentPixelShader->PSDef); // Was : g_EmuD3DActivePixelShader.PshDef;
+	}
+
     // Now, see if we already have a shader compiled for this declaration :
     RecompiledPixelShader = RecompiledShaders_Head;
     while (RecompiledPixelShader)
@@ -4174,7 +4176,7 @@ bool g_EmuD3DActivePixelShader = (pPSDef != NULL);
 
     // programmable pipeline
     /* Dxbx note : If the following is enabled, Sokoban loses it's textures, so disable it for now :
-    for (v := 0; i < X_D3DTS_STAGECOUNT; i++)
+    for (v := 0; i < X_D3DTSS_STAGECOUNT; i++)
     {
       g_pD3DDevice8->SetTextureStageState(v, D3DTSS_COLOROP, D3DTOP_DISABLE);
       g_pD3DDevice8->SetTextureStageState(v, D3DTSS_ALPHAOP, D3DTOP_DISABLE);
@@ -4183,7 +4185,7 @@ bool g_EmuD3DActivePixelShader = (pPSDef != NULL);
 
     // fixed pipeline
     /* Cxbx has this disabled :
-    for (v := 0; v < X_D3DTS_STAGECOUNT; v++)
+    for (v := 0; v < X_D3DTSS_STAGECOUNT; v++)
     {
       IDirect3DDevice_SetTextureStageState(g_pD3DDevice, v, X_D3DTSS_COLOROP,   D3DTOP_MODULATE);
       IDirect3DDevice_SetTextureStageState(g_pD3DDevice, v, X_D3DTSS_COLORARG1, D3DTA_TEXTURE);
