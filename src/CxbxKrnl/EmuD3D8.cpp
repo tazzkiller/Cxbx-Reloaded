@@ -103,7 +103,6 @@ static void							UpdateCurrentMSpFAndFPS(); // Used for benchmarking/fps count
 // Static Variable(s)
 static HMONITOR                     g_hMonitor      = NULL; // Handle to DirectDraw monitor
 static BOOL                         g_bSupportsYUY2Overlay = FALSE; // Does device support YUY2 overlays?
-static bool                         g_bSupportsTextureFormat[XTL::X_D3DFMT_LIN_R8G8B8A8 + 1] = { false };// Does device support texture format?
 static XTL::LPDIRECTDRAW7           g_pDD7          = NULL; // DirectDraw7
 static XTL::DDCAPS                  g_DriverCaps          = { 0 };
 #if 0
@@ -246,7 +245,6 @@ void CxbxClearGlobals()
 	g_pCallback = NULL;
 	// g_CallbackType;
 	// g_CallbackParam;
-	g_bHasDepthStencilSurface = FALSE;
 	g_bHasDepthBits = FALSE;
 	g_bHasStencilBits = FALSE;
 	// g_dwPrimPerFrame = 0;
@@ -1218,21 +1216,34 @@ void DxbxDetermineSurFaceAndLevelByData(const DecodedPixelContainer PixelJar, OU
 	}
 }
 
-namespace XTL {
-D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceType, IN OUT DWORD &aUsage)
+bool IsResourceFormatSupported(XTL::X_D3DRESOURCETYPE aResourceType, XTL::D3DFORMAT PCFormat, DWORD aUsage)
 {
-	// Convert Format (Xbox->PC)
-	D3DFORMAT Result = EmuXB2PC_D3DFormat(X_Format);
-
-	// Dxbx addition : Check device caps :
-	if (SUCCEEDED(g_pD3D8->CheckDeviceFormat(
+	bool Result = SUCCEEDED(g_pD3D8->CheckDeviceFormat(
 		g_EmuCDPD.CreationParameters.AdapterOrdinal, // Note : D3DADAPTER_DEFAULT = 0
 		g_EmuCDPD.CreationParameters.DeviceType, // Note : D3DDEVTYPE_HAL = 1, D3DDEVTYPE_REF = 2, D3DDEVTYPE_SW = 3
 		g_EmuCDPD.NativePresentationParameters.BackBufferFormat,
 		aUsage,
-		(D3DRESOURCETYPE)aResourceType, // Note : X_D3DRTYPE_SURFACE up to X_D3DRTYPE_INDEXBUFFER values matches host D3D
-		Result)))
+		(XTL::D3DRESOURCETYPE)aResourceType, // Note : X_D3DRTYPE_SURFACE up to X_D3DRTYPE_INDEXBUFFER values matches host D3D
+		PCFormat));
+	return Result;
+}
+
+namespace XTL {
+
+D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceType, IN OUT DWORD &aUsage, OUT bool &ConversionToARGBNeeded)
+{
+	// Convert Format (Xbox->PC)
+	D3DFORMAT Result = EmuXB2PC_D3DFormat(X_Format);
+
+	// Check device caps :
+	if (IsResourceFormatSupported(aResourceType, Result, aUsage))
 		return Result;
+
+	// Can we convert this format to ARGB?
+	ConversionToARGBNeeded = EmuXBFormatComponentConverter(X_Format) != nullptr;
+	if (ConversionToARGBNeeded) {
+		return D3DFMT_A8R8G8B8;
+	}
 
 	D3DFORMAT FirstResult = Result;
 	switch (Result) {
@@ -1252,13 +1263,7 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 			{
 				Result = D3DFMT_D16_LOCKABLE;
 				// ATI Fix : Does this card support D16 DepthStencil textures ?
-				if (FAILED(g_pD3D8->CheckDeviceFormat(
-					g_EmuCDPD.CreationParameters.AdapterOrdinal,
-					g_EmuCDPD.CreationParameters.DeviceType,
-					g_EmuCDPD.NativePresentationParameters.BackBufferFormat,
-					aUsage,
-					_D3DRESOURCETYPE(aResourceType),
-					Result)))
+				if (!IsResourceFormatSupported(aResourceType, Result, aUsage))
 				{
 					// If not, fall back to a format that's the same size and is most probably supported :
 					Result = D3DFMT_R5G6B5; // Note : If used in shaders, this will give unpredictable channel mappings!
@@ -1303,22 +1308,27 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 	case D3DFMT_YUY2:
 		// TODO : Is this still neccessary?
 		Result = D3DFMT_V8U8; // Use another format that's also 16 bits wide
-		if (aResourceType == X_D3DRTYPE_CUBETEXTURE)
-			CxbxKrnlCleanup("YUV not supported for cube textures");
 
 		break;
 	}
 
-	if (FirstResult != Result)
-		EmuWarning("%s is an unsupported format for %s! Allocating %s",
-			X_D3DFORMAT2String(X_Format).c_str(),
-			X_D3DRESOURCETYPE2String(aResourceType).c_str(),
-			D3DFORMAT2PCHAR(Result));
+	if (FirstResult != Result) {
+		if (IsResourceFormatSupported(aResourceType, Result, aUsage))
+			EmuWarning("%s is an unsupported format for %s! Allocating %s",
+				X_D3DFORMAT2String(X_Format).c_str(),
+				X_D3DRESOURCETYPE2String(aResourceType).c_str(),
+				D3DFORMAT2PCHAR(Result));
+		else
+			CxbxKrnlCleanup("%s is an unsupported format for %s!\nFallback %s is also not supported!",
+				X_D3DFORMAT2String(X_Format).c_str(),
+				X_D3DRESOURCETYPE2String(aResourceType).c_str(),
+				D3DFORMAT2PCHAR(Result));
+	}
 
 	return Result;
 }
 
-}
+} // end of namespace XTL;
 
 #if 0 // unused
 inline XTL::X_D3DPALETTESIZE GetXboxPaletteSize(const XTL::X_D3DPalette *pPalette)
@@ -1471,6 +1481,22 @@ void ConvertHostSurfaceHeaderToXbox
 }
 #endif
 
+UINT CxbxFormatAndWidthToRowSizeInBytes(
+	XTL::X_D3DFORMAT X_Format,
+	UINT uWidth
+)
+{
+	// Calculate the size of a row, based on the number of bits per pixel of the given format
+	DWORD dwBPP = EmuXBFormatBitsPerPixel(X_Format);
+	UINT uPitch = RoundUp((uWidth * dwBPP) / 8, X_D3DTEXTURE_PITCH_ALIGNMENT);
+
+	// Compressed formats encode 4 lines per row, so adjust pitch accordingly
+	if (EmuXBFormatIsCompressed(X_Format))
+		uPitch *= 4;
+
+	return uPitch;
+}
+
 VOID CxbxGetPixelContainerMeasures
 (
 	XTL::X_D3DPixelContainer *pPixelContainer,
@@ -1478,7 +1504,7 @@ VOID CxbxGetPixelContainerMeasures
 	UINT *pWidth,
 	UINT *pHeight,
 	UINT *pPitch,
-	UINT *pSize
+	UINT *pSize = nullptr
 )
 {
 	DWORD Size = pPixelContainer->Size;
@@ -1494,17 +1520,18 @@ VOID CxbxGetPixelContainerMeasures
 	{
 		DWORD l2w = (pPixelContainer->Format & X_D3DFORMAT_USIZE_MASK) >> X_D3DFORMAT_USIZE_SHIFT;
 		DWORD l2h = (pPixelContainer->Format & X_D3DFORMAT_VSIZE_MASK) >> X_D3DFORMAT_VSIZE_SHIFT;
-		DWORD dwBPP = EmuXBFormatBitsPerPixel(X_Format);
 
 		*pHeight = 1 << l2h;
 		*pWidth = 1 << l2w;
-		*pPitch = RoundUp((*pWidth * dwBPP) / 8, X_D3DTEXTURE_PITCH_ALIGNMENT);
+		*pPitch = CxbxFormatAndWidthToRowSizeInBytes(X_Format, *pWidth);
 	}
 
-	*pSize = *pHeight * *pPitch;
-
-	if (EmuXBFormatIsCompressed(X_Format)) {
-		*pPitch *= 4;
+	if (pSize) {
+		*pSize = *pHeight * *pPitch;
+		// Compressed formats encode 4 lines per row, so adjust size accordingly
+		if (EmuXBFormatIsCompressed(X_Format)) {
+			*pSize /= 4;
+		}
 	}
 #if 0 // Enable to dump results
 	{
@@ -1822,7 +1849,7 @@ VOID XTL::EmuD3DInit()
 			g_pD3D8->GetAdapterDisplayMode(g_XBVideo.GetDisplayAdapter(), &D3DDisplayMode);
 
 			if (D3DDisplayMode.Format == D3DFMT_X8R8G8B8)
-				PresParam.BackBufferFormat = X_D3DFMT_A8R8G8B8; // Xbox often wants this - good enough
+				PresParam.BackBufferFormat = X_D3DFMT_A8R8G8B8; // Xbox often wants this, good enough
 			else
 				PresParam.BackBufferFormat = EmuPC2XB_D3DFormat(D3DDisplayMode.Format);
 
@@ -2412,6 +2439,11 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					g_EmuCDPD.NativePresentationParameters.Windowed = !g_XBVideo.GetFullscreen();
 					g_EmuCDPD.NativePresentationParameters.SwapEffect = (XTL::D3DSWAPEFFECT)g_EmuCDPD.pPresentationParameters->SwapEffect;
 
+					if (g_EmuCDPD.NativePresentationParameters.BackBufferFormat == XTL::D3DFMT_A8R8G8B8) {
+						EmuWarning("Changing host BackBufferFormat from D3DFMT_A8R8G8B8 to D3DFMT_X8R8G8B8, to make CheckDeviceFormat() succeed more often");
+						g_EmuCDPD.NativePresentationParameters.BackBufferFormat = XTL::D3DFMT_X8R8G8B8;
+					}
+
 					// MultiSampleType may only be set if SwapEffect = D3DSWAPEFFECT_DISCARD :
 					if (g_EmuCDPD.NativePresentationParameters.SwapEffect == XTL::D3DSWAPEFFECT_DISCARD)
 					{
@@ -2536,23 +2568,6 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				// cache device pointer
 				g_pD3DDevice8 = *g_EmuCDPD.ppReturnedDeviceInterface;
 
-				// Which texture formats does this device support?
-				memset(g_bSupportsTextureFormat, 0, sizeof(g_bSupportsTextureFormat));
-				for (int X_Format = XTL::X_D3DFMT_L8; X_Format <= XTL::X_D3DFMT_LIN_R8G8B8A8; X_Format++) {
-					// Only process Xbox formats that are directly mappable to host
-					if (!XTL::EmuXBFormatRequiresConversionToARGB((XTL::X_D3DFORMAT)X_Format)) {
-						// Convert the Xbox format into host format (without warning, thanks to the above restriction)
-						XTL::D3DFORMAT PCFormat = XTL::EmuXB2PC_D3DFormat((XTL::X_D3DFORMAT)X_Format);
-						// Index g_bSupportsTextureFormat with Xbox D3DFormat, because host FourCC codes are too big to be used as indices
-						g_bSupportsTextureFormat[X_Format] = (PCFormat != XTL::D3DFMT_UNKNOWN) &&
-							// Ask the Direct3D device if this format is supported (for textures, that is)
-							(D3D_OK == g_pD3D8->CheckDeviceFormat(
-								g_EmuCDPD.CreationParameters.AdapterOrdinal, g_EmuCDPD.CreationParameters.DeviceType,
-								(XTL::D3DFORMAT)g_EmuCDPD.pPresentationParameters->BackBufferFormat, 0,
-								XTL::D3DRTYPE_TEXTURE, PCFormat));
-					}
-				}
-
 				HRESULT hRet;
 
 				hRet = g_pD3DDevice8->BeginScene();
@@ -2596,6 +2611,8 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                         CxbxKrnlCleanup("Could not set cooperative level");
                 }
 
+				g_bSupportsYUY2Overlay = IsResourceFormatSupported(XTL::X_D3DRTYPE_SURFACE, XTL::D3DFMT_YUY2, 0);
+
 				// Dump all supported DirectDraw FourCC format codes
 				{
                     DWORD  dwCodes = 0;
@@ -2630,18 +2647,15 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 						}
 
 						// Warn if CheckDeviceFormat didn't report this format
-						if (!g_bSupportsTextureFormat[X_Format]) {
+						if (!g_bSupportsYUY2Overlay && (X_Format == XTL::X_D3DFMT_YUY2)) {
 							EmuWarning("EmuD3D8: FourCC format %.4s not previously detected via CheckDeviceFormat()! Enabling it.", (char *)&(lpCodes[v]));
 							// TODO : If this warning never shows, detecting FourCC's could be removed entirely. For now, enable the format :
-							g_bSupportsTextureFormat[X_Format] = true;
+							g_bSupportsYUY2Overlay = true;
 						}
                     }
 
                     free(lpCodes);						
 				}
-
-				// TODO : Remove these :
-				g_bSupportsYUY2Overlay = g_bSupportsTextureFormat[XTL::X_D3DFMT_YUY2];
 
 				// check for YUY2 overlay support TODO: accept other overlay types
 				{
@@ -4641,7 +4655,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture)
 			PCFormat = D3DFMT_R5G6B5;
 		}
 		//*
-		else if(PCFormat == D3DFMT_P8 && !g_bSupportsTextureFormat[X_D3DFMT_P8])
+		else if(PCFormat == D3DFMT_P8 && !IsResourceFormatSupported(X_D3DRTYPE_TEXTURE, D3DFMT_P8, 0))
 		{
 			EmuWarning("D3DFMT_P8 is an unsupported texture format!");
 			PCFormat = D3DFMT_L8;
@@ -4789,7 +4803,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVolumeTexture)
 			EmuWarning("D3DFMT_D16 is an unsupported texture format!");
 			PCFormat = D3DFMT_X8R8G8B8; // TODO : Use D3DFMT_R5G6B5 ?
 		}
-		else if (PCFormat == D3DFMT_P8 && !g_bSupportsTextureFormat[X_D3DFMT_P8])
+		else if (PCFormat == D3DFMT_P8 && !IsResourceFormatSupported(X_D3DRTYPE_VOLUMETEXTURE, D3DFMT_P8, 0))
 		{
 			EmuWarning("D3DFMT_P8 is an unsupported texture format!");
 			PCFormat = D3DFMT_L8;
@@ -4859,7 +4873,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateCubeTexture)
         EmuWarning("D3DFMT_D16 is an unsupported texture format!");
         PCFormat = D3DFMT_X8R8G8B8; // TODO : Use D3DFMT_R5G6B5?
     }
-    else if(PCFormat == D3DFMT_P8 && !g_bSupportsTextureFormat[X_D3DFMT_P8])
+    else if(PCFormat == D3DFMT_P8 && !IsResourceFormatSupported(X_D3DRTYPE_CUBETEXTURE, D3DFMT_P8, 0))
     {
         EmuWarning("D3DFMT_P8 is an unsupported texture format!");
         PCFormat = D3DFMT_L8;
@@ -5579,9 +5593,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 
     // make adjustments to parameters to make sense with windows d3d
     DWORD PCFlags = EmuXB2PC_D3DCLEAR_FLAGS(Flags);
-#if 0 // TODO : Enable once texture-headers all correctly set (especially the format, as UpdateDepthStencilFlags needs that to correctly determine g_bHasDepthBits and g_bHasStencilBits)
     {
-
 		if (Flags & X_D3DCLEAR_TARGET) {
 			// TODO: D3DCLEAR_TARGET_A, *R, *G, *B don't exist on windows
 			if ((Flags & X_D3DCLEAR_TARGET) != X_D3DCLEAR_TARGET)
@@ -5610,7 +5622,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
         if(Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL))
             EmuWarning("Unsupported Flag(s) for D3DDevice_Clear : 0x%.08X", Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL));
     }
-#endif
 
 	// Since we filter the flags, make sure there are some left (else, clear isn't necessary) :
 	if (PCFlags > 0)
@@ -5874,13 +5885,16 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		return (IDirect3DBaseTexture8 *)g_pInitialHostDepthStencil;
 
 	if (pPixelContainer == g_pActiveXboxBackBuffer)
-		return (IDirect3DBaseTexture8 *)g_pActiveHostBackBuffer;
+		if (g_pActiveHostBackBuffer != nullptr)
+			return (IDirect3DBaseTexture8 *)g_pActiveHostBackBuffer;
 
 	if (pPixelContainer == g_pActiveXboxRenderTarget)
-		return (IDirect3DBaseTexture8 *)g_pActiveHostRenderTarget;
+		if (g_pActiveHostRenderTarget != nullptr)
+			return (IDirect3DBaseTexture8 *)g_pActiveHostRenderTarget;
 
 	if (pPixelContainer == g_pActiveXboxDepthStencil)
-		return (IDirect3DBaseTexture8 *)g_pActiveHostDepthStencil;
+		if (g_pActiveHostDepthStencil != nullptr)
+			return (IDirect3DBaseTexture8 *)g_pActiveHostDepthStencil;
 
 	X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pPixelContainer);
 	if (X_Format == X_D3DFMT_P8)
@@ -5982,12 +5996,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	}
 	}
 
-	// Determine if a conversion to ARGB is needed
-	bool bConvertToARGB = !g_bSupportsTextureFormat[X_Format];
-	if (bConvertToARGB)
-		if (!EmuXBFormatRequiresConversionToARGB(X_Format))
-			CxbxKrnlCleanup("Texture Format not supported on device, and no conversion available!");
-
 	// One of these will be created :
 	IDirect3DSurface8 *pNewHostSurface = nullptr;
 	IDirect3DCubeTexture8 *pNewHostCubeTexture = nullptr;
@@ -6000,12 +6008,11 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	DWORD D3DUsage = 0; // TODO : | D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL
 	D3DPOOL D3DPool = D3DPOOL_MANAGED;
 
-	D3DFORMAT PCFormat;
+	X_D3DRESOURCETYPE X_D3DResourceType = GetXboxD3DResourceType(pPixelContainer);
 
-	if (bConvertToARGB)
-		PCFormat = D3DFMT_A8R8G8B8;
-	else
-		PCFormat = DxbxXB2PC_D3DFormat(X_Format, GetXboxD3DResourceType(pPixelContainer), D3DUsage); // Was EmuXB2PC_D3DFormat
+	// Determine if a conversion to ARGB is needed
+	bool bConvertToARGB = false;
+	D3DFORMAT PCFormat = DxbxXB2PC_D3DFormat(X_Format, X_D3DResourceType, D3DUsage, bConvertToARGB);
 
 	HRESULT hRet = S_OK;
 
@@ -8992,7 +8999,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 		g_pActiveXboxRenderTarget = pRenderTarget;
 
 	g_pActiveXboxDepthStencil = pNewZStencil;
-	UpdateDepthStencilFlags(pNewZStencil);
 
 	UpdateDepthStencilFlags(pNewZStencil);
 
@@ -9623,7 +9629,7 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CheckDeviceMultiSampleType)
         EmuWarning("D3DFMT_D16 is an unsupported texture format!");
         PCSurfaceFormat = D3DFMT_X8R8G8B8;
     }
-    else if(PCSurfaceFormat == D3DFMT_P8 && !g_bSupportsTextureFormat[X_D3DFMT_P8])
+    else if(PCSurfaceFormat == D3DFMT_P8 && !IsResourceFormatSupported(X_D3DRTYPE_SURFACE, D3DFMT_P8, 0))
     {
         EmuWarning("D3DFMT_P8 is an unsupported texture format!");
         PCSurfaceFormat = D3DFMT_X8R8G8B8;
