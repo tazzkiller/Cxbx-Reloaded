@@ -42,10 +42,8 @@
 //#include "EmuNV2A.h"
 #include "Convert.h" // GetDxbxRenderStateInfo()
 
-// D3D build version
-extern uint32 g_BuildVersion;
-
-extern int g_iWireframe;
+extern uint32 g_BuildVersion; // D3D build version
+extern int g_FillModeOverride;
 extern int X_D3DSCM_CORRECTION_VersionDependent;
 
 namespace XTL {
@@ -221,6 +219,23 @@ X_D3DTEXTURESTAGESTATETYPE XTL::DxbxFromOldVersion_D3DTSS(const X_D3DTEXTURESTAG
 	return Result;
 }
 
+void CxbxSetFillMode(DWORD CurrentFillMode)
+{
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
+	 // Configurable override on fillmode :
+	DWORD dwFillMode;
+	switch (g_FillModeOverride) {
+	case 0: dwFillMode = CurrentFillMode; break; // Use fillmode specified by the XBE
+	case 1: dwFillMode = XTL::D3DFILL_WIREFRAME; break;
+	case 2: dwFillMode = XTL::D3DFILL_POINT; break;
+	default: dwFillMode = XTL::D3DFILL_SOLID; break;
+	}
+
+	HRESULT hRet = g_pD3DDevice8->SetRenderState(XTL::D3DRS_FILLMODE, dwFillMode);
+//	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
+}
+
 DWORD TransferredRenderStateValues[X_D3DRS_LAST + 1] = { X_D3DRS_UNKNOWN };
 
 DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue)
@@ -304,7 +319,7 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 	}
 #endif
 	case X_D3DRS_FILLMODE: {
-		// Store actual dwFillMode for when g_iWireframe is changed
+		// Store actual dwFillMode for when g_FillModeOverride is changed
 		XTL::CxbxSetFillMode(PCValue);
 		break;
 	}

@@ -92,8 +92,6 @@ IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContain
 
 IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer *pXboxVertexBuffer);
 
-extern void CxbxSetFillMode(DWORD CurrentFillMode);
-
 // ******************************************************************
 // * patch: Direct3D_CreateDevice
 // ******************************************************************

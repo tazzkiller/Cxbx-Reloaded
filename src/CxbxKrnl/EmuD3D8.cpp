@@ -83,7 +83,6 @@ XTL::CxbxPixelShader               *g_CurrentPixelShader = nullptr;
 BOOL                                g_bFakePixelShaderLoaded = FALSE;
 BOOL                                g_bIsFauxFullscreen = FALSE;
 BOOL								g_bHackUpdateSoftwareOverlay = FALSE;
-DWORD								g_CurrentFillMode = XTL::D3DFILL_SOLID;	// Used to backup/restore the fill mode when WireFrame is enabled
 
 // Static Function(s)
 static BOOL WINAPI                  EmuEnumDisplayDevices(GUID FAR *lpGUID, LPSTR lpDriverDescription, LPSTR lpDriverName, LPVOID lpContext, HMONITOR hm);
@@ -132,10 +131,9 @@ static XTL::D3DDEVTYPE				g_D3DDeviceType;		// Direct3D8 Device type
 static XTL::D3DCAPS8                g_D3DCaps;              // Direct3D8 Caps
 static XTL::D3DDISPLAYMODE          g_D3DDisplayMode = {};  // Direct3D8 Adapter Display mode
 
-// Wireframe toggle. Default 0=Xbox pass-through. Overrides: 1=D3DFILL_WIREFRAME,2=D3DFILL_POINT,3=D3DFILL_SOLID
-int                                 g_iWireframe = 0;
-// version-dependent correction on shader constant numbers
-int                                 X_D3DSCM_CORRECTION_VersionDependent = 0;
+// Modifieable, behaviour-changing variable
+int                                 g_FillModeOverride = 0; // Default 0=Xbox pass-through, 1=D3DFILL_WIREFRAME, 2=D3DFILL_POINT, 3=D3DFILL_SOLID
+int                                 X_D3DSCM_CORRECTION_VersionDependent = 0; // version-dependent correction on shader constant numbers
 
 #if 0
 // current active index buffer
@@ -252,7 +250,7 @@ void CxbxClearGlobals()
 	// KEEP g_pD3D8 = NULL;
 	// KEEP g_D3DCaps = {};
 
-	g_iWireframe = 0;
+	g_FillModeOverride = 0;
 	X_D3DSCM_CORRECTION_VersionDependent = 0;
 
 #if 0
@@ -1611,9 +1609,9 @@ void CxbxUpdateTextureStages()
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	for (int Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++) {
-		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = (g_iWireframe == 0)
-			? CxbxUpdateTexture(XTL::GetXboxBaseTexture(Stage), g_pTexturePaletteStages[Stage])
-			: nullptr;
+		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = nullptr;
+		if (g_FillModeOverride == 0)
+			pHostBaseTexture = CxbxUpdateTexture(XTL::GetXboxBaseTexture(Stage), g_pTexturePaletteStages[Stage]);
 
 		HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, pHostBaseTexture);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTexture");
@@ -1666,25 +1664,6 @@ void CxbxUpdateNativeD3DResources()
 	CxbxUpdateTextureStages();
 	XTL::DxbxUpdateDeferredStates(); // BeginPush sample shows us that this must come *after* texture update!
 	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
-}
-
-void XTL::CxbxSetFillMode(DWORD CurrentFillMode)
-{
-	LOG_INIT // Allows use of DEBUG_D3DRESULT
-
-	g_CurrentFillMode = CurrentFillMode;
-
-	// Configurable override on fillmode :
-	DWORD dwFillMode;
-	switch (g_iWireframe) {
-	case 0: dwFillMode = CurrentFillMode; break; // Use fillmode specified by the XBE
-	case 1: dwFillMode = D3DFILL_WIREFRAME; break;
-	case 2: dwFillMode = D3DFILL_POINT; break;
-	default: dwFillMode = D3DFILL_SOLID; break;
-	}
-
-	HRESULT hRet = g_pD3DDevice8->SetRenderState(D3DRS_FILLMODE, dwFillMode);
-	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderState");
 }
 
 void CxbxInternalSetRenderState
@@ -2144,8 +2123,8 @@ static LRESULT WINAPI EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
             }
             else if(wParam == VK_F11)
             {
-                if(g_iWireframe++ > 2)
-                    g_iWireframe = 0;
+                if(++g_FillModeOverride > 3)
+                    g_FillModeOverride = 0;
             }
             else if(wParam == VK_F12)
             {
@@ -4551,7 +4530,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShader)
 
 		if (SUCCEEDED(hRet))
 		{
-			hRet = g_pD3DDevice8->SetPixelShader(g_iWireframe == 0 ? dwHandle : 0);
+			hRet = g_pD3DDevice8->SetPixelShader(g_FillModeOverride == 0 ? dwHandle : NULL);
 			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetPixelShader");
 		}
 
@@ -4565,7 +4544,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShader)
         EmuWarning("Trying fixed or recompiled programmable pipeline pixel shader!");
         g_bFakePixelShaderLoaded = FALSE;
 		g_dwCurrentPixelShader = Handle;
-        hRet = g_pD3DDevice8->SetPixelShader(g_iWireframe == 0 ? Handle : NULL);
+        hRet = g_pD3DDevice8->SetPixelShader(g_FillModeOverride == 0 ? Handle : NULL);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetPixelShader(fixed)");
 	}
 
@@ -5122,7 +5101,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
     //*/
 
     //HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, pDummyTexture[Stage]);
-    HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, (g_iWireframe == 0) ? pHostBaseTexture : nullptr);
+    HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, (g_FillModeOverride == 0) ? pHostBaseTexture : nullptr);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTexture");
 #endif
 }
@@ -5660,9 +5639,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 
 		// Before clearing, make sure the correct output surfaces are used
 		CxbxUpdateActiveRenderTarget(); // No need to call full-fledged CxbxUpdateNativeD3DResources
-
-		// TODO : Dxbx doesn't do this - should we?
-		CxbxSetFillMode(g_CurrentFillMode);
 
 		hRet = g_pD3DDevice8->Clear(Count, pRects, PCFlags, Color, Z, Stencil);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
