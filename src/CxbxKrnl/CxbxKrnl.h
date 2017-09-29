@@ -123,7 +123,11 @@ typedef uint32 xbaddr;
 
 void CxbxPopupMessage(const char *message, ...);
 
-#define LOG_TEST_CASE(message) do { static bool bPopupShown = false; if (!bPopupShown) { bPopupShown = true; CxbxPopupMessage("Please report that %ls shows this test-case: %s\nIn %s (%s)", g_pCertificate->wszTitleName, message, __func__, __FILE__); } } while(0)
+#define LOG_TEST_CASE(message) do { static bool bPopupShown = false; \
+    if (!bPopupShown) { bPopupShown = true; \
+    CxbxPopupMessage("Please report that %s shows this test-case: %s\nIn %s (%s line %d)", \
+    CxbxKrnl_Xbe->m_szAsciiTitle, message, __func__, __FILE__, __LINE__); } } while(0)
+// was g_pCertificate->wszTitleName
 
 extern Xbe::Certificate *g_pCertificate;
 

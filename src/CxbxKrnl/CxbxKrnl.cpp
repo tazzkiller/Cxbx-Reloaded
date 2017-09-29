@@ -830,6 +830,10 @@ __declspec(noreturn) void CxbxKrnlInit
 
 	// Dump Xbe information
 	{
+		if (CxbxKrnl_Xbe != nullptr) {
+			printf("EmuMain : Title : %ls\n", CxbxKrnl_Xbe->m_szAsciiTitle);
+		}
+
 		// Dump Xbe certificate
 		if (g_pCertificate != NULL) {
 			printf("EmuMain : XBE TitleID : %.8X\n", g_pCertificate->dwTitleId);
