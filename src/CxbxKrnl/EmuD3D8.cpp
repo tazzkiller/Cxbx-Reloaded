@@ -3232,7 +3232,7 @@ BOOL WINAPI XTL::EMUPATCH(D3DDevice_IsBusy)()
     return FALSE;
 }
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetCreationParameters)
 (
 		X_D3DDEVICE_CREATION_PARAMETERS *pParameters
@@ -3249,7 +3249,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetCreationParameters)
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3D_CheckDeviceFormat) // TODO : Rename to Direct3D_CheckDeviceFormat
 (
     UINT                        Adapter,
@@ -3286,7 +3286,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_CheckDeviceFormat) // TODO : Rename to Direct3D
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayFieldStatus)
 (
 	X_D3DFIELD_STATUS *pFieldStatus
@@ -3420,7 +3420,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetVisibilityTestResult)
     return D3D_OK;
 }
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDeviceCaps)
 (
     X_D3DCAPS                   *pCaps
@@ -3504,7 +3504,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SelectVertexShader)
 	}
 }
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle)() // TODO : Rename to KickOffAndWaitForIdle
 {
 //	FUNC_EXPORTS
@@ -3517,7 +3517,7 @@ VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle)() // TODO : Rename to KickO
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle2)(DWORD dwDummy1, DWORD dwDummy2)
 {
 //	FUNC_EXPORTS
@@ -3533,7 +3533,7 @@ VOID WINAPI XTL::EMUPATCH(D3D_KickOffAndWaitForIdle2)(DWORD dwDummy1, DWORD dwDu
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 ULONG WINAPI XTL::EMUPATCH(D3DDevice_AddRef)()
 {
 //	FUNC_EXPORTS
@@ -3560,7 +3560,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_BeginStateBlock)()
 #if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_BeginStateBig)()
 {
-//    FUNC_EXPORTS
+//	FUNC_EXPORTS
 
    	LOG_FUNC();
 
@@ -3977,7 +3977,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetShaderConstantMode)
     g_VertexShaderConstantMode = Mode;
 }
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Reset)
 (
     X_D3DPRESENT_PARAMETERS *pPresentationParameters
@@ -4577,7 +4577,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShader)
     }
 }
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 XTL::X_D3DResource * WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture2)
 (
     UINT                Width,
@@ -4620,7 +4620,7 @@ XTL::X_D3DResource * WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture2)
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture)
 (
     UINT            Width,
@@ -4772,7 +4772,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture)
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVolumeTexture)
 (
     UINT                 Width,
@@ -4863,7 +4863,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVolumeTexture)
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateCubeTexture)
 (
     UINT                 EdgeLength,
@@ -4931,7 +4931,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateCubeTexture)
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer)
 (
     UINT                 Length,
@@ -4986,7 +4986,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer)
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 XTL::X_D3DIndexBuffer * WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer2)
 (
 	UINT Length
@@ -5012,7 +5012,7 @@ XTL::X_D3DIndexBuffer * WINAPI XTL::EMUPATCH(D3DDevice_CreateIndexBuffer2)
 
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetIndices)
 (
     X_D3DIndexBuffer   *pIndexData,
@@ -5206,7 +5206,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
     }
 }
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayMode)
 (
     OUT X_D3DDISPLAYMODE         *pMode
@@ -6519,7 +6519,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	return result;
 }
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 ULONG WINAPI XTL::EMUPATCH(D3DResource_AddRef)
 (
     X_D3DResource      *pThis
@@ -6657,7 +6657,7 @@ BOOL WINAPI XTL::EMUPATCH(D3DResource_IsBusy)
     return FALSE;
 }
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 XTL::X_D3DRESOURCETYPE WINAPI XTL::EMUPATCH(D3DResource_GetType)
 (
     X_D3DResource      *pThis
@@ -6692,7 +6692,7 @@ XTL::X_D3DRESOURCETYPE WINAPI XTL::EMUPATCH(D3DResource_GetType)
 }
 #endif
 
-#if 0 // patch disabled - just calls LockSurface (and BlockOnResource)
+#if 0 // Patch disabled - just calls LockSurface (and BlockOnResource)
 VOID WINAPI XTL::EMUPATCH(Lock2DSurface)
 (
     X_D3DPixelContainer *pPixelContainer,
@@ -6731,7 +6731,7 @@ VOID WINAPI XTL::EMUPATCH(Lock2DSurface)
 }
 #endif
 
-#if 0 // patch disabled - just calls LockSurface (and BlockOnResource)
+#if 0 // Patch disabled - just calls LockSurface (and BlockOnResource)
 VOID WINAPI XTL::EMUPATCH(Lock3DSurface)
 (
     X_D3DPixelContainer *pPixelContainer,
@@ -6883,7 +6883,7 @@ VOID WINAPI XTL::EMUPATCH(D3DSurface_GetDesc)
 }
 #endif
 
-#if 0 // calls Lock2DSurface
+#if 0 // Patch disabled - calls Lock2DSurface
 VOID WINAPI XTL::EMUPATCH(D3DSurface_LockRect)
 (
     X_D3DResource      *pThis,
@@ -7043,7 +7043,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel2)
 }
 #endif
 
-#if 0 // just calls Lock2DSurface
+#if 0 // Patch disabled - just calls Lock2DSurface
 VOID WINAPI XTL::EMUPATCH(D3DTexture_LockRect)
 (
     X_D3DTexture   *pThis,
@@ -7219,7 +7219,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DDevice_Release)()
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 3HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexBuffer)
 (
     UINT                Length,
@@ -7239,7 +7239,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DDevice_Release)()
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 XTL::X_D3DVertexBuffer* WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexBuffer2)
 (
     UINT Length
@@ -7952,7 +7952,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderStateNotInline)
 	CxbxInternalSetRenderState(__func__, XTL::DxbxVersionAdjust_D3DRS(State), Value);
 }
 
-#if 0 // Dxbx note : Disabled, as we DO have Xbox_D3D__RenderState_Deferred pin-pointed correctly
+#if 0 // Patch disabled - Dxbx note : Disabled, as we DO have Xbox_D3D__RenderState_Deferred pin-pointed correctly
 VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Deferred)
 (
 	DWORD State,
@@ -9001,7 +9001,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
     // TODO: Follow that stencil!
 }
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette)
 (
     X_D3DPALETTESIZE    Size,
@@ -9018,7 +9018,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette)
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 int XboxD3DPaletteSizeToBytes(const XTL::X_D3DPALETTESIZE Size)
 {
 	static int lk[4] =
@@ -9587,7 +9587,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DTexture_GetLevelDesc)
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(Direct3D_CheckDeviceMultiSampleType)
 (
     UINT                 Adapter,
@@ -9658,7 +9658,7 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CheckDeviceMultiSampleType)
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3D_GetDeviceCaps) // TODO : Rename to Direct3D_GetDeviceCaps
 (
     UINT        Adapter,
@@ -9684,7 +9684,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3D_GetDeviceCaps) // TODO : Rename to Direct3D_Get
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3D_SetPushBufferSize) // TODO : Rename to Direct3D_SetPushBufferSize
 (
     DWORD PushBufferSize,
@@ -9763,7 +9763,7 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_BlockUntilNotBusy)
 	LOG_UNIMPLEMENTED();
 }
 
-#if 0 // patch DISABLED
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DVertexBuffer_GetDesc)
 (
     X_D3DVertexBuffer    *pThis,
@@ -9999,7 +9999,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetProjectionViewportMatrix)
 }
 #pragma warning(default:4244)
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_KickOff)()
 {
 //	FUNC_EXPORTS
@@ -10018,7 +10018,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_KickOff)()
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_KickPushBuffer)()
 {
 //	FUNC_EXPORTS
@@ -10245,7 +10245,7 @@ void WINAPI XTL::EMUPATCH(D3DDevice_FlushVertexCache)()
 	LOG_UNIMPLEMENTED();
 }
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_BeginPushBuffer)
 (
 	X_D3DPushBuffer *pPushBuffer
@@ -10264,7 +10264,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_BeginPushBuffer)
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndPushBuffer)()
 {
 //	FUNC_EXPORTS
@@ -10277,7 +10277,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_EndPushBuffer)()
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 PDWORD WINAPI XTL::EMUPATCH(XMETAL_StartPush)(void* Unknown)
 {
 //	FUNC_EXPORTS
@@ -10340,7 +10340,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetBackMaterial)
 	g_BackMaterial = *pMaterial;
 }
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3D_GetAdapterIdentifier) // TODO : Rename to Direct3D_GetAdapterIdentifier
 (
 	UINT					Adapter,
@@ -10419,7 +10419,7 @@ PDWORD WINAPI XTL::EMUPATCH(MakeRequestedSpace)
 }
 #endif
 
-#if 0 // patch disabled
+#if 0 // Patch disabled
 void WINAPI XTL::EMUPATCH(D3DDevice_MakeSpace)()
 {
 //	FUNC_EXPORTS
