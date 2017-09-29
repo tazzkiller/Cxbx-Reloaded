@@ -196,12 +196,12 @@ static XTL::X_D3DSHADERCONSTANTMODE g_VertexShaderConstantMode = X_D3DSCM_192CON
 // cached Direct3D tiles
 XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 
-#ifdef PATCH_TEXTURES
-// cached active texture
-XTL::X_D3DBaseTexture *XTL::EmuD3DTextureStages[X_D3DTSS_STAGECOUNT] = { NULL, NULL, NULL, NULL };
-#else
-XTL::X_D3DBaseTexture **XTL::Xbox_D3DDevice_m_Textures = NULL;
-#endif
+// Xbox D3DDevice related variables
+xbaddr XTL::Xbox_pD3DDevice = NULL; // The address where an Xbe will put it's D3DDevice pointer
+DWORD *XTL::Xbox_D3DDevice = NULL; // Once known, the actual D3DDevice pointer (see DeriveXboxD3DDeviceAddresses)
+DWORD *XTL::Xbox_D3Device_IndexBase = NULL;
+XTL::X_D3DBaseTexture **XTL::Xbox_D3DDevice_m_Textures = NULL; // Can only be set once Xbox CreateDevice has ran
+uint XTL::offsetof_Xbox_D3DDevice_m_Textures = 0;
 
 void CxbxClearGlobals()
 {
@@ -292,9 +292,7 @@ void CxbxClearGlobals()
 	// g_pTexturePaletteStages = { nullptr, nullptr, nullptr, nullptr };
 	g_VertexShaderConstantMode = X_D3DSCM_192CONSTANTS;
 	//XTL::EmuD3DTileCache = { 0 };
-#ifdef PATCH_TEXTURES
-	//XTL::EmuD3DTextureStages = { 0 };
-#endif
+	// KEEP Xbox_D3DDevice_m_Textures
 	// KEEP g_EmuCDPD = { 0 };
 }
 
@@ -334,9 +332,6 @@ g_EmuCDPD = {0};
 	} while (0)
 
 #endif
-
-// TODO: This should be a D3DDevice structure
-DWORD XTL::g_XboxD3DDevice[64 * ONE_KB / sizeof(DWORD)] = { 0 };
 
 const char *CxbxGetErrorDescription(HRESULT hResult)
 {
@@ -1407,6 +1402,7 @@ XTL::X_D3DPalette *EmuNewD3DPalette()
 #endif
 
 #if 1 // temporarily used by ConvertHostSurfaceHeaderToXbox() and WndMain::LoadGameLogo()
+// TODO : Move to own file
 VOID XTL::CxbxSetPixelContainerHeader
 (
 	XTL::X_D3DPixelContainer* pPixelContainer,
@@ -1453,6 +1449,7 @@ VOID XTL::CxbxSetPixelContainerHeader
 		;
 }
 
+// TODO : Move to own file
 // HACK : Approximate the format
 void ConvertHostSurfaceHeaderToXbox
 (
@@ -1479,6 +1476,7 @@ void ConvertHostSurfaceHeaderToXbox
 }
 #endif
 
+// TODO : Move to own file
 UINT CxbxFormatAndWidthToRowSizeInBytes(
 	XTL::X_D3DFORMAT X_Format,
 	UINT uWidth
@@ -1495,6 +1493,7 @@ UINT CxbxFormatAndWidthToRowSizeInBytes(
 	return uPitch;
 }
 
+// TODO : Move to own file
 VOID CxbxGetPixelContainerMeasures
 (
 	XTL::X_D3DPixelContainer *pPixelContainer,
@@ -1543,6 +1542,7 @@ VOID CxbxGetPixelContainerMeasures
 #endif
 }
 
+// TODO : Move to own file
 uint8 *XTL::ConvertD3DTextureToARGB(
 	XTL::X_D3DPixelContainer *pXboxPixelContainer,
 	uint8 *pSrc,
@@ -1604,6 +1604,7 @@ uint8 *XTL::ConvertD3DTextureToARGB(
 	return pDest;
 }
 
+// TODO : Move to own file
 void CxbxUpdateTextureStages()
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
@@ -1618,6 +1619,7 @@ void CxbxUpdateTextureStages()
 	}
 }
 
+// TODO : Move to own file
 XTL::IDirect3DSurface8 *CxbxUpdateSurface(const XTL::X_D3DSurface *pXboxSurface)
 {
 	if (pXboxSurface == NULL)
@@ -1631,6 +1633,7 @@ XTL::IDirect3DSurface8 *CxbxUpdateSurface(const XTL::X_D3DSurface *pXboxSurface)
 	return (XTL::IDirect3DSurface8 *)CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pXboxSurface, NULL);
 }
 
+// TODO : Move to own file
 void CxbxUpdateActiveRenderTarget()
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
@@ -2335,12 +2338,33 @@ void CxbxGetActiveHostBackBuffer()
 	}
 }
 
+void DeriveXboxD3DDeviceAddresses()
+{
+	// Read the Xbox g_pDevice pointer into our D3D Device object 
+	XTL::Xbox_D3DDevice = *(DWORD **)XTL::Xbox_pD3DDevice;
+	if (XTL::Xbox_D3DDevice == NULL) {
+		// As long as it isn't set, guess g_Device resides right next to g_pDevice :
+		XTL::Xbox_D3DDevice = (DWORD*)(XTL::Xbox_pD3DDevice + sizeof(void*));
+	}
+
+	// Derive the address where active texture pointers are stored
+	XTL::Xbox_D3DDevice_m_Textures = (XTL::X_D3DBaseTexture **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Textures);
+
+	// Determine active the vertex index
+	// This reads from g_pDevice->m_IndexBase in Xbox D3D
+	XTL::Xbox_D3Device_IndexBase = &(XTL::Xbox_D3DDevice[7]);
+}
+
 // A wrapper for Present() with an extra safeguard to restore 'device lost' errors
 void CxbxPresent()
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	HRESULT hRet;
+
+	// HACK! DeriveXboxD3DDeviceAddresses should be called as soon as Xbox CreateDevice has set g_pDevice (to g_Device)
+	// TODO : Move this call to the appropriate time (so it won't be repeated as often as now, here in Present)
+	DeriveXboxD3DDeviceAddresses();
 
 	CxbxReleaseSurface(&g_pActiveHostBackBuffer);
 
@@ -2968,17 +2992,12 @@ void CxbxUpdateActiveIndexBuffer
 
 	XTL::IDirect3DIndexBuffer8 *pHostIndexBuffer = CxbxUpdateIndexBuffer(pIndexBufferData, uiIndexCount);
 
-	// Determine active the vertex index
-	// This reads from g_pDevice->m_IndexBase in Xbox D3D
-	// TODO: Move this into a global symbol, similar to RenderState/Texture State
-	static DWORD *pdwXboxD3D_IndexBase = &XTL::g_XboxD3DDevice[7];
-
 	UINT uiIndexBase = 0;
 
-	if (*pdwXboxD3D_IndexBase > 0) {
-		// TODO : Research if (or when) using *pdwXboxD3D_IndexBase is needed
-		// uiIndexBase = *pdwXboxD3D_IndexBase;
-		LOG_TEST_CASE("*pdwXboxD3D_IndexBase > 0");
+	if (*XTL::Xbox_D3Device_IndexBase > 0) {
+		// TODO : Research if (or when) using *Xbox_D3Device_IndexBase is needed
+		// uiIndexBase = *Xbox_D3Device_IndexBase;
+		LOG_TEST_CASE("*Xbox_D3Device_IndexBase > 0");
 	}
 
 	// Activate the new native index buffer :
@@ -3066,11 +3085,8 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
     // Wait until proxy is completed
     while (g_EmuCDPD.bSignalled)
         Sleep(10);
-	
-	// Set the Xbox g_pD3DDevice pointer to our D3D Device object
-	if ((DWORD*)XRefDataBase[XREF_D3DDEVICE] != nullptr && ((DWORD)XRefDataBase[XREF_D3DDEVICE]) != XREF_ADDR_DERIVE) {
-		*((DWORD*)XRefDataBase[XREF_D3DDEVICE]) = (DWORD)g_XboxD3DDevice;
-	}
+
+	DeriveXboxD3DDeviceAddresses();
 
 	// Finally, set all default render and texture states
 	// All commented out states are unsupported on this version of DirectX 8
@@ -5015,21 +5031,21 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetIndices)
 
 #endif
 
-#ifdef PATCH_TEXTURES
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 (
     DWORD           Stage,
     X_D3DBaseTexture  *pTexture
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Stage)
 		LOG_FUNC_ARG(pTexture)
 		LOG_FUNC_END;
 
-    EmuD3DTextureStages[Stage] = pTexture; // Note : Is reference-counting needed?
+	SetXboxBaseTexture(Stage, pTexture); // Note : Is reference-counting needed?
 
 #if 0
 	IDirect3DBaseTexture8 *pHostBaseTexture = nullptr;
@@ -5150,12 +5166,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 
 		X_D3DBaseTexture *pOldTexture = GetXboxBaseTexture(Stage);
 
-#ifdef PATCH_TEXTURES
-		EmuD3DTextureStages[Stage] = pTexture;
-#else
-		Xbox_D3DDevice_m_Textures[Stage] = pTexture;
-#endif
-		// Note : The textures set above are read back via GetXboxBaseTexture()
+		SetXboxBaseTexture(Stage, pTexture);
 
 		if (pOldTexture != NULL) {
 			if (pOldTexture->Common-- <= 1) {
@@ -5956,14 +5967,17 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	// TODO: HACK: Temporary?
 	switch (X_Format)
 	{
+// TODO :  Disable to see if DepthStencils would break anything
 	case X_D3DFMT_LIN_D24S8:
 	{
+		// Test case : Turok hits this
 		EmuWarning("D3DFMT_LIN_D24S8 not yet supported!");
 		X_Format = X_D3DFMT_LIN_A8R8G8B8;
 		break;
 	}
 	case X_D3DFMT_LIN_D16:
 	{
+		// Test case : aerox 2 hits this
 		EmuWarning("D3DFMT_LIN_D16 not yet supported!");
 		X_Format = X_D3DFMT_LIN_R5G6B5;
 		break;
@@ -6007,9 +6021,9 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 	// One of these will be created :
 	IDirect3DSurface8 *pNewHostSurface = nullptr;
+	IDirect3DTexture8 *pNewHostTexture = nullptr;
 	IDirect3DCubeTexture8 *pNewHostCubeTexture = nullptr;
 	IDirect3DVolumeTexture8 *pNewHostVolumeTexture = nullptr;
-	IDirect3DTexture8 *pNewHostTexture = nullptr;
 
 	// Note : For now, we create and fill textures only once (Xbox changes are put
 	// in new host resources), so it seems using D3DUSAGE_DYNAMIC and D3DPOOL_DEFAULT
@@ -10007,13 +10021,13 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_KickPushBuffer)()
 }
 #endif
 
-#ifdef PATCH_TEXTURES
+#if 0 // Patch disabled
 XTL::X_D3DResource* WINAPI XTL::EMUPATCH(D3DDevice_GetTexture2)
 (
 	DWORD Stage
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(Stage);
 	

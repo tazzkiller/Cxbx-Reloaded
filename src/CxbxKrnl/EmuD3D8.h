@@ -74,17 +74,19 @@ extern VOID EmuD3DCleanup();
 // EmuD3DTileCache (8 tiles maximum)
 extern X_D3DTILE EmuD3DTileCache[0x08];
 
-extern DWORD g_XboxD3DDevice[64 * ONE_KB / sizeof(DWORD)];
+extern xbaddr Xbox_pD3DDevice; // The address where an Xbe will put it's D3DDevice pointer
 
-#ifdef PATCH_TEXTURES
-extern X_D3DBaseTexture *EmuD3DTextureStages[X_D3DTSS_STAGECOUNT];
+extern DWORD *Xbox_D3DDevice; // Once known, the actual D3DDevice pointer
 
-inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return EmuD3DTextureStages[uiStage]; }
-#else
+extern DWORD *Xbox_D3Device_IndexBase;
+
+extern uint offsetof_Xbox_D3DDevice_m_Textures;
+
 extern X_D3DBaseTexture **Xbox_D3DDevice_m_Textures;
 
+inline void SetXboxBaseTexture(UINT uiStage, X_D3DBaseTexture *pTexture) { Xbox_D3DDevice_m_Textures[uiStage] = pTexture; }
+
 inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return Xbox_D3DDevice_m_Textures[uiStage]; }
-#endif
 
 extern void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource);
 
@@ -589,6 +591,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_SetIndices)
 );
 #endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_SetTexture
 // ******************************************************************
@@ -597,6 +600,7 @@ VOID WINAPI EMUPATCH(D3DDevice_SetTexture)
     DWORD           Stage,
 	X_D3DBaseTexture  *pTexture
 );
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_SwitchTexture
@@ -1866,6 +1870,7 @@ VOID WINAPI EMUPATCH(D3DDevice_KickOff)();
 VOID WINAPI EMUPATCH(D3DDevice_KickPushBuffer)();
 #endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_GetTexture2
 // ******************************************************************
@@ -1873,6 +1878,7 @@ X_D3DResource* WINAPI EMUPATCH(D3DDevice_GetTexture2)
 (
 	DWORD Stage
 );
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_SetStateVB (D3D::CDevice::SetStateVB)

@@ -156,6 +156,8 @@ void *FindSymbolAddress(char *SymbolName, bool FailWhenNotFound = true)
 void SetGlobalSymbols()
 {
 	// Process fallbacks :
+	// "g_pDevice" was "D3DDEVICE"
+	// "D3D__TextureState" was "D3DDeferredTextureState"
 	if (g_SymbolAddresses.find("D3D__TextureState") == g_SymbolAddresses.end()) {
 		if (g_SymbolAddresses.find("D3DDeferredTextureState") != g_SymbolAddresses.end())
 			// Keep compatibility with HLE caches that contain "D3DDeferredTextureState" instead of "D3D__TextureState"
@@ -163,13 +165,11 @@ void SetGlobalSymbols()
 	}
 
 	// Lookup and set all required global symbols
-	XRefDataBase[XREF_D3DDEVICE] = (xbaddr)FindSymbolAddress("D3DDEVICE");
+	XTL::Xbox_pD3DDevice = (xbaddr)FindSymbolAddress("g_pDevice");
 	XTL::Xbox_D3D__RenderState_Deferred = (DWORD*)FindSymbolAddress("D3DDeferredRenderState");
 	XTL::Xbox_D3D_TextureState = (DWORD*)FindSymbolAddress("D3D__TextureState");
 	XTL::Xbox_g_Stream = (XTL::X_Stream *)FindSymbolAddress("g_Stream", false); // Optional - aerox2 hits this case
-#ifndef PATCH_TEXTURES
-	XTL::Xbox_D3DDevice_m_Textures = (XTL::X_D3DBaseTexture **)((byte *)XTL::g_XboxD3DDevice + (uint)FindSymbolAddress("offsetof(D3DDevice,m_Textures)"));
-#endif
+	XTL::offsetof_Xbox_D3DDevice_m_Textures = (uint)FindSymbolAddress("offsetof(D3DDevice,m_Textures)");
 }
 
 void EmuHLEIntercept(Xbe::Header *pXbeHeader)
@@ -468,8 +468,8 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								// TODO : Remove this when D3DEVICE derivation is deemed stable
 								{
 									xbaddr DerivedAddr_D3DDevice = *((xbaddr*)(pFunc + 0x03));
-									VerifySymbolAddressAgainstXRef("D3DDEVICE", DerivedAddr_D3DDevice, XREF_D3DDEVICE);
-									g_SymbolAddresses["D3DDEVICE"] = DerivedAddr_D3DDevice;
+									VerifySymbolAddressAgainstXRef("g_pDevice", DerivedAddr_D3DDevice, XREF_D3DDEVICE);
+									g_SymbolAddresses["g_pDevice"] = DerivedAddr_D3DDevice;
 								}
 
 
@@ -593,9 +593,8 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 	printf("\n");
 
-#ifndef PATCH_TEXTURES
-	g_SymbolAddresses["offsetof(D3DDevice,m_Textures)"] = XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES];
-#endif
+	if (XRefAddrFound(XREF_OFFSET_D3DDEVICE_M_TEXTURES))
+		g_SymbolAddresses["offsetof(D3DDevice,m_Textures)"] = XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES];
 
 	SetGlobalSymbols();
 
