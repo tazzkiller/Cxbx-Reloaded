@@ -61,6 +61,7 @@ typedef DWORD D3DDECLUSAGE;
 #endif // DXBX_USE_D3D9
 
 #define D3DSAMP_UNSUPPORTED ((D3DSAMPLERSTATETYPE)0)
+
 #define D3DDECLUSAGE_UNSUPPORTED ((D3DDECLUSAGE)-1)
 
 #ifndef DXBX_USE_D3D9
@@ -85,6 +86,27 @@ const DWORD
 
 
 #pragma region XboxD3D // Xbox Direct3D declarations
+
+// Xbox D38 Device types
+typedef enum _X_D3DDEVTYPE
+{
+	X_D3DDEVTYPE_HAL = 1,
+	X_D3DDEVTYPE_REF = 2,
+	X_D3DDEVTYPE_SW = 3,
+
+	X_D3DDEVTYPE_FORCE_DWORD = 0x7fffffff
+} 
+X_D3DDEVTYPE; // Identical to Host Direct3D8 D3DDEVTYPE
+
+// Xbox D3D Device Creation Parameters
+typedef struct _X_D3DDEVICE_CREATION_PARAMETERS
+{
+	UINT            AdapterOrdinal;
+	X_D3DDEVTYPE    DeviceType;
+	HWND            hFocusWindow;
+	DWORD           BehaviorFlags;
+}
+X_D3DDEVICE_CREATION_PARAMETERS;
 
 // Xbox D3D Multisample type
 typedef enum _X_D3DMULTISAMPLE_TYPE {
@@ -485,7 +507,6 @@ const DWORD X_D3DPRESENTFLAG_FIELD               = 0x00000080;
 // for CreateTexture/CreateImageSurface
 #define X_D3DUSAGE_BORDERSOURCE_COLOR     0x00000000L   // Xbox-only
 #define X_D3DUSAGE_BORDERSOURCE_TEXTURE   0x00010000L   // Xbox-only
-
 
 // Xbox D3D Vertex Blend Flags
 typedef enum _X_D3DVERTEXBLENDFLAGS {
