@@ -131,7 +131,7 @@ extern const uint32 HLEDataBaseCount;
 // ******************************************************************
 enum XRefDataBaseOffset
 {
-    XREF_D3DDEVICE=0, // initially set to XREF_ADDR_DERIVE
+    XREF_D3DDEVICE=0, // initially set to XREF_ADDR_DERIVE // TODO : Rename to XREF_GLOBAL_PDEVICE or something?
     XREF_SETRENDERSTATE_CULLMODE,
 	XREF_D3DRS_CULLMODE, // initially set to XREF_ADDR_DERIVE
     //XREF_D3DRS_MULTISAMPLEMODE, // Avoid; It replaced to X_D3DRS_MULTISAMPLETYPE around XDK 4361
@@ -361,5 +361,7 @@ enum XRefDataBaseOffset
 // * XRefDataBase
 // ******************************************************************
 extern xbaddr XRefDataBase[XREF_COUNT];
+
+inline bool XRefAddrFound(enum XRefDataBaseOffset XRef) { return XRefDataBase[XRef] > XREF_ADDR_DERIVE; }
 
 #endif /*HLEDATABASE_H*/
