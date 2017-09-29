@@ -36,8 +36,6 @@
 
 #include "CxbxKrnl.h"
 
-#undef OLD_COLOR_CONVERSION
-
 #define VERTICES_PER_TRIANGLE 3
 #define VERTICES_PER_QUAD 4
 #define TRIANGLES_PER_QUAD 2
@@ -45,24 +43,10 @@
 // Convert a 'method' DWORD into it's associated 'pixel-shader' or 'simple' render state.
 extern X_D3DRENDERSTATETYPE DxbxXboxMethodToRenderState(const NV2AMETHOD aMethod);
 
-#define OLD_COLOR_CONVERSION
-
 // simple render state encoding lookup table
-#define X_D3DRSSE_UNK 0x7fffffff
 extern CONST DWORD EmuD3DRenderStateSimpleEncoded[174];
 
-
-#ifdef OLD_COLOR_CONVERSION
-typedef struct _ComponentEncodingInfo
-{
-	int8_t ABits, RBits, GBits, BBits;
-	int8_t AShift, RShift, GShift, BShift;
-} ComponentEncodingInfo;
-
-extern const ComponentEncodingInfo *EmuXBFormatComponentEncodingInfo(X_D3DFORMAT Format);
-
-extern D3DCOLOR DecodeUInt32ToColor(const ComponentEncodingInfo * encoding, const uint32 value);
-#endif // OLD_COLOR_CONVERSION
+#define X_D3DRSSE_UNK 0x7fffffff
 
 typedef void(*FormatToARGBRow)(const uint8* src, uint8* dst_argb, int width);
 
