@@ -5918,8 +5918,11 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 	X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pPixelContainer);
 	if (X_Format == X_D3DFMT_P8)
-		if (pPalette == NULL)
-			CxbxKrnlCleanup("CxbxUpdateTexture can't handle paletized textures without a given palette!");
+		if (pPalette == NULL) {
+			// Test case : aerox2
+			EmuWarning("CxbxUpdateTexture can't handle paletized textures without a given palette!");
+			return nullptr;
+		}
 
 #if 0
 	if (IsSpecialXboxResource(pPixelContainer))
