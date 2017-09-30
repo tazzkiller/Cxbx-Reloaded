@@ -36,8 +36,6 @@
 
 #include "CxbxKrnl.h"
 
-#define OLD_COLOR_CONVERSION
-
 #define VERTICES_PER_TRIANGLE 3
 #define VERTICES_PER_QUAD 4
 #define TRIANGLES_PER_QUAD 2
