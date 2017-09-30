@@ -593,8 +593,10 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 	printf("\n");
 
-	if (XRefAddrFound(XREF_OFFSET_D3DDEVICE_M_TEXTURES))
+	if (XRefAddrFound(XREF_OFFSET_D3DDEVICE_M_TEXTURES)) {
 		g_SymbolAddresses["offsetof(D3DDevice,m_Textures)"] = XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES];
+		printf("HLE: Derived 0x%.08X -> offsetof(D3DDevice,m_Textures)\n", XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES]);
+	}
 
 	SetGlobalSymbols();
 

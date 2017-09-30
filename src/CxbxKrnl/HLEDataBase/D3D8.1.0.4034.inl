@@ -958,7 +958,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetTexture
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetTexture, 4034, 10) // TODO : Alias 3911 instead ?
+OOVPA_XREF(D3DDevice_SetTexture, 4034, 1+10, // TODO : Alias 3911 instead ?
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x13	, XREF_OFFSET_D3DDEVICE_M_TEXTURES), // derived - verified for 4432 DolphinClassic 0x00021D10(SetTexture)+0x10=00021D20 : 8B 84 B7 78 0A 00 00 mov eax,[edi+esi*4+$00000A78]
 
         // D3DDevice_SetTexture+0x09 : push edi
         { 0x09, 0x57 },
