@@ -940,7 +940,7 @@ void XBController::DInputInit(HWND hwnd)
         {
             hRet = m_pDirectInput8->CreateDevice(XTL::GUID_SysKeyboard, &m_InputDevice[m_dwInputDeviceCount].m_Device, NULL);
 
-            if(!FAILED(hRet))
+            if(SUCCEEDED(hRet))
             {
                 m_InputDevice[m_dwInputDeviceCount].m_Flags = DEVICE_FLAG_KEYBOARD;
 
@@ -955,7 +955,7 @@ void XBController::DInputInit(HWND hwnd)
         {
             hRet = m_pDirectInput8->CreateDevice(XTL::GUID_SysMouse, &m_InputDevice[m_dwInputDeviceCount].m_Device, NULL);
 
-            if(!FAILED(hRet))
+            if(SUCCEEDED(hRet))
             {
                 m_InputDevice[m_dwInputDeviceCount].m_Flags = DEVICE_FLAG_MOUSE;
 
@@ -1127,7 +1127,7 @@ BOOL XBController::EnumGameCtrlCallback(XTL::LPCDIDEVICEINSTANCE lpddi)
 
     HRESULT hRet = m_pDirectInput8->CreateDevice(lpddi->guidInstance, &m_InputDevice[m_dwInputDeviceCount].m_Device, NULL);
 
-    if(!FAILED(hRet))
+    if(SUCCEEDED(hRet))
     {
         m_InputDevice[m_dwInputDeviceCount].m_Flags = DEVICE_FLAG_JOYSTICK;
 
