@@ -1654,8 +1654,26 @@ void CxbxUpdateActiveRenderTarget()
 	}
 }
 
+void DeriveXboxD3DDeviceAddresses()
+{
+	// Read the Xbox g_pDevice pointer into our D3D Device object 
+	XTL::Xbox_D3DDevice = *(DWORD **)XTL::Xbox_pD3DDevice;
+	if (XTL::Xbox_D3DDevice == NULL) {
+		// As long as it isn't set, guess g_Device resides right next to g_pDevice :
+		XTL::Xbox_D3DDevice = (DWORD*)(XTL::Xbox_pD3DDevice + sizeof(void*));
+	}
+
+	// Derive the address where active texture pointers are stored
+	XTL::Xbox_D3DDevice_m_Textures = (XTL::X_D3DBaseTexture **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Textures);
+
+	// Determine active the vertex index
+	// This reads from g_pDevice->m_IndexBase in Xbox D3D
+	XTL::Xbox_D3Device_IndexBase = &(XTL::Xbox_D3DDevice[7]);
+}
+
 void CxbxUpdateNativeD3DResources()
 {
+	DeriveXboxD3DDeviceAddresses();
 	/* Dxbx has :
 	DxbxUpdateActiveVertexShader();
 	DxbxUpdateActiveTextures();
@@ -2336,23 +2354,6 @@ void CxbxGetActiveHostBackBuffer()
 
 		assert(g_pActiveHostBackBuffer != nullptr);
 	}
-}
-
-void DeriveXboxD3DDeviceAddresses()
-{
-	// Read the Xbox g_pDevice pointer into our D3D Device object 
-	XTL::Xbox_D3DDevice = *(DWORD **)XTL::Xbox_pD3DDevice;
-	if (XTL::Xbox_D3DDevice == NULL) {
-		// As long as it isn't set, guess g_Device resides right next to g_pDevice :
-		XTL::Xbox_D3DDevice = (DWORD*)(XTL::Xbox_pD3DDevice + sizeof(void*));
-	}
-
-	// Derive the address where active texture pointers are stored
-	XTL::Xbox_D3DDevice_m_Textures = (XTL::X_D3DBaseTexture **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Textures);
-
-	// Determine active the vertex index
-	// This reads from g_pDevice->m_IndexBase in Xbox D3D
-	XTL::Xbox_D3Device_IndexBase = &(XTL::Xbox_D3DDevice[7]);
 }
 
 // A wrapper for Present() with an extra safeguard to restore 'device lost' errors
@@ -6237,7 +6238,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		0 // No ColorKey?
 		);
 	*/
-
 	// This outer loop walks over all faces (6 for CubeMaps, just 1 for anything else) :
 	uint nrfaces = PixelJar.bIsCubeMap ? 6 : 1;
 	for (uint face = 0; face < nrfaces; face++)
@@ -6395,7 +6395,14 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 						DWORD SrcRowOff = 0;
 						uint8 *pDestRow = (uint8 *)pDest;
 						while (SrcRowOff < dwMipSizeInBytes) {
-							ConvertRowToARGB(((uint8 *)pSrc) + SrcRowOff, pDestRow, dwMipWidth);
+							try
+							{
+//								ConvertRowToARGB(((uint8 *)pSrc) + SrcRowOff, pDestRow, dwMipWidth);
+							}
+							catch (...)
+							{
+								EmuWarning("Exception during texture-conversion");
+							}
 							SrcRowOff += dwSrcPitch;
 							pDestRow += dwDestPitch;
 						}
