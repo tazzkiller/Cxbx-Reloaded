@@ -139,11 +139,9 @@ LOG_SANITIZE(sanitized_wchar_pointer, wchar_t *);
 // Function (and argument) logging defines
 //
 
-constexpr bool string_has_prefix(char const * str, char const * prefix) {
-	while (*prefix)
-		if (*str++ != *prefix++)
-			return false;
-	return true;
+constexpr bool string_has_prefix(const char * str, const char * prefix)
+{
+	return (*prefix == '\0') ? true : ((*str == *prefix) ? string_has_prefix(str + 1, prefix + 1) : false);
 }
 
 constexpr const char* cleanup_func_name(const char *func) {
