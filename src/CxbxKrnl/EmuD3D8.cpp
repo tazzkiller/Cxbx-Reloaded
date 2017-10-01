@@ -5144,7 +5144,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
     DWORD Stage = -1;
 
 	for (int s = 0; s < X_D3DTSS_STAGECOUNT; s++)
-		if (StageLookup[s] == (Method & NV2A_METHOD_MASK))
+		if (StageLookup[s] == PUSH_METHOD(Method))
 			Stage = s;
 
     if(Stage == -1)

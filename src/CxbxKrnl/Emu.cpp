@@ -328,29 +328,28 @@ void EmuPrintStackTrace(PCONTEXT ContextRecord)
 		std::string symbolName = "";
         DWORD64 dwDisplacement = 0;
 
-        if(fSymInitialized)
-        {
+		if (fSymInitialized)
+		{
 			PSYMBOL_INFO pSymbol = (PSYMBOL_INFO)&symbol;
-            pSymbol->SizeOfStruct = sizeof(SYMBOL_INFO) + SYMBOL_MAXLEN - 1;
-            pSymbol->MaxNameLen = SYMBOL_MAXLEN;
+			pSymbol->SizeOfStruct = sizeof(SYMBOL_INFO) + SYMBOL_MAXLEN - 1;
+			pSymbol->MaxNameLen = SYMBOL_MAXLEN;
 			if (SymFromAddr(g_CurrentProcessHandle, frame.AddrPC.Offset, &dwDisplacement, pSymbol))
 				symbolName = pSymbol->Name;
+		}
+
+		if (symbolName.empty()) {
+			// Try getting a symbol name from the HLE cache :
+			int symbolOffset = 0;
+
+			symbolName = GetDetectedSymbolName((xbaddr)frame.AddrPC.Offset, &symbolOffset);
+			if (symbolOffset < 1000)
+				dwDisplacement = (DWORD64)symbolOffset;
 			else
-			{
-				// Try getting a symbol name from the HLE cache :
-				int symbolOffset = 0;
-
-				symbolName = GetDetectedSymbolName((xbaddr)frame.AddrPC.Offset, &symbolOffset);
-
-				if (symbolOffset < 1000)
-					dwDisplacement = (DWORD64)symbolOffset;
-				else
-					symbolName = "";
-			}
+				symbolName = "";
         }
 
-        if(symbolName.length() > 0)
-            printf(" %s+0x%.04X\n", symbolName.c_str(), dwDisplacement);
+		if (!symbolName.empty())
+			printf(" %s+0x%.04X\n", symbolName.c_str(), dwDisplacement);
         else
             printf("\n");
     }

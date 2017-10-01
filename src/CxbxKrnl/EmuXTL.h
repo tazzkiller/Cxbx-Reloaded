@@ -37,6 +37,12 @@
 namespace XTL
 {
     #include "EmuXapi.h"
+}
+
+#include "EmuNV2A.h"
+
+namespace XTL
+{
     #include "EmuD3D8.h"
     #include "EmuD3D8\Convert.h"
     #include "EmuD3D8\VertexBuffer.h"
