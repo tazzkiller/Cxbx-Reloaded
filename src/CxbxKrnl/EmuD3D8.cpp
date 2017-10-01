@@ -1604,10 +1604,29 @@ uint8 *XTL::ConvertD3DTextureToARGB(
 	return pDest;
 }
 
+void DeriveXboxD3DDeviceAddresses()
+{
+	// Read the Xbox g_pDevice pointer into our D3D Device object 
+	XTL::Xbox_D3DDevice = *(DWORD **)XTL::Xbox_pD3DDevice;
+	if (XTL::Xbox_D3DDevice == NULL) {
+		// As long as it isn't set, guess g_Device resides right next to g_pDevice :
+		XTL::Xbox_D3DDevice = (DWORD*)(XTL::Xbox_pD3DDevice + sizeof(void*));
+	}
+
+	// Derive the address where active texture pointers are stored
+	XTL::Xbox_D3DDevice_m_Textures = (XTL::X_D3DBaseTexture **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Textures);
+
+	// Determine active the vertex index
+	// This reads from g_pDevice->m_IndexBase in Xbox D3D
+	XTL::Xbox_D3Device_IndexBase = &(XTL::Xbox_D3DDevice[7]);
+}
+
 // TODO : Move to own file
 void CxbxUpdateTextureStages()
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
+	DeriveXboxD3DDeviceAddresses();
 
 	for (int Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++) {
 		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = nullptr;
@@ -1654,26 +1673,8 @@ void CxbxUpdateActiveRenderTarget()
 	}
 }
 
-void DeriveXboxD3DDeviceAddresses()
-{
-	// Read the Xbox g_pDevice pointer into our D3D Device object 
-	XTL::Xbox_D3DDevice = *(DWORD **)XTL::Xbox_pD3DDevice;
-	if (XTL::Xbox_D3DDevice == NULL) {
-		// As long as it isn't set, guess g_Device resides right next to g_pDevice :
-		XTL::Xbox_D3DDevice = (DWORD*)(XTL::Xbox_pD3DDevice + sizeof(void*));
-	}
-
-	// Derive the address where active texture pointers are stored
-	XTL::Xbox_D3DDevice_m_Textures = (XTL::X_D3DBaseTexture **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Textures);
-
-	// Determine active the vertex index
-	// This reads from g_pDevice->m_IndexBase in Xbox D3D
-	XTL::Xbox_D3Device_IndexBase = &(XTL::Xbox_D3DDevice[7]);
-}
-
 void CxbxUpdateNativeD3DResources()
 {
-	DeriveXboxD3DDeviceAddresses();
 	/* Dxbx has :
 	DxbxUpdateActiveVertexShader();
 	DxbxUpdateActiveTextures();
@@ -6395,14 +6396,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 						DWORD SrcRowOff = 0;
 						uint8 *pDestRow = (uint8 *)pDest;
 						while (SrcRowOff < dwMipSizeInBytes) {
-							try
-							{
-//								ConvertRowToARGB(((uint8 *)pSrc) + SrcRowOff, pDestRow, dwMipWidth);
-							}
-							catch (...)
-							{
-								EmuWarning("Exception during texture-conversion");
-							}
+							ConvertRowToARGB(((uint8 *)pSrc) + SrcRowOff, pDestRow, dwMipWidth);
 							SrcRowOff += dwSrcPitch;
 							pDestRow += dwDestPitch;
 						}
