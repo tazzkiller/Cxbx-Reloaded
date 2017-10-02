@@ -84,7 +84,9 @@ extern uint offsetof_Xbox_D3DDevice_m_Textures;
 
 extern X_D3DBaseTexture **Xbox_D3DDevice_m_Textures;
 
+#if 0 // unused
 inline void SetXboxBaseTexture(UINT uiStage, X_D3DBaseTexture *pTexture) { Xbox_D3DDevice_m_Textures[uiStage] = pTexture; }
+#endif
 
 inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return Xbox_D3DDevice_m_Textures[uiStage]; }
 
@@ -602,6 +604,7 @@ VOID WINAPI EMUPATCH(D3DDevice_SetTexture)
 );
 #endif
 
+#if 0 // Patch disabled - We read the result from Xbox_D3DDevice_m_Textures anyway. The pushed (PGRAPH) commands are currently ignored in our puller.
 // ******************************************************************
 // * patch: D3DDevice_SwitchTexture
 // ******************************************************************
@@ -611,6 +614,7 @@ VOID __fastcall EMUPATCH(D3DDevice_SwitchTexture)
     PVOID           Data,
     DWORD           Format
 );
+#endif
 
 #if 0 // Patch disabled
 // ******************************************************************
@@ -1300,6 +1304,7 @@ VOID WINAPI EMUPATCH(D3DDevice_GetTransform)
     D3DMATRIX            *pMatrix
 );
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: IDirect3DVertexBuffer8_Lock
 // ******************************************************************
@@ -1311,7 +1316,9 @@ VOID WINAPI EMUPATCH(D3DVertexBuffer_Lock)
     BYTE              **ppbData,
     DWORD               Flags
 );
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: IDirect3DVertexBuffer8_Lock2
 // ******************************************************************
@@ -1320,6 +1327,7 @@ BYTE* WINAPI EMUPATCH(D3DVertexBuffer_Lock2)
     X_D3DVertexBuffer  *pVertexBuffer,
     DWORD               Flags
 );
+#endif
 
 #if 0 // Patch disabled - Reads Xbox g_Stream[StreamNumber].pVertexBuffer
 // ******************************************************************
@@ -2009,6 +2017,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_GetModelView)
 	X_D3DXMATRIX* pModelView
 );
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_GetBackMaterial
 // ******************************************************************
@@ -2016,7 +2025,9 @@ VOID WINAPI EMUPATCH(D3DDevice_GetBackMaterial)
 (
 	X_D3DMATERIAL* pMaterial
 );
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_SetBackMaterial
 // ******************************************************************
@@ -2024,6 +2035,7 @@ VOID WINAPI EMUPATCH(D3DDevice_SetBackMaterial)
 (
 	X_D3DMATERIAL* pMaterial
 );
+#endif
 
 #if 0 // Patch disabled
 // ******************************************************************

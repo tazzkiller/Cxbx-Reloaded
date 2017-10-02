@@ -154,7 +154,9 @@ static XTL::X_D3DSWAPDATA			g_SwapData = {0};
 static DWORD						g_SwapLast = 0;
 #endif
 
+#if 0
 static XTL::X_D3DMATERIAL           g_BackMaterial = { 0 };
+#endif
 
 // cached Direct3D state variable(s)
 static XTL::X_D3DSurface           *g_pInitialXboxBackBuffer = NULL;
@@ -268,7 +270,9 @@ void CxbxClearGlobals()
 	g_SwapLast = 0;
 #endif
 
+#if 0
 	g_BackMaterial = { 0 };
+#endif
 	g_pInitialXboxBackBuffer = NULL;
 	g_pInitialHostBackBuffer = nullptr;
 	g_pActiveXboxBackBuffer = NULL;
@@ -664,8 +668,8 @@ void DecodeD3DCommon(DWORD D3DCommon, Decoded_D3DCommon &decoded)
 
 struct Decoded_D3DFormat {
 	uint uiDMAChannel; // 1 = DMA channel A - the default for all system memory, 2 = DMA channel B - unused
-	BOOL bIsCubeMap; // Set if the texture if a cube map
-	BOOL bIsBorderTexture; // Set if the texture has a 4 texel wide additional border
+	bool bIsCubeMap; // Set if the texture if a cube map
+	bool bIsBorderTexture; // Set if the texture has a 4 texel wide additional border
 	uint uiDimensions; // # of dimensions, must be 2 or 3
 	XTL::X_D3DFORMAT X_Format; // D3DFORMAT - See X_D3DFMT_* 
 	uint uiMipMapLevels; // 1-10 mipmap levels (always 1 for surfaces)
@@ -674,9 +678,23 @@ struct Decoded_D3DFormat {
 	uint uiPSize; // Log2 of the P size of the base texture (only set for swizzled or compressed)
 };
 
+void DumpDecodedD3DFormat(Decoded_D3DFormat &decoded)
+{
+	DbgPrintf("uiDMAChannel = %u\n", decoded.uiDMAChannel);
+	DbgPrintf("bIsCubeMap = %d\n", decoded.bIsCubeMap);
+	DbgPrintf("bIsBorderTexture = %d\n", decoded.bIsBorderTexture);
+	DbgPrintf("uiDimensions = %u\n", decoded.uiDimensions);
+	DbgPrintf("X_Format = 0x%.02X (%s)\n", decoded.X_Format, TYPE2PCHAR(X_D3DFORMAT)(decoded.X_Format));
+	DbgPrintf("uiMipMapLevels = %u\n", decoded.uiMipMapLevels);
+	DbgPrintf("uiUSize = %u\n", decoded.uiUSize);
+	DbgPrintf("uiVSize = %u\n", decoded.uiVSize);
+	DbgPrintf("uiPSize = %u\n", decoded.uiPSize);
+}
+
 void DecodeD3DFormat(DWORD D3DFormat, Decoded_D3DFormat &decoded)
 {
 	decoded.uiDMAChannel = D3DFormat & X_D3DFORMAT_DMACHANNEL_MASK;
+	// Cubemap textures have the X_D3DFORMAT_CUBEMAP bit set (also, their size is 6 times a normal texture)
 	decoded.bIsCubeMap = (D3DFormat & X_D3DFORMAT_CUBEMAP) > 0;
 	decoded.bIsBorderTexture = (D3DFormat & X_D3DFORMAT_BORDERSOURCE_COLOR) == 0;
 	decoded.uiDimensions = (D3DFormat & X_D3DFORMAT_DIMENSION_MASK) >> X_D3DFORMAT_DIMENSION_SHIFT;
@@ -687,14 +705,18 @@ void DecodeD3DFormat(DWORD D3DFormat, Decoded_D3DFormat &decoded)
 	decoded.uiPSize = (D3DFormat & X_D3DFORMAT_PSIZE_MASK) >> X_D3DFORMAT_PSIZE_SHIFT;
 }
 
-#define X_MAX_MIPMAPS_VOLUME 9 // 2^9 = 512, the maximum NV2A volume texture dimension size
-#define X_MAX_MIPMAPS 12 // 2^12 = 4096, the maximum NV2A (2D) texture dimension size
-
 struct Decoded_D3DSize {
 	uint uiWidth; // Number of pixels on 1 line (measured at mipmap level 0)
 	uint uiHeight; // Number of lines (measured at mipmap level 0)
 	uint uiPitch; // Bytes to skip to get to the next line (measured at mipmap level 0)
 };
+
+void DumpDecodedD3DSize(Decoded_D3DSize &decoded)
+{
+	DbgPrintf("uiWidth = %u\n", decoded.uiWidth);
+	DbgPrintf("uiHeight = %u\n", decoded.uiHeight);
+	DbgPrintf("uiPitch = %u\n", decoded.uiPitch);
+}
 
 void DecodeD3DSize(DWORD D3DSize, Decoded_D3DSize &decoded)
 {
@@ -703,44 +725,54 @@ void DecodeD3DSize(DWORD D3DSize, Decoded_D3DSize &decoded)
 	decoded.uiPitch = (((D3DSize & X_D3DSIZE_PITCH_MASK) >> X_D3DSIZE_PITCH_SHIFT) + 1) * X_D3DTEXTURE_PITCH_ALIGNMENT;
 }
 
+#define X_MAX_MIPMAPS_VOLUME 9 // 2^9 = 512, the maximum NV2A volume texture dimension size
+#define X_MAX_MIPMAPS 12 // 2^12 = 4096, the maximum NV2A (2D) texture dimension size
+
 struct DecodedPixelContainer {
 	XTL::X_D3DPixelContainer *pPixelContainer;
-	XTL::X_D3DFORMAT X_Format; // D3DFORMAT - See X_D3DFMT_* 
+	Decoded_D3DFormat format;
 	DWORD dwBPP; // Bits per pixel, 8, 16 or 32 (and 4 for DXT1)
 	BOOL bIsSwizzled;
 	BOOL bIsCompressed;
-	BOOL bIsCubeMap;
-	BOOL bIsBorderTexture;
 	BOOL bIs3D;
 	DWORD dwWidth; // Number of pixels on 1 line (measured at mipmap level 0)
 	DWORD dwHeight; // Number of lines (measured at mipmap level 0)
 	DWORD dwDepth; // Volume texture number of slices
 	DWORD dwRowPitch; // Bytes to skip to get to the next line (measured at mipmap level 0)
+	DWORD dwFacePitch; // Cube maps must step this number of bytes per face to skip (this includes all mipmaps for 1 face)
 	uint SlicePitches[X_MAX_MIPMAPS]; // Size of a slice per mipmap level (also zero based)
 	DWORD dwMipMapLevels; // 1-10 mipmap levels (always 1 for surfaces)
-	DWORD MipMapFormats[X_MAX_MIPMAPS]; // Altered Format per mipmap level
+#ifdef INCLUDE_D3DFORMAT_PER_MIPMAP
+	DWORD MipMapFormats[X_MAX_MIPMAPS]; // Size-adjusted D3DFormat per mipmap level
+#endif
 	uint MipMapOffsets[X_MAX_MIPMAPS]; // [0]=0, [1]=level 0 size (=level 1 offset=volume slice size), [2..10]=offsets of those levels
 	uint MipMapSlices[X_MAX_MIPMAPS]; // Number of slices per mipmap level
-	DWORD dwFacePitch; // Cube maps must step this number of bytes per face to skip (this includes all mipmaps for 1 face)
 	DWORD dwMinXYValue; // 4 for compressed formats, 1 for everything else. Only applies to width & height. Depth can go to 1.
 };
 
 void DumpDecodedPixelContainer(DecodedPixelContainer &decoded)
 {
 	DbgPrintf("pPixelContainer = 0x%.08X\n", decoded.pPixelContainer);
-	DbgPrintf("X_Format = 0x%.02X (%s)\n", decoded.X_Format, TYPE2PCHAR(X_D3DFORMAT)(decoded.X_Format));
+	DumpDecodedD3DFormat(decoded.format);
 	DbgPrintf("dwBPP = %d\n", decoded.dwBPP);
 	DbgPrintf("bIsSwizzled = %d\n", decoded.bIsSwizzled);
 	DbgPrintf("bIsCompressed = %d\n", decoded.bIsCompressed);
-	DbgPrintf("bIsCubeMap = %d\n", decoded.bIsCubeMap);
-	DbgPrintf("bIsBorderTexture = %d\n", decoded.bIsBorderTexture);
 	DbgPrintf("bIs3D = %d\n", decoded.bIs3D);
 	DbgPrintf("dwWidth = %d\n", decoded.dwWidth);
 	DbgPrintf("dwHeight = %d\n", decoded.dwHeight);
 	DbgPrintf("dwDepth = %d\n", decoded.dwDepth);
 	DbgPrintf("dwRowPitch = %d\n", decoded.dwRowPitch);
-	DbgPrintf("dwMipMapLevels = %d\n", decoded.dwMipMapLevels);
 	DbgPrintf("dwFacePitch = %d\n", decoded.dwFacePitch);
+	for (uint level = 0; level < decoded.dwMipMapLevels; level++)
+		DbgPrintf("SlicePitches[%d] = %d\n", level, decoded.SlicePitches[level]);
+#ifdef INCLUDE_D3DFORMAT_PER_MIPMAP
+	for (uint level = 0; level < decoded.dwMipMapLevels; level++)
+		DbgPrintf("MipMapFormats[%d] = %.8X\n", level, decoded.MipMapFormats[level]);
+#endif
+	for (uint level = 0; level < max(2, decoded.dwMipMapLevels); level++) // at least show up to [1]=level 0 size (=level 1 offset=volume slice size)
+		DbgPrintf("MipMapOffsets[%d] = %d\n", level, decoded.MipMapOffsets[level]);
+	for (uint level = 0; level < decoded.dwMipMapLevels; level++)
+		DbgPrintf("MipMapSlices[%d] = %d\n", level, decoded.MipMapSlices[level]);
 	DbgPrintf("dwMinXYValue = %d\n", decoded.dwMinXYValue);
 }
 
@@ -751,21 +783,16 @@ void DecodeD3DFormatAndSize(XTL::X_D3DPixelContainer *pPixelContainer, OUT Decod
 	DWORD dwD3DFormat = pPixelContainer->Format;
 	DWORD dwD3DSize = pPixelContainer->Size;
 
-	Decoded_D3DFormat decodedFormat;
-	DecodeD3DFormat(dwD3DFormat, decodedFormat);
+	DecodeD3DFormat(dwD3DFormat, decoded.format);
 
-	decoded.X_Format = decodedFormat.X_Format;
-	decoded.dwBPP = EmuXBFormatBitsPerPixel(decodedFormat.X_Format);
-	decoded.bIsSwizzled = EmuXBFormatIsSwizzled(decoded.X_Format);
-	decoded.bIsCompressed = EmuXBFormatIsCompressed(decoded.X_Format);
-	// Cubemap textures have the X_D3DFORMAT_CUBEMAP bit set (also, their size is 6 times a normal texture)
-	decoded.bIsCubeMap = decodedFormat.bIsCubeMap;
-	decoded.bIsBorderTexture = decodedFormat.bIsBorderTexture; // TODO : increase size (left,top,right,bottom) with 4 texel border ALSO for mipmaps
+	decoded.dwBPP = EmuXBFormatBitsPerPixel(decoded.format.X_Format);
+	decoded.bIsSwizzled = EmuXBFormatIsSwizzled(decoded.format.X_Format);
+	decoded.bIsCompressed = EmuXBFormatIsCompressed(decoded.format.X_Format);
+	// if(decoded.format.bIsBorderTexture) // TODO : increase size (left,top,right,bottom) with 4 texel border ALSO for mipmaps?
 	// Volumes have 3 dimensions, the rest have 2.
-	decoded.bIs3D = (decodedFormat.uiDimensions == 3);
+	decoded.bIs3D = (decoded.format.uiDimensions == 3);
 
-	if (dwD3DSize != 0)
-	{
+	if (dwD3DSize != 0) {
 		// This case cannot be reached for Cube maps or Volumes, as those use the 'power of two' "format" :
 		Decoded_D3DSize decodedSize;
 		DecodeD3DSize(dwD3DSize, decodedSize);
@@ -777,13 +804,12 @@ void DecodeD3DFormatAndSize(XTL::X_D3DPixelContainer *pPixelContainer, OUT Decod
 		decoded.SlicePitches[0] = decodedSize.uiPitch * decoded.dwHeight;
 		decoded.dwMipMapLevels = 1;
 	}
-	else
-	{
+	else {
 		// This case uses 'power of two' format, which can be used by Cube maps and Volumes
 		// (which means we have to calculate Face and Slice pitch too) :
-		decoded.dwWidth = 1 << decodedFormat.uiUSize;
-		decoded.dwHeight = 1 << decodedFormat.uiVSize;
-		decoded.dwDepth = 1 << decodedFormat.uiPSize;
+		decoded.dwWidth = 1 << decoded.format.uiUSize;
+		decoded.dwHeight = 1 << decoded.format.uiVSize;
+		decoded.dwDepth = 1 << decoded.format.uiPSize;
 		uint _RowBits = decoded.dwWidth * decoded.dwBPP;
 		if (decoded.bIsCompressed)
 			// Compressed formats encode 4x4 texels per block.
@@ -794,11 +820,13 @@ void DecodeD3DFormatAndSize(XTL::X_D3DPixelContainer *pPixelContainer, OUT Decod
 			decoded.dwRowPitch = _RowBits / 8;
 	
 		decoded.SlicePitches[0] = decoded.dwHeight * _RowBits / 8; // Compressed format are half-height
-		decoded.dwMipMapLevels = decodedFormat.uiMipMapLevels;
+		decoded.dwMipMapLevels = decoded.format.uiMipMapLevels;
 	}
 
     // Calculate a few variables for the first mipmap level (even when this is not a mipmapped texture):
+#ifdef INCLUDE_D3DFORMAT_PER_MIPMAP
 	decoded.MipMapFormats[0] = dwD3DFormat;
+#endif
 	decoded.MipMapOffsets[0] = 0;
 	decoded.MipMapSlices[0] = decoded.dwDepth;
 
@@ -807,11 +835,10 @@ void DecodeD3DFormatAndSize(XTL::X_D3DPixelContainer *pPixelContainer, OUT Decod
 
     // Since we know how big the first mipmap level is, calculate all following mipmap offsets :
 	uint MinSize = 0;
-	if (decoded.dwMipMapLevels > 1)
-	{
-		uint x = decodedFormat.uiUSize;
-		uint y = decodedFormat.uiVSize;
-		uint d = decodedFormat.uiPSize;
+	if (decoded.dwMipMapLevels > 1) {
+		uint x = decoded.format.uiUSize;
+		uint y = decoded.format.uiVSize;
+		uint d = decoded.format.uiPSize;
 		if (decoded.bIsCompressed)
 			MinSize = 2;
 		if (x < MinSize)
@@ -820,9 +847,10 @@ void DecodeD3DFormatAndSize(XTL::X_D3DPixelContainer *pPixelContainer, OUT Decod
 			y = MinSize;
 		// Note : d (depth) is not limited
 
+#ifdef INCLUDE_D3DFORMAT_PER_MIPMAP
 		DWORD LocalFormat = dwD3DFormat & ~(X_D3DFORMAT_USIZE_MASK | X_D3DFORMAT_VSIZE_MASK | X_D3DFORMAT_PSIZE_MASK);
-		for (uint v = 1; v < decoded.dwMipMapLevels; v++)
-		{
+#endif
+		for (uint v = 1; v < decoded.dwMipMapLevels; v++) {
 			// Halve each dimension until it reaches it's lower bound :
 			if (x > MinSize)
 				x--;
@@ -832,7 +860,9 @@ void DecodeD3DFormatAndSize(XTL::X_D3DPixelContainer *pPixelContainer, OUT Decod
 				d--;
 
 			uint nrslices = 1 << d;
+#ifdef INCLUDE_D3DFORMAT_PER_MIPMAP
 			decoded.MipMapFormats[v] = LocalFormat || (x << X_D3DFORMAT_USIZE_SHIFT) || (y << X_D3DFORMAT_VSIZE_SHIFT) || (d << X_D3DFORMAT_PSIZE_SHIFT);
+#endif
 			decoded.MipMapSlices[v] = nrslices;
 			decoded.SlicePitches[v] = ((1 << (x + y)) * decoded.dwBPP) / 8;
 			// Calculate the next offset by adding the size of this level to the previous offset :
@@ -840,8 +870,7 @@ void DecodeD3DFormatAndSize(XTL::X_D3DPixelContainer *pPixelContainer, OUT Decod
 		}
 	}
 
-	if (decoded.bIsCubeMap)
-	{
+	if (decoded.format.bIsCubeMap)	{
 		// Calculate where the next face is located (step over all mipmaps) :
 		decoded.dwFacePitch = decoded.MipMapOffsets[decoded.dwMipMapLevels];
 		// Align it up :
@@ -853,7 +882,6 @@ void DecodeD3DFormatAndSize(XTL::X_D3DPixelContainer *pPixelContainer, OUT Decod
 	// 4 for compressed formats, 1 for everything else. Only applies to width & height. Depth can go to 1.
 	decoded.dwMinXYValue = 1 << MinSize;
 }
-
 
 inline DWORD GetXboxCommonResourceType(const XTL::X_D3DResource *pXboxResource)
 {
@@ -991,17 +1019,21 @@ inline bool IsYuvSurface(const XTL::X_D3DResource *pXboxResource)
 }
 #endif
 
+#if 0 // unused
 inline bool IsXboxResourceLocked(const XTL::X_D3DResource *pXboxResource)
 {
 	bool result = !!(pXboxResource->Common & X_D3DCOMMON_ISLOCKED);
 	return result;
 }
+#endif
 
+#if 0 // unused
 inline bool IsXboxResourceD3DCreated(const XTL::X_D3DResource *pXboxResource)
 {
 	bool result = !!(pXboxResource->Common & X_D3DCOMMON_D3DCREATED);
 	return result;
 }
+#endif
 
 void SetHostResource(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DResource8 *pHostResource)
 {
@@ -1035,6 +1067,7 @@ XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
 	return result;
 }
 
+#if 0 // unused
 XTL::IDirect3DSurface8 *GetHostSurface(XTL::X_D3DResource *pXboxResource)
 {
 	if (pXboxResource == NULL)
@@ -1045,7 +1078,9 @@ XTL::IDirect3DSurface8 *GetHostSurface(XTL::X_D3DResource *pXboxResource)
 
 	return (XTL::IDirect3DSurface8 *)GetHostResource(pXboxResource);
 }
+#endif
 
+#if 0 // unused
 XTL::IDirect3DBaseTexture8 *GetHostBaseTexture(XTL::X_D3DResource *pXboxResource)
 {
 	if (pXboxResource == NULL)
@@ -1056,28 +1091,36 @@ XTL::IDirect3DBaseTexture8 *GetHostBaseTexture(XTL::X_D3DResource *pXboxResource
 
 	return (XTL::IDirect3DBaseTexture8 *)GetHostResource(pXboxResource);
 }
+#endif
 
+#if 0 // unused
 XTL::IDirect3DTexture8 *GetHostTexture(XTL::X_D3DResource *pXboxResource)
 {
 	return (XTL::IDirect3DTexture8 *)GetHostBaseTexture(pXboxResource);
 
 	// TODO : Check for 1 face (and 2 dimensions)?
 }
+#endif
 
+#if 0 // unused
 XTL::IDirect3DCubeTexture8 *GetHostCubeTexture(XTL::X_D3DResource *pXboxResource)
 {
 	return (XTL::IDirect3DCubeTexture8 *)GetHostBaseTexture(pXboxResource);
 
 	// TODO : Check for 6 faces (and 2 dimensions)?
 }
+#endif
 
+#if 0 // unused
 XTL::IDirect3DVolumeTexture8 *GetHostVolumeTexture(XTL::X_D3DResource *pXboxResource)
 {
 	return (XTL::IDirect3DVolumeTexture8 *)GetHostBaseTexture(pXboxResource);
 
 	// TODO : Check for 3 dimensions?
 }
+#endif
 
+#if 0 // unused
 XTL::IDirect3DIndexBuffer8 *GetHostIndexBuffer(XTL::X_D3DResource *pXboxResource)
 {
 	if (pXboxResource == NULL)
@@ -1087,7 +1130,9 @@ XTL::IDirect3DIndexBuffer8 *GetHostIndexBuffer(XTL::X_D3DResource *pXboxResource
 
 	return (XTL::IDirect3DIndexBuffer8 *)GetHostResource(pXboxResource);
 }
+#endif
 
+#if 0 // unused
 XTL::IDirect3DVertexBuffer8 *GetHostVertexBuffer(XTL::X_D3DResource *pXboxResource)
 {
 	if (pXboxResource == NULL)
@@ -1097,6 +1142,7 @@ XTL::IDirect3DVertexBuffer8 *GetHostVertexBuffer(XTL::X_D3DResource *pXboxResour
 
 	return (XTL::IDirect3DVertexBuffer8 *)GetHostResource(pXboxResource);
 }
+#endif
 
 void SetHostSurface(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DSurface8 *pHostSurface)
 {
@@ -1151,7 +1197,7 @@ void SetHostVertexBuffer(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DVertex
 void *XTL::GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 {
 	// Don't pass in unassigned Xbox resources
-	if(pXboxResource == NULL)
+	if (pXboxResource == NULL)
 		return nullptr;
 
 	xbaddr pData = pXboxResource->Data;
@@ -1188,8 +1234,7 @@ void DxbxDetermineSurFaceAndLevelByData(const DecodedPixelContainer PixelJar, OU
 
 	// Step to the correct face :
 	int f = XTL::D3DCUBEMAP_FACE_POSITIVE_X;
-	while (f < XTL::D3DCUBEMAP_FACE_NEGATIVE_Z)
-	{
+	while (f < XTL::D3DCUBEMAP_FACE_NEGATIVE_Z) {
 		if (ParentData >= SurfaceData)
 			break;
 
@@ -1200,8 +1245,7 @@ void DxbxDetermineSurFaceAndLevelByData(const DecodedPixelContainer PixelJar, OU
 
 	// Step to the correct mipmap level :
 	Level = 0;
-	while (Level < X_MAX_MIPMAPS)
-	{
+	while (Level < X_MAX_MIPMAPS) {
 		if (ParentData + PixelJar.MipMapOffsets[Level] >= SurfaceData)
 			break;
 
@@ -1250,14 +1294,11 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 		switch (aResourceType) {
 		case X_D3DRTYPE_TEXTURE:
 		case X_D3DRTYPE_VOLUMETEXTURE:
-		case X_D3DRTYPE_CUBETEXTURE:
-		{
-			if ((aUsage & X_D3DUSAGE_DEPTHSTENCIL) > 0)
-			{
+		case X_D3DRTYPE_CUBETEXTURE: {
+			if ((aUsage & X_D3DUSAGE_DEPTHSTENCIL) > 0) {
 				Result = D3DFMT_D16_LOCKABLE;
 				// ATI Fix : Does this card support D16 DepthStencil textures ?
-				if (!IsResourceFormatSupported(aResourceType, Result, aUsage))
-				{
+				if (!IsResourceFormatSupported(aResourceType, Result, aUsage)) {
 					// If not, fall back to a format that's the same size and is most probably supported :
 					Result = D3DFMT_R5G6B5; // Note : If used in shaders, this will give unpredictable channel mappings!
 
@@ -1280,8 +1321,7 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 		switch (aResourceType) {
 		case X_D3DRTYPE_TEXTURE:
 		case X_D3DRTYPE_VOLUMETEXTURE:
-		case X_D3DRTYPE_CUBETEXTURE:
-		{
+		case X_D3DRTYPE_CUBETEXTURE: {
 			Result = D3DFMT_A8R8G8B8;
 			// Since this cannot longer be created as a DepthStencil, reset the usage flag :
 			aUsage &= ~X_D3DUSAGE_DEPTHSTENCIL; // TODO : This asks for a testcase!
@@ -1507,14 +1547,12 @@ VOID CxbxGetPixelContainerMeasures
 	DWORD Size = pPixelContainer->Size;
 	XTL::X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pPixelContainer);
 
-	if (Size != 0)
-	{
+	if (Size != 0) {
 		*pWidth = ((Size & X_D3DSIZE_WIDTH_MASK) /* >> X_D3DSIZE_WIDTH_SHIFT*/) + 1;
 		*pHeight = ((Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
 		*pPitch = (((Size & X_D3DSIZE_PITCH_MASK) >> X_D3DSIZE_PITCH_SHIFT) + 1) * X_D3DTEXTURE_PITCH_ALIGNMENT;
 	}
-	else
-	{
+	else {
 		DWORD l2w = (pPixelContainer->Format & X_D3DFORMAT_USIZE_MASK) >> X_D3DFORMAT_USIZE_SHIFT;
 		DWORD l2h = (pPixelContainer->Format & X_D3DFORMAT_VSIZE_MASK) >> X_D3DFORMAT_VSIZE_SHIFT;
 
@@ -1531,6 +1569,7 @@ VOID CxbxGetPixelContainerMeasures
 		}
 	}
 #if 0 // Enable to dump results
+
 	{
 		DbgPrintf("pPixelContainer = %p\n", pPixelContainer);
 		DbgPrintf("dwLevel = %d\n", dwLevel);
@@ -1697,8 +1736,7 @@ void CxbxInternalSetRenderState
 {
 	LOG_FUNC_INIT(Caller)
 
-	if (Caller)
-	{
+	if (Caller) {
 		LOG_FUNC_BEGIN_NO_INIT
 			LOG_FUNC_ARG(XboxRenderState)
 			LOG_FUNC_ARG(XboxValue)
@@ -1753,8 +1791,7 @@ void CxbxInternalSetTextureStageState
 {
 	LOG_FUNC_INIT(Caller)
 
-	if (Caller)
-	{
+	if (Caller) {
 		LOG_FUNC_BEGIN_NO_INIT
 			LOG_FUNC_ARG(Stage)
 			LOG_FUNC_ARG(XboxTextureStageState)
@@ -5125,7 +5162,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 }
 #endif
 
-// TODO : #ifdef PATCH_TEXTURES D3DDevice_SwitchTexture too?
+#if 0 // Patch disabled - We read the result from Xbox_D3DDevice_m_Textures anyway. The pushed (PGRAPH) commands are currently ignored in our puller.
 VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 (
     DWORD           Method,
@@ -5197,6 +5234,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
         //*/
     }
 }
+#endif
 
 #if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetDisplayMode)
@@ -6141,7 +6179,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			dwMipMapLevels = 3;
 		}
 #endif
-		if (PixelJar.bIsCubeMap)
+		if (PixelJar.format.bIsCubeMap)
 		{
 			DbgPrintf("CreateCubeTexture(%d, %d, 0, %d, D3DPOOL_MANAGED)\n", 
 				PixelJar.dwWidth, PixelJar.dwMipMapLevels, PCFormat);
@@ -6186,9 +6224,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			result = (IDirect3DBaseTexture8 *)pNewHostVolumeTexture;
 		} else
 		{
-			//    printf("CreateTexture(%d, %d, %d, 0, %d (X=0x%.08X), D3DPOOL_MANAGED)\n", dwWidth, dwHeight,
-			//       dwMipMapLevels, PCFormat, X_Format);
-
 			// HACK: Quantum Redshift
 			/*if( dwMipMapLevels == 8 && X_Format == X_D3DFMT_DXT1 )
 			{
@@ -6243,7 +6278,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	BYTE* pTmpBuffer = nullptr;
 
 	// This outer loop walks over all faces (6 for CubeMaps, just 1 for anything else) :
-	uint nrfaces = PixelJar.bIsCubeMap ? 6 : 1;
+	uint nrfaces = PixelJar.format.bIsCubeMap ? 6 : 1;
 	for (uint face = 0; face < nrfaces; face++)
 	{
 		// as we iterate through mipmap levels, we'll adjust the source resource offset
@@ -6260,34 +6295,31 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			if (D3DUsage & D3DUSAGE_DYNAMIC) // Only allowed on dynamic textures:
 				D3DLockFlags |= D3DLOCK_DISCARD; // we'll overwrite the entire resource
 
-			// TODO : Reorder this for speed : pNewHostTexture first, then pNewHostSurface, pNewHostCubeTexture and pNewHostVolumeTexture last
 			if (pNewHostVolumeTexture != nullptr) {
-
 				hRet = pNewHostVolumeTexture->LockBox(level, &LockedBox, nullptr, D3DLockFlags);
 				DEBUG_D3DRESULT(hRet, "pNewHostVolumeTexture->LockBox");
 			}
-			else
-			{
+			else {
 				D3DLOCKED_RECT LockedRect = {};
 
-				if (pNewHostSurface != nullptr) {
-					hRet = pNewHostSurface->LockRect(&LockedRect, nullptr, D3DLockFlags);
-					DEBUG_D3DRESULT(hRet, "pNewHostVolumeTexture->LockBox");
-				}
-				else if (pNewHostCubeTexture != nullptr) {
+				if (pNewHostTexture != nullptr) {
+					hRet = pNewHostTexture->LockRect(level, &LockedRect, nullptr, D3DLockFlags);
+					DEBUG_D3DRESULT(hRet, "pNewHostTexture->LockRect");
+				} else if (pNewHostCubeTexture != nullptr) {
 					hRet = pNewHostCubeTexture->LockRect((D3DCUBEMAP_FACES)face, level, &LockedRect, nullptr, D3DLockFlags);
-					DEBUG_D3DRESULT(hRet, "pNewHostVolumeTexture->LockBox");
+					DEBUG_D3DRESULT(hRet, "pNewHostCubeTexture->LockRect");
 				}
 				else {
-					assert(pNewHostTexture != nullptr);
-					hRet = pNewHostTexture->LockRect(level, &LockedRect, nullptr, D3DLockFlags);
-					DEBUG_D3DRESULT(hRet, "pNewHostVolumeTexture->LockBox");
+					assert(pNewHostSurface != nullptr);
+					hRet = pNewHostSurface->LockRect(&LockedRect, nullptr, D3DLockFlags);
+					DEBUG_D3DRESULT(hRet, "pNewHostSurface->LockRect");
 				}
 
 				if (FAILED(hRet)) {
 					LOG_TEST_CASE("What should we do when the resource couldn't be locked?");
 				}
 
+				// Transfer LockedRect to LockedBox, so following code can work with just that
 				LockedBox.pBits = LockedRect.pBits;
 				LockedBox.RowPitch = LockedRect.Pitch;
 				LockedBox.SlicePitch = 0; // 2D textures don't use slices
@@ -6298,7 +6330,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			uint nrslices = PixelJar.MipMapSlices[level];
 			for (uint slice = 0; slice < nrslices; slice++)
 			{
-				// Determine the Xbox data pointer and step it to the correct mipmap, face and/or slice :
+				// Determine the Xbox data pointer and step it to the correct face, mipmap and/or slice :
 				BYTE *pSrc = (BYTE*)pTextureData;
 				DWORD dwSrcPitch = dwMipPitch;
 				// Do the same with the host data pointer
@@ -6306,7 +6338,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				DWORD dwDestPitch = LockedBox.RowPitch;
 
 				pSrc += PixelJar.MipMapOffsets[level];
-				if (PixelJar.bIsCubeMap) {
+				if (PixelJar.format.bIsCubeMap) {
 					pSrc += PixelJar.dwFacePitch * face;
 					// pDest is already locked by face, so doesn't need stepping
 				}
@@ -6332,6 +6364,8 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 						if (bConvertToARGB) {
 							// If we must both unswizzle AND convert to ARGB, we need an intermediate buffer
 							if (pTmpBuffer == nullptr)
+								// Allocate buffer once, so loop repeats can re-use it without reallocating.
+								// This initial allocation is big enough for all following uses (cube faces/texture mipmap levels/volume slices).
 								pTmpBuffer = (BYTE *)malloc(dwMipSizeInBytes);
 
 							// Unswizzle towards that buffer
@@ -6421,7 +6455,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 					}
 				}
 
-				if (PixelJar.bIsBorderTexture)
+				if (PixelJar.format.bIsBorderTexture)
 				{
 					if (face == 0 && level == 0 && slice == 0) { // Log warning only once per resource
 						EmuWarning("Ignoring D3DFORMAT_BORDERSOURCE_COLOR");
@@ -6432,35 +6466,35 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				}
 			}
 
-			if (pNewHostVolumeTexture != nullptr) {
-				hRet = pNewHostVolumeTexture->UnlockBox(level);
-				DEBUG_D3DRESULT(hRet, "pNewHostVolumeTexture->UnlockBox");
-			}
-			else if (pNewHostSurface != nullptr) {
-				hRet = pNewHostSurface->UnlockRect();
-				DEBUG_D3DRESULT(hRet, "pNewHostSurface->UnlockRect");
+			if (pNewHostTexture != nullptr) {
+				hRet = pNewHostTexture->UnlockRect(level);
+				DEBUG_D3DRESULT(hRet, "pNewHostTexture->UnlockRect");
 			}
 			else if (pNewHostCubeTexture != nullptr) {
 				hRet = pNewHostCubeTexture->UnlockRect((D3DCUBEMAP_FACES)face, level);
 				DEBUG_D3DRESULT(hRet, "pNewHostCubeTexture->UnlockRect");
 			}
+			else if (pNewHostVolumeTexture != nullptr) {
+				hRet = pNewHostVolumeTexture->UnlockBox(level);
+				DEBUG_D3DRESULT(hRet, "pNewHostVolumeTexture->UnlockBox");
+			}
 			else {
-				assert(pNewHostTexture != nullptr);
-				hRet = pNewHostTexture->UnlockRect(level);
-				DEBUG_D3DRESULT(hRet, "pNewHostTexture->UnlockRect");
+				assert(pNewHostSurface != nullptr);
+				hRet = pNewHostSurface->UnlockRect();
+				DEBUG_D3DRESULT(hRet, "pNewHostSurface->UnlockRect");
 			}
 
 			// Step to next mipmap level (but never go below minimum) :
-			if (dwMipWidth > PixelJar.dwMinXYValue)
-			{
+			if (dwMipWidth > PixelJar.dwMinXYValue) {
 				dwMipWidth /= 2;
 				dwMipPitch /= 2;
 			}
 			
 			if (dwMipHeight > PixelJar.dwMinXYValue)
 				dwMipHeight /= 2;
-		}
-	}
+		} // for level
+	} // for face
+
 	// Flush temporary data buffer
 	if (pTmpBuffer != nullptr)
 		free(pTmpBuffer);
@@ -6787,7 +6821,7 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
 	DecodeD3DFormatAndSize(pPixelContainer, OUT PixelJar);
 
 	// TODO : Check if IsYuvSurface(pPixelContainer) works too
-	pDesc->Format = PixelJar.X_Format;
+	pDesc->Format = PixelJar.format.X_Format;
     pDesc->Type = GetXboxD3DResourceType(pPixelContainer);
 	
 	// Include X_D3DUSAGE_RENDERTARGET or X_D3DUSAGE_DEPTHSTENCIL where appropriate, which means :
@@ -8035,7 +8069,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetTransform)
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetTransform");    
 }
 
-#if 1
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock)
 (
     X_D3DVertexBuffer  *pVertexBuffer,
@@ -8045,7 +8079,7 @@ VOID WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock)
     DWORD               Flags
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FORWARD("D3DVertexBuffer_Lock2");
 
@@ -8054,20 +8088,21 @@ VOID WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock)
 }
 #endif
 
-#if 1 // reads g_pDevice, calls StartPush, EndPush, BlockOnNonSurfaceResource
+#if 0 // Patch disabled - Xbox reads g_pDevice, calls StartPush, EndPush, BlockOnNonSurfaceResource
 BYTE* WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock2)
 (
     X_D3DVertexBuffer  *pVertexBuffer,
     DWORD               Flags
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pVertexBuffer)
 		LOG_FUNC_ARG(Flags)
 		LOG_FUNC_END;
 
+	// Test case : X-Marbles
     BYTE *pbNativeData = (BYTE *)GetDataFromXboxResource(pVertexBuffer);
 
 	DbgPrintf("D3DVertexBuffer_Lock2 returns 0x%p\n", pbNativeData);
@@ -10309,24 +10344,27 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetModelView)
 	return D3D_OK;
 }
 
+#if 0 // Patch disabled (BackMaterial isn't emulated currently, but Xbox code is allowed to use it)
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackMaterial)
 (
 	X_D3DMATERIAL* pMaterial
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(pMaterial);
 
 	*pMaterial = g_BackMaterial;
 }
+#endif
 
+#if 0 // Patch disabled (BackMaterial isn't emulated currently, but Xbox code is allowed to use it)
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetBackMaterial)
 (
 	X_D3DMATERIAL* pMaterial
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(pMaterial);
 
@@ -10334,6 +10372,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetBackMaterial)
 
 	g_BackMaterial = *pMaterial;
 }
+#endif
 
 #if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3D_GetAdapterIdentifier) // TODO : Rename to Direct3D_GetAdapterIdentifier
