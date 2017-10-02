@@ -539,7 +539,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetPalette
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetPalette, 5344, 12)
+OOVPA_XREF(D3DDevice_SetPalette, 5344, 1+12,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES),
 
         // D3DDevice_SetPalette+0x0D : mov eax, [esi+edi*4+0B78h]
         { 0x0D, 0x8B },

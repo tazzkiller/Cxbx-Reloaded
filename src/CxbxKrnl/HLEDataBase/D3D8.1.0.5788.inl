@@ -633,7 +633,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetPalette
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetPalette, 5788, 7)
+OOVPA_XREF(D3DDevice_SetPalette, 5788, 1+7,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES),
 
         { 0x10, 0x98 },
         { 0x22, 0x0F },

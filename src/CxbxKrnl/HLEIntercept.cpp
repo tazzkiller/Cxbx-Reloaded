@@ -170,6 +170,7 @@ void SetGlobalSymbols()
 	XTL::Xbox_D3D_TextureState = (DWORD*)FindSymbolAddress("D3D__TextureState");
 	XTL::Xbox_g_Stream = (XTL::X_Stream *)FindSymbolAddress("g_Stream", false); // Optional - aerox2 hits this case
 	XTL::offsetof_Xbox_D3DDevice_m_Textures = (uint)FindSymbolAddress("offsetof(D3DDevice,m_Textures)");
+	XTL::offsetof_Xbox_D3DDevice_m_Palettes = (uint)FindSymbolAddress("offsetof(D3DDevice,m_Palettes)");
 }
 
 void EmuHLEIntercept(Xbe::Header *pXbeHeader)
@@ -336,6 +337,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 		XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_G_STREAM] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES] = XREF_ADDR_DERIVE;
+		XRefDataBase[XREF_OFFSET_D3DDEVICE_M_PALETTES] = XREF_ADDR_DERIVE;
 
 		for(int p=0;UnResolvedXRefs < LastUnResolvedXRefs;p++)
         {
@@ -596,6 +598,11 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 	if (XRefAddrFound(XREF_OFFSET_D3DDEVICE_M_TEXTURES)) {
 		g_SymbolAddresses["offsetof(D3DDevice,m_Textures)"] = XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES];
 		printf("HLE: Derived 0x%.08X -> offsetof(D3DDevice,m_Textures)\n", XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES]);
+	}
+
+	if (XRefAddrFound(XREF_OFFSET_D3DDEVICE_M_PALETTES)) {
+		g_SymbolAddresses["offsetof(D3DDevice,m_Palettes)"] = XRefDataBase[XREF_OFFSET_D3DDEVICE_M_PALETTES];
+		printf("HLE: Derived 0x%.08X -> offsetof(D3DDevice,m_Palettes)\n", XRefDataBase[XREF_OFFSET_D3DDEVICE_M_PALETTES]);
 	}
 
 	SetGlobalSymbols();

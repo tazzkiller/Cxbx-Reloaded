@@ -190,8 +190,10 @@ static XTL::X_D3DSurface           *g_pCachedYuvSurface = NULL;
 static DWORD                        g_dwVertexShaderUsage = 0;
 static DWORD                        g_VertexShaderSlots[136];
 
+#if 0
 // cached palette pointer
 static DWORD *g_pTexturePaletteStages[X_D3DTSS_STAGECOUNT] = { NULL, NULL, NULL, NULL };
+#endif
 
 static XTL::X_D3DSHADERCONSTANTMODE g_VertexShaderConstantMode = X_D3DSCM_192CONSTANTS;
 
@@ -202,8 +204,10 @@ XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 xbaddr XTL::Xbox_pD3DDevice = NULL; // The address where an Xbe will put it's D3DDevice pointer
 DWORD *XTL::Xbox_D3DDevice = NULL; // Once known, the actual D3DDevice pointer (see DeriveXboxD3DDeviceAddresses)
 DWORD *XTL::Xbox_D3Device_IndexBase = NULL;
-XTL::X_D3DBaseTexture **XTL::Xbox_D3DDevice_m_Textures = NULL; // Can only be set once Xbox CreateDevice has ran
 uint XTL::offsetof_Xbox_D3DDevice_m_Textures = 0;
+XTL::X_D3DBaseTexture **XTL::Xbox_D3DDevice_m_Textures = NULL; // Can only be set once Xbox CreateDevice has ran
+uint XTL::offsetof_Xbox_D3DDevice_m_Palettes = 0;
+XTL::X_D3DPalette **XTL::Xbox_D3DDevice_m_Palettes = NULL; // Can only be set once Xbox CreateDevice has ran
 
 void CxbxClearGlobals()
 {
@@ -1655,6 +1659,9 @@ void DeriveXboxD3DDeviceAddresses()
 	// Derive the address where active texture pointers are stored
 	XTL::Xbox_D3DDevice_m_Textures = (XTL::X_D3DBaseTexture **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Textures);
 
+	// Derive the address where active palette pointers are stored
+	XTL::Xbox_D3DDevice_m_Palettes = (XTL::X_D3DPalette **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Palettes);
+
 	// Determine active the vertex index
 	// This reads from g_pDevice->m_IndexBase in Xbox D3D
 	XTL::Xbox_D3Device_IndexBase = &(XTL::Xbox_D3DDevice[7]);
@@ -1669,8 +1676,11 @@ void CxbxUpdateTextureStages()
 
 	for (int Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++) {
 		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = nullptr;
-		if (g_FillModeOverride == 0)
-			pHostBaseTexture = CxbxUpdateTexture(XTL::GetXboxBaseTexture(Stage), g_pTexturePaletteStages[Stage]);
+		if (g_FillModeOverride == 0) {
+			auto XboxPalette = XTL::GetXboxPalette(Stage);
+			DWORD *PaletteColors = (XboxPalette != NULL) ? (DWORD*)GetDataFromXboxResource(XboxPalette) : NULL;
+			pHostBaseTexture = CxbxUpdateTexture(XTL::GetXboxBaseTexture(Stage), PaletteColors);
+		}
 
 		HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, pHostBaseTexture);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTexture");
@@ -1725,6 +1735,7 @@ void CxbxUpdateNativeD3DResources()
 	CxbxUpdateTextureStages();
 	XTL::DxbxUpdateDeferredStates(); // BeginPush sample shows us that this must come *after* texture update!
 	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
+	// TODO : Transfer matrices (projection/model/world view) from Xbox to Host using GetTransform or D3D_Device member pointers
 }
 
 void CxbxInternalSetRenderState
@@ -8010,6 +8021,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Deferred)
 }
 #endif
 
+// TODO : Disable all transform patches (D3DDevice__[Get|Set][Transform|ModelView]), once we read Xbox matrices on time
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTransform)
 (
 	X_D3DTRANSFORMSTATETYPE State,
@@ -8050,6 +8062,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTransform)
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetTransform");    
 }
 
+// TODO : Disable all transform patches (D3DDevice__[Get|Set][Transform|ModelView]), once we read Xbox matrices on time
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetTransform)
 (
 	X_D3DTRANSFORMSTATETYPE State,
@@ -9082,13 +9095,14 @@ XTL::X_D3DPalette * WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette2)
 }
 #endif
 
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPalette)
 (
     DWORD         Stage,
     X_D3DPalette *pPalette
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Stage)
@@ -9102,6 +9116,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPalette)
 		// Cache palette data and size
 		g_pTexturePaletteStages[Stage] = (DWORD *)GetDataFromXboxResource(pPalette);
 }
+#endif
 
 void WINAPI XTL::EMUPATCH(D3DDevice_SetFlickerFilter)
 (
@@ -10247,6 +10262,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DeleteStateBlock)
 }
 
 
+// TODO : Disable all transform patches (D3DDevice__[Get|Set][Transform|ModelView]), once we read Xbox matrices on time
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetModelView)
 (
 	CONST D3DMATRIX *pModelView, 
@@ -10324,6 +10340,7 @@ PDWORD WINAPI XTL::EMUPATCH(XMETAL_StartPush)(void* Unknown)
 }
 #endif
 
+// TODO : Disable all transform patches (D3DDevice__[Get|Set][Transform|ModelView]), once we read Xbox matrices on time
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetModelView)
 (
 	X_D3DXMATRIX* pModelView

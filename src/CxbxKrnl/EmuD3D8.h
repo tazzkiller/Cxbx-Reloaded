@@ -81,14 +81,18 @@ extern DWORD *Xbox_D3DDevice; // Once known, the actual D3DDevice pointer
 extern DWORD *Xbox_D3Device_IndexBase;
 
 extern uint offsetof_Xbox_D3DDevice_m_Textures;
-
 extern X_D3DBaseTexture **Xbox_D3DDevice_m_Textures;
+
+extern uint offsetof_Xbox_D3DDevice_m_Palettes;
+extern X_D3DPalette **Xbox_D3DDevice_m_Palettes;
 
 #if 0 // unused
 inline void SetXboxBaseTexture(UINT uiStage, X_D3DBaseTexture *pTexture) { Xbox_D3DDevice_m_Textures[uiStage] = pTexture; }
 #endif
 
 inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return Xbox_D3DDevice_m_Textures[uiStage]; }
+
+inline X_D3DPalette *GetXboxPalette(UINT uiStage) { return Xbox_D3DDevice_m_Palettes[uiStage]; }
 
 extern void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource);
 
@@ -1504,6 +1508,7 @@ VOID WINAPI EMUPATCH(D3DDevice_SetRenderTarget)
     X_D3DSurface    *pNewZStencil
 );
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_SetPalette
 // ******************************************************************
@@ -1512,6 +1517,7 @@ VOID WINAPI EMUPATCH(D3DDevice_SetPalette)
     DWORD         Stage,
     X_D3DPalette *pPalette
 );
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_SetFlickerFilter
