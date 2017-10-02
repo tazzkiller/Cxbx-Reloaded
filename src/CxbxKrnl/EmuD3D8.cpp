@@ -3341,7 +3341,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_EndPush)(DWORD *pPush)
 		EmuWarning("D3DDevice_EndPush called without preceding D3DDevice_BeginPush?!");
 	else
 	{
-		CxbxUpdateTextureStages();
+		CxbxUpdateNativeD3DResources();
 
 		EmuExecutePushBufferRaw(g_pPrimaryPB);
 
@@ -5587,7 +5587,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_RunPushBuffer)
 		LOG_FUNC_ARG(pFixup)
 		LOG_FUNC_END;
 
-	CxbxUpdateTextureStages();
+	CxbxUpdateNativeD3DResources();
 
 	EmuExecutePushBuffer(pPushBuffer, pFixup);    
 }
@@ -6239,6 +6239,9 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		0 // No ColorKey?
 		);
 	*/
+
+	BYTE* pTmpBuffer = nullptr;
+
 	// This outer loop walks over all faces (6 for CubeMaps, just 1 for anything else) :
 	uint nrfaces = PixelJar.bIsCubeMap ? 6 : 1;
 	for (uint face = 0; face < nrfaces; face++)
@@ -6317,8 +6320,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 					}
 				}
 
-				BYTE* pTmpBuffer = nullptr;
-
 				if (slice == 0) // TODO : Why does Dxbx only unswizzle the first slice?
 				{
 					// Copy over data (deswizzle if necessary)
@@ -6328,10 +6329,11 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 						BYTE *pDest2 = pDest; // Remember pDest for later reuse
 
-						if (bConvertToARGB)
-						{
+						if (bConvertToARGB) {
 							// If we must both unswizzle AND convert to ARGB, we need an intermediate buffer
-							pTmpBuffer = (BYTE *)malloc(dwMipSizeInBytes);
+							if (pTmpBuffer == nullptr)
+								pTmpBuffer = (BYTE *)malloc(dwMipSizeInBytes);
+
 							// Unswizzle towards that buffer
 							pDest = pTmpBuffer;							
 							dwDestPitch = dwMipPitch;
@@ -6343,8 +6345,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 							pDest, dwDestPitch, PixelJar.dwBPP / 8
 						);
 
-						if (bConvertToARGB)
-						{
+						if (bConvertToARGB) {
 							// After unswizzling, convert to ARGB from the intermediate (unswizzled) buffer
 							pSrc = pDest;
 							dwSrcPitch = dwDestPitch;
@@ -6396,15 +6397,12 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 						DWORD SrcRowOff = 0;
 						uint8 *pDestRow = (uint8 *)pDest;
 						while (SrcRowOff < dwMipSizeInBytes) {
+							*(int*)pDestRow = dwDestPitch; // Dirty hack, to avoid an extra parameter to all conversion callbacks
 							ConvertRowToARGB(((uint8 *)pSrc) + SrcRowOff, pDestRow, dwMipWidth);
 							SrcRowOff += dwSrcPitch;
 							pDestRow += dwDestPitch;
 						}
 					}
-
-					// Flush temporary data buffer
-					if (pTmpBuffer != nullptr)
-						free(pTmpBuffer);
 				}
 
 				if (!PixelJar.bIsSwizzled && !bConvertToARGB)
@@ -6463,6 +6461,9 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				dwMipHeight /= 2;
 		}
 	}
+	// Flush temporary data buffer
+	if (pTmpBuffer != nullptr)
+		free(pTmpBuffer);
 
 	// Debug Texture Dumping
 #ifdef _DEBUG_DUMP_TEXTURE_REGISTER
