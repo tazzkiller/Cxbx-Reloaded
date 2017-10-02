@@ -2272,7 +2272,7 @@ void XTL::FreeVertexDynamicPatch(CxbxVertexShader *pHostVertexShader)
     pHostVertexShader->VertexShaderDynamicPatch.NbrStreams = 0;
 }
 
-boolean XTL::IsValidCurrentShader(void)
+bool XTL::IsValidCurrentShader(void)
 {
 	// Dxbx addition : There's no need to call
 	// XTL::EmuIDirect3DDevice_GetVertexShader, just check g_CurrentVertexShader :
@@ -2280,7 +2280,7 @@ boolean XTL::IsValidCurrentShader(void)
 }
 
 // Checks for failed vertex shaders, and shaders that would need patching
-boolean XTL::VshHandleIsValidShader(DWORD Handle)
+bool XTL::VshHandleIsValidShader(DWORD Handle)
 {
 	//printf( "VS = 0x%.08X\n", Handle );
 
@@ -2290,7 +2290,7 @@ boolean XTL::VshHandleIsValidShader(DWORD Handle)
     {
         if (pHostVertexShader->Status != 0)
         {
-            return FALSE;
+            return false;
         }
         /*
         for (uint32 i = 0; i < pHostVertexShader->VertexShaderDynamicPatch.NbrStreams; i++)
@@ -2299,10 +2299,10 @@ boolean XTL::VshHandleIsValidShader(DWORD Handle)
             {
                 // Just for caching purposes
                 pHostVertexShader->Status = 0x80000001;
-                return FALSE;
+                return false;
             }
         }
         */
     }
-    return TRUE;
+    return true;
 }

@@ -1329,6 +1329,18 @@ typedef struct {
 	DWORD           dwReserved2;
 } DDS_HEADER;
 
+//   The XPR file format allows multiple graphics resources to be pre-defined
+//   and bundled together into one file.  These resources can be copied into
+//   memory and then immediately used in-place as D3D objects such as textures
+//   and vertex buffers.  The structure below defines the XPR header and the
+//   unique identifier for this file type.
+struct XprHeader
+{
+	uint32 dwXprMagic; // 'XPR0' or 'XPR1'
+	uint32 dwXprTotalSize;
+	uint32 dwXprHeaderSize;
+};
+
 // load game logo bitmap
 void WndMain::LoadGameLogo()
 {
@@ -1383,12 +1395,12 @@ void WndMain::LoadGameLogo()
 	}
 	case MAKEFOURCC('X', 'P', 'R', '0'):
 	case MAKEFOURCC('X', 'P', 'R', '1'): {
-		struct Xbe::XprHeader *pXprHeader = (struct Xbe::XprHeader*)pSection;
+		struct XprHeader *pXprHeader = (struct XprHeader*)pSection;
 
-		uint SizeOfResourceHeaders = pXprHeader->dwXprHeaderSize - sizeof(Xbe::XprHeader);
+		uint SizeOfResourceHeaders = pXprHeader->dwXprHeaderSize - sizeof(XprHeader);
 		uint SizeOfResourceData = pXprHeader->dwXprTotalSize - pXprHeader->dwXprHeaderSize;
 
-		uint8 *ResourceHeaders = pSection + sizeof(Xbe::XprHeader);
+		uint8 *ResourceHeaders = pSection + sizeof(XprHeader);
 		uint8 *ResourceData = ResourceHeaders + SizeOfResourceHeaders;
 
 		pXboxPixelContainer = (XTL::X_D3DPixelContainer*)ResourceHeaders;

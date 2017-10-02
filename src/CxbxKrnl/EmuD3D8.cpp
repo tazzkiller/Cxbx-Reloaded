@@ -631,9 +631,7 @@ VOID XTL::CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize)
         HANDLE hRenderWindowThread = CreateThread(nullptr, 0, EmuRenderWindow, nullptr, 0, &dwThreadId);
 
 		if (hRenderWindowThread == NULL) {
-			char szBuffer[1024] = { 0 };
-			sprintf(szBuffer, "Creating EmuRenderWindowThread Failed: %08X", GetLastError());
-			CxbxPopupMessage(szBuffer);
+			CxbxPopupMessage("Creating EmuRenderWindowThread Failed: %08X", GetLastError());
 			EmuShared::Cleanup();
 			ExitProcess(0);
 		}
@@ -1706,6 +1704,9 @@ void CxbxUpdateActiveRenderTarget()
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
+/* TODO : Get this working, so [Get|Set][RenderTarget|DepthStencil] patches can be disabled
+	XTL::X_D3DSurface *g_pActiveXboxRenderTarget = GetXboxRenderTarget();
+	XTL::X_D3DSurface *g_pActiveXboxDepthStencil = GetXboxDepthStencil(); */
 	g_pActiveHostRenderTarget = CxbxUpdateSurface(g_pActiveXboxRenderTarget);
 	g_pActiveHostDepthStencil = CxbxUpdateSurface(g_pActiveXboxDepthStencil);
 

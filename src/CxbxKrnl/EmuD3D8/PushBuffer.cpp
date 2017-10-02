@@ -69,7 +69,7 @@ int XTL::DxbxFVF_GetTextureSize(DWORD dwFVF, int aTextureIndex)
 	}
 }
 
-// Dxbx Note: This code is taken from EmuExecutePushBufferRaw and occured
+// Dxbx Note: This code appeared in EmuExecutePushBufferRaw and occured
 // in EmuFlushIVB too, so it's generalize in this single implementation.
 UINT XTL::DxbxFVFToVertexSizeInBytes(DWORD dwFVF, BOOL bIncludeTextures)
 {
@@ -132,7 +132,7 @@ void XTL::EmuExecutePushBuffer
         CxbxKrnlCleanup("PushBuffer has fixups\n");
 
 #ifdef _DEBUG_TRACK_PB
-	DbgDumpPushBuffer((DWORD*)pPushBuffer->Data, pPushBuffer->Size);
+	DbgDumpPushBuffer((PPUSH)pPushBuffer->Data, pPushBuffer->Size);
 #endif
 
     EmuExecutePushBufferRaw((DWORD*)pPushBuffer->Data);
@@ -454,6 +454,84 @@ extern void XTL::EmuExecutePushBufferRaw
     }
 }
 
+char *NV2AMethodToString(DWORD dwMethod)
+{
+	using namespace XTL; // for NV2A symbols
+
+	switch (dwMethod) {
+
+#define ENUM_RANGED_ToString_N(Name, Method, Pitch, N) \
+	case Name(N): return #Name ## "((" #N ")*" #Pitch ## ")";
+
+#define ENUM_RANGED_ToString_1(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 0)
+
+#define ENUM_RANGED_ToString_2(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_1(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 1)
+
+#define ENUM_RANGED_ToString_3(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_2(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 2)
+
+#define ENUM_RANGED_ToString_4(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_3(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 3) 
+
+#define ENUM_RANGED_ToString_6(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_4(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 4) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 5)
+
+#define ENUM_RANGED_ToString_8(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_6(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 6) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 7)
+
+#define ENUM_RANGED_ToString_10(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_8(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 8) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 9) \
+
+#define ENUM_RANGED_ToString_16(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_10(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 10) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 11) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 12) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 13) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 14) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 15)
+
+#define ENUM_RANGED_ToString_32(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_16(Name, Method, Pitch) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 16) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 17) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 18) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 19) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 20) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 21) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 22) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 23) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 24) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 25) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 26) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 27) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 28) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 29) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 30) \
+	ENUM_RANGED_ToString_N(Name, Method, Pitch, 31)
+
+#define ENUM_METHOD_ToString(Name, Method) case Method: return #Name;
+#define ENUM_RANGED_ToString(Name, Method, Pitch, Repeat) ENUM_RANGED_ToString_##Repeat(Name, Method, Pitch)
+#define ENUM_BITFLD_Ignore(Name, Value)
+#define ENUM_VALUE_Ignore(Name, Value)
+
+	ENUM_NV2A(ENUM_METHOD_ToString, ENUM_RANGED_ToString, ENUM_BITFLD_Ignore, ENUM_VALUE_Ignore)
+
+	default:
+		return "UNLABLED";
+	}
+}
 #ifdef _DEBUG_TRACK_PB
 void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
 {
@@ -559,7 +637,7 @@ void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
     }
 }
 
-void XTL::DbgDumpPushBuffer(DWORD* PBData, DWORD dwSize)
+void XTL::DbgDumpPushBuffer(PPUSH PBData, DWORD dwSize)
 {
 	static int PbNumber = 0;	// Keep track of how many push buffers we've attemted to convert.
 	DWORD dwVertexShader;
@@ -597,7 +675,7 @@ void XTL::DbgDumpPushBuffer(DWORD* PBData, DWORD dwSize)
 	// TODO: Cache the 32-bit XXHash32::hash() of each pushbuffer to ensure that the same
 	// pushbuffer is not written twice within a given emulation session.
 	WriteFile(hFile, &g_CurrentVertexShader, sizeof(DWORD), &dwBytesWritten, nullptr);
-	WriteFile(hFile, PBData, dwSize, &dwBytesWritten, nullptr);
+	WriteFile(hFile, (LPCVOID)PBData, dwSize, &dwBytesWritten, nullptr);
 	// Close handle
 	CloseHandle(hFile);
 }

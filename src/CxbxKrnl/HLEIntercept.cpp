@@ -132,45 +132,66 @@ void VerifySymbolAddressAgainstXRef(char *SymbolName, xbaddr Address, int XRef)
 		return;
 	}
 
-	char Buffer[256];
-	sprintf(Buffer, "Verification of %s failed : XREF was 0x%.8X while lookup gave 0x%.8X", SymbolName, XRefAddr, Address);
 	// For XREF_D3DTSS_TEXCOORDINDEX, Kabuki Warriors hits this case
-	CxbxPopupMessage(Buffer);
+	CxbxPopupMessage("Verification of %s failed : XREF was 0x%.8X while lookup gave 0x%.8X", SymbolName, XRefAddr, Address);
 }
 
-void *FindSymbolAddress(char *SymbolName, bool FailWhenNotFound = true)
+enum WhenNotFound { Fail, Warn, Silent };
+
+void *FindSymbolAddress(char *SymbolName, enum WhenNotFound whenNotFound = Fail)
 {
-	if (g_SymbolAddresses.find(SymbolName) == g_SymbolAddresses.end()) {
-		if (FailWhenNotFound) {
+	auto SymbolAddress = g_SymbolAddresses.find(SymbolName);
+	if (SymbolAddress == g_SymbolAddresses.end()) {
+		switch (whenNotFound) {
+		case Fail:
 			CxbxKrnlCleanup("Symbol '%s' not registered!", SymbolName);
-			return nullptr; // never reached
+			break; // never reached
+		case Warn:
+			EmuWarning("Symbol '%s' not registered!", SymbolName);
+			break;
 		}
 
-		EmuWarning("Symbol '%s' not registered!", SymbolName);
-		return nullptr;
+		return NULL;
 	}
 
-	return (void *)(g_SymbolAddresses[SymbolName]);
+	return (void *)SymbolAddress->second;
+}
+
+void RenameOldSymbol(const char *OldSymbolName, const char *NewSymbolName)
+{
+	auto OldSymbolAddressEntry = g_SymbolAddresses.find(OldSymbolName);
+	auto NewSymbolAddressEntry = g_SymbolAddresses.find(NewSymbolName);
+
+	if (NewSymbolAddressEntry != g_SymbolAddresses.end()) {
+		if (OldSymbolAddressEntry != g_SymbolAddresses.end()) {
+			EmuWarning("Ignoring old symbol %s (will use new symbol %s at 0x%p)", OldSymbolName, NewSymbolName, NewSymbolAddressEntry->second);
+		}
+
+		return;
+	}
+
+	if (OldSymbolAddressEntry != g_SymbolAddresses.end()) {
+		EmuWarning("Renaming old symbol %s (will become new symbol %s at 0x%p)", OldSymbolName, NewSymbolName, OldSymbolAddressEntry->second);
+		g_SymbolAddresses[NewSymbolName] = OldSymbolAddressEntry->second;
+		g_SymbolAddresses.erase(OldSymbolName); // TODO : Should we really delete the old one?
+	}
 }
 
 void SetGlobalSymbols()
 {
 	// Process fallbacks :
-	// "g_pDevice" was "D3DDEVICE"
-	// "D3D__TextureState" was "D3DDeferredTextureState"
-	if (g_SymbolAddresses.find("D3D__TextureState") == g_SymbolAddresses.end()) {
-		if (g_SymbolAddresses.find("D3DDeferredTextureState") != g_SymbolAddresses.end())
-			// Keep compatibility with HLE caches that contain "D3DDeferredTextureState" instead of "D3D__TextureState"
-			g_SymbolAddresses["D3D__TextureState"] = g_SymbolAddresses["D3DDeferredTextureState"];
-	}
+	RenameOldSymbol("D3DDEVICE", "g_pDevice");
+	RenameOldSymbol("D3DDeferredRenderState", "D3D__RenderState_Deferred");
+	// Keep compatibility with HLE caches that contain "D3DDeferredTextureState" instead of "D3D__TextureState"
+	RenameOldSymbol("D3DDeferredTextureState", "D3D__TextureState");
 
 	// Lookup and set all required global symbols
 	XTL::Xbox_pD3DDevice = (xbaddr)FindSymbolAddress("g_pDevice");
-	XTL::Xbox_D3D__RenderState_Deferred = (DWORD*)FindSymbolAddress("D3DDeferredRenderState");
+	XTL::Xbox_D3D__RenderState_Deferred = (DWORD*)FindSymbolAddress("D3D__RenderState_Deferred");
 	XTL::Xbox_D3D_TextureState = (DWORD*)FindSymbolAddress("D3D__TextureState");
-	XTL::Xbox_g_Stream = (XTL::X_Stream *)FindSymbolAddress("g_Stream", false); // Optional - aerox2 hits this case
+	XTL::Xbox_g_Stream = (XTL::X_Stream *)FindSymbolAddress("g_Stream", Warn); // Optional - aerox2 hits this case
 	XTL::offsetof_Xbox_D3DDevice_m_Textures = (uint)FindSymbolAddress("offsetof(D3DDevice,m_Textures)");
-	XTL::offsetof_Xbox_D3DDevice_m_Palettes = (uint)FindSymbolAddress("offsetof(D3DDevice,m_Palettes)");
+	XTL::offsetof_Xbox_D3DDevice_m_Palettes = (uint)FindSymbolAddress("offsetof(D3DDevice,m_Palettes)", Warn); // Optional. Test case: X-Marbles
 }
 
 void EmuHLEIntercept(Xbe::Header *pXbeHeader)
@@ -481,7 +502,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 								// Derive address of Xbox_D3D__RenderState_Deferred from D3DRS_CULLMODE
 								::DWORD *Derived_D3D__RenderState_Deferred = Derived_D3D_RenderState + DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
-								g_SymbolAddresses["D3DDeferredRenderState"] = (xbaddr)Derived_D3D__RenderState_Deferred;
+								g_SymbolAddresses["D3D__RenderState_Deferred"] = (xbaddr)Derived_D3D__RenderState_Deferred;
 								printf("HLE: Derived 0x%.08X -> D3D__RenderState_Deferred\n", Derived_D3D__RenderState_Deferred);
 
 								// Derive address of a few other deferred render state slots (to help xref-based function location)
@@ -721,7 +742,7 @@ static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper)
 {
 	// skip out if this is an unnecessary search
 	if (!bXRefFirstPass && Oovpa->XRefCount == XRefZero && Oovpa->XRefSaveIndex == XRefNoSaveIndex)
-		return (xbaddr)nullptr;
+		return (xbaddr)NULL;
 
 	uint32_t derive_indices = 0;
 	// Check all XRefs are known (if not, don't do a useless scan) :
@@ -736,7 +757,7 @@ static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper)
 		// Undetermined XRef cannot be checked yet
 		if (XRefAddr == XREF_ADDR_UNDETERMINED)
 			// Skip this scan over the address range
-			return (xbaddr)nullptr;
+			return (xbaddr)NULL;
 
 		// Don't verify an xref that has to be (but isn't yet) derived
 		if (XRefAddr == XREF_ADDR_DERIVE)
@@ -830,7 +851,7 @@ static xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper)
 		}
 
 	// found nothing
-    return (xbaddr)nullptr;
+    return (xbaddr)NULL;
 }
 
 // install function interception wrappers
@@ -858,14 +879,14 @@ static void EmuInstallPatches(OOVPATable *OovpaTable, uint32 OovpaTableSize, Xbe
 			continue;
 
 		// Skip already found & handled symbols
-		xbaddr pFunc = g_SymbolAddresses[OovpaTable[a].szFuncName];
-		if (pFunc != (xbaddr)nullptr)
+		xbaddr pFunc = (xbaddr)FindSymbolAddress(OovpaTable[a].szFuncName, Silent);
+		if (pFunc != (xbaddr)NULL)
 			continue;
 
 		// Search for each function's location using the OOVPA
         OOVPA *Oovpa = OovpaTable[a].Oovpa;
 		pFunc = (xbaddr)EmuLocateFunction(Oovpa, lower, upper);
-		if (pFunc == (xbaddr)nullptr)
+		if (pFunc == (xbaddr)NULL)
 			continue;
 
 		// Now that we found the address, store it (regardless if we patch it or not)

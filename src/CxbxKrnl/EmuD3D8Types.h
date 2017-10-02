@@ -435,6 +435,7 @@ typedef enum _X_D3DPRIMITIVETYPE
     X_D3DPT_QUADSTRIP             = 9,    // Xbox only
     X_D3DPT_POLYGON               = 10,   // Xbox only
 
+    X_D3DPT_MAX                   = 11,
     X_D3DPT_INVALID               = 0x7fffffff, /* force 32-bit size enum */
 }
 X_D3DPRIMITIVETYPE;
@@ -676,7 +677,6 @@ typedef struct _X_D3DPRESENT_PARAMETERS
     BOOL                EnableAutoDepthStencil;
     X_D3DFORMAT         AutoDepthStencilFormat;
     DWORD               Flags;
-
     UINT                FullScreen_RefreshRateInHz;
     UINT                FullScreen_PresentationInterval;
     // The Windows DirectX8 variant ends here
@@ -741,7 +741,7 @@ typedef struct _X_D3DPIXELSHADERDEF	// <- blueshogun 10/1/07
 }
 X_D3DPIXELSHADERDEF;
 
-// D3D resource "common" masks
+// Xbox D3D Resource Common flags and masks
 #define X_D3DCOMMON_REFCOUNT_MASK      0x0000FFFF
 #define X_D3DCOMMON_TYPE_MASK          0x00070000
 #define X_D3DCOMMON_TYPE_SHIFT         16
@@ -760,6 +760,10 @@ X_D3DPIXELSHADERDEF;
 #define X_D3DCOMMON_ISLOCKED           0x02000010 // Surface is currently locked (potential unswizzle candidate)
 #define X_D3DCOMMON_UNUSED_MASK        0xFE000000 // Dxbx has 0xFC000000
 #define X_D3DCOMMON_UNUSED_SHIFT       25
+
+// special resource lock flags
+#define X_D3DRESOURCE_LOCK_FLAG_NOSIZE  0xEFFFFFFF
+#define X_D3DRESOURCE_LOCK_PALETTE 0x8000BEEF
 
 // Xbox D3D Resource Lock flags
 #define X_D3DLOCK_NOFLUSH               0x00000010 // Xbox extension
@@ -974,7 +978,8 @@ typedef void (__cdecl * X_D3DCALLBACK)(DWORD Context);
 
 // Xbox D3D Render State Type
 typedef enum _X_D3DRENDERSTATETYPE {
-// Xbox D3D Render States (X_D3DRENDERSTATETYPE values)
+
+	// Xbox D3D Render States (X_D3DRENDERSTATETYPE values)
 
 	// Dxbx note : These declarations are from XDK version 5933, the most recent and complete version.
 	// Older versions are slightly different (some members are missing), so we use a mapping table to
@@ -1073,7 +1078,7 @@ typedef enum _X_D3DRENDERSTATETYPE {
 	X_D3DRS_POINTOFFSETENABLE = 79, // Xbox ext.
 	X_D3DRS_WIREFRAMEOFFSETENABLE = 80, // Xbox ext.
 	X_D3DRS_SOLIDOFFSETENABLE = 81, // Xbox ext.
-	X_D3DRS_DEPTHCLIPCONTROL = 82, // [4627+] Xbox ext.
+	X_D3DRS_DEPTHCLIPCONTROL = 82, // [4432+] Xbox ext.
 	X_D3DRS_STIPPLEENABLE = 83, // [4627+] Xbox ext.
 	X_D3DRS_SIMPLE_UNUSED8 = 84, // [4627+]
 	X_D3DRS_SIMPLE_UNUSED7 = 85, // [4627+]
@@ -1118,7 +1123,7 @@ typedef enum _X_D3DRENDERSTATETYPE {
 	X_D3DRS_POINTSIZE_MAX = 123,
 	X_D3DRS_PATCHEDGESTYLE = 124, // Dxbx addition
 	X_D3DRS_PATCHSEGMENTS = 125,
-	X_D3DRS_SWAPFILTER = 126, // [4361+] Xbox ext. nsp. D3DTEXF_LINEAR etc. filter to use for Swap
+	X_D3DRS_SWAPFILTER = 126, // [4039+] Xbox ext. nsp. D3DTEXF_LINEAR etc. filter to use for Swap
 	X_D3DRS_PRESENTATIONINTERVAL = 127, // [4627+] Xbox ext. nsp.
 	X_D3DRS_DEFERRED_UNUSED8 = 128, // [4627+]
 	X_D3DRS_DEFERRED_UNUSED7 = 129, // [4627+]
@@ -1147,9 +1152,9 @@ typedef enum _X_D3DRENDERSTATETYPE {
 	X_D3DRS_EDGEANTIALIAS = 151, // Dxbx note : No Xbox ext. (according to Direct3D8) !
 	X_D3DRS_MULTISAMPLEANTIALIAS = 152,
 	X_D3DRS_MULTISAMPLEMASK = 153,
-	X_D3DRS_MULTISAMPLETYPE = 154, // [-3911] Xbox ext. \_ aliasses  D3DMULTISAMPLE_TYPE
-	X_D3DRS_MULTISAMPLEMODE = 154, // [4361+] Xbox ext. /            D3DMULTISAMPLEMODE for the backbuffer
-	X_D3DRS_MULTISAMPLERENDERTARGETMODE = 155, // [4361+] Xbox ext.
+	X_D3DRS_MULTISAMPLETYPE = 154, // [-4039] Xbox ext. \_ aliasses  D3DMULTISAMPLE_TYPE
+	X_D3DRS_MULTISAMPLEMODE = 154, // [4039+] Xbox ext. /            D3DMULTISAMPLEMODE for the backbuffer
+	X_D3DRS_MULTISAMPLERENDERTARGETMODE = 155, // [4039+] Xbox ext.
 	X_D3DRS_SHADOWFUNC = 156, // D3DCMPFUNC (Xbox extension)
 	X_D3DRS_LINEWIDTH = 157, // Xbox ext.
 	X_D3DRS_SAMPLEALPHA = 158, // Xbox ext.

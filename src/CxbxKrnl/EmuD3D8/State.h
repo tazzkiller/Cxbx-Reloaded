@@ -59,6 +59,10 @@ struct X_Stream
 
 extern X_Stream *Xbox_g_Stream; // The Xbox1 g_Stream[16] array
 
+extern DWORD *Xbox_D3D__Device; // The Xbox1 D3D__Device
+
+extern DWORD *Xbox_D3D__RenderState;
+
 extern DWORD *Xbox_D3D__RenderState_Deferred;
 
 extern DWORD *Xbox_D3D_TextureState; // [X_D3DTSS_STAGECOUNT][X_D3DTSS_STAGESIZE] = [(Stage * X_D3DTSS_STAGESIZE) + Offset]

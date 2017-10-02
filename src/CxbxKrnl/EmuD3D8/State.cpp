@@ -48,15 +48,16 @@ extern int X_D3DSCM_CORRECTION_VersionDependent;
 
 namespace XTL {
 
-// TODO : Set these after symbols are scanned/loaded :
+// These are set after symbols are scanned/loaded - see SetGlobalSymbols()
 DWORD *Xbox_D3D__Device = NULL; // The Xbox1 D3D__Device
 X_Stream *Xbox_g_Stream = {}; // The Xbox1 g_Stream[16] array
-DWORD *Xbox_D3D__RenderState = NULL;
 // Texture state lookup table (same size in all XDK versions, so defined as a fixed size array) :
 DWORD *Xbox_D3D_TextureState = NULL; // [X_D3DTSS_STAGECOUNT][X_D3DTSS_STAGESIZE] = [(Stage * X_D3DTSS_STAGESIZE) + Offset]
 
 // Deferred state lookup tables
 DWORD *Xbox_D3D__RenderState_Deferred = NULL;
+
+DWORD *Xbox_D3D__RenderState = NULL; // Set by CxbxInitializeEmuMappedD3DRenderState()
 
 // Dxbx addition : Dummy value (and pointer to that) to transparently ignore unsupported render states :
 DWORD DummyRenderStateValue = X_D3DRS_FIRST;
@@ -74,7 +75,7 @@ DWORD DxbxMapMostRecentToActiveVersion[X_D3DRS_LAST + 1];
 #define RegisterAddressLabel(Address, fmt, ...) \
 	DbgPrintf("HLE : 0x%p -> "##fmt##"\n", (void *)Address, __VA_ARGS__)
 
-void DxbxBuildRenderStateMappingTable()
+void DxbxBuildRenderStateMappingTable() // TODO : Rename to distinct from CxbxInitializeEmuMappedD3DRenderState()
 {
 	if (g_BuildVersion <= 4361)
 		X_D3DSCM_CORRECTION_VersionDependent = X_D3DSCM_CORRECTION;
@@ -112,13 +113,12 @@ void DxbxBuildRenderStateMappingTable()
 	}
 }
 
-void CxbxInitializeEmuMappedD3DRenderState()
+void CxbxInitializeEmuMappedD3DRenderState() // TODO : Rename to distinct from DxbxBuildRenderStateMappingTable()
 {
 	int delta = 0;
 
 	// Log the start address of the "deferred" render states (not needed anymore, just to keep logging the same) :
-	if (Xbox_D3D__RenderState != NULL)
-	{
+	if (Xbox_D3D__RenderState != NULL) {
 		// Calculate the location of D3DDeferredRenderState via an XDK-dependent offset to Xbox_D3D__RenderState :
 		DWORD XDKVersion_D3DRS_DEFERRED_FIRST = DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST];
 
@@ -130,8 +130,7 @@ void CxbxInitializeEmuMappedD3DRenderState()
 			if (Xbox_D3D__RenderState_Deferred != Xbox_D3D__RenderState + XDKVersion_D3DRS_DEFERRED_FIRST)
 				CxbxKrnlCleanup("CxbxInitializeEmuMappedD3DRenderState : Xbox D3D__RenderState_Deferred already set differently?");
 	}
-	else
-	{
+	else {
 		// TEMPORARY work-around until Xbox_D3D__RenderState is determined via OOVPA symbol scanning;
 		// Map all render states based on the first deferred render state (which we have the address
 		// of in Xbox_D3D__RenderState_Deferred) :

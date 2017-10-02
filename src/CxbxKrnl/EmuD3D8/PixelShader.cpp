@@ -4054,13 +4054,11 @@ bool g_EmuD3DActivePixelShader = (pPSDef != NULL);
   // Our SetPixelShader patch remembered the latest set pixel shader, see if it's assigned :
   if (g_EmuD3DActivePixelShader)
   {
-	DWORD *XTL_D3D__RenderState = XTL::EmuMappedD3DRenderState[X_D3DRS_PS_FIRST];
-
     // We could read g_EmuD3DActivePixelShader.PshDef, but since this is copied into
     // D3D__RenderState (which contents might have been changed after the call to
     // SetPixelShader), we use the address of XTL_D3D__RenderState as the real pixel
     // shader definition :
-	pPSDef = (XTL::X_D3DPIXELSHADERDEF*)(XTL_D3D__RenderState); // Same as XTL::Xbox_D3D__RenderState
+	pPSDef = (XTL::X_D3DPIXELSHADERDEF*)(Xbox_D3D__RenderState); // Same as XTL::EmuMappedD3DRenderState[X_D3DRS_PS_FIRST];
     if (pPSDef == NULL) {
 	  // New Cxbx : Check for g_CurrentPixelShader (it's a pointer, while g_EmuD3DActivePixelShader was a value)
 	  if (g_CurrentPixelShader == nullptr)

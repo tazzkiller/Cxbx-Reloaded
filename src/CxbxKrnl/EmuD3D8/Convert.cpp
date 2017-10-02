@@ -149,61 +149,61 @@ void X1R5G5B5ToARGBRow_C(const uint8* src_x1r5g5b5, uint8* dst_argb,
 }
 
 void A8R8G8B8ToARGBRow_C(const uint8* src_a8r8g8b8, uint8* dst_argb, int width) {
-	memcpy(dst_argb, src_a8r8g8b8, width * 4); // Cxbx pass-through
+	memcpy(dst_argb, src_a8r8g8b8, width * sizeof(XTL::D3DCOLOR)); // Cxbx pass-through
 }
 
-void X8R8G8B8ToARGBRow_C(const uint8* src_x8r8g8b8, uint8* dst_rgb, int width) {
+void X8R8G8B8ToARGBRow_C(const uint8* src_x8r8g8b8, uint8* dst_argb, int width) {
 	int x;
 	for (x = 0; x < width; ++x) {
 		uint8 b = src_x8r8g8b8[0];
 		uint8 g = src_x8r8g8b8[1];
 		uint8 r = src_x8r8g8b8[2];
-		dst_rgb[0] = b;
-		dst_rgb[1] = g;
-		dst_rgb[2] = r;
-		dst_rgb[3] = 255u;
-		dst_rgb += 4;
+		dst_argb[0] = b;
+		dst_argb[1] = g;
+		dst_argb[2] = r;
+		dst_argb[3] = 255u;
+		dst_argb += 4;
 		src_x8r8g8b8 += 4;
 	}
 }
 
-void ____R8B8ToARGBRow_C(const uint8* src_r8b8, uint8* dst_rgb, int width) {
+void ____R8B8ToARGBRow_C(const uint8* src_r8b8, uint8* dst_argb, int width) {
 	int x;
 	for (x = 0; x < width; ++x) {
 		uint8 b = src_r8b8[0];
 		uint8 r = src_r8b8[1];
-		dst_rgb[0] = b;
-		dst_rgb[1] = b;
-		dst_rgb[2] = r;
-		dst_rgb[3] = r;
-		dst_rgb += 4;
+		dst_argb[0] = b;
+		dst_argb[1] = b;
+		dst_argb[2] = r;
+		dst_argb[3] = r;
+		dst_argb += 4;
 		src_r8b8 += 2;
 	}
 }
 
-void ____G8B8ToARGBRow_C(const uint8* src_g8b8, uint8* dst_rgb, int width) {
+void ____G8B8ToARGBRow_C(const uint8* src_g8b8, uint8* dst_argb, int width) {
 	int x;
 	for (x = 0; x < width; ++x) {
 		uint8 b = src_g8b8[0];
 		uint8 g = src_g8b8[1];
-		dst_rgb[0] = b;
-		dst_rgb[1] = g;
-		dst_rgb[2] = b;
-		dst_rgb[3] = g;
-		dst_rgb += 4;
+		dst_argb[0] = b;
+		dst_argb[1] = g;
+		dst_argb[2] = b;
+		dst_argb[3] = g;
+		dst_argb += 4;
 		src_g8b8 += 2;
 	}
 }
 
-void ______A8ToARGBRow_C(const uint8* src_a8, uint8* dst_rgb, int width) {
+void ______A8ToARGBRow_C(const uint8* src_a8, uint8* dst_argb, int width) {
 	int x;
 	for (x = 0; x < width; ++x) {
 		uint8 a = src_a8[0];
-		dst_rgb[0] = 255u;
-		dst_rgb[1] = 255u;
-		dst_rgb[2] = 255u;
-		dst_rgb[3] = a;
-		dst_rgb += 4;
+		dst_argb[0] = 255u;
+		dst_argb[1] = 255u;
+		dst_argb[2] = 255u;
+		dst_argb[3] = a;
+		dst_argb += 4;
 		src_a8 += 1;
 	}
 }
@@ -255,50 +255,50 @@ void R4G4B4A4ToARGBRow_C(const uint8* src_r4g4b4a4, uint8* dst_argb, int width) 
 	}
 }
 
-void A8B8G8R8ToARGBRow_C(const uint8* src_a8b8g8r8, uint8* dst_rgb, int width) {
+void A8B8G8R8ToARGBRow_C(const uint8* src_a8b8g8r8, uint8* dst_argb, int width) {
 	int x;
 	for (x = 0; x < width; ++x) {
 		uint8 r = src_a8b8g8r8[0];
 		uint8 g = src_a8b8g8r8[1];
 		uint8 b = src_a8b8g8r8[3];
 		uint8 a = src_a8b8g8r8[4];
-		dst_rgb[0] = b;
-		dst_rgb[1] = g;
-		dst_rgb[2] = r;
-		dst_rgb[3] = a;
-		dst_rgb += 4;
+		dst_argb[0] = b;
+		dst_argb[1] = g;
+		dst_argb[2] = r;
+		dst_argb[3] = a;
+		dst_argb += 4;
 		src_a8b8g8r8 += 4;
 	}
 }
 
-void B8G8R8A8ToARGBRow_C(const uint8* src_b8g8r8a8, uint8* dst_rgb, int width) {
+void B8G8R8A8ToARGBRow_C(const uint8* src_b8g8r8a8, uint8* dst_argb, int width) {
 	int x;
 	for (x = 0; x < width; ++x) {
 		uint8 a = src_b8g8r8a8[0];
 		uint8 r = src_b8g8r8a8[1];
 		uint8 g = src_b8g8r8a8[3];
 		uint8 b = src_b8g8r8a8[4];
-		dst_rgb[0] = b;
-		dst_rgb[1] = g;
-		dst_rgb[2] = r;
-		dst_rgb[3] = a;
-		dst_rgb += 4;
+		dst_argb[0] = b;
+		dst_argb[1] = g;
+		dst_argb[2] = r;
+		dst_argb[3] = a;
+		dst_argb += 4;
 		src_b8g8r8a8 += 4;
 	}
 }
 
-void R8G8B8A8ToARGBRow_C(const uint8* src_r8g8b8a8, uint8* dst_rgb, int width) {
+void R8G8B8A8ToARGBRow_C(const uint8* src_r8g8b8a8, uint8* dst_argb, int width) {
 	int x;
 	for (x = 0; x < width; ++x) {
 		uint8 a = src_r8g8b8a8[0];
 		uint8 b = src_r8g8b8a8[1];
 		uint8 g = src_r8g8b8a8[3];
 		uint8 r = src_r8g8b8a8[4];
-		dst_rgb[0] = b;
-		dst_rgb[1] = g;
-		dst_rgb[2] = r;
-		dst_rgb[3] = a;
-		dst_rgb += 4;
+		dst_argb[0] = b;
+		dst_argb[1] = g;
+		dst_argb[2] = r;
+		dst_argb[3] = a;
+		dst_argb += 4;
 		src_r8g8b8a8 += 4;
 	}
 }
@@ -1639,8 +1639,8 @@ D3DBLENDOP EmuXB2PC_D3DBLENDOP(X_D3DBLENDOP Value)
 		EmuWarning("Unsupported X_D3DBLENDOP : X_D3DBLENDOP_REVSUBTRACTSIGNED. Using D3DBLENDOP_REVSUBTRACT approximation.");
 		return D3DBLENDOP_REVSUBTRACT;
 	default:
-		CxbxKrnlCleanup("Unknown X_D3DBLENDOP (0x%.08X)", (DWORD)Value);
-		return (D3DBLENDOP)Value; // Never reached
+		EmuWarning("Unsupported X_D3DBLENDOP : 0x%.08X. Using D3DBLENDOP_ADD approximation.", Value);
+		return (D3DBLENDOP)D3DBLENDOP_ADD;
 	}
 }
 
@@ -2026,26 +2026,26 @@ void XTL::EmuUnswizzleRect
 	DWORD dwStartZ = 0, dwOffsetW = 0;
 	/* TODO : Use values from poDst and rSrc to initialize above values, after which the following makes more sense:
 	for (uint i=1; i <= dwMaskMax; i <<= 1) {
-	if (i <= dwMaskX) {
-	if (dwMaskX & i)
-	dwStartX |= (dwOffsetX & i);
-	else
-	dwOffsetX <<= 1;
-	}
+		if (i <= dwMaskX) {
+			if (dwMaskX & i)
+				dwStartX |= (dwOffsetX & i);
+			else
+				dwOffsetX <<= 1;
+		}
 
-	if (i <= dwMaskY) {
-	if (dwMaskY & i)
-	dwStartY |= dwOffsetY & i;
-	else
-	dwOffsetY <<= 1;
-	}
+		if (i <= dwMaskY) {
+			if (dwMaskY & i)
+				dwStartY |= dwOffsetY & i;
+			else
+				dwOffsetY <<= 1;
+		}
 
-	if (i <= dwMaskZ) {
-	if (dwMaskZ & i)
-	dwStartZ |= dwOffsetZ & i;
-	else
-	dwOffsetZ <<= 1;
-	}
+		if (i <= dwMaskZ) {
+			if (dwMaskZ & i)
+				dwStartZ |= dwOffsetZ & i;
+			else
+				dwOffsetZ <<= 1;
+		}
 	}*/
 
 	DWORD dwZ = dwStartZ;
