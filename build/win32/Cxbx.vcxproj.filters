@@ -572,6 +572,7 @@
     </ClInclude>
     <ClInclude Include="..\..\src\CxbxKrnl\HLEDataBase\XOnline.1.0.5849.h">
       <Filter>HLEDatabase\XOnline</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\TextureCache.h">
       <Filter>EmuD3D8</Filter>
     </ClInclude>
