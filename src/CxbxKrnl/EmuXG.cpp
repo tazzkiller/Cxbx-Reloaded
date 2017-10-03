@@ -132,6 +132,7 @@ VOID WINAPI XTL::EMUPATCH(XGSwizzleRect)
 }
 #endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: XGSwizzleBox
 // ******************************************************************
@@ -149,7 +150,7 @@ VOID WINAPI XTL::EMUPATCH(XGSwizzleBox)
     DWORD            BytesPerPixel
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pSource)
@@ -200,6 +201,7 @@ VOID WINAPI XTL::EMUPATCH(XGSwizzleBox)
         }
 	}
 }
+#endif
 
 // ******************************************************************
 // * patch: XGWriteSurfaceOrTextureToXPR

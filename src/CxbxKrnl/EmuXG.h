@@ -69,6 +69,7 @@ VOID WINAPI EMUPATCH(XGSwizzleRect)
 );
 #endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: XGSwizzleBox
 // ******************************************************************
@@ -85,6 +86,7 @@ VOID WINAPI EMUPATCH(XGSwizzleBox)
     CONST XGPOINT3D *pPoint,
     DWORD            BytesPerPixel
 );
+#endif
 
 // ******************************************************************
 // * patch: XGWriteSurfaceOrTextureToXPR
