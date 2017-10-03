@@ -695,7 +695,6 @@ DEBUG_START(PTIMER)
 	DEBUG_CASE(NV_PTIMER_TIME_0);
 	DEBUG_CASE(NV_PTIMER_TIME_1);
 	DEBUG_CASE(NV_PTIMER_ALARM_0);
-
 DEBUG_END(PTIMER)
 
 DEBUG_START(PCOUNTER)
@@ -995,12 +994,10 @@ DEBUG_START(PRAMIN)
 DEBUG_END(PRAMIN)
 
 DEBUG_START(USER)
-
 	DEBUG_CASE(NV_USER_DMA_PUT);
 	DEBUG_CASE(NV_USER_DMA_GET);
 	DEBUG_CASE(NV_USER_REF);
-
-	DEBUG_END(USER)
+DEBUG_END(USER)
 
 
 
@@ -1023,6 +1020,11 @@ DEBUG_START(USER)
 static inline uint32_t ldl_le_p(const void *p)
 {
 	return *(uint32_t*)p;
+}
+
+static inline void stl_le_p(uint32_t *p, uint32 v)
+{
+	*p = v;
 }
 
 static DMAObject nv_dma_load(xbaddr dma_obj_address)
@@ -1375,6 +1377,12 @@ static bool pgraph_zeta_write_enabled()
 		| NV_PGRAPH_CONTROL_0_STENCIL_WRITE_ENABLE);
 }
 
+static void pgraph_update_surface(bool upload,
+	bool color_write, bool zeta_write)
+{
+	printf("TODO: pgraph_update_surface\n");
+}
+
 static unsigned int kelvin_map_stencil_op(uint32_t parameter)
 {
 	unsigned int op;
@@ -1605,9 +1613,8 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 			kelvin->dma_state = parameter;
 			break;
 		case NV097_SET_CONTEXT_DMA_COLOR:
-			printf("TODO: pgraph_update_surface\n");
 			/* try to get any straggling draws in before the surface's changed :/ */
-			//pgraph_update_surface(d, false, true, true);
+			pgraph_update_surface(false, true, true);
 
 			pgraph.dma_color = parameter;
 			break;
@@ -1627,8 +1634,7 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 			pgraph.dma_report = parameter;
 			break;
 		case NV097_SET_SURFACE_CLIP_HORIZONTAL:
-			printf("TODO: pgraph_update_surface\n");
-			//pgraph_update_surface(d, false, true, true);
+			pgraph_update_surface(false, true, true);
 
 			pgraph.surface_shape.clip_x =
 				GET_MASK(parameter, NV097_SET_SURFACE_CLIP_HORIZONTAL_X);
@@ -1636,8 +1642,7 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 				GET_MASK(parameter, NV097_SET_SURFACE_CLIP_HORIZONTAL_WIDTH);
 			break;
 		case NV097_SET_SURFACE_CLIP_VERTICAL:
-			printf("TODO: pgraph_update_surface\n");
-			//pgraph_update_surface(d, false, true, true);
+			pgraph_update_surface(false, true, true);
 
 			pgraph.surface_shape.clip_y =
 				GET_MASK(parameter, NV097_SET_SURFACE_CLIP_VERTICAL_Y);
@@ -1645,8 +1650,7 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 				GET_MASK(parameter, NV097_SET_SURFACE_CLIP_VERTICAL_HEIGHT);
 			break;
 		case NV097_SET_SURFACE_FORMAT:
-			printf("TODO: pgraph_update_surface\n");
-			//pgraph_update_surface(d, false, true, true);
+			pgraph_update_surface(false, true, true);
 
 			pgraph.surface_shape.color_format =
 				GET_MASK(parameter, NV097_SET_SURFACE_FORMAT_COLOR);
@@ -1662,8 +1666,7 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 				GET_MASK(parameter, NV097_SET_SURFACE_FORMAT_HEIGHT);
 			break;
 		case NV097_SET_SURFACE_PITCH:
-			printf("TODO: pgraph_update_surface\n");
-			//pgraph_update_surface(d, false, true, true);
+			pgraph_update_surface(false, true, true);
 
 			pgraph.surface_color.pitch =
 				GET_MASK(parameter, NV097_SET_SURFACE_PITCH_COLOR);
@@ -1671,14 +1674,12 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 				GET_MASK(parameter, NV097_SET_SURFACE_PITCH_ZETA);
 			break;
 		case NV097_SET_SURFACE_COLOR_OFFSET:
-			printf("TODO: pgraph_update_surface\n");
-			//pgraph_update_surface(d, false, true, true);
+			pgraph_update_surface(false, true, true);
 
 			pgraph.surface_color.offset = parameter;
 			break;
 		case NV097_SET_SURFACE_ZETA_OFFSET:
-			printf("TODO: pgraph_update_surface\n");
-			//pgraph_update_surface(d, false, true, true);
+			pgraph_update_surface(false, true, true);
 
 			pgraph.surface_zeta.offset = parameter;
 			break;
@@ -1693,8 +1694,7 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 			pgraph.regs[NV_PGRAPH_TEXADDRESS0 + slot * 4] = parameter;
 			break;
 		case NV097_SET_CONTROL0: {
-			printf("TODO: pgraph_update_surface\n");
-			//pgraph_update_surface(d, false, true, true);
+			pgraph_update_surface(false, true, true);
 
 			bool stencil_write_enable =
 				parameter & NV097_SET_CONTROL0_STENCIL_WRITE_ENABLE;
@@ -2120,6 +2120,29 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 		case NV097_SET_TEXGEN_VIEW_MODEL:
 			SET_MASK(pgraph.regs[NV_PGRAPH_CSV0_D], NV_PGRAPH_CSV0_D_TEXGEN_REF, parameter);
 			break;
+		case NV097_SET_SEMAPHORE_OFFSET:
+			kelvin->semaphore_offset = parameter;
+			break;
+		case NV097_BACK_END_WRITE_SEMAPHORE_RELEASE: {
+
+			pgraph_update_surface(false, true, true);
+
+			//qemu_mutex_unlock(&d->pgraph.lock);
+			//qemu_mutex_lock_iothread();
+
+			xbaddr semaphore_dma_len;
+			uint8_t *semaphore_data = (uint8_t*)nv_dma_map(kelvin->dma_semaphore,
+				&semaphore_dma_len);
+			assert(kelvin->semaphore_offset < semaphore_dma_len);
+			semaphore_data += kelvin->semaphore_offset;
+
+			stl_le_p((uint32_t*)semaphore_data, parameter);
+
+			//qemu_mutex_lock(&d->pgraph.lock);
+			//qemu_mutex_unlock_iothread();
+
+			break;
+		}
 		default:
 			if (method >= NV097_SET_COMBINER_ALPHA_ICW && method <= NV097_SET_COMBINER_ALPHA_ICW + 28) {
 				slot = (method - NV097_SET_COMBINER_ALPHA_ICW) / 4;
@@ -3877,7 +3900,7 @@ static void nv2a_vblank_thread()
 	}
 }
 
-void EmuNV2A_Init()
+void CxbxReserveNV2AMemory()
 {
 	// Reserve NV2A memory :
 	void *memory = (void *)VirtualAllocEx(
@@ -3898,12 +3921,21 @@ void EmuNV2A_Init()
 	memory = VirtualAllocEx(
 		GetCurrentProcess(),
 		(void*)(NV2A_ADDR + NV_PRAMIN_ADDR),
-		NV_PRAMIN_SIZE, 
+		NV_PRAMIN_SIZE,
 		MEM_COMMIT, // No MEM_RESERVE |
 		PAGE_READWRITE);
 	if (memory == NULL) {
 		EmuWarning("EmuNV2A_Init: Couldn't allocate NV2A PRAMIN memory");
+		return;
 	}
+
+	printf("[0x%.4X] INIT: Allocated %d MiB of Xbox NV2A PRAMIN memory at 0x%.8X to 0x%.8X\n",
+		GetCurrentThreadId(), NV_PRAMIN_SIZE / ONE_MB, NV2A_ADDR + NV_PRAMIN_ADDR, NV2A_ADDR + NV_PRAMIN_ADDR + NV_PRAMIN_SIZE - 1);
+}
+
+void EmuNV2A_Init()
+{
+	CxbxReserveNV2AMemory();
 
 	pcrtc.start = 0;
 
