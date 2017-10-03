@@ -2430,6 +2430,69 @@ void CxbxGetActiveHostBackBuffer()
 	}
 }
 
+void CxbxClear
+(
+	DWORD                Count,
+	CONST XTL::D3DRECT  *pRects,
+	DWORD                Flags,
+	XTL::D3DCOLOR        Color,
+	float                Z,
+	DWORD                Stencil
+)
+{
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
+	using namespace XTL;
+
+	// make adjustments to parameters to make sense with windows d3d
+	DWORD PCFlags = EmuXB2PC_D3DCLEAR_FLAGS(Flags);
+	{
+		if (Flags & X_D3DCLEAR_TARGET) {
+			// TODO: D3DCLEAR_TARGET_A, *R, *G, *B don't exist on windows
+			if ((Flags & X_D3DCLEAR_TARGET) != X_D3DCLEAR_TARGET)
+				EmuWarning("Unsupported : Partial D3DCLEAR_TARGET flag(s) for D3DDevice_Clear : 0x%.08X", Flags & X_D3DCLEAR_TARGET);
+		}
+
+		if (Flags & (X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_ZBUFFER)) {
+			// Only when Z/Depth flags are given, check if these components are present :
+			UpdateDepthStencilFlags(g_pActiveXboxDepthStencil);
+
+			// Do not needlessly clear Z Buffer
+			if (Flags & X_D3DCLEAR_ZBUFFER) {
+				if (!g_bHasDepthBits) {
+					PCFlags &= ~D3DCLEAR_ZBUFFER;
+					EmuWarning("Ignored D3DCLEAR_ZBUFFER flag (there's no Depth component in the DepthStencilSurface)");
+				}
+			}
+
+			// Only clear depth buffer and stencil if present
+			//
+			// Avoids following DirectX Debug Runtime error report
+			//    [424] Direct3D8: (ERROR) :Invalid flag D3DCLEAR_ZBUFFER: no zbuffer is associated with device. Clear failed. 
+			if (Flags & X_D3DCLEAR_STENCIL) {
+				if (!g_bHasStencilBits) {
+					PCFlags &= ~D3DCLEAR_STENCIL;
+					EmuWarning("Ignored D3DCLEAR_STENCIL flag (there's no Stencil component in the DepthStencilSurface)");
+				}
+			}
+		}
+		if (Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL))
+			EmuWarning("Unsupported Flag(s) for D3DDevice_Clear : 0x%.08X", Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL));
+	}
+
+	// Since we filter the flags, make sure there are some left (else, clear isn't necessary) :
+	if (PCFlags > 0)
+	{
+		HRESULT hRet;
+
+		// Before clearing, make sure the correct output surfaces are used
+		CxbxUpdateActiveRenderTarget(); // No need to call full-fledged CxbxUpdateNativeD3DResources
+
+		hRet = g_pD3DDevice8->Clear(Count, pRects, PCFlags, Color, Z, Stencil);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
+	}
+}
+
 // A wrapper for Present() with an extra safeguard to restore 'device lost' errors
 void CxbxPresent()
 {
@@ -2853,20 +2916,14 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				}
 
 				// initially, show a black screen
-                // Only clear depth buffer and stencil if present
-                //
-                // Avoids following DirectX Debug Runtime error report
-                //    [424] Direct3D8: (ERROR) :Invalid flag D3DCLEAR_ZBUFFER: no zbuffer is associated with device. Clear failed. 
-                //
-                hRet = g_pD3DDevice8->Clear(
-					/*Count=*/0, 
-					/*pRects=*/nullptr, 
-					D3DCLEAR_TARGET | (g_bHasDepthBits ? D3DCLEAR_ZBUFFER : 0) | (g_bHasStencilBits ? D3DCLEAR_STENCIL : 0),
+				UpdateDepthStencilFlags(g_pActiveXboxDepthStencil); // Update g_bHasDepthBits and g_bHasStencilBits
+				CxbxClear(
+					/*Count=*/0,
+					/*pRects=*/nullptr,
+					XTL::X_D3DCLEAR_TARGET | (g_bHasDepthBits ? XTL::X_D3DCLEAR_ZBUFFER : 0) | (g_bHasStencilBits ? XTL::X_D3DCLEAR_STENCIL : 0),
 					/*Color=*/0xFF000000, // TODO : Use constant for this
 					/*Z=*/g_bHasDepthBits ? 1.0f : 0.0f,
 					/*Stencil=*/g_bHasStencilBits ? 0 : 0); // TODO : What to set these to?
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
-
 				CxbxPresent();
             }
             else { // !bCreate
@@ -5685,49 +5742,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Clear)
 		LOG_FUNC_ARG(Stencil)
 		LOG_FUNC_END;
 
-    // make adjustments to parameters to make sense with windows d3d
-    DWORD PCFlags = EmuXB2PC_D3DCLEAR_FLAGS(Flags);
-    {
-		if (Flags & X_D3DCLEAR_TARGET) {
-			// TODO: D3DCLEAR_TARGET_A, *R, *G, *B don't exist on windows
-			if ((Flags & X_D3DCLEAR_TARGET) != X_D3DCLEAR_TARGET)
-				EmuWarning("Unsupported : Partial D3DCLEAR_TARGET flag(s) for D3DDevice_Clear : 0x%.08X", Flags & X_D3DCLEAR_TARGET);
-		}
-
-        // Do not needlessly clear Z Buffer
-		if (Flags & X_D3DCLEAR_ZBUFFER) {
-			if (!g_bHasDepthBits) {
-				PCFlags &= ~D3DCLEAR_ZBUFFER;
-				EmuWarning("Ignored D3DCLEAR_ZBUFFER flag (there's no Depth component in the DepthStencilSurface)");
-			}
-		}
-
-		// Only clear depth buffer and stencil if present
-		//
-		// Avoids following DirectX Debug Runtime error report
-		//    [424] Direct3D8: (ERROR) :Invalid flag D3DCLEAR_ZBUFFER: no zbuffer is associated with device. Clear failed. 
-		if (Flags & X_D3DCLEAR_STENCIL) {
-			if (!g_bHasStencilBits) {
-				PCFlags &= ~D3DCLEAR_STENCIL;
-				EmuWarning("Ignored D3DCLEAR_STENCIL flag (there's no Stencil component in the DepthStencilSurface)");
-			}
-		}
-
-        if(Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL))
-            EmuWarning("Unsupported Flag(s) for D3DDevice_Clear : 0x%.08X", Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL));
-    }
-
-	// Since we filter the flags, make sure there are some left (else, clear isn't necessary) :
-	if (PCFlags > 0)
-	{
-		HRESULT hRet;
-
-		// Before clearing, make sure the correct output surfaces are used
-		CxbxUpdateActiveRenderTarget(); // No need to call full-fledged CxbxUpdateNativeD3DResources
-
-		hRet = g_pD3DDevice8->Clear(Count, pRects, PCFlags, Color, Z, Stencil);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
-	}
+	CxbxClear(Count, pRects, Flags, Color, Z, Stencil);
 }
 
 #define CXBX_SWAP_PRESENT_FORWARD (256 + 4 + 1) // = CxbxPresentForwardMarker + D3DSWAP_FINISH + D3DSWAP_COPY
