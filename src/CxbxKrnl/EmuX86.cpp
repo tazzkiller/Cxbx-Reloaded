@@ -36,6 +36,8 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "X86 " // Intentional extra space to align on 4 characters
+
 // Link the library into our project.
 #pragma comment(lib, "distorm.lib")
 
@@ -176,7 +178,7 @@ uint32_t EmuX86_Read32Aligned(xbaddr addr)
 	uint32_t value;
 
 	if (addr >= NV2A_ADDR && addr < NV2A_ADDR + NV2A_SIZE) {
-		// Access NV2A regardless weither HLE is disabled or not 
+		// Access NV2A regardless weither HLE is disabled or not (ignoring bLLE_GPU)
 		value = EmuNV2A_Read(addr - NV2A_ADDR, 32);
 		// Note : EmuNV2A_Read32 does it's own logging
 	} else if (addr >= NVNET_ADDR && addr < NVNET_ADDR + NVNET_SIZE) {
@@ -191,6 +193,7 @@ uint32_t EmuX86_Read32Aligned(xbaddr addr)
 			// Outside EmuException, pass the memory-access through to normal memory :
 			value = EmuX86_Mem_Read32(addr);
 		}
+
 		DbgPrintf("EmuX86_Read32Aligned(0x%08X) = 0x%08X\n", addr, value);
 	}
 
@@ -231,7 +234,8 @@ uint16_t EmuX86_Read16(xbaddr addr)
 			// Outside EmuException, pass the memory-access through to normal memory :
 			value = EmuX86_Mem_Read16(addr);
 		}
-		DbgPrintf("EmuX86_Read16(0x%08X) = 0x%04X\n", addr, value);
+
+		DbgPrintf("X86 : Read16(0x%.8X) = 0x%.4X\n", addr, value);
 	}
 
 	return value;
@@ -258,7 +262,8 @@ uint8_t EmuX86_Read8(xbaddr addr)
 			// Outside EmuException, pass the memory-access through to normal memory :
 			value = EmuX86_Mem_Read8(addr);
 		}
-		DbgPrintf("EmuX86_Read8(0x%08X) = 0x%02X\n", addr, value);
+
+		DbgPrintf("X86 : Read8(0x%.8X) = 0x%.2X\n", addr, value);
 	}
 
 	return value;
@@ -269,7 +274,7 @@ void EmuX86_Write32Aligned(xbaddr addr, uint32_t value)
 	assert((addr & 3) == 0);
 
 	if (addr >= NV2A_ADDR && addr < NV2A_ADDR + NV2A_SIZE) {
-		// Access NV2A regardless weither HLE is disabled or not 
+		// Access NV2A regardless weither HLE is disabled or not (ignoring bLLE_GPU)
 		EmuNV2A_Write(addr - NV2A_ADDR, value, 32);
 		// Note : EmuNV2A_Write32 does it's own logging
 		return;
@@ -291,7 +296,7 @@ void EmuX86_Write32Aligned(xbaddr addr, uint32_t value)
 	}
 
 	// Outside EmuException, pass the memory-access through to normal memory :
-	DbgPrintf("EmuX86_Write32Aligned(0x%08X, 0x%08X)\n", addr, value);
+	DbgPrintf("X86 : Write32Aligned(0x%.8X, 0x%.8X)\n", addr, value);
 	EmuX86_Mem_Write32(addr, value);
 }
 
@@ -300,14 +305,15 @@ void EmuX86_Write32(xbaddr addr, uint32_t value)
 	if ((addr & 3) == 0) {
 		EmuX86_Write32Aligned(addr, value);
 	}
-	else
+	else {
 		EmuWarning("EmuX86_Write32(0x%08X, 0x%08X) [Unaligned unimplemented]", addr, value);
+		// LOG_UNIMPLEMENTD();
+	}
 }
 
 void EmuX86_Write16(xbaddr addr, uint16_t value)
 {
 	if (addr >= NV2A_ADDR && addr < NV2A_ADDR + NV2A_SIZE) {
-
 		// Access NV2A regardless weither HLE is disabled or not 
 		EmuNV2A_Write(addr - NV2A_ADDR, value, 16);
 		// Note : EmuNV2A_Write32 does it's own logging
@@ -330,7 +336,7 @@ void EmuX86_Write16(xbaddr addr, uint16_t value)
 	}
 
 	// Outside EmuException, pass the memory-access through to normal memory :
-	DbgPrintf("EmuX86_Write16(0x%08X, 0x%04X)\n", addr, value);
+	DbgPrintf("X86 : Write16(0x%.8X, 0x%.4X)\n", addr, value);
 	EmuX86_Mem_Write16(addr, value);
 }
 
@@ -360,7 +366,7 @@ void EmuX86_Write8(xbaddr addr, uint8_t value)
 	}
 
 	// Outside EmuException, pass the memory-access through to normal memory :
-	DbgPrintf("EmuX86_Write8(0x%08X, 0x%02X)\n", addr, value);
+	DbgPrintf("X86 : Write8(0x%.8X, 0x%.2X)\n", addr, value);
 	EmuX86_Mem_Write8(addr, value);
 }
 
@@ -1280,7 +1286,7 @@ unimplemented_opcode:
 
 void EmuX86_Init()
 {
-	DbgPrintf("EmuX86: Initializing distorm version %d\n", distorm_version());
+	DbgPrintf("X86 : Initializing distorm version %d\n", distorm_version());
 	EmuX86_InitContextRecordOffsetByRegisterType();
 }
 

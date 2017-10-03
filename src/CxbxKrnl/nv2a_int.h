@@ -1,3 +1,4 @@
+// Source : https://github.com/espes/xqemu/blob/xbox/hw/xbox/nv2a_int.h
 /*
  * QEMU Geforce NV2A internal definitions
  *

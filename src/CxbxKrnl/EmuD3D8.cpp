@@ -36,6 +36,8 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "D3D8"
+
 #include "xxhash32.h"
 #include <condition_variable>
 
@@ -53,7 +55,6 @@ namespace xboxkrnl
 #include "EmuShared.h"
 #include "DbgConsole.h"
 #include "ResourceTracker.h"
-#include "EmuAlloc.h"
 #include "MemoryManager.h"
 #include "EmuXTL.h"
 #include "HLEDatabase.h"
@@ -301,6 +302,7 @@ void CxbxClearGlobals()
 	g_VertexShaderConstantMode = X_D3DSCM_192CONSTANTS;
 	//XTL::EmuD3DTileCache = { 0 };
 	// KEEP Xbox_D3DDevice_m_Textures
+	// KEEP Xbox_D3DDevice_m_Palettes
 	// KEEP g_EmuCDPD = { 0 };
 }
 
@@ -599,17 +601,18 @@ VOID XTL::CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize)
 
     // create timing thread
     {
-        DWORD dwThreadId;
+        DWORD dwThreadId = 0;
+        HANDLE hTimingThread = CreateThread(nullptr, 0, EmuUpdateTickCount, nullptr, 0, &dwThreadId);
 
-        HANDLE hThread = CreateThread(nullptr, 0, EmuUpdateTickCount, nullptr, 0, &dwThreadId);
+		DbgPrintf("INIT: Created timing thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", hTimingThread, dwThreadId);
         // We set the priority of this thread a bit higher, to assure reliable timing :
-        SetThreadPriority(hThread, THREAD_PRIORITY_ABOVE_NORMAL);
+        SetThreadPriority(hTimingThread, THREAD_PRIORITY_ABOVE_NORMAL);
 
         // we must duplicate this handle in order to retain Suspend/Resume thread rights from a remote thread
         {
             HANDLE hDupHandle = NULL;
 
-            DuplicateHandle(g_CurrentProcessHandle, hThread, g_CurrentProcessHandle, &hDupHandle, 0, FALSE, DUPLICATE_SAME_ACCESS);
+            DuplicateHandle(g_CurrentProcessHandle, hTimingThread, g_CurrentProcessHandle, &hDupHandle, 0, FALSE, DUPLICATE_SAME_ACCESS);
 
             CxbxKrnlRegisterThread(hDupHandle);
         }
@@ -618,13 +621,14 @@ VOID XTL::CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize)
 /* TODO : Port this Dxbx code :
   // create vblank handling thread
     {
-        dwThreadId = 0;
-        {hThread :=} CreateThread(nullptr, 0, EmuThreadHandleVBlank, nullptr, 0, &dwThreadId);
+        DWORD dwThreadId = 0;
+        HANDLE hVBlankThread = CreateThread(nullptr, 0, EmuThreadHandleVBlank, nullptr, 0, &dwThreadId);
+		DbgPrintf("INIT: Created VBlank thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", hVBlankThread, dwThreadId);
     }
 */
     // create window message processing thread
     {
-        DWORD dwThreadId;
+        DWORD dwThreadId = 0;
 
         g_bRenderWindowActive = false;
 
@@ -635,6 +639,8 @@ VOID XTL::CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize)
 			EmuShared::Cleanup();
 			ExitProcess(0);
 		}
+
+		DbgPrintf("INIT: Created Message-Pump thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", hRenderWindowThread, dwThreadId);
 
 		// Ported from Dxbx :
 		// If possible, assign this thread to another core than the one that runs Xbox1 code :
@@ -949,7 +955,7 @@ XTL::X_D3DRESOURCETYPE GetXboxD3DResourceType(const XTL::X_D3DResource *pXboxRes
 }
 
 #if 0
-inline boolean IsSpecialXboxResource(const XTL::X_D3DResource *pXboxResource)
+inline bool IsSpecialXboxResource(const XTL::X_D3DResource *pXboxResource)
 {
 	// Don't pass in unassigned Xbox resources
 	assert(pXboxResource != NULL);
@@ -960,7 +966,7 @@ inline boolean IsSpecialXboxResource(const XTL::X_D3DResource *pXboxResource)
 
 // This can be used to determine if resource Data adddresses
 // need the MM_SYSTEM_PHYSICAL_MAP bit set or cleared
-inline boolean IsResourceTypeGPUReadable(const DWORD ResourceType)
+inline bool IsResourceTypeGPUReadable(const DWORD ResourceType)
 {
 	switch (ResourceType) {
 	case X_D3DCOMMON_TYPE_VERTEXBUFFER:
@@ -1655,10 +1661,16 @@ void DeriveXboxD3DDeviceAddresses()
 	}
 
 	// Derive the address where active texture pointers are stored
-	XTL::Xbox_D3DDevice_m_Textures = (XTL::X_D3DBaseTexture **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Textures);
+	if (XTL::offsetof_Xbox_D3DDevice_m_Textures > 0)
+		XTL::Xbox_D3DDevice_m_Textures = (XTL::X_D3DBaseTexture **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Textures);
+	else
+		XTL::Xbox_D3DDevice_m_Textures = NULL;
 
 	// Derive the address where active palette pointers are stored
-	XTL::Xbox_D3DDevice_m_Palettes = (XTL::X_D3DPalette **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Palettes);
+	if (XTL::offsetof_Xbox_D3DDevice_m_Palettes > 0)
+		XTL::Xbox_D3DDevice_m_Palettes = (XTL::X_D3DPalette **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Palettes);
+	else
+		XTL::Xbox_D3DDevice_m_Palettes = NULL;
 
 	// Determine active the vertex index
 	// This reads from g_pDevice->m_IndexBase in Xbox D3D
@@ -1855,9 +1867,10 @@ VOID XTL::EmuD3DInit()
 {
 	// create the create device proxy thread
 	{
-		DWORD dwThreadId;
+		DWORD dwThreadId = 0;
 
-		CreateThread(nullptr, 0, EmuCreateDeviceProxy, nullptr, 0, &dwThreadId);
+		HANDLE hThread = CreateThread(nullptr, 0, EmuCreateDeviceProxy, nullptr, 0, &dwThreadId);
+		DbgPrintf("INIT: Created CreateDevice proxy thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", hThread, dwThreadId);
 		// Ported from Dxbx :
 		// If possible, assign this thread to another core than the one that runs Xbox1 code :
 		SetThreadAffinityMask(&dwThreadId, g_CPUOthers);
@@ -1963,6 +1976,8 @@ static BOOL WINAPI EmuEnumDisplayDevices(GUID FAR *lpGUID, LPSTR lpDriverDescrip
 // window message processing thread
 static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
 {
+	DbgPrintf("D3D8: Message-Pump thread started\n");
+
     // register window class
     {
         LOGBRUSH logBrush = {BS_SOLID, RGB(0,0,0)};
@@ -2036,7 +2051,7 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
     if(!XTL::EmuDInputInit())
         CxbxKrnlCleanup("Could not initialize DirectInput!");
 
-    DbgPrintf("EmuD3D8: Message-Pump thread is running.\n");
+    DbgPrintf("D3D8: Message-Pump thread is running\n");
 
     SetFocus(g_hEmuWindow);
 
@@ -2079,6 +2094,8 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
 
         CxbxKrnlCleanup(nullptr);
     }
+
+	DbgPrintf("D3D8: Message-Pump thread is finished\n");
 
     return 0;
 }
@@ -2284,16 +2301,17 @@ std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<double,
 // timing thread procedure
 static DWORD WINAPI EmuUpdateTickCount(LPVOID)
 {
+	DbgPrintf("D3D8: Timing thread started\n");
+
     // since callbacks come from here
 	InitXboxThread(g_CPUOthers); // avoid Xbox1 core for lowest possible latency
-
-    DbgPrintf("EmuD3D8: Timing thread is running.\n");
 
     // current vertical blank count
     int curvb = 0;
 
 	// Calculate Next VBlank time
 	auto nextVBlankTime = GetNextVBlankTime();
+    DbgPrintf("D3D8: Timing thread is running\n");
 
     while(true)
     {
@@ -2377,6 +2395,8 @@ static DWORD WINAPI EmuUpdateTickCount(LPVOID)
 			g_SwapData.TimeBetweenSwapVBlanks = 0;
         }
     }
+
+	DbgPrintf("D3D8: Timing thread is finished\n");
 }
 
 void CxbxReleaseSurface(XTL::IDirect3DSurface8 **ppSurface)
@@ -2445,22 +2465,22 @@ void CxbxPresent()
 // thread dedicated to create devices
 static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 {
-	LOG_FUNC();
+	LOG_FUNC(); // Required for DEBUG_D3DRESULT (_logFuncPrefix)
 
-    DbgPrintf("EmuD3D8: CreateDevice proxy thread is running.\n");
+    DbgPrintf("D3D8: CreateDevice proxy thread is running\n");
 
     while (true) {
         // if we have been signalled, create the device with cached parameters
         if (g_EmuCDPD.bSignalled) {
-            DbgPrintf("EmuD3D8: CreateDevice proxy thread received request.\n");
+            DbgPrintf("D3D8: CreateDevice proxy thread received request.\n");
 			if (g_EmuCDPD.bCreate) {
 				// only one device should be created at once
 				// TODO: ensure all surfaces are somehow cleaned up?
 				if (g_pD3DDevice8 == nullptr) {
-					DbgPrintf("EmuD3D8: CreateDevice proxy thread creating new Device.\n");
+					DbgPrintf("D3D8: CreateDevice proxy thread creating new Device.\n");
 				}
 				else{
-					DbgPrintf("EmuD3D8: CreateDevice proxy thread re-creating Device (releasing old first).\n");
+					DbgPrintf("D3D8: CreateDevice proxy thread re-creating Device (releasing old first).\n");
 					g_pD3DDevice8->EndScene();
 
 					// Address DirectX Debug Runtime reported error in _DEBUG builds
@@ -2848,10 +2868,10 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
             else { // !bCreate
                 // release direct3d
 				if (g_pD3DDevice8 == nullptr) {
-					DbgPrintf("EmuD3D8: CreateDevice proxy thread release without Device.\n");
+					DbgPrintf("D3D8: CreateDevice proxy thread release without Device.\n");
 				}
 				else {
-					DbgPrintf("EmuD3D8: CreateDevice proxy thread releasing old Device.\n");
+					DbgPrintf("D3D8: CreateDevice proxy thread releasing old Device.\n");
                     g_pD3DDevice8->EndScene();
                     g_EmuCDPD.hRet = g_pD3DDevice8->Release();
                     if(g_EmuCDPD.hRet == 0)
@@ -2889,6 +2909,8 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 
 		Sleep(250); // react within a quarter of a second to a CreateDevice signal
     }
+
+	DbgPrintf("D3D8: CreateDevice proxy thread is finished\n");
 
     return 0;
 }
@@ -3028,7 +3050,7 @@ XTL::IDirect3DIndexBuffer8 *CxbxUpdateIndexBuffer
 	result->AddRef();
 	convertedIndexBuffer.pConvertedHostIndexBuffer = result;
 
-	DbgPrintf("Copied %d indices (D3DFMT_INDEX16)\n", uiIndexCount);
+	DbgPrintf("D3D8: Copied %d indices (D3DFMT_INDEX16)\n", uiIndexCount);
 
 	return result;
 }
@@ -3847,9 +3869,6 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer2)
             pCachedPrimarySurface = nullptr;
             BackBuffer = 0;
         }
-
-        // Debug: Save this image temporarily
-        // else D3DXSaveSurfaceToFile("C:\\Aaron\\Textures\\FrontBuffer.bmp", D3DXIFF_BMP, pCachedPrimarySurface, NULL, NULL);
     }
 
     if(BackBuffer != -1) {
@@ -5553,7 +5572,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4f)
 		}
 		uiPreviousOffset = g_InlineVertexBuffer_TableOffset;
 	}
-
 }
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVertexData4ub)

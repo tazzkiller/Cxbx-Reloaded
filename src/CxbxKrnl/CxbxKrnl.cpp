@@ -178,7 +178,7 @@ void CxbxLaunchXbe(void(*Entry)())
 	}
 	__except (EmuException(GetExceptionInformation()))
 	{
-		printf("Emu: WARNING!! Problem with ExceptionFilter\n");
+		EmuWarning("Problem with ExceptionFilter");
 	}
 
 }
@@ -284,20 +284,24 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 		/* dwFileOffsetHigh */0,
 		/* dwFileOffsetLow */0,
 		CONTIGUOUS_MEMORY_SIZE,
-		(void *)MM_SYSTEM_PHYSICAL_MAP);
-	if (memory == NULL)
+		(void *)CONTIGUOUS_MEMORY_BASE);
+	if (memory != (void *)CONTIGUOUS_MEMORY_BASE)
 	{
-		CxbxKrnlCleanup("CxbxRestoreContiguousMemory: Couldn't map contiguous memory.bin into memory!");
+		UnmapViewOfFile(memory);
+		CxbxKrnlCleanup("CxbxRestoreContiguousMemory: Couldn't map contiguous memory.bin to 0x80000000!");
 		return nullptr;
 	}
+
+	printf("[0x%.4X] INIT: Mapped %d MiB of Xbox contiguous memory at 0x%.8X to 0x%.8X\n",
+		GetCurrentThreadId(), CONTIGUOUS_MEMORY_SIZE / ONE_MB, CONTIGUOUS_MEMORY_BASE, CONTIGUOUS_MEMORY_BASE + CONTIGUOUS_MEMORY_SIZE - 1);
 
 	if (NeedsInitialization)
 	{
 		memset(memory, 0, CONTIGUOUS_MEMORY_SIZE);
-		DbgPrintf("EmuMain: Initialized contiguous memory\n");
+		printf("[0x%.4X] INIT: Initialized contiguous memory\n", GetCurrentThreadId());
 	}
 	else
-		DbgPrintf("EmuMain: Loaded contiguous memory.bin\n");
+		printf("[0x%.4X] INIT: Loaded contiguous memory.bin\n", GetCurrentThreadId());
 
 	// Map memory.bin contents into tiled memory too :
 	void *tiled_memory = (void *)MapViewOfFileEx(
@@ -305,15 +309,16 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 		FILE_MAP_READ | FILE_MAP_WRITE | FILE_MAP_EXECUTE,
 		/* dwFileOffsetHigh */0,
 		/* dwFileOffsetLow */0,
-		CONTIGUOUS_MEMORY_SIZE,
-		(void *)0xF0000000);
-	if (tiled_memory == NULL)
+		TILED_MEMORY_SIZE,
+		(void *)TILED_MEMORY_BASE);
+	if (tiled_memory != (void *)TILED_MEMORY_BASE)
 	{
-		CxbxKrnlCleanup("CxbxRestoreContiguousMemory: Couldn't map contiguous memory.bin into tiled memory!");
+		CxbxKrnlCleanup("CxbxRestoreContiguousMemory: Couldn't map contiguous memory.bin into tiled memory at 0xF0000000!");
 		return nullptr;
 	}
 
-	DbgPrintf("EmuMain: Mapped contiguous to tiled memory\n");
+	printf("[0x%.4X] INIT: Mapped contiguous memory to Xbox tiled memory at 0x%.8X to 0x%.8X\n",
+		GetCurrentThreadId(), TILED_MEMORY_BASE, TILED_MEMORY_BASE + TILED_MEMORY_SIZE - 1);
 
 	return memory;
 }
@@ -419,6 +424,53 @@ void CxbxKrnlMain(int argc, char* argv[])
 	std::string DebugFileName;
 	if (argc > 4) {
 		DebugFileName = argv[5];
+	}
+
+	// debug console allocation (if configured)
+	if (DbgMode == DM_CONSOLE)
+	{
+		if (AllocConsole())
+		{
+			HANDLE StdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+			// Maximise the console scroll buffer height :
+			CONSOLE_SCREEN_BUFFER_INFO coninfo;
+			GetConsoleScreenBufferInfo(StdHandle, &coninfo);
+			coninfo.dwSize.Y = SHRT_MAX - 1; // = 32767-1 = 32766 = maximum value that works
+			SetConsoleScreenBufferSize(StdHandle, coninfo.dwSize);
+			freopen("CONOUT$", "wt", stdout);
+			freopen("CONIN$", "rt", stdin);
+			SetConsoleTitle("Cxbx-Reloaded : Kernel Debug Console");
+			SetConsoleTextAttribute(StdHandle, FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);
+		}
+	}
+	else
+	{
+		FreeConsole();
+		if (DbgMode == DM_FILE)
+			freopen(DebugFileName.c_str(), "wt", stdout);
+		else
+		{
+			char buffer[16];
+			if (GetConsoleTitle(buffer, 16) != NULL)
+				freopen("nul", "w", stdout);
+		}
+	}
+
+	// Write a header to the log
+	{
+		printf("[0x%.4X] INIT: Cxbx-Reloaded Version %s\n", GetCurrentThreadId(), _CXBX_VERSION);
+
+		time_t startTime = time(nullptr);
+		struct tm* tm_info = localtime(&startTime);
+		char timeString[26];
+		strftime(timeString, 26, "%F %T", tm_info);
+		printf("[0x%.4X] INIT: Log started at %s\n", GetCurrentThreadId(), timeString);
+
+#ifdef _DEBUG_TRACE
+		printf("[0x%.4X] INIT: Debug Trace Enabled.\n", GetCurrentThreadId());
+#else
+		printf("[0x%.4X] INIT: Debug Trace Disabled.\n", GetCurrentThreadId());
+#endif
 	}
 
 	// Now we got the arguments, start by initializing the Xbox memory map :
@@ -660,52 +712,11 @@ __declspec(noreturn) void CxbxKrnlInit
 //  Debug child processes using https://marketplace.visualstudio.com/items?itemName=GreggMiskelly.MicrosoftChildProcessDebuggingPowerTool
 #endif
 
-	// debug console allocation (if configured)
-	if (DbgMode == DM_CONSOLE)
-	{
-		if (AllocConsole())
-		{
-			HANDLE StdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-			// Maximise the console scroll buffer height :
-			CONSOLE_SCREEN_BUFFER_INFO coninfo;
-			GetConsoleScreenBufferInfo(StdHandle, &coninfo);
-			coninfo.dwSize.Y = SHRT_MAX - 1; // = 32767-1 = 32766 = maximum value that works
-			SetConsoleScreenBufferSize(StdHandle, coninfo.dwSize);
-			freopen("CONOUT$", "wt", stdout);
-			freopen("CONIN$", "rt", stdin);
-			SetConsoleTitle("Cxbx-Reloaded : Kernel Debug Console");
-			SetConsoleTextAttribute(StdHandle, FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);
-		}
-	}
-	else
-	{
-		FreeConsole();
-		if (DbgMode == DM_FILE)
-			freopen(szDebugFilename, "wt", stdout);
-		else
-		{
-			char buffer[16];
-			if (GetConsoleTitle(buffer, 16) != NULL)
-				freopen("nul", "w", stdout);
-		}
-	}
-
-	// Write a header to the log
-	{
-		printf("[0x%X] EmuMain: Cxbx-Reloaded Version %s\n", GetCurrentThreadId(), _CXBX_VERSION);
-
-		time_t startTime = time(nullptr);
-		struct tm* tm_info = localtime(&startTime);
-		char timeString[26];
-		strftime(timeString, 26, "%F %T", tm_info);
-		printf("[0x%X] EmuMain: Log started at %s\n", GetCurrentThreadId(), timeString);
-	}
-
 	// debug trace
 	{
 #ifdef _DEBUG_TRACE
-		printf("[0x%X] EmuMain: Debug Trace Enabled.\n", GetCurrentThreadId());
-		printf("[0x%X] EmuMain: CxbxKrnlInit\n"
+		printf("[0x%X] INIT: Debug Trace Enabled.\n", GetCurrentThreadId());
+		printf("[0x%X] INIT: CxbxKrnlInit\n"
 			"(\n"
 			"   hwndParent          : 0x%.08X\n"
 			"   pTLSData            : 0x%.08X\n"
@@ -719,7 +730,7 @@ __declspec(noreturn) void CxbxKrnlInit
 			");\n",
 			GetCurrentThreadId(), hwndParent, pTLSData, pTLS, pLibraryVersion, DbgMode, szDebugFilename, pXbeHeader, dwXbeHeaderSize, Entry);
 #else
-		printf("[0x%X] EmuMain: Debug Trace Disabled.\n", GetCurrentThreadId());
+		printf("[0x%X] INIT: Debug Trace Disabled.\n", GetCurrentThreadId());
 #endif
 	}
 
@@ -740,6 +751,7 @@ __declspec(noreturn) void CxbxKrnlInit
 		DummyKernel->FileHeader.NumberOfSections = 1;
 		// as long as this doesn't start with "INIT"
 		strncpy_s((PSTR)DummyKernel->SectionHeader.Name, 8, "DONGS", 8);
+		printf("[0x%.4X] INIT: Initialized dummy kernel image header.\n", GetCurrentThreadId());
 	}
 
 	// Read which components need to be LLE'ed :
@@ -797,7 +809,7 @@ __declspec(noreturn) void CxbxKrnlInit
 	CxbxRegisterDeviceHostPath(DeviceHarddisk0Partition7, CxbxBasePath + "Partition7");
 
 	// Create default symbolic links :
-	DbgPrintf("EmuMain : Creating default symbolic links.\n");
+	DbgPrintf("INIT: Creating default symbolic links.\n");
 	{
 		// TODO: DriveD should always point to the Xbe Path
 		// This is the only symbolic link the Xbox Kernel sets, the rest are set by the application, usually via XAPI.
@@ -826,27 +838,27 @@ __declspec(noreturn) void CxbxKrnlInit
 		xboxkrnl::XeImageFileName.Buffer = (PCHAR)g_MemoryManager.Allocate(MAX_PATH);
 		sprintf(xboxkrnl::XeImageFileName.Buffer, "%c:\\%s", CxbxDefaultXbeDriveLetter, fileName.c_str());
 		xboxkrnl::XeImageFileName.Length = (USHORT)strlen(xboxkrnl::XeImageFileName.Buffer);
-		printf("EmuMain : XeImageFileName = %s\n", xboxkrnl::XeImageFileName.Buffer);
+		printf("[0x%.4X] INIT: XeImageFileName = %s\n", GetCurrentThreadId(), xboxkrnl::XeImageFileName.Buffer);
 	}
 
 	// Dump Xbe information
 	{
 		if (CxbxKrnl_Xbe != nullptr) {
-			printf("EmuMain : Title : %s\n", CxbxKrnl_Xbe->m_szAsciiTitle);
+			printf("[0x%.4X] INIT: Title : %s\n", GetCurrentThreadId(), CxbxKrnl_Xbe->m_szAsciiTitle);
 		}
 
 		// Dump Xbe certificate
 		if (g_pCertificate != NULL) {
-			printf("EmuMain : XBE TitleID : %.8X\n", g_pCertificate->dwTitleId);
-			printf("EmuMain : XBE TitleName : %ls\n", g_pCertificate->wszTitleName);
-			printf("EmuMain : XBE Region : %s\n", GameRegionToString(g_pCertificate->dwGameRegion));
+			printf("[0x%.4X] INIT: XBE TitleID : %.8X\n", GetCurrentThreadId(), g_pCertificate->dwTitleId);
+			printf("[0x%.4X] INIT: XBE TitleName : %ls\n", GetCurrentThreadId(), g_pCertificate->wszTitleName);
+			printf("[0x%.4X] INIT: XBE Region : %s\n", GetCurrentThreadId(), GameRegionToString(g_pCertificate->dwGameRegion));
 		}
 
 		// Dump Xbe library build numbers
 		Xbe::LibraryVersion* libVersionInfo = pLibraryVersion;// (LibraryVersion *)(CxbxKrnl_XbeHeader->dwLibraryVersionsAddr);
 		if (libVersionInfo != NULL) {
 			for (uint32 v = 0; v < CxbxKrnl_XbeHeader->dwLibraryVersions; v++) {
-				printf("EmuMain : XBE Library %u : %.8s (version %d)\n", v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
+				printf("[0x%.4X] INIT: XBE Library %u : %.8s (version %d)\n", GetCurrentThreadId(), v, libVersionInfo->szName, libVersionInfo->wBuildVersion);
 				libVersionInfo++;
 			}
 		}
@@ -866,10 +878,10 @@ __declspec(noreturn) void CxbxKrnlInit
 
 	// Make sure the Xbox1 code runs on one core (as the box itself has only 1 CPU,
 	// this will better aproximate the environment with regard to multi-threading) :
-	DbgPrintf("EmuMain : Determining CPU affinity.\n");
+	DbgPrintf("INIT: Determining CPU affinity.\n");
 	{
 		if (!GetProcessAffinityMask(g_CurrentProcessHandle, &g_CPUXbox, &g_CPUOthers))
-			CxbxKrnlCleanup("EmuMain: GetProcessAffinityMask failed.");
+			CxbxKrnlCleanup("INIT: GetProcessAffinityMask failed.");
 
 		// For the other threads, remove one bit from the processor mask:
 		g_CPUOthers = ((g_CPUXbox - 1) & g_CPUXbox);
@@ -885,7 +897,7 @@ __declspec(noreturn) void CxbxKrnlInit
 	}
 
 	// initialize grapchics
-	DbgPrintf("EmuMain: Initializing render window.\n");
+	DbgPrintf("INIT: Initializing render window.\n");
 	XTL::CxbxInitWindow(pXbeHeader, dwXbeHeaderSize);
 
     XTL::CxbxInitAudio();
@@ -897,12 +909,12 @@ __declspec(noreturn) void CxbxKrnlInit
 
 	if (bLLE_GPU)
 	{
-		DbgPrintf("EmuMain: Initializing OpenGL.\n");
+		DbgPrintf("INIT: Initializing OpenGL.\n");
 		InitOpenGLContext();
 	}
 	else
 	{
-		DbgPrintf("EmuMain: Initializing Direct3D.\n");
+		DbgPrintf("INIT: Initializing Direct3D.\n");
 		XTL::EmuD3DInit();
 	}
 
@@ -922,9 +934,9 @@ __declspec(noreturn) void CxbxKrnlInit
 	// Create the interrupt processing thread
 	DWORD dwThreadId;
 	HANDLE hThread = (HANDLE)_beginthreadex(NULL, NULL, CxbxKrnlInterruptThread, NULL, NULL, (uint*)&dwThreadId);
-    DbgPrintf("EmuMain: Initial thread starting.\n");
+    DbgPrintf("INIT: Calling XBE entry point...\n");
 	CxbxLaunchXbe(Entry);
-    DbgPrintf("EmuMain: Initial thread ended.\n");
+    DbgPrintf("INIT: XBE entry point returned\n");
     fflush(stdout);
 	//	EmuShared::Cleanup();   FIXME: commenting this line is a bad workaround for issue #617 (https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/issues/617)
     CxbxKrnlTerminateThread();
@@ -979,7 +991,7 @@ void CxbxRestoreLaunchDataPage()
 		// Delete the file once we're done.
 		remove(szFilePath_LaunchDataPage_bin);
 
-		DbgPrintf("EmuMain: Restored LaunchDataPage\n");
+		DbgPrintf("INIT: Restored LaunchDataPage\n");
 	}
 }
 
@@ -1005,10 +1017,10 @@ __declspec(noreturn) void CxbxKrnlCleanup(const char *szErrorMessage, ...)
         vsprintf(szBuffer2, szErrorMessage, argp);
         va_end(argp);
 
-		CxbxPopupMessage("[0x%X] EmuMain: Received Fatal Message:\n\n* %s\n", GetCurrentThreadId(), szBuffer2); // Will also DbgPrintf
+		CxbxPopupMessage("Received Fatal Message:\n\n* %s\n", szBuffer2); // Will also DbgPrintf
     }
 
-    printf("CxbxKrnl: Terminating Process\n");
+    printf("[0x%.4X] MAIN: Terminating Process\n", GetCurrentThreadId());
     fflush(stdout);
 
     // cleanup debug output
@@ -1133,7 +1145,5 @@ __declspec(noreturn) void CxbxKrnlTerminateThread()
 
 void CxbxKrnlPanic()
 {
-    DbgPrintf("EmuMain: CxbxKrnlPanic()\n");
-
     CxbxKrnlCleanup("Kernel Panic!");
 }

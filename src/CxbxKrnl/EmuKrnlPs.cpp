@@ -37,6 +37,8 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "KRNL"
+
 // prevent name collisions
 namespace xboxkrnl
 {
@@ -149,7 +151,7 @@ static unsigned int WINAPI PCSTProxy
 			if (pfnNotificationRoutine == NULL)
 				continue;
 
-			DbgPrintf("EmuKrnl: Calling pfnNotificationRoutine[%d] (0x%.08X)\n", g_iThreadNotificationCount, pfnNotificationRoutine);
+			DbgPrintf("KRNL: Calling pfnNotificationRoutine[%d] (0x%.8X)\n", g_iThreadNotificationCount, pfnNotificationRoutine);
 
 			pfnNotificationRoutine(TRUE);
 		}
@@ -295,7 +297,8 @@ XBSYSAPI EXPORTNUM(255) xboxkrnl::NTSTATUS NTAPI xboxkrnl::PsCreateSystemThreadE
 
 	// create thread, using our special proxy technique
 	{
-		DWORD dwThreadId;
+		DWORD dwThreadId = 0;
+		HANDLE hStartedEvent = CreateEvent(NULL, FALSE, FALSE, TEXT("PCSTProxyEvent"));
 
 		// PCSTProxy is responsible for cleaning up this pointer
 		::PCSTProxyParam *iPCSTProxyParam = new ::PCSTProxyParam();
@@ -304,13 +307,14 @@ XBSYSAPI EXPORTNUM(255) xboxkrnl::NTSTATUS NTAPI xboxkrnl::PsCreateSystemThreadE
 		iPCSTProxyParam->StartContext = StartContext;
 		iPCSTProxyParam->SystemRoutine = SystemRoutine; // NULL, XapiThreadStartup or unknown?
 		iPCSTProxyParam->StartSuspended = CreateSuspended;
-		iPCSTProxyParam->hStartedEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+		iPCSTProxyParam->hStartedEvent = hStartedEvent;
 
 		*ThreadHandle = (HANDLE)_beginthreadex(NULL, NULL, PCSTProxy, iPCSTProxyParam, NULL, (uint*)&dwThreadId);
 
 		WaitForSingleObject(iPCSTProxyParam->hStartedEvent, 1000);
 
-		DbgPrintf("EmuKrnl: ThreadHandle : 0x%X, ThreadId : 0x%.08X\n", *ThreadHandle, dwThreadId);
+		// Log ThreadID identical to how GetCurrentThreadID() is rendered :
+		DbgPrintf("KRNL: Created Xbox proxy thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", *ThreadHandle, dwThreadId);
 
 		// we must duplicate this handle in order to retain Suspend/Resume thread rights from a remote thread
 		{
@@ -320,6 +324,12 @@ XBSYSAPI EXPORTNUM(255) xboxkrnl::NTSTATUS NTAPI xboxkrnl::PsCreateSystemThreadE
 
 			CxbxKrnlRegisterThread(hDupHandle);
 		}
+		DbgPrintf("KRNL: Waiting for Xbox proxy thread to start...\n");
+		WaitForSingleObject(hStartedEvent, 15000); // 15 seconds should be more than enough. TODO : How to handle timeout?
+
+		// Release the event
+		CloseHandle(hStartedEvent);
+		hStartedEvent = NULL;
 
 		if (ThreadId != NULL)
 			*ThreadId = (xboxkrnl::HANDLE)dwThreadId;
@@ -411,7 +421,7 @@ XBSYSAPI EXPORTNUM(258) xboxkrnl::VOID NTAPI xboxkrnl::PsTerminateSystemThread
 			if (pfnNotificationRoutine == NULL)
 				continue;
 
-			DbgPrintf("EmuKrnl: Calling pfnNotificationRoutine[%d] (0x%.08X)\n", g_iThreadNotificationCount, pfnNotificationRoutine);
+			DbgPrintf("KRNL: Calling pfnNotificationRoutine[%d] (0x%.8X)\n", g_iThreadNotificationCount, pfnNotificationRoutine);
 
 			pfnNotificationRoutine(FALSE);
 		}

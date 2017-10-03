@@ -37,6 +37,8 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "KRNL"
+
 // prevent name collisions
 namespace xboxkrnl
 {
@@ -278,11 +280,11 @@ XBSYSAPI EXPORTNUM(66) xboxkrnl::NTSTATUS NTAPI xboxkrnl::IoCreateFile
 
 	if (FAILED(ret))
 	{
-		EmuWarning("EmuKrnl: IoCreateFile Failed! (%s)\n", NtStatusToString(ret));
+		EmuWarning("KRNL: IoCreateFile Failed! (%s)\n", NtStatusToString(ret));
 	}
 	else
 	{
-		DbgPrintf("EmuKrnl: IoCreateFile = 0x%.08X\n", *FileHandle);
+		DbgPrintf("KRNL: IoCreateFile = 0x%.8X\n", *FileHandle);
 	}
 
 	RETURN(ret);
@@ -312,10 +314,10 @@ XBSYSAPI EXPORTNUM(67) xboxkrnl::NTSTATUS NTAPI xboxkrnl::IoCreateSymbolicLink
 // ******************************************************************
 XBSYSAPI EXPORTNUM(68) xboxkrnl::VOID NTAPI xboxkrnl::IoDeleteDevice
 (
-	IN PDEVICE_OBJECT irql
+	IN PDEVICE_OBJECT Irql
 )
 {
-	LOG_FUNC_ONE_ARG(irql);
+	LOG_FUNC_ONE_ARG(Irql);
 
 	LOG_UNIMPLEMENTED();
 }

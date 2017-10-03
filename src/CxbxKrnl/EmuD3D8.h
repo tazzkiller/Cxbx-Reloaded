@@ -90,9 +90,9 @@ extern X_D3DPalette **Xbox_D3DDevice_m_Palettes;
 inline void SetXboxBaseTexture(UINT uiStage, X_D3DBaseTexture *pTexture) { Xbox_D3DDevice_m_Textures[uiStage] = pTexture; }
 #endif
 
-inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return Xbox_D3DDevice_m_Textures[uiStage]; }
+inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return (Xbox_D3DDevice_m_Textures == NULL) ? NULL : Xbox_D3DDevice_m_Textures[uiStage]; }
 
-inline X_D3DPalette *GetXboxPalette(UINT uiStage) { return (offsetof_Xbox_D3DDevice_m_Palettes == 0) ? NULL : Xbox_D3DDevice_m_Palettes[uiStage]; }
+inline X_D3DPalette *GetXboxPalette(UINT uiStage) { return (Xbox_D3DDevice_m_Palettes == NULL) ? NULL : Xbox_D3DDevice_m_Palettes[uiStage]; }
 
 extern void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource);
 

@@ -35,6 +35,8 @@
 // ******************************************************************
 #define _CXBXKRNL_INTERNAL
 
+#define LOG_PREFIX "HLE " // Intentional extra space to align on 4 characters
+
 #include <cmath>
 #include <iomanip> // For std::setfill and std::setw
 #include "CxbxKrnl.h"
@@ -118,22 +120,24 @@ void *GetEmuPatchAddr(std::string aFunctionName)
 	return addr;
 }
 
-void VerifySymbolAddressAgainstXRef(char *SymbolName, xbaddr Address, int XRef)
+bool VerifySymbolAddressAgainstXRef(char *SymbolName, xbaddr Address, int XRef)
 {
 	// Temporary verification - is XREF_D3DTSS_TEXCOORDINDEX derived correctly?
 	// TODO : Remove this when XREF_D3DTSS_TEXCOORDINDEX derivation is deemed stable
 	xbaddr XRefAddr = XRefDataBase[XRef];
 	if (XRefAddr == Address)
-		return;
+		return true;
 
 	if (XRefAddr == XREF_ADDR_DERIVE) {
 		printf("HLE: XRef #%d derived 0x%.08X -> %s\n", XRef, Address, SymbolName);
 		XRefDataBase[XRef] = Address;
-		return;
+		return true;
 	}
 
 	// For XREF_D3DTSS_TEXCOORDINDEX, Kabuki Warriors hits this case
 	CxbxPopupMessage("Verification of %s failed : XREF was 0x%.8X while lookup gave 0x%.8X", SymbolName, XRefAddr, Address);
+	// For XREF_D3DTSS_TEXCOORDINDEX, Kabuki Warriors hits this case
+	return false;
 }
 
 enum WhenNotFound { Fail, Warn, Silent };
@@ -189,8 +193,8 @@ void SetGlobalSymbols()
 	XTL::Xbox_pD3DDevice = (xbaddr)FindSymbolAddress("g_pDevice");
 	XTL::Xbox_D3D__RenderState_Deferred = (DWORD*)FindSymbolAddress("D3D__RenderState_Deferred");
 	XTL::Xbox_D3D_TextureState = (DWORD*)FindSymbolAddress("D3D__TextureState");
-	XTL::Xbox_g_Stream = (XTL::X_Stream *)FindSymbolAddress("g_Stream", Warn); // Optional - aerox2 hits this case
-	XTL::offsetof_Xbox_D3DDevice_m_Textures = (uint)FindSymbolAddress("offsetof(D3DDevice,m_Textures)");
+	XTL::Xbox_g_Stream = (XTL::X_Stream *)FindSymbolAddress("g_Stream", Warn); // Optional. Test case : aerox2
+	XTL::offsetof_Xbox_D3DDevice_m_Textures = (uint)FindSymbolAddress("offsetof(D3DDevice,m_Textures)", Warn); // Optional. Test case: Micro Machines, Metal Gear Solid 2 (might need D3DDevice_SetTexture 4928 OOVPA + XREF_OFFSET_D3DDEVICE_M_TEXTURES)
 	XTL::offsetof_Xbox_D3DDevice_m_Palettes = (uint)FindSymbolAddress("offsetof(D3DDevice,m_Palettes)", Warn); // Optional. Test case: X-Marbles
 }
 
@@ -688,7 +692,7 @@ static inline void GetOovpaEntry(OOVPA *oovpa, int index, OUT uint32 &offset, OU
 	value = ((LOOVPA<1>*)oovpa)->Lovp[index].Value;
 }
 
-static boolean CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
+static bool CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
 {
 	// NOTE : Checking offsets uses bytes. Doing that first is probably
 	// faster than first checking (more complex) xrefs.

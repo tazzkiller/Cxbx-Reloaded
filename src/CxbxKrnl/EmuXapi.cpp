@@ -36,6 +36,8 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "XAPI"
+
 #undef FIELD_OFFSET     // prevent macro redefinition warnings
 /* prevent name collisions */
 namespace xboxkrnl
@@ -481,7 +483,7 @@ DWORD WINAPI XTL::EMUPATCH(XInputGetState)
 
         if((dwPort >= 0) && (dwPort <= 3))
         {
-			DbgPrintf( "EmuXInputGetState(): dwPort = %d\n", dwPort );
+			DbgPrintf("XAPI: EmuXInputGetState(): dwPort = %d\n", dwPort );
 
             if(dwPort == 0)
             {
@@ -496,7 +498,7 @@ DWORD WINAPI XTL::EMUPATCH(XInputGetState)
         }
     }
 	else
-		EmuWarning( "EmuXInputGetState(): pph == NULL!" );
+		EmuWarning("EmuXInputGetState(): pph == NULL!");
 
 	RETURN(ret);
 }
@@ -781,7 +783,7 @@ LPVOID WINAPI XTL::EMUPATCH(CreateFiber)
 	if( !pFiber )
 		EmuWarning( "CreateFiber failed!" );
 	else
-		DbgPrintf("CreateFiber returned 0x%X\n", pFiber);
+		DbgPrintf("XAPI: CreateFiber returned 0x%X\n", pFiber);
 
 	// Add to list of queued fiber routines
 	g_Fibers[g_FiberCount].pfnRoutine = lpStartRoutine;
@@ -804,7 +806,7 @@ VOID WINAPI XTL::EMUPATCH(DeleteFiber)
 {
 	FUNC_EXPORTS
 
-	DbgPrintf("EmuXapi: EmuDeleteFiber\n"
+	DbgPrintf("XAPI: EmuDeleteFiber\n"
 			"(\n"
 			"	lpFiber            : 0x%.08X\n"
 			");\n",
@@ -826,7 +828,7 @@ VOID WINAPI XTL::EMUPATCH(SwitchToFiber)
 {
 	FUNC_EXPORTS
 
-	DbgPrintf("EmuXapi: EmuSwitchToFiber\n"
+	DbgPrintf("XAPI: EmuSwitchToFiber\n"
 			"(\n"
 			"	lpFiber            : 0x%.08X\n"
 			");\n",
@@ -844,7 +846,7 @@ VOID WINAPI XTL::EMUPATCH(SwitchToFiber)
 
 	g_FiberCount = 0;
 
-	DbgPrintf( "Finished executing fibers!\n" );
+	DbgPrintf("XAPI: Finished executing fibers!\n" );
 
 }
 #endif
@@ -860,7 +862,7 @@ LPVOID WINAPI XTL::EMUPATCH(ConvertThreadToFiber)
 {
 	FUNC_EXPORTS
 
-	DbgPrintf("EmuXapi: EmuConvertThreadToFiber\n"
+	DbgPrintf("XAPI: EmuConvertThreadToFiber\n"
 			"(\n"
 			"	lpParameter        : 0x%.08X\n"
 			");\n",
@@ -868,7 +870,7 @@ LPVOID WINAPI XTL::EMUPATCH(ConvertThreadToFiber)
 
 	LPVOID pRet = ConvertThreadToFiber( lpParameter );
 	
-	DbgPrintf( "EmuConvertThreadToFiber returned 0x%X\n", pRet );
+	DbgPrintf("XAPI: EmuConvertThreadToFiber returned 0x%X\n", pRet );
 
 
 	return pRet;
@@ -883,7 +885,7 @@ VOID WINAPI XTL::EMUPATCH(XapiFiberStartup)(DWORD dwDummy)
 {
 	FUNC_EXPORTS
 
-	DbgPrintf("EmuXapi: EmuXapiFiberStarup()\n"
+	DbgPrintf("XAPI: EmuXapiFiberStarup()\n"
 			"(\n"
 			"	dwDummy            : 0x%.08X\n"
 			");\n",
