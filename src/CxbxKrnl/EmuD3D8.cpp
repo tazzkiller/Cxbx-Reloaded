@@ -2643,14 +2643,14 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				// detect vertex processing capabilities
 				if ((g_D3DCaps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT) && g_EmuCDPD.HostCreationParameters.DeviceType == XTL::D3DDEVTYPE_HAL)
 				{
-					DbgPrintf("EmuD3D8: Using hardware vertex processing\n");
+					DbgPrintf("D3D8: Using hardware vertex processing\n");
 
 					g_EmuCDPD.HostCreationParameters.BehaviorFlags = D3DCREATE_HARDWARE_VERTEXPROCESSING;
 					g_dwVertexShaderUsage = 0;
 				}
 				else
 				{
-					DbgPrintf("EmuD3D8: Using software vertex processing\n");
+					DbgPrintf("D3D8: Using software vertex processing\n");
 
 					g_EmuCDPD.HostCreationParameters.BehaviorFlags = D3DCREATE_SOFTWARE_VERTEXPROCESSING;
 					g_dwVertexShaderUsage = D3DUSAGE_SOFTWAREPROCESSING;
@@ -2764,7 +2764,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
                     g_pDD7->GetFourCCCodes(&dwCodes, lpCodes);
                     for(DWORD v=0;v<dwCodes;v++)
                     {
-						DbgPrintf("EmuD3D8: FourCC[%d] = %.4s\n", v, (char *)&(lpCodes[v]));
+						DbgPrintf("D3D8: FourCC[%d] = %.4s\n", v, (char *)&(lpCodes[v]));
 						// Map known FourCC codes to Xbox Format
 						int X_Format;
 						switch (lpCodes[v]) {
@@ -2789,7 +2789,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 
 						// Warn if CheckDeviceFormat didn't report this format
 						if (!g_bSupportsYUY2Overlay && (X_Format == XTL::X_D3DFMT_YUY2)) {
-							EmuWarning("EmuD3D8: FourCC format %.4s not previously detected via CheckDeviceFormat()! Enabling it.", (char *)&(lpCodes[v]));
+							EmuWarning("FourCC format %.4s not previously detected via CheckDeviceFormat()! Enabling it.", (char *)&(lpCodes[v]));
 							// TODO : If this warning never shows, detecting FourCC's could be removed entirely. For now, enable the format :
 							g_bSupportsYUY2Overlay = true;
 						}
@@ -2806,11 +2806,11 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					{
 						// Does the user want to use Hardware accelerated YUV surfaces?
 						if (g_XBVideo.GetHardwareYUV())
-							DbgPrintf("EmuD3D8: Hardware accelerated YUV surfaces Enabled...\n");
+							DbgPrintf("D3D8: Hardware accelerated YUV surfaces Enabled...\n");
 						else
 						{
 							g_bSupportsYUY2Overlay = false;
-							DbgPrintf("EmuD3D8: Hardware accelerated YUV surfaces Disabled...\n");
+							DbgPrintf("D3D8: Hardware accelerated YUV surfaces Disabled...\n");
 						}
 					}
                 }
@@ -3193,7 +3193,7 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 	if (g_EmuCDPD.XboxPresentationParameters.EnableAutoDepthStencil == pPresentationParameters->EnableAutoDepthStencil)
 	if (g_EmuCDPD.XboxPresentationParameters.AutoDepthStencilFormat == pPresentationParameters->AutoDepthStencilFormat)
 	if (g_EmuCDPD.XboxPresentationParameters.Flags == pPresentationParameters->Flags) {
-		DbgPrintf("EmuD3D8: Prevented duplicate CreateDevice proxy call.\n");
+		DbgPrintf("D3D8: Prevented duplicate CreateDevice proxy call.\n");
 		g_EmuCDPD.XboxPresentationParameters = *pPresentationParameters; // Do use the Xbox pointer
 		*ppReturnedDeviceInterface = *g_EmuCDPD.ppReturnedDeviceInterface;
 		return g_EmuCDPD.hRet;
@@ -4888,7 +4888,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture)
 	// Set all X_D3DTexture members (except Lock)
 	EMUPATCH(XGSetTextureHeader)(Width, Height, Levels, Usage, Format, Pool, pTexture, Texture_Data, Pitch);
 
-	DbgPrintf("EmuD3D8: Created Texture : 0x%.08X (0x%.08X)\n", pTexture, pNewHostTexture);
+	DbgPrintf("D3D8: Created Texture : 0x%.08X (0x%.08X)\n", pTexture, pNewHostTexture);
 
 	*ppTexture = pTexture;
 
@@ -4979,7 +4979,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVolumeTexture)
         if(SUCCEEDED(hRet))
 		{
 			SetHostVolumeTexture(*ppVolumeTexture, pNewHostVolumeTexture);
-			DbgPrintf("EmuD3D8: Created Volume Texture : 0x%.08X (0x%.08X)\n", *ppVolumeTexture, pNewHostVolumeTexture);
+			DbgPrintf("D3D8: Created Volume Texture : 0x%.08X (0x%.08X)\n", *ppVolumeTexture, pNewHostVolumeTexture);
 		}
     }
 
@@ -5048,7 +5048,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateCubeTexture)
     if(SUCCEEDED(hRet))
 	{
 		SetHostCubeTexture(*ppCubeTexture, pNewHostCubeTexture);
-		DbgPrintf("EmuD3D8: Created Cube Texture : 0x%.08X (0x%.08X)\n", *ppCubeTexture, pNewHostCubeTexture);
+		DbgPrintf("D3D8: Created Cube Texture : 0x%.08X (0x%.08X)\n", *ppCubeTexture, pNewHostCubeTexture);
 	}    
 
     return hRet;
