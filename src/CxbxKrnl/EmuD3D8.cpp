@@ -2442,23 +2442,21 @@ void CxbxClear
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-	using namespace XTL;
-
 	// make adjustments to parameters to make sense with windows d3d
-	DWORD PCFlags = EmuXB2PC_D3DCLEAR_FLAGS(Flags);
+	DWORD PCFlags = XTL::EmuXB2PC_D3DCLEAR_FLAGS(Flags);
 	{
-		if (Flags & X_D3DCLEAR_TARGET) {
+		if (Flags & XTL::X_D3DCLEAR_TARGET) {
 			// TODO: D3DCLEAR_TARGET_A, *R, *G, *B don't exist on windows
-			if ((Flags & X_D3DCLEAR_TARGET) != X_D3DCLEAR_TARGET)
-				EmuWarning("Unsupported : Partial D3DCLEAR_TARGET flag(s) for D3DDevice_Clear : 0x%.08X", Flags & X_D3DCLEAR_TARGET);
+			if ((Flags & XTL::X_D3DCLEAR_TARGET) != XTL::X_D3DCLEAR_TARGET)
+				EmuWarning("Unsupported : Partial D3DCLEAR_TARGET flag(s) for D3DDevice_Clear : 0x%.08X", Flags & XTL::X_D3DCLEAR_TARGET);
 		}
 
-		if (Flags & (X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_ZBUFFER)) {
+		if (Flags & (XTL::X_D3DCLEAR_ZBUFFER | XTL::X_D3DCLEAR_ZBUFFER)) {
 			// Only when Z/Depth flags are given, check if these components are present :
 			UpdateDepthStencilFlags(g_pActiveXboxDepthStencil);
 
 			// Do not needlessly clear Z Buffer
-			if (Flags & X_D3DCLEAR_ZBUFFER) {
+			if (Flags & XTL::X_D3DCLEAR_ZBUFFER) {
 				if (!g_bHasDepthBits) {
 					PCFlags &= ~D3DCLEAR_ZBUFFER;
 					EmuWarning("Ignored D3DCLEAR_ZBUFFER flag (there's no Depth component in the DepthStencilSurface)");
@@ -2469,15 +2467,15 @@ void CxbxClear
 			//
 			// Avoids following DirectX Debug Runtime error report
 			//    [424] Direct3D8: (ERROR) :Invalid flag D3DCLEAR_ZBUFFER: no zbuffer is associated with device. Clear failed. 
-			if (Flags & X_D3DCLEAR_STENCIL) {
+			if (Flags & XTL::X_D3DCLEAR_STENCIL) {
 				if (!g_bHasStencilBits) {
 					PCFlags &= ~D3DCLEAR_STENCIL;
 					EmuWarning("Ignored D3DCLEAR_STENCIL flag (there's no Stencil component in the DepthStencilSurface)");
 				}
 			}
 		}
-		if (Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL))
-			EmuWarning("Unsupported Flag(s) for D3DDevice_Clear : 0x%.08X", Flags & ~(X_D3DCLEAR_TARGET | X_D3DCLEAR_ZBUFFER | X_D3DCLEAR_STENCIL));
+		if (Flags & ~(XTL::X_D3DCLEAR_TARGET | XTL::X_D3DCLEAR_ZBUFFER | XTL::X_D3DCLEAR_STENCIL))
+			EmuWarning("Unsupported Flag(s) for D3DDevice_Clear : 0x%.08X", Flags & ~(XTL::X_D3DCLEAR_TARGET | XTL::X_D3DCLEAR_ZBUFFER | XTL::X_D3DCLEAR_STENCIL));
 	}
 
 	// Since we filter the flags, make sure there are some left (else, clear isn't necessary) :
