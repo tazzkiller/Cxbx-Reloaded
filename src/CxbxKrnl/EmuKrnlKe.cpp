@@ -554,9 +554,7 @@ XBSYSAPI EXPORTNUM(100) xboxkrnl::VOID NTAPI xboxkrnl::KeDisconnectInterrupt
 	KiLockDispatcherDatabase(&OldIrql);
 
 	// Do the reverse of KeConnectInterrupt
-	LOG_TEST_CASE("Untested and not thread safe");
-	if (InterruptObject->Connected)
-	{
+	if (InterruptObject->Connected) { // Text case : d3dbvt.xbe
 		// Mark InterruptObject as not connected anymore
 		HalDisableSystemInterrupt(InterruptObject->BusInterruptLevel);
 		EmuInterruptList[InterruptObject->BusInterruptLevel] = NULL;
