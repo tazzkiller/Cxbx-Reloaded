@@ -159,11 +159,11 @@ uint32_t EmuFlash_Read32(xbaddr addr) // TODO : Move to EmuFlash.cpp
 		r = 0x90; // Luke's hardware revision 1.6 Xbox returns this (also since XboxKrnlVersion is set to 5838)
 		break;
 	default:
-		EmuWarning("EmuX86 Read32 FLASH_ROM (0x%.8X) [Unknown address]", addr);
+		EmuWarning("Read32 FLASH_ROM (0x%.8X) [Unknown address]", addr);
 		return -1;
 	}
 
-	DbgPrintf("EmuX86 Read32 FLASH_ROM (0x%.8X) = 0x%.8X [HANDLED]\n", addr, r);
+	DbgPrintf("X86 : Read32 FLASH_ROM (0x%.8X) = 0x%.8X [HANDLED]\n", addr, r);
 	return r;
 }
 
@@ -1171,7 +1171,7 @@ int EmuX86_OpcodeSize(uint8_t *Eip)
 	if (EmuX86_DecodeOpcode((uint8_t*)Eip, info))
 		return info.size;
 
-	EmuWarning("EmuX86: Error decoding opcode size at 0x%.8X", Eip);
+	EmuWarning("Error decoding opcode size at 0x%.8X", Eip);
 	return 1;
 }
 
@@ -1186,7 +1186,7 @@ bool EmuX86_DecodeException(LPEXCEPTION_POINTERS e)
 	_DInst info;
 	if (!EmuX86_DecodeOpcode((uint8_t*)e->ContextRecord->Eip, info))
 	{
-		EmuWarning("EmuX86: Error decoding opcode at 0x%08X", e->ContextRecord->Eip);
+		EmuWarning("Error decoding opcode at 0x%08X", e->ContextRecord->Eip);
 	}
 	else
 	{
@@ -1265,7 +1265,7 @@ bool EmuX86_DecodeException(LPEXCEPTION_POINTERS e)
 			// Some titles attempt to manually set the TSC via this instruction
 			// This needs fixing eventually, but should be acceptible to ignore for now!
 			// Chase: Hollywood Stunt Driver hits this
-			EmuWarning("EmuX86: WRMSR instruction ignored");
+			EmuWarning("WRMSR instruction ignored");
 			break;
 		default:
 			goto unimplemented_opcode;
@@ -1277,7 +1277,7 @@ bool EmuX86_DecodeException(LPEXCEPTION_POINTERS e)
 		return true;
 
 unimplemented_opcode:
-		EmuWarning("EmuX86: 0x%08X: Not Implemented\n", e->ContextRecord->Eip);	// TODO : format decodedInstructions[0]
+		EmuWarning("0x%08X: Not Implemented\n", e->ContextRecord->Eip);	// TODO : format decodedInstructions[0]
 		e->ContextRecord->Eip += info.size;
 	}
 	
