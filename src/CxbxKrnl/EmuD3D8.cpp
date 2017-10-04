@@ -6024,7 +6024,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	const struct TextureCache::TextureResourceKey textureKey = { (xbaddr)pTextureData, pPixelContainer->Format, pPixelContainer->Size};
 
 	// Find a cached host texture
-	auto CacheEntry = g_TextureCache.Find(textureKey, pPalette);
+	struct TextureCache::TextureCacheEntry &CacheEntry = g_TextureCache.Find(textureKey, pPalette);
 	if (CacheEntry.pConvertedHostTexture != nullptr)
 		return CacheEntry.pConvertedHostTexture;
 
