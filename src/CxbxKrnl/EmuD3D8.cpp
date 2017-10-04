@@ -6021,15 +6021,17 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		return nullptr; // TODO : Cleanup without data?
 
 	// Construct the identifying key for this Xbox texture
-	const struct TextureCache::TextureResourceKey textureKey = { (xbaddr)pTextureData, pPixelContainer->Format, pPixelContainer->Size };
+	const struct TextureCache::TextureResourceKey textureKey = { (xbaddr)pTextureData, pPixelContainer->Format, pPixelContainer->Size};
 
 	// Find a cached host texture
 	auto CacheEntry = g_TextureCache.Find(textureKey, pPalette);
 	if (CacheEntry.pConvertedHostTexture != nullptr)
 		return CacheEntry.pConvertedHostTexture;
 
+#if 0 // unused
 	// Make sure D3DDevice_SwitchTexture can associate a Data pointer with this texture
 	g_DataToTexture.insert(pTextureData, (void *)pPixelContainer);
+#endif
 
 	IDirect3DBaseTexture8 *result = nullptr;
 

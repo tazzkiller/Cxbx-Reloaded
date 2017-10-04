@@ -50,7 +50,9 @@ ResourceTracker g_PBTrackTotal;
 ResourceTracker g_PBTrackDisable;
 ResourceTracker g_PBTrackShowOnce;
 ResourceTracker g_PatchedStreamsCache;
+#if 0 // unuseed
 ResourceTracker g_DataToTexture;
+#endif
 //ResourceTracker g_AlignCache;
 
 ResourceTracker::~ResourceTracker()
