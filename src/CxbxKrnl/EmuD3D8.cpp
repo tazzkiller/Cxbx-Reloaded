@@ -5162,7 +5162,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetIndices)
 
 #endif
 
-#if 0 // Patch disabled
+#if 0 // Patch disabled - Pushes NV2A_TX_OFFSET, NV2A_TX_FORMAT and NV2A_TX_ENABLE, which we'll handle later but ignore for now
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 (
     DWORD           Stage,
@@ -6023,7 +6023,8 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		return nullptr; // TODO : Cleanup without data?
 
 	// Construct the identifying key for this Xbox texture
-	const struct TextureCache::TextureResourceKey textureKey = { (xbaddr)pTextureData, pPixelContainer->Format, pPixelContainer->Size};
+	const struct TextureCache::TextureResourceKey textureKey = { (xbaddr)pTextureData, 0, 0 }; // Expiriment : ignore Format and Size
+//	const struct TextureCache::TextureResourceKey textureKey = { (xbaddr)pTextureData, pPixelContainer->Format, pPixelContainer->Size };
 
 	// Find a cached host texture
 	struct TextureCache::TextureCacheEntry &CacheEntry = g_TextureCache.Find(textureKey, pPalette);
@@ -6357,6 +6358,19 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 					hRet = pNewHostTexture->LockRect(level, &LockedRect, nullptr, D3DLockFlags);
 					DEBUG_D3DRESULT(hRet, "pNewHostTexture->LockRect");
 				} else if (pNewHostCubeTexture != nullptr) {
+					if (level == 0) { // Expirimental : Cache all 6 sides of a cube, to support render-targets 
+						BYTE *pFaceData = (BYTE*)pTextureData;
+						pFaceData += PixelJar.dwFacePitch * face;
+						const struct TextureCache::TextureResourceKey surfaceKey = { (xbaddr)pFaceData, 0, 0 }; // Expiriment : ignore Format and Size
+//						const struct TextureCache::TextureResourceKey surfaceKey = { (xbaddr)pFaceData, pPixelContainer->Format, pPixelContainer->Size };
+						struct TextureCache::TextureCacheEntry &SurfaceCacheEntry = g_TextureCache.Find(surfaceKey, pPalette);
+
+						IDirect3DSurface8 *pSurface = nullptr;
+						pNewHostCubeTexture->GetCubeMapSurface((D3DCUBEMAP_FACES)face, 0, &pSurface);
+
+						g_TextureCache.AddConvertedResource(SurfaceCacheEntry, (XTL::IDirect3DBaseTexture8*)pSurface);
+					}
+
 					hRet = pNewHostCubeTexture->LockRect((D3DCUBEMAP_FACES)face, level, &LockedRect, nullptr, D3DLockFlags);
 					DEBUG_D3DRESULT(hRet, "pNewHostCubeTexture->LockRect");
 				}
