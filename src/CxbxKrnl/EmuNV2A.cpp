@@ -53,7 +53,6 @@ namespace xboxkrnl
 	#include <xboxkrnl/xboxkrnl.h> // For PKINTERRUPT, etc.
 };
 
-
 #ifdef _MSC_VER                         // Check if MS Visual C compiler
 #  pragma comment(lib, "opengl32.lib")  // Compiler-specific directive to avoid manually configuration
 //#  pragma comment(lib, "glu32.lib")     // Link libraries
@@ -81,6 +80,8 @@ namespace xboxkrnl
 #include <gl\GLU.h>
 #include <cassert>
 //#include <gl\glut.h>
+
+extern char *NV2AMethodToString(DWORD dwMethod); // implemented in PushBuffer.cpp
 
 // Public Domain ffs Implementation
 // See: http://snipplr.com/view/22147/stringsh-implementation/
@@ -1296,7 +1297,7 @@ static void pgraph_method_log(unsigned int subchannel,	unsigned int graphics_cla
 		printf("pgraph method (%d) 0x%08X * %d", subchannel, last, count);
 	}
 	if (method != 0x1800) {
-		const char* method_name = NULL;
+		char* method_name = NV2AMethodToString(method); // Was const NULL;
 		unsigned int nmethod = 0;
 		switch (graphics_class) {
 		case NV_KELVIN_PRIMITIVE:
@@ -2284,7 +2285,7 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 				break;
 			}
 
-			EmuWarning("EmuNV2A: Unknown NV_KELVIN_PRIMITIVE Method: 0x%08X\n", method);
+			EmuWarning("EmuNV2A: Unknown NV_KELVIN_PRIMITIVE Method: 0x%08X %s\n", method, NV2AMethodToString(method));
 		}
 		break;
 	}
