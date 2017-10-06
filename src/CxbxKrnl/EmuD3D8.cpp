@@ -183,6 +183,9 @@ static UINT                         QuadToTriangleD3DIndexBuffer_Size = 0; // = 
 static XTL::INDEX16                *pQuadToTriangleIndexBuffer = nullptr;
 static UINT                         QuadToTriangleIndexBuffer_Size = 0; // = NrOfQuadVertices
 
+// TODO : Read this from Xbox, so [Get|Set][RenderTarget|DepthStencil] patches can be disabled
+XTL::X_D3DSurface *GetXboxRenderTarget() { return g_pActiveXboxRenderTarget; }
+XTL::X_D3DSurface *GetXboxDepthStencil() { return g_pActiveXboxDepthStencil; }
 
 #if 0
 static XTL::X_D3DSurface           *g_pCachedYuvSurface = NULL;
@@ -1720,11 +1723,10 @@ void CxbxUpdateActiveRenderTarget()
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-/* TODO : Get this working, so [Get|Set][RenderTarget|DepthStencil] patches can be disabled
-	XTL::X_D3DSurface *g_pActiveXboxRenderTarget = GetXboxRenderTarget();
-	XTL::X_D3DSurface *g_pActiveXboxDepthStencil = GetXboxDepthStencil(); */
-	g_pActiveHostRenderTarget = CxbxUpdateSurface(g_pActiveXboxRenderTarget);
-	g_pActiveHostDepthStencil = CxbxUpdateSurface(g_pActiveXboxDepthStencil);
+	XTL::X_D3DSurface *pActiveXboxRenderTarget = GetXboxRenderTarget();
+	XTL::X_D3DSurface *pActiveXboxDepthStencil = GetXboxDepthStencil();
+	g_pActiveHostRenderTarget = CxbxUpdateSurface(pActiveXboxRenderTarget);
+	g_pActiveHostDepthStencil = CxbxUpdateSurface(pActiveXboxDepthStencil);
 
 	HRESULT hRet = g_pD3DDevice8->SetRenderTarget(g_pActiveHostRenderTarget, g_pActiveHostDepthStencil);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderTarget");
