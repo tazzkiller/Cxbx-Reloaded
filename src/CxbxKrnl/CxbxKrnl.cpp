@@ -62,6 +62,8 @@ namespace xboxkrnl
 #include <process.h>
 #include <Shlwapi.h>
 #include <time.h> // For time()
+#include <sstream> // For std::ostringstream
+
 
 /* prevent name collisions */
 namespace NtDll
@@ -99,7 +101,7 @@ bool g_bIsChihiro = false;
 DWORD_PTR g_CPUXbox = 0;
 DWORD_PTR g_CPUOthers = 0;
 
-HANDLE g_CurrentProcessHandle = 0; // Set in CxbxKrnlInit
+HANDLE g_CurrentProcessHandle = 0; // Set in CxbxKrnlMain
 
 // ported from Dxbx's XbeExplorer
 XbeType GetXbeType(Xbe::Header *pXbeHeader)
@@ -233,11 +235,48 @@ void RestoreExeImageHeader()
 	ExeOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS] = NewOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
 }
 
+// Returns the Win32 error in string format. Returns an empty string if there is no error.
+std::string CxbxGetErrorCodeAsString(DWORD errorCode)
+{
+	std::string result;
+	LPSTR lpMessageBuffer = nullptr;
+	DWORD dwLength = FormatMessageA(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		FORMAT_MESSAGE_FROM_SYSTEM |
+		FORMAT_MESSAGE_IGNORE_INSERTS,
+		NULL, // lpSource
+		errorCode,
+		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+		(LPSTR)&lpMessageBuffer,
+		0, // nSize
+		NULL); // Arguments
+	if (dwLength > 0) {
+		result = std::string(lpMessageBuffer, dwLength);
+	}
+
+	LocalFree(lpMessageBuffer);
+	return result;
+}
+
+// Returns the last Win32 error, in string format. Returns an empty string if there is no error.
+std::string CxbxGetLastErrorString(char * lpszFunction)
+{
+	DWORD errorCode = ::GetLastError(); // Do this first, before any following code changes it
+	std::string result = "No error";
+	if (errorCode > 0) {
+		std::ostringstream stringStream;
+		stringStream << lpszFunction << " failed with error " << errorCode << ": " << CxbxGetErrorCodeAsString(errorCode);
+		result = stringStream.str();
+	}
+
+	return result;
+}
+
 void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 {
 	// First, try to open an existing memory.bin file :
 	HANDLE hFile = CreateFile(szFilePath_memory_bin,
-		GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE, 
+		GENERIC_READ | GENERIC_WRITE | GENERIC_EXECUTE,
 		FILE_SHARE_READ | FILE_SHARE_WRITE,
 		/* lpSecurityAttributes */nullptr,
 		OPEN_EXISTING,
@@ -455,6 +494,8 @@ void CxbxKrnlMain(int argc, char* argv[])
 				freopen("nul", "w", stdout);
 		}
 	}
+
+	g_CurrentProcessHandle = GetCurrentProcess(); // OpenProcess(PROCESS_ALL_ACCESS, FALSE, GetCurrentProcessId());
 
 	// Write a header to the log
 	{
@@ -705,7 +746,6 @@ __declspec(noreturn) void CxbxKrnlInit
 	g_pCertificate = (Xbe::Certificate *)(CxbxKrnl_XbeHeader->dwCertificateAddr);
 	// for unicode conversions
 	setlocale(LC_ALL, "English");
-	g_CurrentProcessHandle = GetCurrentProcess();
 	CxbxInitPerformanceCounters();
 #ifdef _DEBUG
 //	CxbxPopupMessage("Attach a Debugger");
