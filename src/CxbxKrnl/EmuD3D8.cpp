@@ -5970,6 +5970,13 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
     return result;
 }
 
+bool IsAddressAllocated(void *addr)
+{
+	MEMORY_BASIC_INFORMATION MemInfo;
+	VirtualQuery(addr, &MemInfo, sizeof(MemInfo));
+	return (MemInfo.State & MEM_COMMIT) > 0;
+}
+
 // TODO : Move to own file
 XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 (
@@ -6004,6 +6011,9 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (pPixelContainer == g_pActiveXboxDepthStencil)
 		if (g_pActiveHostDepthStencil != nullptr)
 			return (IDirect3DBaseTexture8 *)g_pActiveHostDepthStencil;
+
+	if (!IsAddressAllocated(pPixelContainer))
+		return nullptr;
 
 	X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pPixelContainer);
 	if (X_Format == X_D3DFMT_P8)
