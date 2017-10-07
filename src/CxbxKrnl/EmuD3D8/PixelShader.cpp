@@ -922,7 +922,7 @@ struct PSH_XBOX_SHADER {
 */
 
 // PS Texture Modes
-char* PS_TextureModes[/*PS_TEXTUREMODES*/] =
+char* PS_TextureModesStr[/*PS_TEXTUREMODES*/] =
 {
 	"PS_TEXTUREMODES_NONE",						// 0x00
 	"PS_TEXTUREMODES_PROJECT2D",				// 0x01
@@ -959,7 +959,7 @@ char* PS_TextureModes[/*PS_TEXTUREMODES*/] =
 };
 
 // PS DotMapping
-char* PS_DotMapping[/*PS_DOTMAPPING*/] =
+char* PS_DotMappingStr[/*PS_DOTMAPPING*/] =
 {
 	"PS_DOTMAPPING_ZERO_TO_ONE",		// 0x00
 	"PS_DOTMAPPING_MINUS1_TO_1_D3D",	// 0x01
@@ -971,9 +971,9 @@ char* PS_DotMapping[/*PS_DOTMAPPING*/] =
 	"PS_DOTMAPPING_HILO_HEMISPHERE",	// 0x07
 };
 
-#if 0 // array unusable for bitflags
+#if 1 // array unusable for bitflags
 // PS CompareMode
-char* PS_CompareMode[/*PS_COMPAREMODE*/] =
+char* PS_CompareModeStr[/*PS_COMPAREMODE*/] =
 {
 	"PS_COMPAREMODE_S_LT", // 0x00L
 	"PS_COMPAREMODE_S_GE", // 0x01L
@@ -997,7 +997,7 @@ char* PS_CompareMode[/*PS_COMPAREMODE*/] =
 
 #if 1 // array unfit for bitflags
 // PS CombinerCountFlags
-char* PS_CombinerCountFlags[/*PS_COMBINERCOUNTFLAGS*/] =
+char* PS_CombinerCountFlagsStr[/*PS_COMBINERCOUNTFLAGS*/] =
 {
 	"PS_COMBINERCOUNT_MUX_LSB",		// 0x0000L, // mux on r0.a lsb
 	"PS_COMBINERCOUNT_MUX_MSB",		// 0x0001L, // mux on r0.a msb
@@ -1389,7 +1389,7 @@ bool PSH_IMD_ARGUMENT::Decode(const DWORD Value, DWORD aMask, TArgumentType Argu
       Type = PARAM_EF_PROD;
 	  break;
   default :
-    DbgPrintf("INVALID ARGUMENT!");
+    DbgPrintf("INVALID ARGUMENT!\n");
 
     Result = false;
   }
@@ -1894,8 +1894,8 @@ void PSH_XBOX_SHADER::Log(const char *PhaseStr)
 {
   //if (MayLog(lfUnit))
   {
-    DbgPrintf("New decoding - %s :", PhaseStr);
-	DbgPrintf("%s", ToString().c_str());
+    DbgPrintf("New decoding - %s :\n", PhaseStr);
+	DbgPrintf("%s\n", ToString().c_str());
   }
 }
 
@@ -2074,7 +2074,7 @@ PSH_RECOMPILED_SHADER PSH_XBOX_SHADER::Decode(XTL::X_D3DPIXELSHADERDEF *pPSDef)
   //if (MayLog(LogFlags))
   {
     // print relevant contents to the debug console
-    DbgPrintf("%s", DecodedToString(pPSDef).c_str());
+    DbgPrintf("%s\n", DecodedToString(pPSDef).c_str());
   }
 
   // TODO:
@@ -2117,7 +2117,7 @@ PSH_RECOMPILED_SHADER PSH_XBOX_SHADER::Decode(XTL::X_D3DPIXELSHADERDEF *pPSDef)
   if (FixCoIssuedOpcodes())
     Log("FixCoIssuedOpcodes");
 
-  Log("} result");
+  Log("End result");
 
   Result.NewShaderStr = ToString();
   return Result;
@@ -2126,60 +2126,61 @@ PSH_RECOMPILED_SHADER PSH_XBOX_SHADER::Decode(XTL::X_D3DPIXELSHADERDEF *pPSDef)
 std::string PSH_XBOX_SHADER::DecodedToString(XTL::X_D3DPIXELSHADERDEF *pPSDef)
 // print relevant contents to the debug console
 
-  #define _AddStr(aStr) \
+  #define _AddStr1(aStr) \
   \
     Result = Result + aStr + "\n";
 
-  #define _AddStr2(aStr, ...) \
+  #define _AddStr(aStr, ...) \
   {\
-    _AddStr(DxbxFormat(aStr, Args)); \
+	snprintf(buf, sizeof(buf), aStr, __VA_ARGS__); \
+    _AddStr1(std::string(buf)); \
   }
 {
-//  int i;
+  char buf[100];
+  int i;
 
   std::string Result = "";
   // Show the contents to the user
-  _AddStr("\n-----PixelShader Definition Contents-----");
-  _AddStr(OriginalToString(pPSDef));
+  _AddStr1("\n-----PixelShader Definition Contents-----");
+  _AddStr1(OriginalToString(pPSDef));
 
-#if 0 // TODO
   if (pPSDef->PSTextureModes > 0) 
   {
-    _AddStr("\nPSTextureModes ->"); // Texture addressing modes
+    _AddStr1("\nPSTextureModes ->"); // Texture addressing modes
     _AddStr("Stage 0: %s", PS_TextureModesStr[PSTextureModes[0]]);
     _AddStr("Stage 1: %s", PS_TextureModesStr[PSTextureModes[1]]);
     _AddStr("Stage 2: %s", PS_TextureModesStr[PSTextureModes[2]]);
     _AddStr("Stage 3: %s", PS_TextureModesStr[PSTextureModes[3]]);
   }
 
-  if (pPSDEF->PSDotMapping > 0)  // Input mapping for dot product modes
+  if (pPSDef->PSDotMapping > 0)  // Input mapping for dot product modes
   {
-    _AddStr("\nPSDotMapping ->");
+    _AddStr1("\nPSDotMapping ->");
     _AddStr("Stage 1: %s", PS_DotMappingStr[PSDotMapping[1]]);
     _AddStr("Stage 2: %s", PS_DotMappingStr[PSDotMapping[2]]);
     _AddStr("Stage 3: %s", PS_DotMappingStr[PSDotMapping[3]]);
   }
 
-  if (pPSDEF->PSCompareMode > 0)  // Compare modes for clipplane texture mode
+  if (pPSDef->PSCompareMode > 0)  // Compare modes for clipplane texture mode
   {
-    _AddStr("\nPSCompareMode ->");
+    _AddStr1("\nPSCompareMode ->");
     _AddStr("Stage 0: %s", PS_CompareModeStr[(PSCompareMode[0] == 0) ? 0 : 1]);
     _AddStr("Stage 1: %s", PS_CompareModeStr[(PSCompareMode[1] == 0) ? 2 : 3]);
     _AddStr("Stage 2: %s", PS_CompareModeStr[(PSCompareMode[2] == 0) ? 4 : 5]);
     _AddStr("Stage 3: %s", PS_CompareModeStr[(PSCompareMode[3] == 0) ? 6 : 7]);
   }
 
-  if (pPSDEF->PSInputTexture > 0)  // Texture source for some texture modes
+  if (pPSDef->PSInputTexture > 0)  // Texture source for some texture modes
   {
-    _AddStr("\nPSInputTexture ->");
+    _AddStr1("\nPSInputTexture ->");
     _AddStr("Stage 1: %d", PSInputTexture[1]);
     _AddStr("Stage 2: %d", PSInputTexture[2]);
     _AddStr("Stage 3: %d", PSInputTexture[3]);
   }
 
-  if (pPSDEF->PSCombinerCount > 0)  // Active combiner count (Stages 0-7)
+  if (pPSDef->PSCombinerCount > 0)  // Active combiner count (Stages 0-7)
   {
-    _AddStr("\nPSCombinerCount ->");
+    _AddStr1("\nPSCombinerCount ->");
     _AddStr("Combiners: %d", NumberOfCombiners);
     _AddStr("Mux:       %s", PS_CombinerCountFlagsStr[(CombinerCountFlags & PS_COMBINERCOUNT_MUX_MSB) == 0 ? 0 : 1]);
     _AddStr("C0:        %s", PS_CombinerCountFlagsStr[(CombinerCountFlags & PS_COMBINERCOUNT_UNIQUE_C0) == 0 ? 2 : 3]);
@@ -2190,34 +2191,34 @@ std::string PSH_XBOX_SHADER::DecodedToString(XTL::X_D3DPIXELSHADERDEF *pPSDef)
 
   for (i = 0; i < NumberOfCombiners; i++) // Loop over all combiner stages
   {
-    _AddStr("\n");
+    _AddStr1("\n");
 
     _AddStr("PSRGBOutputs[%d] AB: %s", i, Combiners[i].RGB.OutputSUM.OutputAB.DecodedToString());
     _AddStr("PSRGBOutputs[%d] CD: %s", i, Combiners[i].RGB.OutputSUM.OutputCD.DecodedToString());
     _AddStr("PSRGBOutputs[%d] SUM: %s", i, Combiners[i].RGB.OutputSUM.DecodedToString());
     _AddStr("PSRGBOutputs[%d] flags: %s", i, PSCombinerOutputFlagsToStr(Combiners[i].RGB.CombinerOutputFlags, /*IsAlpha=*/false));
 
-	_AddStr("\n");
+	_AddStr1("\n");
     _AddStr("PSRGBInputs[%d] A: %s", i, Combiners[i].RGB.OutputSUM.OutputAB.Input1.DecodedToString());
     _AddStr("PSRGBInputs[%d] B: %s", i, Combiners[i].RGB.OutputSUM.OutputAB.Input2.DecodedToString());
     _AddStr("PSRGBInputs[%d] C: %s", i, Combiners[i].RGB.OutputSUM.OutputCD.Input1.DecodedToString());
     _AddStr("PSRGBInputs[%d] D: %s", i, Combiners[i].RGB.OutputSUM.OutputCD.Input2.DecodedToString());
 
-	_AddStr("\n");
+	_AddStr1("\n");
     _AddStr("PSAlphaOutputs[%d] AB: %s", i, Combiners[i].Alpha.OutputSUM.OutputAB.DecodedToString());
     _AddStr("PSAlphaOutputs[%d] CD: %s", i, Combiners[i].Alpha.OutputSUM.OutputCD.DecodedToString());
     _AddStr("PSAlphaOutputs[%d] SUM: %s", i, Combiners[i].Alpha.OutputSUM.DecodedToString());
     _AddStr("PSAlphaOutputs[%d] flags: %s", i, PSCombinerOutputFlagsToStr(Combiners[i].Alpha.CombinerOutputFlags, /*IsAlpha=*/true));
 
-	_AddStr("\n");
+	_AddStr1("\n");
     _AddStr("PSAlphaInputs[%d] A: %s", i, Combiners[i].Alpha.OutputSUM.OutputAB.Input1.DecodedToString());
     _AddStr("PSAlphaInputs[%d] B: %s", i, Combiners[i].Alpha.OutputSUM.OutputAB.Input2.DecodedToString());
     _AddStr("PSAlphaInputs[%d] C: %s", i, Combiners[i].Alpha.OutputSUM.OutputCD.Input1.DecodedToString());
     _AddStr("PSAlphaInputs[%d] D: %s", i, Combiners[i].Alpha.OutputSUM.OutputCD.Input2.DecodedToString());
 
-	_AddStr("\n");
-    _AddStr("PSConstant0[%d] : %x", i, pPSDEF->PSConstant0[i]); // C0 for each stage
-    _AddStr("PSConstant1[%d] : %x", i, pPSDEF->PSConstant1[i]); // C1 for each stage
+	_AddStr1("\n");
+    _AddStr("PSConstant0[%d] : %x", i, pPSDef->PSConstant0[i]); // C0 for each stage
+    _AddStr("PSConstant1[%d] : %x", i, pPSDef->PSConstant1[i]); // C1 for each stage
   }
 
   if ((pPSDef->PSFinalCombinerInputsABCD > 0)
@@ -2232,20 +2233,19 @@ std::string PSH_XBOX_SHADER::DecodedToString(XTL::X_D3DPIXELSHADERDEF *pPSDef)
     _AddStr("Input C: %s", FinalCombiner.InputC.DecodedToString());
     _AddStr("Input D: %s", FinalCombiner.InputD.DecodedToString());
 
-    _AddStr("\nPSFinalCombinerInputsEFG ->");
+    _AddStr1("\nPSFinalCombinerInputsEFG ->");
     _AddStr("Input E: %s", FinalCombiner.InputE.DecodedToString());
     _AddStr("Input F: %s", FinalCombiner.InputF.DecodedToString());
     _AddStr("Input G: %s", FinalCombiner.InputG.DecodedToString());
-    _AddStr("Final combiner setting: %s", PSFinalCombinerSettingToStr(Ord(FinalCombiner.FinalCombinerFlags)));
+    _AddStr("Final combiner setting: %s", PSFinalCombinerSettingToStr((DWORD)(FinalCombiner.FinalCombinerFlags)));
 
-    _AddStr("\nPSFinalCombinerConstants ->"); // Final combiner constant mapping
+    _AddStr1("\nPSFinalCombinerConstants ->"); // Final combiner constant mapping
     _AddStr("Offset of D3D constant for (C0: %d", FinalCombiner.FinalCombinerC0Mapping);
     _AddStr("Offset of D3D constant for (C1: %d", FinalCombiner.FinalCombinerC1Mapping);
     _AddStr("Adjust texture flag: %s", PS_GlobalFlagsStr[PS_GLOBALFLAGS(FinalCombiner.dwPS_GLOBALFLAGS)]);
   }
-#endif
 
-  _AddStr("\n");
+  _AddStr1("\n");
   return Result;
 }
 
@@ -2621,7 +2621,7 @@ bool PSH_XBOX_SHADER::RemoveUselessWrites()
       if ( (CurArg->Address < PSH_PC_MAX_R_REGISTER_COUNT)
       && ((RegUsage[CurArg->Type][CurArg->Address] & CurArg->Mask) == 0))
       {
-        DbgPrintf("; Removed useless assignment to register %s", CurArg->ToString().c_str());
+        DbgPrintf("; Removed useless assignment to register %s\n", CurArg->ToString().c_str());
         CurArg->Type = PARAM_DISCARD;
         Result = true;
       }
@@ -2907,7 +2907,7 @@ void PSH_XBOX_SHADER::ConvertXFCToNative(int i)
 
     InsertIntermediate(&Ins, InsertPos);
     ++InsertPos;
-    DbgPrintf("; Inserted final combiner calculation of V1R0_sum register");
+    DbgPrintf("; Inserted final combiner calculation of V1R0_sum register\n");
   }
 
   if (NeedsProd)
@@ -2919,7 +2919,7 @@ void PSH_XBOX_SHADER::ConvertXFCToNative(int i)
     Ins.Parameters[1] = Cur.Parameters[5]; // F
     InsertIntermediate(&Ins, InsertPos);
     ++InsertPos;
-    DbgPrintf("; Inserted final combiner calculation of EF_prod register");
+    DbgPrintf("; Inserted final combiner calculation of EF_prod register\n");
   }
 
   // The final combiner calculates : r0.rgb=s0*s1 + (1-s0)*s2 + s3
@@ -3122,7 +3122,7 @@ bool PSH_XBOX_SHADER::CombineInstructions()
           Op2->Parameters[2] = Op1->Parameters[0];
           DeleteIntermediate(i);
           DeleteIntermediate(i);
-          DbgPrintf("; Changed temporary MUL,MUL,CND via MOV,MOV,CND into a single CND");
+          DbgPrintf("; Changed temporary MUL,MUL,CND via MOV,MOV,CND into a single CND\n");
           Result = true;
           continue;
         }
@@ -3147,7 +3147,7 @@ bool PSH_XBOX_SHADER::CombineInstructions()
             Op2->Modifier = Op0->Modifier;
             DeleteIntermediate(i);
             DeleteIntermediate(i);
-            DbgPrintf("; Changed temporary MUL,MUL,ADD into a single LRP");
+            DbgPrintf("; Changed temporary MUL,MUL,ADD into a single LRP\n");
             Result = true;
             continue;
           }
@@ -3164,7 +3164,7 @@ bool PSH_XBOX_SHADER::CombineInstructions()
             Op2->Modifier = Op0->Modifier;
             DeleteIntermediate(i);
             DeleteIntermediate(i);
-            DbgPrintf("; Changed temporary MUL,MUL,ADD into a single MAD");
+            DbgPrintf("; Changed temporary MUL,MUL,ADD into a single MAD\n");
             Result = true;
             continue;
           }
@@ -3179,7 +3179,7 @@ bool PSH_XBOX_SHADER::CombineInstructions()
           Op1->Parameters[2] = Op0->Output[0];
           // Remove the trailing ADD :
           DeleteIntermediate(i+2);
-          DbgPrintf("; Changed temporary MUL,MUL,ADD into a MUL,MAD");
+          DbgPrintf("; Changed temporary MUL,MUL,ADD into a MUL,MAD\n");
           Result = true;
           continue;
         }
@@ -3196,7 +3196,7 @@ bool PSH_XBOX_SHADER::CombineInstructions()
           Op2->Parameters[1] = Op1->Parameters[0];
           DeleteIntermediate(i);
           DeleteIntermediate(i);
-          DbgPrintf("; Changed temporary MUL,MUL,ADD into a MUL");
+          DbgPrintf("; Changed temporary MUL,MUL,ADD into a MUL\n");
           Result = true;
           continue;
         }
@@ -3221,7 +3221,7 @@ bool PSH_XBOX_SHADER::CombineInstructions()
           Op0->Opcode = PO_MAD;
           Op0->Parameters[2] = Op1->Parameters[1];
           DeleteIntermediate(i+1);
-          DbgPrintf("; Changed MUL,ADD into a single MAD");
+          DbgPrintf("; Changed MUL,ADD into a single MAD\n");
           Result = true;
           continue;
         }
@@ -3292,7 +3292,7 @@ bool PSH_XBOX_SHADER::CombineInstructions()
         if (CanOptimize)
         {
           DeleteIntermediate(i);
-          DbgPrintf("; Moved MOV input into following instructions");
+          DbgPrintf("; Moved MOV input into following instructions\n3");
           Result = true;
         }
       }
@@ -3312,7 +3312,7 @@ bool PSH_XBOX_SHADER::CombineInstructions()
         // > mul r0.rgb, r0,t0
         Op0->Output[0] = Op1->Output[0];
         DeleteIntermediate(i+1);
-        DbgPrintf("; Changed temporary MUL,MOV into a MUL");
+        DbgPrintf("; Changed temporary MUL,MOV into a MUL\n");
         Result = true;
         continue;
       }
@@ -3325,7 +3325,7 @@ bool PSH_XBOX_SHADER::CombineInstructions()
       if (IsRegisterFreeFromIndexOnwards(i, PARAM_R, 1))
       {
         ReplaceRegisterFromIndexOnwards(i, Op0->Output[0].Type, Op0->Output[0].Address, PARAM_R, 1);
-        DbgPrintf("; Changed fake register by r1");
+        DbgPrintf("; Changed fake register by r1\n");
         Result = true;
         continue;
       }
@@ -3353,7 +3353,7 @@ bool PSH_XBOX_SHADER::SimplifyMOV(PPSH_INTERMEDIATE_FORMAT Cur)
     if (CanSimplify)
     {
       Cur->Opcode = PO_NOP; // This nop will be removed in a recursive fixup
-      DbgPrintf("; Changed MOV into a NOP");
+      DbgPrintf("; Changed MOV into a NOP\n");
       return true;
     }
   }
@@ -3369,7 +3369,7 @@ bool PSH_XBOX_SHADER::SimplifyMOV(PPSH_INTERMEDIATE_FORMAT Cur)
     Cur->Parameters[0].Address = 0;
     Cur->Parameters[0].Modifiers = 0;
     Cur->Parameters[1] = Cur->Parameters[0];
-    DbgPrintf("; Changed MOV 0 into a SUB v0,v0");
+    DbgPrintf("; Changed MOV 0 into a SUB v0,v0\n");
     return true;
   }
 
@@ -3406,7 +3406,7 @@ bool PSH_XBOX_SHADER::SimplifyMOV(PPSH_INTERMEDIATE_FORMAT Cur)
     // Try to simulate all factors (0.5, 1.0 and 2.0) using an output modifier :
     Cur->ScaleOutput(Factor);
 
-	DbgPrintf("; Changed MOV {const} into a SUB_factor 1-v0,-v0");
+	DbgPrintf("; Changed MOV {const} into a SUB_factor 1-v0,-v0\n");
 	return true;
   }
   return false;
@@ -3419,7 +3419,7 @@ bool PSH_XBOX_SHADER::SimplifyADD(PPSH_INTERMEDIATE_FORMAT Cur)
   {
     // Change it into a MOV (the first argument is already in-place)
     Cur->Opcode = PO_MOV;
-    DbgPrintf("; Changed ADD s0,0 into a MOV s0");
+    DbgPrintf("; Changed ADD s0,0 into a MOV s0\n3");
     return true;
   }
   return false;
@@ -3433,7 +3433,7 @@ bool PSH_XBOX_SHADER::SimplifyMAD(PPSH_INTERMEDIATE_FORMAT Cur)
     // Change it into s2 :
     Cur->Opcode = PO_MOV;
     Cur->Parameters[0] = Cur->Parameters[2];
-    DbgPrintf("; Changed MAD s0,0 into a MOV s0");
+    DbgPrintf("; Changed MAD s0,0 into a MOV s0\n");
     return true;
   }
 
@@ -3443,7 +3443,7 @@ bool PSH_XBOX_SHADER::SimplifyMAD(PPSH_INTERMEDIATE_FORMAT Cur)
     // Change it into s0+s2 :
     Cur->Opcode = PO_ADD;
     Cur->Parameters[1] = Cur->Parameters[2];
-    DbgPrintf("; Changed MAD s0,1,s2 into a ADD s0,s2");
+    DbgPrintf("; Changed MAD s0,1,s2 into a ADD s0,s2\n");
     return true;
   }
 
@@ -3454,7 +3454,7 @@ bool PSH_XBOX_SHADER::SimplifyMAD(PPSH_INTERMEDIATE_FORMAT Cur)
     Cur->Opcode = PO_SUB;
     Cur->Parameters[1] = Cur->Parameters[0];
     Cur->Parameters[0] = Cur->Parameters[2];
-    DbgPrintf("; Changed MAD s0,-1,s2 into a SUB s2,s0");
+    DbgPrintf("; Changed MAD s0,-1,s2 into a SUB s2,s0\n");
     return true;
   }
   return false;
@@ -3467,7 +3467,7 @@ bool PSH_XBOX_SHADER::SimplifySUB(PPSH_INTERMEDIATE_FORMAT Cur)
   {
     // Change it into a MOV (the first argument is already in-place)
     Cur->Opcode = PO_MOV;
-    DbgPrintf("; Changed SUB x, 0 into a MOV x");
+    DbgPrintf("; Changed SUB x, 0 into a MOV x\n");
     return true;
   }
   return false;
@@ -3481,7 +3481,7 @@ bool PSH_XBOX_SHADER::SimplifyMUL(PPSH_INTERMEDIATE_FORMAT Cur)
     // Change it into a MOV (the 0 argument will be resolve in a recursive MOV fixup) :
     Cur->Opcode = PO_MOV;
     Cur->Parameters[0].SetConstValue(0.0);
-    DbgPrintf("; Changed MUL s0,0 into a MOV 0");
+    DbgPrintf("; Changed MUL s0,0 into a MOV 0\n");
     return true;
   }
 
@@ -3491,7 +3491,7 @@ bool PSH_XBOX_SHADER::SimplifyMUL(PPSH_INTERMEDIATE_FORMAT Cur)
     // Change it into a simple MOV and scale the output instead :
     Cur->Opcode = PO_MOV;
     Cur->ScaleOutput(Cur->Parameters[1].GetConstValue());
-    DbgPrintf("; Changed MUL s0,{const} into a MOV_factor s0");
+    DbgPrintf("; Changed MUL s0,{const} into a MOV_factor s0\n");
     return true;
   }
   return false;
@@ -3506,7 +3506,7 @@ bool  PSH_XBOX_SHADER::SimplifyLRP(PPSH_INTERMEDIATE_FORMAT Cur)
   {
     // Change it into a MUL (calculating the left part : s0*s1 :
     Cur->Opcode = PO_MUL;
-    DbgPrintf("; Changed LRP s0,s1,s2 (where (1-s0)*s2=0) into a MUL s0,s1");
+    DbgPrintf("; Changed LRP s0,s1,s2 (where (1-s0)*s2=0) into a MUL s0,s1\n");
     return true;
   }
 
@@ -3517,7 +3517,7 @@ bool  PSH_XBOX_SHADER::SimplifyLRP(PPSH_INTERMEDIATE_FORMAT Cur)
     Cur->Opcode = PO_MUL;
     Cur->Parameters[0].Invert();
     Cur->Parameters[1] = Cur->Parameters[2];
-    DbgPrintf("; Changed LRP s0,s1,s2 (where s0*s1=0) into a MUL (1-s0),s2");
+    DbgPrintf("; Changed LRP s0,s1,s2 (where s0*s1=0) into a MUL (1-s0),s2\n");
     return true;
   }
 
@@ -3528,7 +3528,7 @@ bool  PSH_XBOX_SHADER::SimplifyLRP(PPSH_INTERMEDIATE_FORMAT Cur)
     Cur->Opcode = PO_MAD;
     Cur->Parameters[2] = Cur->Parameters[0];
     Cur->Parameters[2].Invert();
-    DbgPrintf("; Changed LRP s0,s1,1 into a MAD s0,s1,1-s0");
+    DbgPrintf("; Changed LRP s0,s1,1 into a MAD s0,s1,1-s0\n");
 	return true;
   }
   return false;
@@ -4035,9 +4035,9 @@ static const
 
 PPSH_RECOMPILED_SHADER RecompiledShaders_Head = nullptr;
 
-HRESULT XTL::DxbxUpdateActivePixelShader(XTL::X_D3DPIXELSHADERDEF *pPSDef, DWORD *pHandle) // NOPATCH
+HRESULT XTL::DxbxUpdateActivePixelShader() // NOPATCH
 {
-// REENABLE TODO  XTL::X_D3DPIXELSHADERDEF *pPSDef;
+  XTL::X_D3DPIXELSHADERDEF *pPSDef;
   PPSH_RECOMPILED_SHADER RecompiledPixelShader;
   DWORD ConvertedPixelShaderHandle;
   DWORD CurrentPixelShader;
@@ -4048,7 +4048,7 @@ HRESULT XTL::DxbxUpdateActivePixelShader(XTL::X_D3DPIXELSHADERDEF *pPSDef, DWORD
 
   HRESULT Result = D3D_OK;
 // TODO : Do Dxbx post-translation on these two declarations :
-bool g_EmuD3DActivePixelShader = (pPSDef != NULL);
+  bool g_EmuD3DActivePixelShader = true;// (pPSDef != NULL); // TODO : Check if Xbox_D3DDevice__m_pPixelShader is set
 
   // Our SetPixelShader patch remembered the latest set pixel shader, see if it's assigned :
   if (g_EmuD3DActivePixelShader)
@@ -4057,7 +4057,7 @@ bool g_EmuD3DActivePixelShader = (pPSDef != NULL);
     // D3D__RenderState (which contents might have been changed after the call to
     // SetPixelShader), we use the address of XTL_D3D__RenderState as the real pixel
     // shader definition :
-	pPSDef = (XTL::X_D3DPIXELSHADERDEF*)(Xbox_D3D__RenderState); // Same as XTL::EmuMappedD3DRenderState[X_D3DRS_PS_FIRST];
+	pPSDef = (XTL::X_D3DPIXELSHADERDEF*)XTL::EmuMappedD3DRenderState[XTL::X_D3DRS_PS_FIRST]; // Same as (Xbox_D3D__RenderState); 
     if (pPSDef == NULL) {
 	  // New Cxbx : Check for g_CurrentPixelShader (it's a pointer, while g_EmuD3DActivePixelShader was a value)
 	  if (g_CurrentPixelShader == nullptr)
@@ -4198,7 +4198,7 @@ bool g_EmuD3DActivePixelShader = (pPSDef != NULL);
     g_pD3DDevice8->SetRenderState(D3DRS_AMBIENT, 0xFFFFFFFF);
     */
   }
-  *pHandle = ConvertedPixelShaderHandle; // TODO : Do Dxbx post-translation on this
+//  *pHandle = ConvertedPixelShaderHandle; // TODO : Do Dxbx post-translation on this
   return Result;
 }
 
@@ -4867,7 +4867,7 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 
 		free(szNewCodeBuffer);
 	}
-	/*DbgPrintf("r1 case! ... ");
+	/*DbgPrintf("r1 case! ... \n");
 	if(bR1WAccess || bR1AWAccess || bR1RGBWAccess)
 	{
 		char szChannel[6]="\0";
@@ -6848,10 +6848,10 @@ void XTL::PrintPixelShaderDefContents( X_D3DPIXELSHADERDEF* pPSDef )
 			DWORD dwPSTexMode3 = ( pPSDef->PSTextureModes >> 15 ) & 0x1F;
 
 			DbgPshPrintf( "PSTextureModes ->\n" );
-			DbgPshPrintf( "Stage 0: %s\n", PS_TextureModes[dwPSTexMode0] );
-			DbgPshPrintf( "Stage 1: %s\n", PS_TextureModes[dwPSTexMode1] );
-			DbgPshPrintf( "Stage 2: %s\n", PS_TextureModes[dwPSTexMode2] );
-			DbgPshPrintf( "Stage 3: %s\n", PS_TextureModes[dwPSTexMode3] );
+			DbgPshPrintf( "Stage 0: %s\n", PS_TextureModesStr[dwPSTexMode0] );
+			DbgPshPrintf( "Stage 1: %s\n", PS_TextureModesStr[dwPSTexMode1] );
+			DbgPshPrintf( "Stage 2: %s\n", PS_TextureModesStr[dwPSTexMode2] );
+			DbgPshPrintf( "Stage 3: %s\n", PS_TextureModesStr[dwPSTexMode3] );
 		}
 
 		if( pPSDef->PSDotMapping )
@@ -6861,9 +6861,9 @@ void XTL::PrintPixelShaderDefContents( X_D3DPIXELSHADERDEF* pPSDef )
 			DWORD dwPSDMStage3 = ( pPSDef->PSDotMapping >> 8 ) & 0x7;
 
 			DbgPshPrintf( "PSDotMapping ->\n" );
-			DbgPshPrintf( "Stage 1: %s\n", PS_DotMapping[dwPSDMStage1] );
-			DbgPshPrintf( "Stage 2: %s\n", PS_DotMapping[dwPSDMStage2] );
-			DbgPshPrintf( "Stage 3: %s\n", PS_DotMapping[dwPSDMStage3] );
+			DbgPshPrintf( "Stage 1: %s\n", PS_DotMappingStr[dwPSDMStage1] );
+			DbgPshPrintf( "Stage 2: %s\n", PS_DotMappingStr[dwPSDMStage2] );
+			DbgPshPrintf( "Stage 3: %s\n", PS_DotMappingStr[dwPSDMStage3] );
 		}
 
 		if( pPSDef->PSCompareMode )
@@ -6874,10 +6874,10 @@ void XTL::PrintPixelShaderDefContents( X_D3DPIXELSHADERDEF* pPSDef )
 			DWORD dwPSCMStage3 = ( pPSDef->PSCompareMode >> 12 ) & 0xF;
 
 			DbgPshPrintf( "PSCompareMode ->\n" );
-			DbgPshPrintf( "Stage 0: %s\n", PS_TextureModes[dwPSCMStage0 == 0 ? 0 : 1] );
-			DbgPshPrintf( "Stage 1: %s\n", PS_TextureModes[dwPSCMStage1 == 0 ? 2 : 3] );
-			DbgPshPrintf( "Stage 2: %s\n", PS_TextureModes[dwPSCMStage2 == 0 ? 4 : 5] );
-			DbgPshPrintf( "Stage 3: %s\n", PS_TextureModes[dwPSCMStage3 == 0 ? 6 : 7] );
+			DbgPshPrintf( "Stage 0: %s\n", PS_TextureModesStr[dwPSCMStage0 == 0 ? 0 : 1] );
+			DbgPshPrintf( "Stage 1: %s\n", PS_TextureModesStr[dwPSCMStage1 == 0 ? 2 : 3] );
+			DbgPshPrintf( "Stage 2: %s\n", PS_TextureModesStr[dwPSCMStage2 == 0 ? 4 : 5] );
+			DbgPshPrintf( "Stage 3: %s\n", PS_TextureModesStr[dwPSCMStage3 == 0 ? 6 : 7] );
 		}
 
 		if( pPSDef->PSInputTexture )
@@ -6886,8 +6886,8 @@ void XTL::PrintPixelShaderDefContents( X_D3DPIXELSHADERDEF* pPSDef )
 			DWORD dwPSITStage3 = ( pPSDef->PSInputTexture >> 20 ) & 0x3;
 
 			DbgPshPrintf( "PSInputTexture ->\n" );
-			DbgPshPrintf( "Stage 2: %s\n", PS_TextureModes[dwPSITStage2] );
-			DbgPshPrintf( "Stage 3: %s\n", PS_TextureModes[dwPSITStage3] );
+			DbgPshPrintf( "Stage 2: %s\n", PS_TextureModesStr[dwPSITStage2] );
+			DbgPshPrintf( "Stage 3: %s\n", PS_TextureModesStr[dwPSITStage3] );
 		}
 
 		if( pPSDef->PSCombinerCount )
@@ -6899,9 +6899,9 @@ void XTL::PrintPixelShaderDefContents( X_D3DPIXELSHADERDEF* pPSDef )
 
 			DbgPshPrintf( "PSCombinerCount ->\n" );
 			DbgPshPrintf( "Combiners: %u\n", dwPSCCNumCombiners );
-			DbgPshPrintf( "Mux:       %s\n", PS_CombinerCountFlags[dwPSCCMux] );
-			DbgPshPrintf( "C0:        %s\n", PS_CombinerCountFlags[dwPSCCC0 == 0 ? 2 : 3] );
-			DbgPshPrintf( "C1:        %s\n", PS_CombinerCountFlags[dwPSCCC1 == 0 ? 4 : 5] );
+			DbgPshPrintf( "Mux:       %s\n", PS_CombinerCountFlagsStr[dwPSCCMux] );
+			DbgPshPrintf( "C0:        %s\n", PS_CombinerCountFlagsStr[dwPSCCC0 == 0 ? 2 : 3] );
+			DbgPshPrintf( "C1:        %s\n", PS_CombinerCountFlagsStr[dwPSCCC1 == 0 ? 4 : 5] );
 		}
 
 		/*for( int i = 0; i > 7; i++ )

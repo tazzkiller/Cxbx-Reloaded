@@ -1695,6 +1695,13 @@ void DeriveXboxD3DDeviceAddresses()
 	DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice_IndexBase (Derived)\n", XTL::Xbox_D3DDevice_IndexBase);
 }
 
+bool IsAddressAllocated(void *addr)
+{
+	MEMORY_BASIC_INFORMATION MemInfo;
+	VirtualQuery(addr, &MemInfo, sizeof(MemInfo));
+	return (MemInfo.State & MEM_COMMIT) > 0;
+}
+
 // TODO : Move to own file
 void CxbxUpdateTextureStages()
 {
@@ -1707,7 +1714,14 @@ void CxbxUpdateTextureStages()
 		if (g_FillModeOverride == 0) {
 			auto XboxPalette = XTL::GetXboxPalette(Stage);
 			DWORD *PaletteColors = (XboxPalette != NULL) ? (DWORD*)GetDataFromXboxResource(XboxPalette) : NULL;
-			pHostBaseTexture = CxbxUpdateTexture(XTL::GetXboxBaseTexture(Stage), PaletteColors);
+			XTL::X_D3DBaseTexture *XboxBaseTexture = XTL::GetXboxBaseTexture(Stage);
+			if (XboxBaseTexture != NULL) {
+				if (IsAddressAllocated(XboxBaseTexture))
+					pHostBaseTexture = CxbxUpdateTexture(XboxBaseTexture, PaletteColors);
+				else {
+					EmuWarning("CxbxUpdateTextureStages read a rogue pointer! [%d]=0x%p", Stage, XboxBaseTexture);
+				}
+			}
 		}
 
 		HRESULT hRet = g_pD3DDevice8->SetTexture(Stage, pHostBaseTexture);
@@ -1763,6 +1777,7 @@ void CxbxUpdateNativeD3DResources()
 	DxbxUpdateActiveRenderTarget();
 	*/
 	CxbxUpdateTextureStages();
+//	XTL::DxbxUpdateActivePixelShader();
 	XTL::DxbxUpdateDeferredStates(); // BeginPush sample shows us that this must come *after* texture update!
 	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
 	// TODO : Transfer matrices (projection/model/world view) from Xbox to Host using GetTransform or D3D_Device member pointers
@@ -2466,7 +2481,7 @@ void CxbxClear
 
 		if (Flags & (XTL::X_D3DCLEAR_ZBUFFER | XTL::X_D3DCLEAR_ZBUFFER)) {
 			// Only when Z/Depth flags are given, check if these components are present :
-			UpdateDepthStencilFlags(g_pActiveXboxDepthStencil);
+			UpdateDepthStencilFlags(g_pActiveXboxDepthStencil); // Update g_bHasDepthBits and g_bHasStencilBits
 
 			// Do not needlessly clear Z Buffer
 			if (Flags & XTL::X_D3DCLEAR_ZBUFFER) {
@@ -5981,13 +5996,6 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
     return result;
 }
 
-bool IsAddressAllocated(void *addr)
-{
-	MEMORY_BASIC_INFORMATION MemInfo;
-	VirtualQuery(addr, &MemInfo, sizeof(MemInfo));
-	return (MemInfo.State & MEM_COMMIT) > 0;
-}
-
 // TODO : Move to own file
 XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 (
@@ -6022,9 +6030,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (pPixelContainer == g_pActiveXboxDepthStencil)
 		if (g_pActiveHostDepthStencil != nullptr)
 			return (IDirect3DBaseTexture8 *)g_pActiveHostDepthStencil;
-
-	if (!IsAddressAllocated(pPixelContainer))
-		return nullptr;
 
 	X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pPixelContainer);
 	if (X_Format == X_D3DFMT_P8)

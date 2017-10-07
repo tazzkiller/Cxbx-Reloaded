@@ -87,12 +87,28 @@ extern uint offsetof_Xbox_D3DDevice_m_Palettes;
 extern X_D3DPalette **Xbox_D3DDevice_m_Palettes;
 
 #if 0 // unused
-inline void SetXboxBaseTexture(UINT uiStage, X_D3DBaseTexture *pTexture) { Xbox_D3DDevice_m_Textures[uiStage] = pTexture; }
+inline void SetXboxBaseTexture(UINT uiStage, X_D3DBaseTexture *pTexture)
+{
+	if(Xbox_D3DDevice_m_Textures != NULL)
+		Xbox_D3DDevice_m_Textures[uiStage] = pTexture;
+}
 #endif
 
-inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage) { return (Xbox_D3DDevice_m_Textures == NULL) ? NULL : Xbox_D3DDevice_m_Textures[uiStage]; }
+inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage)
+{
+	if (Xbox_D3DDevice_m_Textures != NULL)
+		return Xbox_D3DDevice_m_Textures[uiStage];
 
-inline X_D3DPalette *GetXboxPalette(UINT uiStage) { return (Xbox_D3DDevice_m_Palettes == NULL) ? NULL : Xbox_D3DDevice_m_Palettes[uiStage]; }
+	return NULL;
+}
+
+inline X_D3DPalette *GetXboxPalette(UINT uiStage)
+{
+	if(Xbox_D3DDevice_m_Palettes != NULL) 
+		return Xbox_D3DDevice_m_Palettes[uiStage];
+
+	return NULL;
+}
 
 extern void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource);
 

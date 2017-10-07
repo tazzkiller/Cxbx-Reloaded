@@ -238,7 +238,7 @@ HRESULT EmuRecompilePshDef( X_D3DPIXELSHADERDEF* pPSDef, LPD3DXBUFFER* ppRecompi
 HRESULT CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* ppRecompiled);
 
 // PatrickvL's Dxbx pixel shader translation
-HRESULT DxbxUpdateActivePixelShader(X_D3DPIXELSHADERDEF *pPSDef, DWORD *pHandle); // NOPATCH
+HRESULT DxbxUpdateActivePixelShader(); // NOPATCH
 
 // check
 bool IsValidPixelShader(void);
