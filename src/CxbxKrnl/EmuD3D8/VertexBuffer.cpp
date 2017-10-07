@@ -47,7 +47,7 @@
 
 #define HASH_SEED 0
 
-#define VERTEX_BUFFER_CACHE_SIZE 256
+#define VERTEX_BUFFER_CACHE_SIZE 0 // TODO : Restore to 256 once 'too big' drawing in X-Marbles and Turok menu's is fixed
 #define MAX_STREAM_NOT_USED_TIME (2 * CLOCKS_PER_SEC) // TODO: Trim the not used time
 
 // Inline vertex buffer emulation
@@ -143,7 +143,7 @@ void XTL::CxbxVertexBufferConverter::CacheStream
 )
 {
     // Check if the cache is full, if so, throw away the least used stream
-    if (g_PatchedStreamsCache.get_count() > VERTEX_BUFFER_CACHE_SIZE) {
+    while (g_PatchedStreamsCache.get_count() > VERTEX_BUFFER_CACHE_SIZE) {
         void *pKey = NULL;
         uint32 uiMinHitCount = 0xFFFFFFFF;
 		clock_t ctExpiryTime = (clock() - MAX_STREAM_NOT_USED_TIME); // Was addition, seems wrong
