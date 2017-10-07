@@ -98,13 +98,15 @@ void ResourceTracker::insert(void *pKey, void *pResource)
 	this->Unlock();
 }
 
-void ResourceTracker::remove(void *pKey)
+void *ResourceTracker::remove(void *pKey)
 {
+	void *res = nullptr;
     RTNode *pre = nullptr;
     this->Lock();
     RTNode *cur = m_head;
     while(cur != nullptr) {
         if(cur->pKey == pKey) {
+			res = cur->pResource;
             if(pre != nullptr) {
                 pre->pNext = cur->pNext;
             } else {
@@ -124,6 +126,7 @@ void ResourceTracker::remove(void *pKey)
     }
 
     this->Unlock();
+	return res;
 }
 
 bool ResourceTracker::exists(void *pKey)
