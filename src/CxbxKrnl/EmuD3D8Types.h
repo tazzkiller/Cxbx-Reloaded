@@ -1494,7 +1494,7 @@ typedef struct _CxbxPixelShader
 	DWORD dwStatus;
 	X_D3DPIXELSHADERDEF	PSDef;
 
-	DWORD dwStageMap[4]; // = X_D3DTSS_STAGECOUNT
+	DWORD dwStageMap[X_D3DTSS_STAGECOUNT]; // = 4
 
 }
 CxbxPixelShader;

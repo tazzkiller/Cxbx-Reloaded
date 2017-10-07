@@ -241,7 +241,8 @@ DWORD XTL::Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD
 {
 //	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
-	TransferredRenderStateValues[XboxRenderState] = XboxValue;
+	if (XboxRenderState <= X_D3DRS_LAST)
+		TransferredRenderStateValues[XboxRenderState] = XboxValue;
 
 	const RenderStateInfo &Info = GetDxbxRenderStateInfo(XboxRenderState);
 
@@ -343,7 +344,7 @@ void DxbxTransferRenderState(const X_D3DRENDERSTATETYPE XboxRenderState)
 		return;
 
 	// Read the current Xbox value, and set it locally :
-	DWORD XboxValue = CxbxGetRenderState(XboxRenderState);
+	DWORD XboxValue = GetXboxRenderState(XboxRenderState);
 	// Prevent setting unchanged values :
 	if (TransferAll || (TransferredRenderStateValues[XboxRenderState] != XboxValue))
 		Dxbx_SetRenderState(XboxRenderState, XboxValue);
@@ -354,6 +355,8 @@ DWORD TransferredTextureStageStateValues[X_D3DTSS_STAGECOUNT * X_D3DTSS_STAGESIZ
 // TODO : Move this
 DWORD Cxbx_SetTextureStageState(DWORD Stage, X_D3DTEXTURESTAGESTATETYPE State, DWORD XboxValue)
 {
+	// TODO : assert(Stage < X_D3DTSS_STAGECOUNT);
+	// TODO : assert(State < X_D3DTSS_STAGESIZE);
 	TransferredTextureStageStateValues[(Stage * X_D3DTSS_STAGESIZE) + State] = XboxValue;
 
 	D3DTEXTURESTAGESTATETYPE PCState = EmuXB2PC_D3DTSS(State);
@@ -385,7 +388,7 @@ void DxbxTransferTextureStageState(int Stage, X_D3DTEXTURESTAGESTATETYPE State)
 		// TODO -oDxbx : Emulate these Xbox extensions somehow
 		return;
 
-	DWORD XboxValue = Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(State)];
+	DWORD XboxValue = GetXboxTextureStageState(Stage, State);
 	if (XboxValue == X_D3DTSS_UNKNOWN)
 		return;
 
@@ -434,7 +437,7 @@ void DxbxUpdateDeferredStates()
 	if (Xbox_D3D_TextureState == nullptr)
 		return;
 
-	if (CxbxGetRenderState(X_D3DRS_POINTSPRITEENABLE) == (DWORD)TRUE) // Dxbx note : DWord cast to prevent warning
+	if (GetXboxRenderState(X_D3DRS_POINTSPRITEENABLE) == (DWORD)TRUE) // Dxbx note : DWord cast to prevent warning
 	{
 #if 1	// TODO : Why must we copy the texure from stage 3 to 0 for X_D3DRS_POINTSPRITEENABLE?
 		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = nullptr;
@@ -520,38 +523,37 @@ void InitD3DDeferredStates()
 #if 1 // Prevent CxbxKrnlCleanup calls from EmuXB2PC_* functions, by resetting cases without a 0 value
 
 	// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DBLENDOP
-	*EmuMappedD3DRenderState[X_D3DRS_BLENDOP] = X_D3DRS_UNKNOWN;
+	SetXboxRenderState(X_D3DRS_BLENDOP, X_D3DRS_UNKNOWN);
 
 	// Set RenderStates such that the correspond with default values (tested using apitrace on gamepad)
-	*EmuMappedD3DRenderState[X_D3DRS_COLORVERTEX] = 1;
-	*EmuMappedD3DRenderState[X_D3DRS_DIFFUSEMATERIALSOURCE] = 1;
-	*EmuMappedD3DRenderState[X_D3DRS_FOGDENSITY] = 1;
-	*EmuMappedD3DRenderState[X_D3DRS_FOGEND] = 1;
-	*EmuMappedD3DRenderState[X_D3DRS_LOCALVIEWER] = 1;
-	*EmuMappedD3DRenderState[X_D3DRS_POINTSCALE_A] = 1;
-	*EmuMappedD3DRenderState[X_D3DRS_POINTSIZE] = 1;
-	*EmuMappedD3DRenderState[X_D3DRS_POINTSIZE_MAX] = 256;
-	*EmuMappedD3DRenderState[X_D3DRS_SPECULARMATERIALSOURCE] = 2;
+	SetXboxRenderState(X_D3DRS_COLORVERTEX, 1);
+	SetXboxRenderState(X_D3DRS_DIFFUSEMATERIALSOURCE, 1);
+	SetXboxRenderState(X_D3DRS_FOGDENSITY, 1);
+	SetXboxRenderState(X_D3DRS_FOGEND, 1);
+	SetXboxRenderState(X_D3DRS_LOCALVIEWER, 1);
+	SetXboxRenderState(X_D3DRS_POINTSCALE_A, 1);
+	SetXboxRenderState(X_D3DRS_POINTSIZE, 1);
+	SetXboxRenderState(X_D3DRS_POINTSIZE_MAX, 256);
+	SetXboxRenderState(X_D3DRS_SPECULARMATERIALSOURCE, 2);
 
 	for (int s = 0; s < X_D3DTSS_STAGECOUNT; s++) {
 		// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DTEXTUREADDRESS
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSU)] = X_D3DTSS_UNKNOWN;
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSV)] = X_D3DTSS_UNKNOWN;
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ADDRESSW)] = X_D3DTSS_UNKNOWN;
+		SetXboxTextureStageState(s, X_D3DTSS_ADDRESSU, X_D3DTSS_UNKNOWN);
+		SetXboxTextureStageState(s, X_D3DTSS_ADDRESSV, X_D3DTSS_UNKNOWN);
+		SetXboxTextureStageState(s, X_D3DTSS_ADDRESSW, X_D3DTSS_UNKNOWN);
 		// This reset prevents CxbxKrnlCleanup calls from EmuXB2PC_D3DTEXTUREOP
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_COLOROP)] = X_D3DTSS_UNKNOWN;
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ALPHAOP)] = X_D3DTSS_UNKNOWN;
+		SetXboxTextureStageState(s, X_D3DTSS_COLOROP, X_D3DTSS_UNKNOWN);
+		SetXboxTextureStageState(s, X_D3DTSS_ALPHAOP, X_D3DTSS_UNKNOWN);
 
 		// Set TextureStageStates such that the correspond with default values (tested using apitrace on gamepad)
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_ALPHAARG2)] = 0;
-		Xbox_D3D_TextureState[(s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(X_D3DTSS_COLORARG2)] = 0;
+		SetXboxTextureStageState(s, X_D3DTSS_ALPHAARG2, 0);
+		SetXboxTextureStageState(s, X_D3DTSS_COLORARG2, 0);
 
 #if 0
 		// Fake all transfers, perhaps that helps X-Marbles?
 		for (int v = 0; v < X_D3DTSS_STAGESIZE; v++) {
 			int HostIndex = (s * X_D3DTSS_STAGESIZE) + v;
-			int XboxIndex = (s * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(v);
-			DWORD XboxValue = Xbox_D3D_TextureState[XboxIndex];
+			DWORD XboxValue = GetXboxTextureStageState(s, v);
 			printf("Initial Xbox_D3D_TextureState[%d][%d/*=%s*/] = 0x%.08X \n", s, v,
 				DxbxTextureStageStateInfo[v].S, XboxValue);
 
@@ -562,7 +564,7 @@ void InitD3DDeferredStates()
 
 #if 0
 	for (int v = X_D3DRS_FIRST; v <= X_D3DRS_LAST; v++) {
-		DWORD XboxValue = CxbxGetRenderState(v);
+		DWORD XboxValue = GetXboxRenderState(v);
 		printf("Initial Xbox_D3D_RenderState[%d/*=%s*/] = 0x%.08X \n", v,
 			GetDxbxRenderStateInfo(v).S, XboxValue);
 		TransferredRenderStateValues[v] = XboxValue;

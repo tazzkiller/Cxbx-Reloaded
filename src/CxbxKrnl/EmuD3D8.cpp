@@ -207,7 +207,7 @@ XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 // Xbox D3DDevice related variables
 xbaddr XTL::Xbox_pD3DDevice = NULL; // The address where an Xbe will put it's D3DDevice pointer
 DWORD *XTL::Xbox_D3DDevice = NULL; // Once known, the actual D3DDevice pointer (see DeriveXboxD3DDeviceAddresses)
-DWORD *XTL::Xbox_D3Device_IndexBase = NULL;
+DWORD *XTL::Xbox_D3DDevice_IndexBase = NULL;
 uint XTL::offsetof_Xbox_D3DDevice_m_Textures = 0;
 XTL::X_D3DBaseTexture **XTL::Xbox_D3DDevice_m_Textures = NULL; // Can only be set once Xbox CreateDevice has ran
 uint XTL::offsetof_Xbox_D3DDevice_m_Palettes = 0;
@@ -1691,8 +1691,8 @@ void DeriveXboxD3DDeviceAddresses()
 
 	// Determine the active vertex index
 	// This reads from g_pDevice->m_IndexBase in Xbox D3D
-	XTL::Xbox_D3Device_IndexBase = &(XTL::Xbox_D3DDevice[7]);
-	DbgPrintf("INIT: 0x%p -> Xbox_D3Device_IndexBase (Derived)\n", XTL::Xbox_D3DDevice_IndexBase);
+	XTL::Xbox_D3DDevice_IndexBase = &(XTL::Xbox_D3DDevice[7]);
+	DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice_IndexBase (Derived)\n", XTL::Xbox_D3DDevice_IndexBase);
 }
 
 // TODO : Move to own file
@@ -1792,7 +1792,7 @@ void CxbxInternalSetRenderState
 	}
 
 	// Set this value into the RenderState structure too (so other code will read the new current value) :
-	*(XTL::EmuMappedD3DRenderState[XboxRenderState]) = XboxValue;
+	SetXboxRenderState(XboxRenderState, XboxValue);
 	// TODO : Update the D3D DirtyFlags too?
 
 	// Don't set deferred render states at this moment (we'll transfer them at drawing time)
@@ -1853,7 +1853,7 @@ void CxbxInternalSetTextureStageState
 	}
 
 	// Set this value into the TextureState structure too (so other code will read the new current value)
-	XTL::Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + XTL::DxbxFromNewVersion_D3DTSS(XboxTextureStageState)] = XboxValue;
+	XTL::SetXboxTextureStageState(Stage, XboxTextureStageState, XboxValue);
 	// TODO : Update the D3D DirtyFlags too?
 
 	// Transfer over the texture stage state to PC :
@@ -3139,10 +3139,10 @@ void CxbxUpdateActiveIndexBuffer
 
 	UINT uiIndexBase = 0;
 
-	if (*XTL::Xbox_D3Device_IndexBase > 0) {
-		// TODO : Research if (or when) using *Xbox_D3Device_IndexBase is needed
-		// uiIndexBase = *Xbox_D3Device_IndexBase;
-		LOG_TEST_CASE("*Xbox_D3Device_IndexBase > 0");
+	if (*XTL::Xbox_D3DDevice_IndexBase > 0) {
+		// TODO : Research if (or when) using *Xbox_D3DDevice_IndexBase is needed
+		// uiIndexBase = *Xbox_D3DDevice_IndexBase;
+		LOG_TEST_CASE("*Xbox_D3DDevice_IndexBase > 0");
 	}
 
 	// Activate the new native index buffer :
@@ -6109,7 +6109,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	case X_D3DFMT_UYVY:
 	case X_D3DFMT_YUY2:
 	{
-		if (CxbxGetRenderState(X_D3DRS_YUVENABLE) == (DWORD)TRUE)
+		if (GetXboxRenderState(X_D3DRS_YUVENABLE) == (DWORD)TRUE)
 		{
 #if 0
 			if (X_Format == X_D3DFMT_YUY2)

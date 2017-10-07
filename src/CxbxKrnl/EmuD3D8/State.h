@@ -43,11 +43,6 @@
 // XDK version independent renderstate table, containing pointers to the original locations.
 extern DWORD *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED + 1]; // 1 extra for the unsupported value itself
 
-inline DWORD CxbxGetRenderState(XTL::X_D3DRENDERSTATETYPE XboxRenderState)
-{
-	return *(XTL::EmuMappedD3DRenderState[XboxRenderState]);
-}
-
 extern DWORD DxbxMapMostRecentToActiveVersion[X_D3DRS_LAST + 1];
 
 struct X_Stream
@@ -84,5 +79,31 @@ extern X_D3DRENDERSTATETYPE DxbxVersionAdjust_D3DRS(const DWORD XboxRenderState_
 extern DWORD Dxbx_SetRenderState(const X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue);
 
 extern DWORD Cxbx_SetTextureStageState(DWORD Sampler, X_D3DTEXTURESTAGESTATETYPE Type, DWORD XboxValue);
+
+inline void SetXboxRenderState(XTL::X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue)
+{
+	// TODO : assert(XboxRenderState <= X_D3DRS_LAST);
+	*EmuMappedD3DRenderState[XboxRenderState] = XboxValue;
+}
+
+inline DWORD GetXboxRenderState(XTL::X_D3DRENDERSTATETYPE XboxRenderState)
+{
+	// TODO : assert(XboxRenderState <= X_D3DRS_LAST);
+	return *(XTL::EmuMappedD3DRenderState[XboxRenderState]);
+}
+
+inline void SetXboxTextureStageState(int Stage, DWORD XboxTextureStageState, DWORD XboxValue)
+{
+	// TODO : assert(Stage < X_D3DTSS_STAGECOUNT);
+	// TODO : assert(XboxTextureStageState <= X_D3DTSS_LAST);
+	Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(XboxTextureStageState)] = XboxValue;
+}
+
+inline DWORD GetXboxTextureStageState(int Stage, DWORD XboxTextureStageState)
+{
+	// TODO : assert(Stage < X_D3DTSS_STAGECOUNT);
+	// TODO : assert(XboxTextureStageState <= X_D3DTSS_LAST);
+	return Xbox_D3D_TextureState[(Stage * X_D3DTSS_STAGESIZE) + DxbxFromNewVersion_D3DTSS(XboxTextureStageState)];
+}
 
 #endif

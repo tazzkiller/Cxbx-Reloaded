@@ -78,7 +78,7 @@ extern xbaddr Xbox_pD3DDevice; // The address where an Xbe will put it's D3DDevi
 
 extern DWORD *Xbox_D3DDevice; // Once known, the actual D3DDevice pointer
 
-extern DWORD *Xbox_D3Device_IndexBase;
+extern DWORD *Xbox_D3DDevice_IndexBase;
 
 extern uint offsetof_Xbox_D3DDevice_m_Textures;
 extern X_D3DBaseTexture **Xbox_D3DDevice_m_Textures;
