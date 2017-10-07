@@ -1661,27 +1661,38 @@ uint8 *XTL::ConvertD3DTextureToARGB(
 void DeriveXboxD3DDeviceAddresses()
 {
 	// Read the Xbox g_pDevice pointer into our D3D Device object 
-	XTL::Xbox_D3DDevice = *(DWORD **)XTL::Xbox_pD3DDevice;
-	if (XTL::Xbox_D3DDevice == NULL) {
+	DWORD *Derived_Xbox_D3DDevice = *(DWORD **)XTL::Xbox_pD3DDevice;
+	if (Derived_Xbox_D3DDevice == NULL) {
 		// As long as it isn't set, guess g_Device resides right next to g_pDevice :
-		XTL::Xbox_D3DDevice = (DWORD*)(XTL::Xbox_pD3DDevice + sizeof(void*));
+		Derived_Xbox_D3DDevice = (DWORD*)(XTL::Xbox_pD3DDevice + sizeof(void*));
 	}
 
+	if (XTL::Xbox_D3DDevice == Derived_Xbox_D3DDevice)
+		return;
+
+	XTL::Xbox_D3DDevice = Derived_Xbox_D3DDevice;
+	DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice (Derived)\n", XTL::Xbox_D3DDevice);
+
 	// Derive the address where active texture pointers are stored
-	if (XTL::offsetof_Xbox_D3DDevice_m_Textures > 0)
+	if (XTL::offsetof_Xbox_D3DDevice_m_Textures > 0) {
 		XTL::Xbox_D3DDevice_m_Textures = (XTL::X_D3DBaseTexture **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Textures);
+		DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice_m_Textures (Derived)\n", XTL::Xbox_D3DDevice_m_Textures);
+	}
 	else
 		XTL::Xbox_D3DDevice_m_Textures = NULL;
 
 	// Derive the address where active palette pointers are stored
-	if (XTL::offsetof_Xbox_D3DDevice_m_Palettes > 0)
+	if (XTL::offsetof_Xbox_D3DDevice_m_Palettes > 0) {
 		XTL::Xbox_D3DDevice_m_Palettes = (XTL::X_D3DPalette **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Palettes);
+		DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice_m_Palettes (Derived)\n", XTL::Xbox_D3DDevice_m_Palettes);
+	}
 	else
 		XTL::Xbox_D3DDevice_m_Palettes = NULL;
 
-	// Determine active the vertex index
+	// Determine the active vertex index
 	// This reads from g_pDevice->m_IndexBase in Xbox D3D
 	XTL::Xbox_D3Device_IndexBase = &(XTL::Xbox_D3DDevice[7]);
+	DbgPrintf("INIT: 0x%p -> Xbox_D3Device_IndexBase (Derived)\n", XTL::Xbox_D3DDevice_IndexBase);
 }
 
 // TODO : Move to own file
