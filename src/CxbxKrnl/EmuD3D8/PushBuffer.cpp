@@ -454,7 +454,7 @@ extern void XTL::EmuExecutePushBufferRaw
     }
 }
 
-char *NV2AMethodToString(DWORD dwMethod)
+const char *NV2AMethodToString(DWORD dwMethod)
 {
 	using namespace XTL; // for NV2A symbols
 
@@ -532,6 +532,7 @@ char *NV2AMethodToString(DWORD dwMethod)
 		return "UNLABLED";
 	}
 }
+
 #ifdef _DEBUG_TRACK_PB
 void DbgDumpMesh(XTL::INDEX16 *pIndexData, DWORD dwCount)
 {

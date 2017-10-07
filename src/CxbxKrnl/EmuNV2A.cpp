@@ -81,7 +81,7 @@ namespace xboxkrnl
 #include <cassert>
 //#include <gl\glut.h>
 
-extern char *NV2AMethodToString(DWORD dwMethod); // implemented in PushBuffer.cpp
+extern const char *NV2AMethodToString(DWORD dwMethod); // implemented in PushBuffer.cpp
 
 // Public Domain ffs Implementation
 // See: http://snipplr.com/view/22147/stringsh-implementation/
@@ -1055,7 +1055,7 @@ static void *nv_dma_map(xbaddr dma_obj_address, xbaddr *len)
 	DMAObject dma = nv_dma_load(dma_obj_address);
 
 	/* TODO: Handle targets and classes properly */
-	printf("dma_map %x, %x, %x %x"  "\n",
+	printf("dma_map %x, %x, %x %x\n",
 		dma.dma_class, dma.dma_target, dma.address, dma.limit);
 
 	dma.address &= 0x07FFFFFF;
@@ -1294,13 +1294,15 @@ static void pgraph_method_log(unsigned int subchannel,	unsigned int graphics_cla
 	static unsigned int count = 0;
 
 	if (last == 0x1800 && method != last) {
-		printf("pgraph method (%d) 0x%08X * %d", subchannel, last, count);
+		const char* method_name = NV2AMethodToString(last); // = 'NV2A_VB_ELEMENT_U16'
+		printf("pgraph method (%d) 0x%08X %s * %d\n", subchannel, last, method_name, count);
 	}
 	if (method != 0x1800) {
-		char* method_name = NV2AMethodToString(method); // Was const NULL;
+		const char* method_name = NULL;
 		unsigned int nmethod = 0;
 		switch (graphics_class) {
 		case NV_KELVIN_PRIMITIVE:
+			method_name = NV2AMethodToString(method);
 			nmethod = method | (0x5c << 16);
 			break;
 		case NV_CONTEXT_SURFACES_2D:
@@ -1313,15 +1315,15 @@ static void pgraph_method_log(unsigned int subchannel,	unsigned int graphics_cla
 		if (nmethod != 0 && nmethod < ARRAY_SIZE(nv2a_method_names)) {
 			method_name = nv2a_method_names[nmethod];
 		}
+		*/
 		if (method_name) {
-			printf("pgraph method (%d): %s (0x%x)\n",
-				subchannel, method_name, parameter);
+			printf("pgraph method (%d): 0x%04x %s (0x%x)\n",
+				subchannel, method, method_name, parameter);
 		}
 		else {
-		*/
 			printf("pgraph method (%d): 0x%x -> 0x%04x (0x%x)\n",
 				subchannel, graphics_class, method, parameter);
-		//}
+		}
 
 	}
 	if (method == last) { count++; }
@@ -1509,7 +1511,7 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 			context_surfaces_2d->dest_offset = parameter & 0x07FFFFFF;
 			break;
 		default:
-			EmuWarning("EmuNV2A: Unknown NV_CONTEXT_SURFACES_2D Method: 0x%08X\n", method);
+			EmuWarning("Unhandled NV_CONTEXT_SURFACES_2D Method: 0x%08X", method);
 		}
 	
 		break; 
@@ -1538,7 +1540,7 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 			/* I guess this kicks it off? */
 			if (image_blit->operation == NV09F_SET_OPERATION_SRCCOPY) {
 
-				printf("NV09F_SET_OPERATION_SRCCOPY");
+				printf("NV09F_SET_OPERATION_SRCCOPY\n");
 
 				GraphicsObject *context_surfaces_obj = lookup_graphics_object(image_blit->context_surfaces);
 				assert(context_surfaces_obj);
@@ -1558,7 +1560,7 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 					bytes_per_pixel = 4;
 					break;
 				default:
-					printf("Unknown blit surface format: 0x%x\n", context_surfaces->color_format);
+					printf("Unhandled blit surface format: 0x%x\n", context_surfaces->color_format);
 					assert(false);
 					break;
 				}
@@ -1596,7 +1598,7 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 
 			break;
 		default:
-			EmuWarning("EmuNV2A: Unknown NV_IMAGE_BLIT Method: 0x%08X\n", method);
+			EmuWarning("Unhandled NV_IMAGE_BLIT Method: 0x%08X", method);
 		}
 		break;
 	}
@@ -1868,7 +1870,7 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 			case NV097_SET_BLEND_FUNC_SFACTOR_V_ONE_MINUS_CONSTANT_ALPHA:
 				factor = NV_PGRAPH_BLEND_SFACTOR_ONE_MINUS_CONSTANT_ALPHA; break;
 			default:
-				fprintf(stderr, "Unknown blend source factor: 0x%x\n", parameter);
+				fprintf(stderr, "Unhandled blend source factor: 0x%x\n", parameter);
 				assert(false);
 				break;
 			}
@@ -1911,7 +1913,7 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 			case NV097_SET_BLEND_FUNC_DFACTOR_V_ONE_MINUS_CONSTANT_ALPHA:
 				factor = NV_PGRAPH_BLEND_DFACTOR_ONE_MINUS_CONSTANT_ALPHA; break;
 			default:
-				fprintf(stderr, "Unknown blend destination factor: 0x%x\n", parameter);
+				fprintf(stderr, "Unhandled blend destination factor: 0x%x\n", parameter);
 				assert(false);
 				break;
 			}
@@ -2058,7 +2060,7 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 			case NV097_SET_FRONT_FACE_V_CCW:
 				ccw = true; break;
 			default:
-				fprintf(stderr, "Unknown front face: 0x%x\n", parameter);
+				fprintf(stderr, "Unhandled front face: 0x%x\n", parameter);
 				assert(false);
 				break;
 			}
@@ -2285,13 +2287,13 @@ static void pgraph_method(unsigned int subchannel, unsigned int method, uint32_t
 				break;
 			}
 
-			EmuWarning("EmuNV2A: Unknown NV_KELVIN_PRIMITIVE Method: 0x%08X %s\n", method, NV2AMethodToString(method));
+			EmuWarning("Unhandled NV_KELVIN_PRIMITIVE Method: 0x%08X %s", method, NV2AMethodToString(method));
 		}
 		break;
 	}
 
 	default:
-		EmuWarning("EmuNV2A: Unknown Graphics Class/Method 0x%08X/0x%08X\n", object->graphics_class, method);
+		EmuWarning("Unhandled Graphics Class/Method 0x%08X/0x%08X", object->graphics_class, method);
 		break;
 	}
 }
@@ -3913,7 +3915,7 @@ void CxbxReserveNV2AMemory()
 		MEM_RESERVE, // Don't allocate actual physical storage in memory
 		PAGE_NOACCESS); // Any access must result in an access violation exception (handled in EmuException/EmuX86_DecodeException)
 	if (memory == NULL) {
-		EmuWarning("EmuNV2A_Init: Couldn't reserve NV2A memory, continuing assuming we'll receive (and handle) access violation exceptions anyway...");
+		EmuWarning("Couldn't reserve NV2A memory, continuing assuming we'll receive (and handle) access violation exceptions anyway...");
 		return;
 	}
 
@@ -3928,7 +3930,7 @@ void CxbxReserveNV2AMemory()
 		MEM_COMMIT, // No MEM_RESERVE |
 		PAGE_READWRITE);
 	if (memory == NULL) {
-		EmuWarning("EmuNV2A_Init: Couldn't allocate NV2A PRAMIN memory");
+		EmuWarning("Couldn't allocate NV2A PRAMIN memory");
 		return;
 	}
 
