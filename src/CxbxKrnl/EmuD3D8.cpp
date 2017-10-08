@@ -79,9 +79,9 @@ XTL::LPDIRECTDRAWSURFACE7           g_pDDSPrimary7 = nullptr; // DirectDraw7 Pri
 XTL::LPDIRECTDRAWSURFACE7           g_pDDSOverlay7 = nullptr; // DirectDraw7 Overlay Surface
 XTL::LPDIRECTDRAWCLIPPER            g_pDDClipper   = nullptr; // DirectDraw7 Clipper
 DWORD                               g_CurrentVertexShader = 0;
-DWORD								g_dwCurrentPixelShader = 0;
-XTL::CxbxPixelShader               *g_CurrentPixelShader = nullptr;
-BOOL                                g_bFakePixelShaderLoaded = FALSE;
+//DWORD								g_dwCurrentPixelShader = 0;
+//XTL::CxbxPixelShader               *g_CurrentPixelShader = nullptr;
+//BOOL                                g_bFakePixelShaderLoaded = FALSE;
 BOOL                                g_bIsFauxFullscreen = FALSE;
 BOOL								g_bHackUpdateSoftwareOverlay = FALSE;
 
@@ -231,9 +231,9 @@ void CxbxClearGlobals()
 	g_pDDSOverlay7 = nullptr;
 	g_pDDClipper = nullptr;
 	g_CurrentVertexShader = 0;
-	g_dwCurrentPixelShader = 0;
-	g_CurrentPixelShader = nullptr;
-	g_bFakePixelShaderLoaded = FALSE;
+	//g_dwCurrentPixelShader = 0;
+	//g_CurrentPixelShader = nullptr;
+	//g_bFakePixelShaderLoaded = FALSE;
 	g_bIsFauxFullscreen = FALSE;
 	g_bHackUpdateSoftwareOverlay = FALSE;
 
@@ -4395,6 +4395,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
     RETURN(hRet);
 }
 
+#if 0 // patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderConstant)
 (
     DWORD       Register,
@@ -4438,6 +4439,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderConstant)
         hRet = D3D_OK;
     }
 }
+#endif
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderConstant)
 (
@@ -4530,6 +4532,7 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetVertexShaderConstantNotInline)
 	EMUPATCH(D3DDevice_SetVertexShaderConstant)(Register, pConstantData, ConstantCount / 4);
 }
 
+#if 0 // patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_DeletePixelShader)
 (
     DWORD          Handle
@@ -4562,7 +4565,9 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DeletePixelShader)
 		g_MemoryManager.Free(pPixelShader);
 	}*/
 }
+#endif
 
+#if 0 // patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePixelShader)
 (
     X_D3DPIXELSHADERDEF    *pPSDef,
@@ -4661,7 +4666,9 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePixelShader)
 
     return hRet;
 }
+#endif
 
+#if 0 // patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShader)
 (
     DWORD           Handle
@@ -4728,6 +4735,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShader)
         hRet = D3D_OK;
     }
 }
+#endif
 
 #if 0 // Patch disabled
 XTL::X_D3DResource * WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture2)
@@ -9941,6 +9949,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetScreenSpaceOffset)
     EmuWarning("EmuD3DDevice_SetScreenSpaceOffset ignored");
 }
 
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderProgram)
 (
 	X_D3DPIXELSHADERDEF* pPSDef
@@ -9974,6 +9983,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderProgram)
 	//hRet = EMUPATCH(D3DDevice_SetPixelShader)( dwHandle );
 	//
 }
+#endif
 
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateStateBlock)
 (
@@ -10681,6 +10691,7 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DCubeTexture_GetCubeMapSurface2)
 }
 #endif
 
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetPixelShader)
 (
 	DWORD  Name,
@@ -10697,6 +10708,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetPixelShader)
 	// TODO: This implementation is very wrong, but better than nothing.
 	*pHandle = g_dwCurrentPixelShader;
 }
+#endif
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface)
 (
