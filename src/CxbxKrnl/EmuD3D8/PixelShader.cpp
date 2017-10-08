@@ -1161,25 +1161,25 @@ float PSH_IMD_ARGUMENT::GetConstValue()
   float Result = Multiplier;
 
   // y = 1-x     -> 0..1 >    1..0
-  if ((Modifiers & ARGMOD_INVERT) > 0)    Result = 1.0f-Result;
+  if ((Modifiers & (1 << ARGMOD_INVERT)) > 0)    Result = 1.0f-Result;
 
   // y = -x      -> 0..1 >    0..-1
-  if ((Modifiers & ARGMOD_NEGATE) > 0)    Result = -Result;
+  if ((Modifiers & (1 << ARGMOD_NEGATE)) > 0)    Result = -Result;
 
   // y =  x-0.5  -> 0..1 > -0.5..0.5
-  if ((Modifiers & ARGMOD_BIAS) > 0)      Result = Result-0.5f;
+  if ((Modifiers & (1 << ARGMOD_BIAS)) > 0)      Result = Result-0.5f;
 
   // y =  x*2    -> 0..1 >    0..2
-  if ((Modifiers & ARGMOD_SCALE_X2) > 0)  Result = Result*2.0f;
+  if ((Modifiers & (1 << ARGMOD_SCALE_X2)) > 0)  Result = Result*2.0f;
 
   // y = (x*2)-1 -> 0..1 >   -1..1
-  if ((Modifiers & ARGMOD_SCALE_BX2) > 0) Result = (Result*2.0f)-1.0f;
+  if ((Modifiers & (1 << ARGMOD_SCALE_BX2)) > 0) Result = (Result*2.0f)-1.0f;
 
   // y =  x*4    -> 0..1 >    0..4
-  if ((Modifiers & ARGMOD_SCALE_X4) > 0)  Result = Result*4.0f;
+  if ((Modifiers & (1 << ARGMOD_SCALE_X4)) > 0)  Result = Result*4.0f;
 
   // y =  x/2    -> 0..1 >    0..0.5
-  if ((Modifiers & ARGMOD_SCALE_D2) > 0)  Result = Result/2.0f;
+  if ((Modifiers & (1 << ARGMOD_SCALE_D2)) > 0)  Result = Result/2.0f;
 
   return Result;
 } // GetConstValue
@@ -1256,7 +1256,7 @@ bool PSH_IMD_ARGUMENT::Decode(const DWORD Value, DWORD aMask, TArgumentType Argu
   bool Result = true;
   Address = 0;
   Mask = aMask;
-  Modifiers = ARGMOD_IDENTITY;
+  Modifiers = (1 << ARGMOD_IDENTITY);
   Multiplier = 1.0;
 
   // Determine PS_REGISTER for this argument type :
@@ -1427,35 +1427,35 @@ bool PSH_IMD_ARGUMENT::Decode(const DWORD Value, DWORD aMask, TArgumentType Argu
 
   switch (InputMapping) {
     case PS_INPUTMAPPING_UNSIGNED_IDENTITY:
-      Modifiers = ARGMOD_IDENTITY;
+      Modifiers = (1 << ARGMOD_IDENTITY);
 	  break;
     case PS_INPUTMAPPING_UNSIGNED_INVERT:
-      Modifiers = ARGMOD_INVERT;
+      Modifiers = (1 << ARGMOD_INVERT);
 	  break;
     case PS_INPUTMAPPING_EXPAND_NORMAL:
     {
-      Modifiers = ARGMOD_SCALE_BX2;
+      Modifiers = (1 << ARGMOD_SCALE_BX2);
       Multiplier = 2.0f * Multiplier;
 	  break;
     }
     case PS_INPUTMAPPING_EXPAND_NEGATE:
     {
-      Modifiers = ARGMOD_NEGATE;
+      Modifiers = (1 << ARGMOD_NEGATE);
       Multiplier = -Multiplier;
 	  break;
 	}
     case PS_INPUTMAPPING_HALFBIAS_NORMAL:
-      Modifiers = ARGMOD_BIAS;
+      Modifiers = (1 << ARGMOD_BIAS);
 	  break;
 //    case PS_INPUTMAPPING_HALFBIAS_NEGATE:
-//      Modifiers = ARGMOD_IDENTITY; ???
+//      Modifiers = (1 << ARGMOD_IDENTITY); ???
 //      break;
     case PS_INPUTMAPPING_SIGNED_IDENTITY:
-      Modifiers = ARGMOD_IDENTITY;
+      Modifiers = (1 << ARGMOD_IDENTITY);
 	  break;
     case PS_INPUTMAPPING_SIGNED_NEGATE:
     {
-      Modifiers = ARGMOD_NEGATE;
+      Modifiers = (1 << ARGMOD_NEGATE);
       Multiplier = -Multiplier;
 	  break;
 	}
@@ -1465,18 +1465,18 @@ bool PSH_IMD_ARGUMENT::Decode(const DWORD Value, DWORD aMask, TArgumentType Argu
 
 void PSH_IMD_ARGUMENT::Invert()
 {
-  if ((Modifiers & ARGMOD_INVERT) == 0)
-    Modifiers = Modifiers | ARGMOD_INVERT;
+  if ((Modifiers & (1 << ARGMOD_INVERT)) == 0)
+    Modifiers = Modifiers | (1 << ARGMOD_INVERT);
   else
-    Modifiers = Modifiers & ~ARGMOD_INVERT;
+    Modifiers = Modifiers & ~(1 << ARGMOD_INVERT);
 }
 
 void PSH_IMD_ARGUMENT::Negate()
 {
-  if ((Modifiers & ARGMOD_NEGATE) == 0)
-    Modifiers = Modifiers | ARGMOD_NEGATE;
+  if ((Modifiers & (1 << ARGMOD_NEGATE)) == 0)
+    Modifiers = Modifiers | (1 << ARGMOD_NEGATE);
   else
-    Modifiers = Modifiers & ~ARGMOD_NEGATE;
+    Modifiers = Modifiers & ~(1 << ARGMOD_NEGATE);
 }
 
 /* PSH_INTERMEDIATE_FORMAT */
@@ -1808,7 +1808,7 @@ bool PSH_INTERMEDIATE_FORMAT::Decode(DWORD CombinerStageNr, DWORD PSInputs, DWOR
       // And if this is true, how do the blue-to-alpha flags behave if present on both AB and CD?
 
       // TODO : Rayman does this in some shaders, requires a fixup (as output.b is incorrect and not allowed)
-      Output[0].Modifiers = Output[0].Modifiers | ARGMOD_BLUE_REPLICATE;
+      Output[0].Modifiers = Output[0].Modifiers | (1 << ARGMOD_BLUE_REPLICATE);
       Output[0].Mask = MASK_B;
       // TODO Handle blue-to-alpha flag (only valid for RGB)
       // Note : We can't use the '+ ' prefix, as the blue channel is not determined yet!
@@ -1817,7 +1817,7 @@ bool PSH_INTERMEDIATE_FORMAT::Decode(DWORD CombinerStageNr, DWORD PSInputs, DWOR
 
     if ((CombinerOutputFlags & PS_COMBINEROUTPUT_CD_BLUE_TO_ALPHA) > 0) // false=Alpha-to-Alpha, true=Blue-to-Alpha
     {
-      Output[1].Modifiers = Output[1].Modifiers | ARGMOD_BLUE_REPLICATE;
+      Output[1].Modifiers = Output[1].Modifiers | (1 << ARGMOD_BLUE_REPLICATE);
       Output[1].Mask = MASK_B;
     }
 
@@ -2251,7 +2251,7 @@ std::string PSH_XBOX_SHADER::DecodedToString(XTL::X_D3DPIXELSHADERDEF *pPSDef)
   bool PSH_XBOX_SHADER::_NextIs2D(int Stage)
   {
     if (Stage < X_D3DTSS_STAGECOUNT-1)
-      return (PSTextureModes[Stage + 1] & (PS_TEXTUREMODES_DOT_ST | PS_TEXTUREMODES_DOT_ZW)) > 0;
+      return (PSTextureModes[Stage + 1] == PS_TEXTUREMODES_DOT_ST) || (PSTextureModes[Stage + 1] == PS_TEXTUREMODES_DOT_ZW);
     else
       return false;
   }
@@ -2328,7 +2328,7 @@ bool PSH_XBOX_SHADER::DecodeTextureModes(XTL::X_D3DPIXELSHADERDEF *pPSDef)
 
       switch (PSDotMapping[Stage]) {
         case PS_DOTMAPPING_MINUS1_TO_1_D3D:
-          Ins.Parameters[0].Modifiers = ARGMOD_SCALE_BX2;
+          Ins.Parameters[0].Modifiers = (1 << ARGMOD_SCALE_BX2);
 		  break;
       }
     }
@@ -2614,7 +2614,7 @@ bool PSH_XBOX_SHADER::RemoveUselessWrites()
       CurArg = &(Cur->Output[j]);
 
       // Remove useless flag, to ease up later comparisions :
-      CurArg->Modifiers = CurArg->Modifiers & ~ARGMOD_IDENTITY;
+      CurArg->Modifiers = CurArg->Modifiers & ~(1 << ARGMOD_IDENTITY);
 
       // Discard useless writes :
       if ( (CurArg->Address < PSH_PC_MAX_R_REGISTER_COUNT)
@@ -2635,7 +2635,7 @@ bool PSH_XBOX_SHADER::RemoveUselessWrites()
         continue;
 
       // Remove useless flag, to ease up later comparisions :
-      CurArg->Modifiers = CurArg->Modifiers & ~ARGMOD_IDENTITY;
+      CurArg->Modifiers = CurArg->Modifiers & ~(1 << ARGMOD_IDENTITY);
 
       // Keep track of all register reads, so that we can discard useless writes :
       if (CurArg->Address < PSH_PC_MAX_R_REGISTER_COUNT)
@@ -2780,7 +2780,7 @@ void PSH_XBOX_SHADER::ConvertXMMCToNative(int  i)
     Cur->Modifier = INSMOD_NONE;
     // Begin the input of CND with the required r0.a parameter :
     Cur->Parameters[0].SetRegister(PARAM_R, 0, MASK_A);
-    Cur->Parameters[0].Modifiers = ARGMOD_IDENTITY;
+    Cur->Parameters[0].Modifiers = (1 << ARGMOD_IDENTITY);
     Cur->Parameters[0].Multiplier = 1.0;
     // Follow that with the 2 selection registers :
     Cur->Parameters[1] = Cur->Output[0];
@@ -2898,9 +2898,9 @@ void PSH_XBOX_SHADER::ConvertXFCToNative(int i)
 
     // Take the FinalCombinerFlags that influence this result into account :
     if ((FinalCombinerFlags & PS_FINALCOMBINERSETTING_COMPLEMENT_R0) > 0)
-      Ins.Parameters[0].Modifiers = ARGMOD_INVERT; // (1-r0) is used as an input to the sum rather than r0
+      Ins.Parameters[0].Modifiers = (1 << ARGMOD_INVERT); // (1-r0) is used as an input to the sum rather than r0
     if ((FinalCombinerFlags & PS_FINALCOMBINERSETTING_COMPLEMENT_V1) > 0)
-      Ins.Parameters[1].Modifiers = ARGMOD_INVERT; // (1-v1) is used as an input to the sum rather than v1
+      Ins.Parameters[1].Modifiers = (1 << ARGMOD_INVERT); // (1-v1) is used as an input to the sum rather than v1
     if ((FinalCombinerFlags & PS_FINALCOMBINERSETTING_CLAMP_SUM) > 0)
       Ins.Modifier = INSMOD_SAT; // V1+R0 sum clamped to [0,1]
 
@@ -2974,7 +2974,7 @@ bool PSH_XBOX_SHADER::RemoveNops()
     Cur = &(Intermediate[i]);
 
     // Skip opcodes that have no output, but should stay anyway :
-    if ((Cur->Opcode & (PO_COMMENT | PO_XFC)) > 0)
+    if ((Cur->Opcode == PO_COMMENT) || (Cur->Opcode == PO_XFC))
       continue;
 
     // See if this opcode writes to any of it's outputs :
@@ -3048,15 +3048,15 @@ void PSH_XBOX_SHADER::ReplaceRegisterFromIndexOnwards(int aIndex,
 	PPSH_IMD_ARGUMENT ParamLeft, ParamRight;
 
 	// Check if Left and Right are the same register :
-    ParamLeft = &Mul1->Parameters[Left];
-    ParamRight = &Mul2->Parameters[Right];
+    ParamLeft = &(Mul1->Parameters[Left]);
+    ParamRight = &(Mul2->Parameters[Right]);
     if ((ParamLeft->Type != ParamRight->Type)
     || (ParamLeft->Address != ParamRight->Address)
     || (ParamLeft->Mask != ParamRight->Mask))
       return false;
 
     // Is the left argument inverted and the right not (or the other way around) ?
-    if ((ParamLeft->Modifiers & ARGMOD_INVERT) != (ParamRight->Modifiers & ARGMOD_INVERT))
+    if ((ParamLeft->Modifiers & (1 << ARGMOD_INVERT)) != (ParamRight->Modifiers & (1 << ARGMOD_INVERT)))
     {
       // In that case, already move the arguments over to AddOpcode so we create a LRP :
       AddOpcode->Parameters[0] = *ParamLeft;
@@ -3253,7 +3253,7 @@ bool PSH_XBOX_SHADER::CombineInstructions()
       {
         // Don't optimize if the output is needed for CND or CMP (which must read from r0) :
         // This fixes : "(Validation Error) First source for cnd instruction must be 'r0.a'" in Modify Pixel Shader XDK sample.
-        if ( ((Intermediate[j].Opcode & (PO_CND | PO_CMP)) > 0)
+        if ( ((Intermediate[j].Opcode == PO_CND) || (Intermediate[j].Opcode == PO_CMP))
         && (Op0->Output[0].IsRegister(PARAM_R, 0)))
           break;
 
@@ -3387,9 +3387,9 @@ bool PSH_XBOX_SHADER::SimplifyMOV(PPSH_INTERMEDIATE_FORMAT Cur)
     {
       // Simulate -1 by calculating it via a (guaranteed) register :
       // We follow this : (-v0) - (1-v0) = -v0 - 1 + v0 = -1
-      Cur->Parameters[0].Modifiers = ARGMOD_NEGATE;
+      Cur->Parameters[0].Modifiers = (1 << ARGMOD_NEGATE);
       Cur->Parameters[1] = Cur->Parameters[0];
-      Cur->Parameters[1].Modifiers = ARGMOD_INVERT;
+      Cur->Parameters[1].Modifiers = (1 << ARGMOD_INVERT);
       // Go on with a positive factor, to ease the scaling :
       Factor = -Factor;
     }
@@ -3397,9 +3397,9 @@ bool PSH_XBOX_SHADER::SimplifyMOV(PPSH_INTERMEDIATE_FORMAT Cur)
     {
       // Simulate 1 by calculating it via a (guaranteed) register :
       // We follow this : (1-v0) - (-v0) = (1-v0) + v0 = 1
-      Cur->Parameters[0].Modifiers = ARGMOD_INVERT;
+      Cur->Parameters[0].Modifiers = (1 << ARGMOD_INVERT);
       Cur->Parameters[1] = Cur->Parameters[0];
-      Cur->Parameters[1].Modifiers = ARGMOD_NEGATE;
+      Cur->Parameters[1].Modifiers = (1 << ARGMOD_NEGATE);
     }
 
     // Try to simulate all factors (0.5, 1.0 and 2.0) using an output modifier :
