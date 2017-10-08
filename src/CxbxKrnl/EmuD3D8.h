@@ -86,6 +86,9 @@ extern X_D3DBaseTexture **Xbox_D3DDevice_m_Textures;
 extern uint offsetof_Xbox_D3DDevice_m_Palettes;
 extern X_D3DPalette **Xbox_D3DDevice_m_Palettes;
 
+extern uint offsetof_Xbox_D3DDevice_m_PixelShader;
+extern DWORD *Xbox_D3DDevice_m_PixelShader;
+
 #if 0 // unused
 inline void SetXboxBaseTexture(UINT uiStage, X_D3DBaseTexture *pTexture)
 {

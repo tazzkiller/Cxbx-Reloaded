@@ -1302,14 +1302,19 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetPixelShader
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetPixelShader, 4039, 9)
+OOVPA_XREF(D3DDevice_SetPixelShader, 4039, 1+8,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+	XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER), // TODO : Verify offset
 
         { 0x04, 0x85 },
         { 0x05, 0xC0 },
         { 0x06, 0x53 },
         { 0x07, 0x8B },
         { 0x08, 0x1D },
-        { 0x09, 0xA0 },
+        //{ 0x09, 0xA0 }, // disabled: part of an offset
         { 0x18, 0x00 },
         { 0x1D, 0x0D },
         { 0x3F, 0xA3 },

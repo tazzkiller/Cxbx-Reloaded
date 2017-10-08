@@ -80,8 +80,8 @@ XTL::LPDIRECTDRAWSURFACE7           g_pDDSOverlay7 = nullptr; // DirectDraw7 Ove
 XTL::LPDIRECTDRAWCLIPPER            g_pDDClipper   = nullptr; // DirectDraw7 Clipper
 DWORD                               g_CurrentVertexShader = 0;
 //DWORD								g_dwCurrentPixelShader = 0;
-//XTL::CxbxPixelShader               *g_CurrentPixelShader = nullptr;
-//BOOL                                g_bFakePixelShaderLoaded = FALSE;
+//XTL::CxbxPixelShader             *g_CurrentPixelShader = nullptr;
+//BOOL                              g_bFakePixelShaderLoaded = FALSE;
 BOOL                                g_bIsFauxFullscreen = FALSE;
 BOOL								g_bHackUpdateSoftwareOverlay = FALSE;
 
@@ -212,6 +212,8 @@ uint XTL::offsetof_Xbox_D3DDevice_m_Textures = 0;
 XTL::X_D3DBaseTexture **XTL::Xbox_D3DDevice_m_Textures = NULL; // Can only be set once Xbox CreateDevice has ran
 uint XTL::offsetof_Xbox_D3DDevice_m_Palettes = 0;
 XTL::X_D3DPalette **XTL::Xbox_D3DDevice_m_Palettes = NULL; // Can only be set once Xbox CreateDevice has ran
+uint XTL::offsetof_Xbox_D3DDevice_m_PixelShader = 0;
+XTL::DWORD *XTL::Xbox_D3DDevice_m_PixelShader = NULL;
 
 void CxbxClearGlobals()
 {
@@ -1688,6 +1690,14 @@ void DeriveXboxD3DDeviceAddresses()
 	}
 	else
 		XTL::Xbox_D3DDevice_m_Palettes = NULL;
+
+	// Derive the address where active pixel shader pointer is stored
+	if (XTL::offsetof_Xbox_D3DDevice_m_PixelShader > 0) {
+		XTL::Xbox_D3DDevice_m_PixelShader = (DWORD *)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_PixelShader);
+		DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice_m_PixelShader (Derived)\n", XTL::Xbox_D3DDevice_m_PixelShader);
+	}
+	else
+		XTL::Xbox_D3DDevice_m_PixelShader = NULL;
 
 	// Determine the active vertex index
 	// This reads from g_pDevice->m_IndexBase in Xbox D3D

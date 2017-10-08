@@ -78,6 +78,7 @@ OOVPA_NO_XREF(D3DDevice_SetVertexShaderConstantNotInlineFast, 5233, 13)
         { 0x43, 0x0F },
 OOVPA_END;
 #endif
+
 #if 0 // No longer used, replaced by generic 4627 version
 // ******************************************************************
 // * D3DDevice_SetPixelShader

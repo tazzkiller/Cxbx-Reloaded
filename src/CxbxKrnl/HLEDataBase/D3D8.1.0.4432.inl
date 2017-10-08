@@ -113,10 +113,16 @@ OOVPA_NO_XREF(D3DDevice_GetDepthStencilSurface, 4432, 11)
         { 0x26, 0x04 },
 OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DDevice_SetPixelShader
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetPixelShader, 4432, 10)
+OOVPA_XREF(D3DDevice_SetPixelShader, 4432, 1+10,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+	XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER), // TODO : Verify offset
 
         // D3DDevice_SetPixelShader+0x22 : or ecx, 0x4800
         { 0x22, 0x81 },

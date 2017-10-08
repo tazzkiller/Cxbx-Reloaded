@@ -456,10 +456,16 @@ OOVPA_NO_XREF(D3DDevice_CreateImageSurface, 4134, 28)
 
 	OOVPA_END;
 #endif
+
 // ******************************************************************
 // * D3DDevice_SetPixelShader
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetPixelShader, 4134, 10)
+OOVPA_XREF(D3DDevice_SetPixelShader, 4134, 1+10,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+	XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER),
 
         // D3DDevice_SetPixelShader+0x0E : mov esi, [ebx+0x0370]
         { 0x0E, 0x8B },
@@ -480,6 +486,7 @@ OOVPA_NO_XREF(D3DDevice_SetPixelShader, 4134, 10)
         { 0xE4, 0xA5 },
 
 OOVPA_END;
+
 #if 0 // Moved to 4039
 // ******************************************************************
 // * D3DDevice_SetTextureState_BumpEnv

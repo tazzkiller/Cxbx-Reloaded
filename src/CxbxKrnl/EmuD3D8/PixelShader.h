@@ -240,9 +240,10 @@ HRESULT CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* ppRec
 // PatrickvL's Dxbx pixel shader translation
 HRESULT DxbxUpdateActivePixelShader(); // NOPATCH
 
+#if 0
 // check
 bool IsValidPixelShader(void);
-
+#endif
 
 #ifdef _DEBUG_TRACK_PS
 #define DbgPshPrintf if(g_bPrintfOn) printf

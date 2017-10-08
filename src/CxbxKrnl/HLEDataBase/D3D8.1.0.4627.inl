@@ -810,7 +810,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetPixelShader
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetPixelShader, 4627, 16)
+OOVPA_XREF(D3DDevice_SetPixelShader, 4627, 1+16,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+	XREF_ENTRY(0x0A, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER),
 
         { 0x03, 0x1D },
 
@@ -857,6 +862,7 @@ OOVPA_NO_XREF(D3DDevice_SetPixelShader, 4627, 10)
         { 0xDF, 0xA5 },
 OOVPA_END;
 #endif
+
 #if 0 // No longer used, replaced by generic 4627 version
 // ******************************************************************
 // * D3DDevice_SetPixelShader

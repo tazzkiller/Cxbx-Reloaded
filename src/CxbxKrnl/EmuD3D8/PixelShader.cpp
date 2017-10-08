@@ -4050,8 +4050,10 @@ HRESULT XTL::DxbxUpdateActivePixelShader() // NOPATCH
   XTL::D3DXCOLOR fColor;
 
   HRESULT Result = D3D_OK;
-// TODO : Do Dxbx post-translation on these two declarations :
-  bool g_EmuD3DActivePixelShader = true;// (pPSDef != NULL); // TODO : Check if Xbox_D3DDevice__m_pPixelShader is set
+  bool g_EmuD3DActivePixelShader = false;
+
+  if (Xbox_D3DDevice_m_PixelShader != NULL)
+	  g_EmuD3DActivePixelShader = (*XTL::Xbox_D3DDevice_m_PixelShader != NULL);
 
   // Our SetPixelShader patch remembered the latest set pixel shader, see if it's assigned :
   if (g_EmuD3DActivePixelShader)
@@ -4061,14 +4063,6 @@ HRESULT XTL::DxbxUpdateActivePixelShader() // NOPATCH
     // SetPixelShader), we use the address of XTL_D3D__RenderState as the real pixel
     // shader definition :
 	pPSDef = (XTL::X_D3DPIXELSHADERDEF*)XTL::EmuMappedD3DRenderState[XTL::X_D3DRS_PS_FIRST]; // Same as (Xbox_D3D__RenderState); 
-    if (pPSDef == NULL) {
-	  // New Cxbx : Check for g_CurrentPixelShader (it's a pointer, while g_EmuD3DActivePixelShader was a value)
-	  if (g_CurrentPixelShader == nullptr)
-	    return S_FALSE; // TODO : What should we return, and how's this handled?
-
-      // If we haven't found the symbol, then we can fall back to the given definition :
-      pPSDef = &(g_CurrentPixelShader->PSDef); // Was : g_EmuD3DActivePixelShader.PshDef;
-	}
 
     // Now, see if we already have a shader compiled for this declaration :
     RecompiledPixelShader = RecompiledShaders_Head;
@@ -4170,6 +4164,7 @@ HRESULT XTL::DxbxUpdateActivePixelShader() // NOPATCH
 #endif
   }
 
+#if 0
   if (g_bFakePixelShaderLoaded)
   {
     g_pD3DDevice8->SetRenderState(XTL::D3DRS_FOGENABLE, FALSE);
@@ -4201,7 +4196,8 @@ HRESULT XTL::DxbxUpdateActivePixelShader() // NOPATCH
     g_pD3DDevice8->SetRenderState(D3DRS_AMBIENT, 0xFFFFFFFF);
     */
   }
-//  *pHandle = ConvertedPixelShaderHandle; // TODO : Do Dxbx post-translation on this
+#endif
+ //  *pHandle = ConvertedPixelShaderHandle; // TODO : Do Dxbx post-translation on this
   return Result;
 }
 
@@ -6766,6 +6762,7 @@ inline void CorrectConstToReg(char *szConst, int *pPSC0, int *pPSC1)
 CorrectConstToReg_done:;
 }
 
+#if 0
 // check
 bool XTL::IsValidPixelShader(void)
 {
@@ -6773,6 +6770,7 @@ bool XTL::IsValidPixelShader(void)
 		return false;
 	return true;
 }
+#endif
 
 void XTL::DumpPixelShaderDefToFile( X_D3DPIXELSHADERDEF* pPSDef, const char* pszCode /*= NULL*/ )
 {

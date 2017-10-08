@@ -511,7 +511,13 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetPixelShader
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetPixelShader, 3925, 10)
+OOVPA_XREF(D3DDevice_SetPixelShader, 3925, 1+10,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+	XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER),
+
         // D3DDevice_SetPixelShader+0x0E : mov esi, [ebx+0x0414]
         { 0x0E, 0x8B },
         { 0x0F, 0xB3 },
