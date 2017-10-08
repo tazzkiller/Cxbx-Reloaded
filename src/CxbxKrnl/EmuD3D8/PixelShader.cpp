@@ -1230,7 +1230,7 @@ std::string PSH_IMD_ARGUMENT::ToString()
   if (UsesRegister())
   {
     for (DWORD Modifier = ARGMOD_IDENTITY; Modifier < ARGMOD_BLUE_REPLICATE; Modifier++)
-      if (Modifier & Modifiers) {
+      if ((1 << Modifier) & Modifiers) {
 		char buffer[256];
 		Result = std::string(buffer, sprintf(buffer, PSH_ARG_MODIFIER_Str[Modifier], Result.c_str()));
 	  }
@@ -3980,7 +3980,8 @@ static const
   if (pShader == nullptr)
   {
     EmuWarning("Could not create pixel shader");
-    // TODO EmuWarning(string(AnsiString(PAnsiChar(LPD3DXBUFFER(pErrors).GetBufferPointer())))); // Dxbx addition
+	if (pErrors)
+		EmuWarning((char*)pErrors->GetBufferPointer()); // Dxbx addition
 
     hRet = D3DXAssembleShader(
       szDiffusePixelShader,
@@ -3995,6 +3996,9 @@ static const
 #endif
     /*ppCompiledShader=*/&pShader,
     /*ppCompilationErrors*/&pErrors);
+
+	if (pErrors)
+		EmuWarning((char*)pErrors->GetBufferPointer()); // Dxbx addition
 
     if (pShader == nullptr)
       XTL::CxbxKrnlCleanup("Cannot fall back to the most simple pixel shader!");
