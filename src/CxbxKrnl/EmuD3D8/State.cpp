@@ -115,8 +115,6 @@ void DxbxBuildRenderStateMappingTable() // TODO : Rename to distinct from CxbxIn
 
 void CxbxInitializeEmuMappedD3DRenderState() // TODO : Rename to distinct from DxbxBuildRenderStateMappingTable()
 {
-	int delta = 0;
-
 	// Log the start address of the "deferred" render states (not needed anymore, just to keep logging the same) :
 	if (Xbox_D3D__RenderState != NULL) {
 		// Calculate the location of D3DDeferredRenderState via an XDK-dependent offset to Xbox_D3D__RenderState :
@@ -135,7 +133,7 @@ void CxbxInitializeEmuMappedD3DRenderState() // TODO : Rename to distinct from D
 		// Map all render states based on the first deferred render state (which we have the address
 		// of in Xbox_D3D__RenderState_Deferred) :
 		if (Xbox_D3D__RenderState_Deferred != NULL)
-			delta = (int)(Xbox_D3D__RenderState_Deferred - DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST]);
+			Xbox_D3D__RenderState = (DWORD*)(Xbox_D3D__RenderState_Deferred - DxbxMapMostRecentToActiveVersion[X_D3DRS_DEFERRED_FIRST]);
 		else
 			CxbxKrnlCleanup("CxbxInitializeEmuMappedD3DRenderState : Missing Xbox D3D__RenderState and D3D__RenderState_Deferred!");
 	}
@@ -144,7 +142,6 @@ void CxbxInitializeEmuMappedD3DRenderState() // TODO : Rename to distinct from D
 		DWORD XDKVersion_D3DRS = DxbxMapMostRecentToActiveVersion[rs];
 		if (XDKVersion_D3DRS != X_D3DRS_UNSUPPORTED) {
 			EmuMappedD3DRenderState[rs] = &(Xbox_D3D__RenderState[XDKVersion_D3DRS]);
-			EmuMappedD3DRenderState[rs] += delta / sizeof(DWORD); // Increment per DWORD (not per 4!)
 			RegisterAddressLabel(EmuMappedD3DRenderState[rs], "D3D__RenderState[%d/*=%s*/]",
 				XDKVersion_D3DRS,
 				GetDxbxRenderStateInfo(rs).S + 2); // Skip "X_" prefix
@@ -153,9 +150,6 @@ void CxbxInitializeEmuMappedD3DRenderState() // TODO : Rename to distinct from D
 		else
 			EmuMappedD3DRenderState[rs] = DummyRenderState;
 	}
-
-	if (Xbox_D3D__RenderState == NULL)
-		Xbox_D3D__RenderState = EmuMappedD3DRenderState[X_D3DRS_FIRST];
 
 	// Initialize the dummy render state :
 	EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED] = DummyRenderState;

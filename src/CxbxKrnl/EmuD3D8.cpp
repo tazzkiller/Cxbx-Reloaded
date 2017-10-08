@@ -1777,7 +1777,7 @@ void CxbxUpdateNativeD3DResources()
 	DxbxUpdateActiveRenderTarget();
 	*/
 	CxbxUpdateTextureStages();
-//	XTL::DxbxUpdateActivePixelShader();
+	XTL::DxbxUpdateActivePixelShader();
 	XTL::DxbxUpdateDeferredStates(); // BeginPush sample shows us that this must come *after* texture update!
 	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
 	// TODO : Transfer matrices (projection/model/world view) from Xbox to Host using GetTransform or D3D_Device member pointers
@@ -4402,7 +4402,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderConstant)
     DWORD       ConstantCount
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Register)
@@ -4535,7 +4535,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DeletePixelShader)
     DWORD          Handle
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(Handle);
 
@@ -4569,7 +4569,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePixelShader)
     DWORD				   *pHandle
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pPSDef)
@@ -4667,7 +4667,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShader)
     DWORD           Handle
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(Handle);
 
@@ -8692,6 +8692,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 		return;
 	}
 
+	// TODO : Call unpatched D3DDevice_SetStateVB(0);
+
 	CxbxUpdateNativeD3DResources();
     #ifdef _DEBUG_TRACK_VB
     if(!g_bVBSkipStream)
@@ -8790,6 +8792,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
 		return;
 	}
 
+	// TODO : Call unpatched D3DDevice_SetStateUP();
+
 	CxbxUpdateNativeD3DResources();
     #ifdef _DEBUG_TRACK_VB
     if(!g_bVBSkipStream)
@@ -8838,6 +8842,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 		return;
 	}
 
+	// TODO : Call unpatched D3DDevice_SetStateVB(0);
+
 	CxbxUpdateNativeD3DResources();
     #ifdef _DEBUG_TRACK_VB
     if(!g_bVBSkipStream)
@@ -8883,6 +8889,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 		LOG_TEST_CASE("Invalid VertexCount");
 		return;
 	}
+
+	// TODO : Call unpatched D3DDevice_SetStateUP();
 
 	CxbxUpdateNativeD3DResources();
 	// CxbxUpdateActiveIndexBuffer() not needed (all draw calls below use pIndexData)
@@ -9938,7 +9946,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPixelShaderProgram)
 	X_D3DPIXELSHADERDEF* pPSDef
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(pPSDef);
 
@@ -10679,7 +10687,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetPixelShader)
 	DWORD* pHandle
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Name)

@@ -2132,11 +2132,10 @@ std::string PSH_XBOX_SHADER::DecodedToString(XTL::X_D3DPIXELSHADERDEF *pPSDef)
 
   #define _AddStr(aStr, ...) \
   {\
-	snprintf(buf, sizeof(buf), aStr, __VA_ARGS__); \
-    _AddStr1(std::string(buf)); \
+    _AddStr1(std::string(buf, sprintf(buf, aStr, __VA_ARGS__))); \
   }
 {
-  char buf[100];
+  char buf[256];
   int i;
 
   std::string Result = "";
@@ -2193,28 +2192,28 @@ std::string PSH_XBOX_SHADER::DecodedToString(XTL::X_D3DPIXELSHADERDEF *pPSDef)
   {
     _AddStr1("\n");
 
-    _AddStr("PSRGBOutputs[%d] AB: %s", i, Combiners[i].RGB.OutputSUM.OutputAB.DecodedToString());
-    _AddStr("PSRGBOutputs[%d] CD: %s", i, Combiners[i].RGB.OutputSUM.OutputCD.DecodedToString());
-    _AddStr("PSRGBOutputs[%d] SUM: %s", i, Combiners[i].RGB.OutputSUM.DecodedToString());
-    _AddStr("PSRGBOutputs[%d] flags: %s", i, PSCombinerOutputFlagsToStr(Combiners[i].RGB.CombinerOutputFlags, /*IsAlpha=*/false));
+    _AddStr("PSRGBOutputs[%d] AB: %s", i, Combiners[i].RGB.OutputSUM.OutputAB.DecodedToString().c_str());
+    _AddStr("PSRGBOutputs[%d] CD: %s", i, Combiners[i].RGB.OutputSUM.OutputCD.DecodedToString().c_str());
+    _AddStr("PSRGBOutputs[%d] SUM: %s", i, Combiners[i].RGB.OutputSUM.DecodedToString().c_str());
+    _AddStr("PSRGBOutputs[%d] flags: %s", i, PSCombinerOutputFlagsToStr(Combiners[i].RGB.CombinerOutputFlags, /*IsAlpha=*/false).c_str());
 
 	_AddStr1("\n");
-    _AddStr("PSRGBInputs[%d] A: %s", i, Combiners[i].RGB.OutputSUM.OutputAB.Input1.DecodedToString());
-    _AddStr("PSRGBInputs[%d] B: %s", i, Combiners[i].RGB.OutputSUM.OutputAB.Input2.DecodedToString());
-    _AddStr("PSRGBInputs[%d] C: %s", i, Combiners[i].RGB.OutputSUM.OutputCD.Input1.DecodedToString());
-    _AddStr("PSRGBInputs[%d] D: %s", i, Combiners[i].RGB.OutputSUM.OutputCD.Input2.DecodedToString());
+    _AddStr("PSRGBInputs[%d] A: %s", i, Combiners[i].RGB.OutputSUM.OutputAB.Input1.DecodedToString().c_str());
+    _AddStr("PSRGBInputs[%d] B: %s", i, Combiners[i].RGB.OutputSUM.OutputAB.Input2.DecodedToString().c_str());
+    _AddStr("PSRGBInputs[%d] C: %s", i, Combiners[i].RGB.OutputSUM.OutputCD.Input1.DecodedToString().c_str());
+    _AddStr("PSRGBInputs[%d] D: %s", i, Combiners[i].RGB.OutputSUM.OutputCD.Input2.DecodedToString().c_str());
 
 	_AddStr1("\n");
-    _AddStr("PSAlphaOutputs[%d] AB: %s", i, Combiners[i].Alpha.OutputSUM.OutputAB.DecodedToString());
-    _AddStr("PSAlphaOutputs[%d] CD: %s", i, Combiners[i].Alpha.OutputSUM.OutputCD.DecodedToString());
-    _AddStr("PSAlphaOutputs[%d] SUM: %s", i, Combiners[i].Alpha.OutputSUM.DecodedToString());
-    _AddStr("PSAlphaOutputs[%d] flags: %s", i, PSCombinerOutputFlagsToStr(Combiners[i].Alpha.CombinerOutputFlags, /*IsAlpha=*/true));
+    _AddStr("PSAlphaOutputs[%d] AB: %s", i, Combiners[i].Alpha.OutputSUM.OutputAB.DecodedToString().c_str());
+    _AddStr("PSAlphaOutputs[%d] CD: %s", i, Combiners[i].Alpha.OutputSUM.OutputCD.DecodedToString().c_str());
+    _AddStr("PSAlphaOutputs[%d] SUM: %s", i, Combiners[i].Alpha.OutputSUM.DecodedToString().c_str());
+    _AddStr("PSAlphaOutputs[%d] flags: %s", i, PSCombinerOutputFlagsToStr(Combiners[i].Alpha.CombinerOutputFlags, /*IsAlpha=*/true).c_str());
 
 	_AddStr1("\n");
-    _AddStr("PSAlphaInputs[%d] A: %s", i, Combiners[i].Alpha.OutputSUM.OutputAB.Input1.DecodedToString());
-    _AddStr("PSAlphaInputs[%d] B: %s", i, Combiners[i].Alpha.OutputSUM.OutputAB.Input2.DecodedToString());
-    _AddStr("PSAlphaInputs[%d] C: %s", i, Combiners[i].Alpha.OutputSUM.OutputCD.Input1.DecodedToString());
-    _AddStr("PSAlphaInputs[%d] D: %s", i, Combiners[i].Alpha.OutputSUM.OutputCD.Input2.DecodedToString());
+    _AddStr("PSAlphaInputs[%d] A: %s", i, Combiners[i].Alpha.OutputSUM.OutputAB.Input1.DecodedToString().c_str());
+    _AddStr("PSAlphaInputs[%d] B: %s", i, Combiners[i].Alpha.OutputSUM.OutputAB.Input2.DecodedToString().c_str());
+    _AddStr("PSAlphaInputs[%d] C: %s", i, Combiners[i].Alpha.OutputSUM.OutputCD.Input1.DecodedToString().c_str());
+    _AddStr("PSAlphaInputs[%d] D: %s", i, Combiners[i].Alpha.OutputSUM.OutputCD.Input2.DecodedToString().c_str());
 
 	_AddStr1("\n");
     _AddStr("PSConstant0[%d] : %x", i, pPSDef->PSConstant0[i]); // C0 for each stage
@@ -2227,17 +2226,17 @@ std::string PSH_XBOX_SHADER::DecodedToString(XTL::X_D3DPIXELSHADERDEF *pPSDef)
     _AddStr("\nPSFinalCombinerConstant0 : %x", pPSDef->PSFinalCombinerConstant0); // C0 in final combiner
     _AddStr("PSFinalCombinerConstant1 : %x", pPSDef->PSFinalCombinerConstant1); // C1 in final combiner
 
-    _AddStr("\nPSFinalCombinerInputsABCD ->");
-    _AddStr("Input A: %s", FinalCombiner.InputA.DecodedToString());
-    _AddStr("Input B: %s", FinalCombiner.InputB.DecodedToString());
-    _AddStr("Input C: %s", FinalCombiner.InputC.DecodedToString());
-    _AddStr("Input D: %s", FinalCombiner.InputD.DecodedToString());
+    _AddStr1("\nPSFinalCombinerInputsABCD ->");
+    _AddStr("Input A: %s", FinalCombiner.InputA.DecodedToString().c_str());
+    _AddStr("Input B: %s", FinalCombiner.InputB.DecodedToString().c_str());
+    _AddStr("Input C: %s", FinalCombiner.InputC.DecodedToString().c_str());
+    _AddStr("Input D: %s", FinalCombiner.InputD.DecodedToString().c_str());
 
     _AddStr1("\nPSFinalCombinerInputsEFG ->");
-    _AddStr("Input E: %s", FinalCombiner.InputE.DecodedToString());
-    _AddStr("Input F: %s", FinalCombiner.InputF.DecodedToString());
-    _AddStr("Input G: %s", FinalCombiner.InputG.DecodedToString());
-    _AddStr("Final combiner setting: %s", PSFinalCombinerSettingToStr((DWORD)(FinalCombiner.FinalCombinerFlags)));
+    _AddStr("Input E: %s", FinalCombiner.InputE.DecodedToString().c_str());
+    _AddStr("Input F: %s", FinalCombiner.InputF.DecodedToString().c_str());
+    _AddStr("Input G: %s", FinalCombiner.InputG.DecodedToString().c_str());
+    _AddStr("Final combiner setting: %s", PSFinalCombinerSettingToStr((DWORD)(FinalCombiner.FinalCombinerFlags)).c_str());
 
     _AddStr1("\nPSFinalCombinerConstants ->"); // Final combiner constant mapping
     _AddStr("Offset of D3D constant for (C0: %d", FinalCombiner.FinalCombinerC0Mapping);
