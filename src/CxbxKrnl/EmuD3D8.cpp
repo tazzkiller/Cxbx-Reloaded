@@ -8399,7 +8399,7 @@ XTL::INDEX16 *CxbxAssureQuadListIndexBuffer(UINT NrOfQuadVertices)
 
 		UINT i = 0;
 		XTL::INDEX16 j = 0;
-		while (i < NrOfTriangleVertices)
+		while (i + 2 < NrOfTriangleVertices)
 		{
 			if (WindingClockwise) {
 				// ABCD becomes ABC+CDA, so this is triangle 1 :

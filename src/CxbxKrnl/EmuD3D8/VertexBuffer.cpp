@@ -92,7 +92,7 @@ void ReleasePatchedStream(XTL::CxbxPatchedStream *pPatchedStream)
 {
 	if (pPatchedStream->bCachedHostVertexStreamZeroDataIsAllocated) {
 		if (pPatchedStream->pCachedHostVertexStreamZeroData != nullptr) {
-			free(pPatchedStream->pCachedHostVertexStreamZeroData);
+			g_MemoryManager.Free(pPatchedStream->pCachedHostVertexStreamZeroData);
 			pPatchedStream->pCachedHostVertexStreamZeroData = nullptr;
 		}
 
