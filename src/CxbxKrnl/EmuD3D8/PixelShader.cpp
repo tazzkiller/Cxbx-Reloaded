@@ -571,7 +571,7 @@ const struct { char *mn; int _Out; int _In; char *note; } PSH_OPCODE_DEFS[/*PSH_
 	// Arithmetic opcodes :
 	{/* PO_ADD */ /*mn:*/"add",  /*_Out: */ 1, /*_In: */ 2, /*note:*/"d0=s0+s1" },
 	{/* PO_CMP */ /*mn:*/"cmp",  /*_Out: */ 1, /*_In: */ 3, /*note:*/"d0={s0>=0?s1:s2}" },
-	{/* PO_CND */ /*mn:*/"cnd",  /*_Out: */ 1, /*_In: */ 3, /*note:*/"d1={s0.a>0.5?s1:s2}" }, // 1st input must be "r0.a"
+	{/* PO_CND */ /*mn:*/"cnd",  /*_Out: */ 1, /*_In: */ 3, /*note:*/"d0={s0.a>0.5?s1:s2}" }, // 1st input must be "r0.a"
 	{/* PO_DP3 */ /*mn:*/"dp3",  /*_Out: */ 1, /*_In: */ 2, /*note:*/"d0=s0 dot3 s1" },
 	{/* PO_DP4 */ /*mn:*/"dp4",  /*_Out: */ 1, /*_In: */ 2, /*note:*/"d0=s0 dot4 s1" },
 	{/* PO_LRP */ /*mn:*/"lrp",  /*_Out: */ 1, /*_In: */ 3, /*note:*/"d0=s0*s1+{1-s0}*s2=s0*{s1-s2}+s2" },
@@ -3113,7 +3113,7 @@ bool PSH_XBOX_SHADER::CombineInstructions()
       if (Op2->Opcode == PO_CND)
       {
         if ( (Op0->Opcode == PO_MOV)
-        && (Op1->Opcode == Op0->Opcode)
+        && (Op1->Opcode == PO_MOV)
         && (Op1->Modifier == Op0->Modifier))
         {
           Op2->Modifier = Op0->Modifier;
@@ -3131,7 +3131,7 @@ bool PSH_XBOX_SHADER::CombineInstructions()
       if (Op2->Opcode == PO_ADD)
       {
         if ( (Op0->Opcode == PO_MUL)
-        && (Op1->Opcode == Op0->Opcode)
+        && (Op1->Opcode == PO_MUL)
         && (Op1->Modifier == Op0->Modifier))
         {
           // Check if we can lerp - we just need the same register on both sides that's inverted on the other :
@@ -3257,7 +3257,7 @@ bool PSH_XBOX_SHADER::CombineInstructions()
         && (Op0->Output[0].IsRegister(PARAM_R, 0)))
           break;
 
-        // TODO : Add other prevention rules here (like too many texture-reads, and other scases)
+        // TODO : Add other prevention rules here (like too many texture-reads, and other cases)
 
         // We can optimize if the MOV-output is written to again before the end of the shader :
         CanOptimize = true;
@@ -4053,7 +4053,7 @@ HRESULT XTL::DxbxUpdateActivePixelShader() // NOPATCH
   bool g_EmuD3DActivePixelShader = false;
 
   if (Xbox_D3DDevice_m_PixelShader != NULL)
-	  g_EmuD3DActivePixelShader = (*XTL::Xbox_D3DDevice_m_PixelShader != NULL);
+	  g_EmuD3DActivePixelShader = (*Xbox_D3DDevice_m_PixelShader != NULL);
 
   // Our SetPixelShader patch remembered the latest set pixel shader, see if it's assigned :
   if (g_EmuD3DActivePixelShader)
