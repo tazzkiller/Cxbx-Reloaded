@@ -6497,7 +6497,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 						EmuUnswizzleRect
 						(
-							pSrc, dwMipWidth, dwMipHeight, PixelJar.dwDepth,
+							pSrc, dwMipWidth, dwMipHeight, 1, // Was PixelJar.dwDepth, TODO : Why does this break Turok gallery?
 							pDest, dwDestPitch, PixelJar.dwBPP / 8
 						);
 
