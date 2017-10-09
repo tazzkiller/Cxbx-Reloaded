@@ -326,7 +326,9 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 		(void *)CONTIGUOUS_MEMORY_BASE);
 	if (memory != (void *)CONTIGUOUS_MEMORY_BASE)
 	{
-		UnmapViewOfFile(memory);
+		if (memory)
+			UnmapViewOfFile(memory);
+
 		CxbxKrnlCleanup("CxbxRestoreContiguousMemory: Couldn't map contiguous memory.bin to 0x80000000!");
 		return nullptr;
 	}
@@ -352,6 +354,9 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 		(void *)TILED_MEMORY_BASE);
 	if (tiled_memory != (void *)TILED_MEMORY_BASE)
 	{
+		if (tiled_memory)
+			UnmapViewOfFile(tiled_memory);
+
 		CxbxKrnlCleanup("CxbxRestoreContiguousMemory: Couldn't map contiguous memory.bin into tiled memory at 0xF0000000!");
 		return nullptr;
 	}

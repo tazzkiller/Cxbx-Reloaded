@@ -712,7 +712,7 @@ struct X_D3DVertexShader
 
 // Xbox D3D Vertex Shader flags
 const DWORD D3DVS_XBOX_RESERVEDXYZRHWSLOTS = 12;
-const DWORD D3DVS_XBOX_NR_ADDRESS_SLOTS = 136; // Each slot is 4 DWORD's in size (see VSH_ENTRY_Bits)
+#define D3DVS_XBOX_NR_ADDRESS_SLOTS 136 // Each slot is 4 DWORD's in size (see VSH_ENTRY_Bits)
 
 // Xbox D3D Pixel Shader Definition
 typedef struct _X_D3DPIXELSHADERDEF	// <- blueshogun 10/1/07

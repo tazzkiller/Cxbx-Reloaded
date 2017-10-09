@@ -192,7 +192,7 @@ static XTL::X_D3DSurface           *g_pCachedYuvSurface = NULL;
 #endif
 
 static DWORD                        g_dwVertexShaderUsage = 0;
-static DWORD                        g_VertexShaderSlots[136];
+static DWORD                        g_VertexShaderSlots[D3DVS_XBOX_NR_ADDRESS_SLOTS];
 
 #if 0
 // cached palette pointer
@@ -302,7 +302,7 @@ void CxbxClearGlobals()
 	g_pCachedYuvSurface = NULL;
 #endif
 	g_dwVertexShaderUsage = 0;
-	memset(g_VertexShaderSlots, 0, 136 * sizeof(DWORD)); // TODO : Use ARRAY_SIZE() and/or countof()
+	memset(g_VertexShaderSlots, 0, D3DVS_XBOX_NR_ADDRESS_SLOTS * sizeof(DWORD)); // TODO : Use ARRAY_SIZE() and/or countof()
 	// g_pTexturePaletteStages = { nullptr, nullptr, nullptr, nullptr };
 	g_VertexShaderConstantMode = X_D3DSCM_192CONSTANTS;
 	//XTL::EmuD3DTileCache = { 0 };
@@ -3616,12 +3616,13 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_LoadVertexShader)
 		LOG_FUNC_ARG(Address)
 		LOG_FUNC_END;
 
-    if (Address < 136) {
+    if (Address < D3DVS_XBOX_NR_ADDRESS_SLOTS) {
 		CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(Handle);
 		if (pHostVertexShader != nullptr) {
 			for (DWORD i = Address; i < pHostVertexShader->Size; i++) {
 				// TODO: This seems very fishy
-				g_VertexShaderSlots[i] = Handle;
+				if (i < D3DVS_XBOX_NR_ADDRESS_SLOTS)
+					g_VertexShaderSlots[i] = Handle;
 			}
 		}
     }
@@ -3651,7 +3652,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SelectVertexShader)
 		hRet = g_pD3DDevice8->SetVertexShader(D3DFVF_XYZ | D3DFVF_TEX0);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetVertexShader(D3DFVF_XYZ | D3DFVF_TEX0)");
 	}
-    else if (Address < 136) {
+    else if (Address < D3DVS_XBOX_NR_ADDRESS_SLOTS) {
 		CxbxVertexShader *pHostVertexShader = VshHandleGetHostVertexShader(g_VertexShaderSlots[Address]);
         if (pHostVertexShader != nullptr) {
 			hRet = g_pD3DDevice8->SetVertexShader(pHostVertexShader->Handle);
