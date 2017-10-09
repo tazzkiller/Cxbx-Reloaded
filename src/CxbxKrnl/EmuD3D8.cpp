@@ -4292,19 +4292,15 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
                                                    pFunction == NULL,
                                                    &pHostVertexShader->VertexShaderDynamicPatch);
 
+	boolean bUseDeclarationOnly = false;
+
     if (SUCCEEDED(hRet) && pFunction) {
-		boolean bUseDeclarationOnly = 0;
         hRet = XTL::EmuRecompileVshFunction((DWORD*)pFunction,
                                             &pRecompiledBuffer,
                                             &VertexShaderSize,
                                             g_VertexShaderConstantMode == X_D3DSCM_NORESERVEDCONSTANTS,
 											&bUseDeclarationOnly);
-        if (SUCCEEDED(hRet)) {
-			if (!bUseDeclarationOnly) {
-				pRecompiledFunction = (DWORD*)pRecompiledBuffer->GetBufferPointer();
-			}
-        }
-        else {
+        if (!SUCCEEDED(hRet)) {
             EmuWarning("Couldn't recompile vertex shader function.");
             hRet = D3D_OK; // Try using a fixed function vertex shader instead
         }
@@ -4313,6 +4309,11 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
     //DbgPrintf("MaxVertexShaderConst = %d\n", g_D3DCaps.MaxVertexShaderConst);
 
     if (SUCCEEDED(hRet)) {
+		if (!bUseDeclarationOnly) {
+			if (pRecompiledBuffer)
+				pRecompiledFunction = (DWORD*)pRecompiledBuffer->GetBufferPointer();
+		}
+
         hRet = g_pD3DDevice8->CreateVertexShader(
             pRecompiledDeclaration,
             pRecompiledFunction,
@@ -4331,6 +4332,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
             static const char dummy[] =
                 "vs.1.1\n"
                 "mov oPos, v0\n";
+			XTL::LPD3DXBUFFER pCompilationErrors = nullptr;
 
             EmuWarning("Trying fallback:\n%s", dummy);
             hRet = D3DXAssembleShader(dummy,
@@ -4338,16 +4340,27 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVertexShader)
                                       D3DXASM_SKIPVALIDATION,
                                       nullptr,
                                       &pRecompiledBuffer,
-                                      nullptr);
+                                      &pCompilationErrors);
 			DEBUG_D3DRESULT(hRet, "D3DXAssembleShader");
 
-			hRet = g_pD3DDevice8->CreateVertexShader(
-                pRecompiledDeclaration,
-                (DWORD*)pRecompiledBuffer->GetBufferPointer(),
-                &HostVertexHandle,
-                g_dwVertexShaderUsage
-            );
-			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateVertexShader(fallback)");
+			if (pCompilationErrors) {
+				EmuWarning((char*)pCompilationErrors->GetBufferPointer());
+				pCompilationErrors->Release();
+				pCompilationErrors = nullptr;
+			}
+
+			if (pRecompiledBuffer != nullptr) {
+				hRet = g_pD3DDevice8->CreateVertexShader(
+					pRecompiledDeclaration,
+					(DWORD*)pRecompiledBuffer->GetBufferPointer(),
+					&HostVertexHandle,
+					g_dwVertexShaderUsage
+				);
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateVertexShader(fallback)");
+
+				pRecompiledBuffer->Release();
+				pRecompiledBuffer = nullptr;
+			}
 		}
         //*/
     }
@@ -8438,8 +8451,10 @@ void CxbxAssureQuadListD3DIndexBuffer(UINT NrOfQuadVertices)
 		UINT uiIndexBufferSize = sizeof(XTL::INDEX16) * NrOfTriangleVertices;
 
 		// Create a new native index buffer of the above determined size :
-		if (pQuadToTriangleD3DIndexBuffer != nullptr)
+		if (pQuadToTriangleD3DIndexBuffer != nullptr) {
 			pQuadToTriangleD3DIndexBuffer->Release();
+			pQuadToTriangleD3DIndexBuffer = nullptr;
+		}
 
 		hRet = g_pD3DDevice8->CreateIndexBuffer(
 			uiIndexBufferSize,

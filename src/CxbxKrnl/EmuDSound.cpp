@@ -3384,7 +3384,7 @@ HRESULT WINAPI XTL::EMUPATCH(IDirectSoundBuffer_SetNotificationPositions)
     if (pThis) {
         if (pThis->EmuDirectSoundBuffer8) {
             hRet = pThis->EmuDirectSoundBuffer8->QueryInterface(IID_IDirectSoundNotify8, (LPVOID*)&pNotify);
-            if (SUCCEEDED(hRet) && pNotify != nullptr) {
+            if (SUCCEEDED(hRet) || pNotify != nullptr) {
                 hRet = pNotify->SetNotificationPositions(dwNotifyCount, paNotifies);
                 if (FAILED(hRet)) {
                     EmuWarning("Could not set notification position(s)!");

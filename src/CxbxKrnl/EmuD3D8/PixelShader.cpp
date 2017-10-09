@@ -3952,8 +3952,8 @@ static const
 	"mov r0, t0\n";
   std::string ConvertedPixelShaderStr;
   DWORD hRet;
-  XTL::LPD3DXBUFFER pShader;
-  XTL::LPD3DXBUFFER pErrors;
+  XTL::LPD3DXBUFFER pCompiledShader = nullptr;
+  XTL::LPD3DXBUFFER pCompilationErrors = nullptr;
   DWORD *pFunction;
 
   // Attempt to recompile PixelShader
@@ -3961,8 +3961,6 @@ static const
   ConvertedPixelShaderStr = Result.NewShaderStr;
 
   // assemble the shader
-  pShader = nullptr;
-  pErrors = nullptr;
   hRet = D3DXAssembleShader(
     ConvertedPixelShaderStr.c_str(),
     ConvertedPixelShaderStr.length(),
@@ -3974,43 +3972,47 @@ static const
     /*Flags=*/0,
     /*ppConstants=*/NULL,
 #endif
-    /*ppCompiledShader=*/&pShader,
-    /*ppCompilationErrors*/&pErrors);
+    /*ppCompiledShader=*/&pCompiledShader,
+    /*ppCompilationErrors*/&pCompilationErrors);
 
-  if (pShader == nullptr)
-  {
+  if (pCompilationErrors) {
+    EmuWarning((char*)pCompilationErrors->GetBufferPointer());
+	pCompilationErrors->Release();
+	pCompilationErrors = nullptr;
+  }
+
+  if (pCompiledShader == nullptr) {
     EmuWarning("Could not create pixel shader");
-	if (pErrors)
-		EmuWarning((char*)pErrors->GetBufferPointer()); // Dxbx addition
 
     hRet = D3DXAssembleShader(
       szDiffusePixelShader,
       strlen(szDiffusePixelShader),
 #ifdef CXBX_USE_D3D9
-    /*pDefines=*/nullptr,
-    /*pInclude=*/nullptr,
-    /*Flags=*/0,
+      /*pDefines=*/nullptr,
+      /*pInclude=*/nullptr,
+      /*Flags=*/0,
 #else
-    /*Flags=*/0,
-    /*ppConstants=*/NULL,
+      /*Flags=*/0,
+      /*ppConstants=*/NULL,
 #endif
-    /*ppCompiledShader=*/&pShader,
-    /*ppCompilationErrors*/&pErrors);
+      &pCompiledShader,
+      &pCompilationErrors);
 
-	if (pErrors)
-		EmuWarning((char*)pErrors->GetBufferPointer()); // Dxbx addition
+	if (pCompilationErrors) {
+		EmuWarning((char*)pCompilationErrors->GetBufferPointer());
+		pCompilationErrors->Release();
+		pCompilationErrors = nullptr;
+	}
 
-    if (pShader == nullptr)
+    if (pCompiledShader == nullptr)
       XTL::CxbxKrnlCleanup("Cannot fall back to the most simple pixel shader!");
 
     EmuWarning("We're lying about the creation of a pixel shader!");
   }
 
-  if (pShader)
-  {
-    pFunction = (DWORD*)(pShader->GetBufferPointer());
-
-    if (hRet == D3D_OK)
+  if (pCompiledShader) {
+    if (hRet == D3D_OK) {
+      pFunction = (DWORD*)(pCompiledShader->GetBufferPointer());
       // redirect to windows d3d
       /*hRet = */g_pD3DDevice8->CreatePixelShader
       (
@@ -4021,18 +4023,12 @@ static const
         /*out*/&(Result.ConvertedHandle)
 #endif
       );
-
-    // Dxbx note : We must release pShader here, else we would have a resource leak!
-	pShader->Release();
-    pShader = nullptr;
+	}
+    // Dxbx note : We must release pCompiledShader here, else we would have a resource leak!
+	pCompiledShader->Release();
+    pCompiledShader = nullptr;
   }
 
-  // Dxbx addition : We release pErrors here (or it would become a resource leak!)
-  if (pErrors)
-  {
-    pErrors->Release();
-    pErrors = nullptr;
-  }
   return Result;
 } // DxbxRecompilePixelShader
 
@@ -4909,10 +4905,8 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 			ppRecompiled,
 			&pCompilationErrors);
 
-		if (FAILED(hRet))
-		{
-			if (pCompilationErrors)
-			{
+		if (FAILED(hRet)) {
+			if (pCompilationErrors) {
 				pCompilationErrors->Release();
 				pCompilationErrors = NULL;
 			}
@@ -4927,21 +4921,18 @@ HRESULT XTL::CreatePixelShaderFunction(X_D3DPIXELSHADERDEF *pPSD, LPD3DXBUFFER* 
 		}
 
 		if (FAILED(hRet))
-		{
 			EmuWarning("Couldn't assemble recompiled pixel shader");
-			if (pCompilationErrors)
-			{
-				EmuWarning((const char*)pCompilationErrors->GetBufferPointer());
-			}
+
+		if (pCompilationErrors)
+		{
+			EmuWarning((char*)pCompilationErrors->GetBufferPointer());
+			pCompilationErrors->Release();
+			pCompilationErrors = NULL;
 		}
 	}
 	__except(EXCEPTION_EXECUTE_HANDLER)
 	{
 		DbgPrintf("Pixel Shader : Exception while creating pixel shader 0x%.8X\n", pPSD);
-	}
-	if (pCompilationErrors)
-	{
-		pCompilationErrors->Release();
 	}
 
 	return hRet;

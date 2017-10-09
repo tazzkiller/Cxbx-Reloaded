@@ -396,6 +396,7 @@ inline void ResizeIDirectSoundBuffer(
 
     if (pDS3DBuffer != NULL) {
         pDS3DBuffer->Release();
+		pDS3DBuffer = nullptr;
     }
     // release old buffer
     refCount = pDSBuffer->Release();
@@ -405,7 +406,7 @@ inline void ResizeIDirectSoundBuffer(
     pDSBufferDesc->dwBufferBytes = dwBytes;
 
     //Temporary creation since we need IDIRECTSOUNDBUFFER8, not IDIRECTSOUNDBUFFER class.
-    LPDIRECTSOUNDBUFFER pTempBuffer;
+    LPDIRECTSOUNDBUFFER pTempBuffer = nullptr;
     hRet = g_pDSound8->CreateSoundBuffer(pDSBufferDesc, &pTempBuffer, NULL);
 
     if (FAILED(hRet)) {
@@ -413,8 +414,10 @@ inline void ResizeIDirectSoundBuffer(
         pDSBufferDesc = NULL;
     } else {
         hRet = pTempBuffer->QueryInterface(IID_IDirectSoundBuffer8, (LPVOID*)&(pDSBuffer));
-        pTempBuffer->Release();
     }
+
+	if (pTempBuffer)
+        pTempBuffer->Release();
 
     if (FAILED(hRet)) {
         CxbxKrnlCleanup("IDirectSoundBuffer8 resize Failed!");

@@ -439,11 +439,10 @@ void DxbxUpdateDeferredStates()
 		// Copy the point sprites texture from stage 3 to 0
 		// (Not doing this makes PointSprites XDK sample show rectangular dots.)
 		if (SUCCEEDED(g_pD3DDevice8->GetTexture(3, &pHostBaseTexture)))
-		{
 			g_pD3DDevice8->SetTexture(0, pHostBaseTexture);
-			if (pHostBaseTexture != nullptr)
-				pHostBaseTexture->Release(); // Prevent memory leaks
-		}
+
+		if (pHostBaseTexture != nullptr)
+			pHostBaseTexture->Release(); // Prevent memory leaks
 #endif
 		// Transfer other texture stages for stage 3 too (not just the deferred ones)
 		DxbxTransferTextureStage(3, X_D3DTSS_OTHER_FIRST, X_D3DTSS_OTHER_LAST);

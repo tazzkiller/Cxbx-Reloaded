@@ -2102,9 +2102,10 @@ DWORD XTL::EmuRecompileVshDeclaration
 
     // Calculate size of declaration
     DWORD DeclarationSize = VshGetDeclarationSize(pDeclaration);
-    *ppRecompiledDeclaration = (DWORD *)malloc(DeclarationSize);
-    DWORD *pRecompiled = *ppRecompiledDeclaration;
+    DWORD *pRecompiled = (DWORD *)malloc(DeclarationSize);
     memcpy(pRecompiled, pDeclaration, DeclarationSize);
+	uint8_t *pRecompiledBufferOverflow = ((uint8_t*)pRecompiled) + DeclarationSize;
+    *ppRecompiledDeclaration = pRecompiled;
     *pDeclarationSize = DeclarationSize;
 
     // TODO: Put these in one struct
@@ -2112,8 +2113,13 @@ DWORD XTL::EmuRecompileVshDeclaration
 
     DbgVshPrintf("DWORD dwVSHDecl[] =\n{\n");
 
-    while (*pRecompiled != DEF_VSH_END)
-    {
+	while (*pRecompiled != DEF_VSH_END)
+	{
+		if ((uint8*)pRecompiled >= pRecompiledBufferOverflow) {
+			DbgVshPrintf("Detected buffer-overflow, breaking out...\n");
+			break;
+		}
+
         DWORD Step = VshRecompileToken(pRecompiled, IsFixedFunction, &PatchData);
         pRecompiled += Step;
     }
@@ -2149,7 +2155,7 @@ extern HRESULT XTL::EmuRecompileVshFunction
     DWORD               *pToken;
     boolean             EOI = false;
     VSH_XBOX_SHADER     *pShader = (VSH_XBOX_SHADER*)calloc(1, sizeof(VSH_XBOX_SHADER));
-	LPD3DXBUFFER		pErrors = NULL;
+	LPD3DXBUFFER		pCompilationErrors = NULL;
     HRESULT             hRet = 0;
 
     // TODO: support this situation..
@@ -2226,27 +2232,26 @@ extern HRESULT XTL::EmuRecompileVshFunction
 				D3DXASM_SKIPVALIDATION,
 				NULL,
 				ppRecompiled,
-				NULL);
+				&pCompilationErrors);
 		}
 		else
 		{
-
 			hRet = D3DXAssembleShader(pShaderDisassembly,
                                   strlen(pShaderDisassembly),
                                   D3DXASM_SKIPVALIDATION,
                                   NULL,
                                   ppRecompiled,
-                                  &pErrors);
+                                  &pCompilationErrors);
+		}
+
+		if (pCompilationErrors) {
+			EmuWarning((char*)pCompilationErrors->GetBufferPointer());
+			pCompilationErrors->Release();
+			pCompilationErrors = nullptr;
 		}
 
         if (FAILED(hRet))
-        {
             EmuWarning("Couldn't assemble recompiled vertex shader");
-			EmuWarning("%s", pErrors->GetBufferPointer());
-        }
-
-		if( pErrors )
-			pErrors->Release();
 
         free(pShaderDisassembly);
     }
