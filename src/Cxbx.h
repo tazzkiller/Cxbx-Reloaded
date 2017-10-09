@@ -93,6 +93,13 @@ typedef u32              xbaddr; // xbaddr is an Xbox physical address
 /*! define this to dump textures that are registered */
 //#define _DEBUG_DUMP_TEXTURE_REGISTER   "D:\\cxbx\\_textures\\"
 
+extern bool g_bIntegrityChecking;
+#ifdef _DEBUG
+extern void CxbxCheckIntegrity();
+#define CXBX_CHECK_INTEGRITY() CxbxCheckIntegrity()
+#else
+#define CXBX_CHECK_INTEGRITY()
+#endif
 
 /*! debug mode choices */
 enum DebugMode { DM_NONE, DM_CONSOLE, DM_FILE };
@@ -117,7 +124,7 @@ extern volatile bool g_bPrintfOn;
 
 /*! DbgPrintf enabled if _DEBUG_TRACE is set */
 #ifdef _DEBUG_TRACE
-	#define DbgPrintf(fmt, ...) do { if(g_bPrintfOn) printf("[0x%.4X] "##fmt, GetCurrentThreadId(), ##__VA_ARGS__); } while (0)
+	#define DbgPrintf(fmt, ...) do { CXBX_CHECK_INTEGRITY(); if(g_bPrintfOn) printf("[0x%.4X] "##fmt, GetCurrentThreadId(), ##__VA_ARGS__); } while (0)
 #else
 	inline void null_func(...) { }
 	#define DbgPrintf null_func

@@ -35,6 +35,8 @@
 // ******************************************************************
 #include "ResourceTracker.h"
 
+#include <assert.h>
+
 // exported globals
 
 bool g_bVBSkipStream = false;
@@ -49,29 +51,45 @@ ResourceTracker g_VBTrackDisable;
 ResourceTracker g_PBTrackTotal;
 ResourceTracker g_PBTrackDisable;
 ResourceTracker g_PBTrackShowOnce;
-ResourceTracker g_PatchedStreamsCache;
 #if 0 // unuseed
 ResourceTracker g_DataToTexture;
+ResourceTracker g_AlignCache;
 #endif
-//ResourceTracker g_AlignCache;
 
 ResourceTracker::~ResourceTracker()
 {
     clear();
 }
 
+bool ResourceTracker::dispose(RTNode *cur)
+{
+	if (cur) {
+		void *pResource = cur->pResource;
+		delete cur;
+		if (pResource) { // Note : nullptr isn't added, but m_tail has no pResource and gets here too
+			if (m_callback) {
+				// call on-delete-callback to avoid resource leaks
+				m_callback(pResource);
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 void ResourceTracker::clear()
 {
     this->Lock();
     RTNode *cur = m_head;
-    while(cur != nullptr) {
-        RTNode *tmp = cur->pNext;
-        delete cur;
-        cur = tmp;
-    }
-
     m_head = m_tail = nullptr;
     this->Unlock();
+
+    while(cur != nullptr) { // Note : cannot check against m_tail, it's cleared already
+        RTNode *tmp = cur->pNext;
+		dispose(cur);
+        cur = tmp;
+    }
 }
 
 void ResourceTracker::insert(void *pResource)
@@ -81,18 +99,21 @@ void ResourceTracker::insert(void *pResource)
 
 void ResourceTracker::insert(void *pKey, void *pResource)
 {
+	// Only insert when resource is assigned
+	if (pResource == nullptr)
+		return;
+
     this->Lock();
-	if (!exists(pKey)) {
+	if (get(pKey) == nullptr) {
 		if (m_head == nullptr) {
 			m_head = m_tail = new RTNode();
 		}
 
-		m_tail->pResource = pResource;
 		m_tail->pKey = pKey;
+		m_tail->pResource = pResource;
 		m_tail->pNext = new RTNode();
 		m_tail = m_tail->pNext;
-		m_tail->pKey = m_tail->pResource = NULL;
-		m_tail->pNext = nullptr;
+		m_tail->pKey = m_tail->pResource = m_tail->pNext = nullptr;
 	}
 
 	this->Unlock();
@@ -100,58 +121,74 @@ void ResourceTracker::insert(void *pKey, void *pResource)
 
 void *ResourceTracker::remove(void *pKey)
 {
-	void *res = nullptr;
     RTNode *pre = nullptr;
     this->Lock();
     RTNode *cur = m_head;
-    while(cur != nullptr) {
-        if(cur->pKey == pKey) {
-			res = cur->pResource;
-            if(pre != nullptr) {
-                pre->pNext = cur->pNext;
-            } else {
-                m_head = cur->pNext;
-                if(m_head->pNext == nullptr) {
-                    delete m_head;
-                    m_head = m_tail = nullptr;
-                }
-            }
+    while(cur != m_tail) {
+		if (cur->pKey == pKey) {
+			if (pre != nullptr)
+				pre->pNext = cur->pNext;
+			else {
+				m_head = cur->pNext;
+				if (m_head == m_tail) {
+					assert(m_head->pKey == nullptr);
+					assert(m_head->pNext == nullptr);
+					assert(m_head->pResource == nullptr);
 
-            delete cur;
+					delete m_head;
+					m_head = m_tail = nullptr;
+				}
+			}
+
 			break;
-        }
+		}
 
         pre = cur;
         cur = cur->pNext;
     }
 
     this->Unlock();
-	return res;
+	if (cur) {
+		void *res = cur->pResource;
+		if (!dispose(cur))
+			// When dispose didn't do a callback, returning res
+			return res;
+	}
+
+	return nullptr;
 }
 
-bool ResourceTracker::exists(void *pKey)
+void *ResourceTracker::exists(void *pKey)
 {
-    this->Lock();
+	void *res = nullptr;
+	this->Lock();
     RTNode *cur = m_head;
-    while(cur != nullptr) {
+    while(cur != m_tail) {
         if(cur->pKey == pKey) {
-            this->Unlock();
-
-            return true;
+            res = cur->pResource;
+			break;
         }
 
         cur = cur->pNext;
     }
 
     this->Unlock();
+    return res;
+}
 
-    return false;
+struct RTNode *ResourceTracker::getHead()
+{
+	assert(IsLocked());
+
+	return m_head;
 }
 
 void *ResourceTracker::get(void *pKey)
 {
+	assert(IsLocked());
+
     RTNode *cur = m_head;
-    while(cur != nullptr) {
+    while(cur != m_tail) {
         if(cur->pKey == pKey) {
             return cur->pResource;
         }
@@ -167,7 +204,7 @@ uint32 ResourceTracker::get_count(void)
     uint32 uiCount = 0;
     this->Lock();
     RTNode *cur = m_head;
-    while(cur != nullptr) {
+    while(cur != m_tail) {
         uiCount++;
         cur = cur->pNext;
     }

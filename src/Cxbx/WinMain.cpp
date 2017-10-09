@@ -49,6 +49,19 @@ processorArchitecture = '*' publicKeyToken = '6595b64144ccf1df' language = '*'\"
 /*! program entry point */
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+#ifdef _DEBUG
+	// Enable heap corruption reporting
+	//int CurDbgFlag = _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG);
+	//int NewDbgFlag = _CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_ALWAYS_DF; // on every heap operation we do
+	//int NewDbgFlag = _CRTDBG_ALLOC_MEM_DF | _CRTDBG_CHECK_EVERY_128_DF; // Once every 128 operations
+	int NewDbgFlag = _CRTDBG_ALLOC_MEM_DF; // Rely on CXBX_CHECK_INTEGRITY calling _CrtCheckMemory()
+	_CrtSetDbgFlag(NewDbgFlag);
+	// Show all reporting in a popup-windows
+	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_WNDW);
+	_CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_WNDW);
+	_CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_WNDW);
+#endif
+
 	/*! verify Cxbx.exe is loaded to base address 0x00010000 */
 	if ((UINT_PTR)GetModuleHandle(nullptr) != CXBX_BASE_ADDR)
 	{

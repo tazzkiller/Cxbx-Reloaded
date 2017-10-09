@@ -39,7 +39,7 @@
 #include "CxbxKrnl/Emu.h"
 #include "CxbxKrnl/EmuXTL.h"
 #include "CxbxKrnl/EmuD3D8Types.h" // For X_D3DFORMAT
-#include "CxbxKrnl/ResourceTracker.h"
+#include "CxbxKrnl/ResourceTracker.h" // For g_PBTrackTotal, g_PBTrackShowOnce, g_PBTrackDisable
 #include "CxbxKrnl/MemoryManager.h"
 #include "State.h"
 
@@ -175,8 +175,7 @@ extern void XTL::EmuExecutePushBufferRaw
     bool bShowPB = false;
 
     g_PBTrackTotal.insert(pdwPushData);
-    if (g_PBTrackShowOnce.exists(pdwPushData)) {
-        g_PBTrackShowOnce.remove(pdwPushData);
+    if (g_PBTrackShowOnce.remove(pdwPushData)) {
         printf("\n");
         printf("\n");
         printf("  PushBuffer@0x%p...\n", pdwPushData);
@@ -322,7 +321,7 @@ extern void XTL::EmuExecutePushBufferRaw
             if (pIBMem[0] != 0xFFFF) {
 				UINT uiIndexCount = dwCount + 2;
                 #ifdef _DEBUG_TRACK_PB
-                if (!g_PBTrackDisable.exists(pdwOrigPushData))
+                if (g_PBTrackDisable.exists(pdwOrigPushData) == nullptr)
                 #endif
                 // render indexed vertices
                 {
@@ -413,7 +412,7 @@ extern void XTL::EmuExecutePushBufferRaw
                 }
 
                 #ifdef _DEBUG_TRACK_PB
-                if (!g_PBTrackDisable.exists(pdwOrigPushData))
+                if (g_PBTrackDisable.exists(pdwOrigPushData) == nullptr)
                 #endif
                 // render indexed vertices
                 {

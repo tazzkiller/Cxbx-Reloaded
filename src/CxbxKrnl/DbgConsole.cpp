@@ -239,7 +239,7 @@ void DbgConsole::ParseCommand()
 
         while(cur != NULL && cur->pNext != NULL)
         {
-            bool enabled = !g_VBTrackDisable.exists(cur->pResource);
+            bool enabled = g_VBTrackDisable.exists(cur->pResource) == nullptr;
 
             printf("CxbxDbg: %.2d : 0x%p (%s)\n", v++, cur->pResource, enabled ? "enabled" : "disabled");
 
@@ -302,7 +302,7 @@ void DbgConsole::ParseCommand()
 
         while(cur != NULL && cur->pNext != NULL)
         {
-            bool enabled = !g_PBTrackDisable.exists(cur->pResource);
+            bool enabled = g_PBTrackDisable.exists(cur->pResource) == nullptr;
 
             printf("CxbxDbg: %.2d : 0x%p (%s)\n", v++, cur->pResource, enabled ? "enabled" : "disabled");
 

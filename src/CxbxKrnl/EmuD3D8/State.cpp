@@ -400,6 +400,7 @@ void CxbxPitchedCopy(BYTE *pDest, BYTE *pSrc, DWORD dwDestPitch, DWORD dwSrcPitc
 	{
 		// source and destination rows align, so copy all rows in one go
 		memcpy(pDest, pSrc, dwHeight * dwWidthInBytes);
+		CXBX_CHECK_INTEGRITY();
 	}
 	else
 	{
@@ -409,6 +410,7 @@ void CxbxPitchedCopy(BYTE *pDest, BYTE *pSrc, DWORD dwDestPitch, DWORD dwSrcPitc
 			memcpy(pDest, pSrc, dwWidthInBytes);
 			pDest += dwDestPitch;
 			pSrc += dwSrcPitch;
+			CXBX_CHECK_INTEGRITY();
 		}
 	}
 }

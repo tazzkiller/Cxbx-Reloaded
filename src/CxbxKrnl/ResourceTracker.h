@@ -40,26 +40,28 @@
 extern bool g_bVBSkipStream;
 extern bool g_bPBSkipPusher;
 
+typedef void (*ResourceCleanup)(void *pResource);
+
 extern class ResourceTracker : public Mutex
 {
     public:
-        ResourceTracker() : m_head(nullptr), m_tail(nullptr) {};
+        ResourceTracker(ResourceCleanup callback = nullptr) : m_callback(callback), m_head(nullptr), m_tail(nullptr) {};
        ~ResourceTracker();
 
         // clear the tracker
         void clear();
 
-        // insert a ptr using the pResource pointer as key
+        // insert a ptr using the pResource pointer as key and resource
         void insert(void *pResource);
 
-        // insert a ptr using an explicit key
+        // insert a ptr using an explicit key (unless resouce is a nullptr)
         void insert(void *pKey, void *pResource);
 
         // remove a ptr using an explicit key
         void *remove(void *pKey);
 
-        // check for existance of an explicit key
-        bool exists(void *pKey);
+        // check for existance of an explicit key, return associated resource if it exists, nullptr otherwise
+        void *exists(void *pKey);
 
         // retrieves a resource using an explicit key, explicit locking needed
         void *get(void *pKey);
@@ -68,12 +70,16 @@ extern class ResourceTracker : public Mutex
         uint32 get_count(void);
 
         // for traversal
-        struct RTNode *getHead() { return m_head; }
+		struct RTNode *getHead();
 
     private:
         // list of "live" vertex buffers for debugging purposes
         struct RTNode *m_head;
         struct RTNode *m_tail;
+		ResourceCleanup m_callback;
+
+		// deletes a RTNode, calling cleanup on it's resource
+	    bool dispose(RTNode *cur);
 }
 g_VBTrackTotal, 
 g_VBTrackDisable,
@@ -83,8 +89,8 @@ g_PBTrackShowOnce,
 g_PatchedStreamsCache 
 #if 0 // unused
 , g_DataToTexture
+, g_AlignCache
 #endif
-//, g_AlignCache
 ;
 
 struct RTNode

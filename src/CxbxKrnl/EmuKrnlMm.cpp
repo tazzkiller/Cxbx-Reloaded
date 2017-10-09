@@ -50,7 +50,6 @@ namespace xboxkrnl
 #include "EmuKrnlLogging.h"
 #include "CxbxKrnl.h" // For CxbxKrnlCleanup
 #include "Emu.h" // For EmuWarning()
-#include "ResourceTracker.h" // For g_AlignCache
 #include "MemoryManager.h"
 
 // prevent name collisions

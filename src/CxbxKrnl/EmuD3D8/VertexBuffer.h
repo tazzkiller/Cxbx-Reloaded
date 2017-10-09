@@ -101,7 +101,7 @@ class CxbxVertexBufferConverter
         void CacheStream(CxbxPatchedStream *pPatchedStream);
 
         // Frees a cached, patched stream
-        void FreeCachedStream(void *pStream);
+        void FreeCachedStream(void *pKey);
 
         // Tries to apply a previously patched stream from the cache
         bool ApplyCachedStream(CxbxDrawContext *pDrawContext,

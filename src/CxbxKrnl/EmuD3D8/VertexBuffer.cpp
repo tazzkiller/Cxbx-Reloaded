@@ -40,7 +40,7 @@
 #include "CxbxKrnl/xxhash32.h" // For XXHash32::hash()
 #include "CxbxKrnl/Emu.h"
 #include "CxbxKrnl/EmuXTL.h"
-#include "CxbxKrnl/ResourceTracker.h"
+#include "CxbxKrnl/ResourceTracker.h" // For ResourceTracker
 #include "CxbxKrnl/MemoryManager.h"
 
 #include <ctime>
@@ -105,6 +105,19 @@ void ReleasePatchedStream(XTL::CxbxPatchedStream *pPatchedStream)
 	}
 }
 
+void ResourceDisposePatchedStream(void *pResource)
+{
+	XTL::CxbxCachedStream *pCachedStream = (XTL::CxbxCachedStream *)pResource;
+	if (pCachedStream != nullptr) {
+		ReleasePatchedStream(&pCachedStream->Stream);
+		free(pCachedStream);
+	}
+}
+
+ResourceTracker g_PatchedStreamsCache(ResourceDisposePatchedStream);
+
+/* CxbxVertexBufferConverter */
+
 XTL::CxbxVertexBufferConverter::CxbxVertexBufferConverter()
 {
     this->m_uiNbrStreams = 0;
@@ -119,6 +132,7 @@ XTL::CxbxVertexBufferConverter::~CxbxVertexBufferConverter()
 void XTL::CxbxVertexBufferConverter::DumpCache(void)
 {
     printf("--- Dumping streams cache ---\n");
+	g_PatchedStreamsCache.Lock();
     RTNode *pNode = g_PatchedStreamsCache.getHead();
     while(pNode != nullptr)
     {
@@ -135,6 +149,7 @@ void XTL::CxbxVertexBufferConverter::DumpCache(void)
 
         pNode = pNode->pNext;
     }
+	g_PatchedStreamsCache.Unlock();
 }
 
 void XTL::CxbxVertexBufferConverter::CacheStream
@@ -147,6 +162,7 @@ void XTL::CxbxVertexBufferConverter::CacheStream
         void *pKey = NULL;
         uint32 uiMinHitCount = 0xFFFFFFFF;
 		clock_t ctExpiryTime = (clock() - MAX_STREAM_NOT_USED_TIME); // Was addition, seems wrong
+		g_PatchedStreamsCache.Lock();
         RTNode *pNode = g_PatchedStreamsCache.getHead();
         while(pNode != nullptr) {
 			CxbxCachedStream *pNodeStream = (CxbxCachedStream *)pNode->pResource;
@@ -168,6 +184,7 @@ void XTL::CxbxVertexBufferConverter::CacheStream
             pNode = pNode->pNext;
         }
 
+		g_PatchedStreamsCache.Unlock();
         if (pKey != NULL) {
             printf("!!!Removing stream\n\n");
             FreeCachedStream(pKey);
@@ -189,11 +206,7 @@ void XTL::CxbxVertexBufferConverter::CacheStream
 
 void XTL::CxbxVertexBufferConverter::FreeCachedStream(void *pKey)
 {
-	CxbxCachedStream *pCachedStream = (CxbxCachedStream *)g_PatchedStreamsCache.remove(pKey);
-    if (pCachedStream != nullptr) {
-		ReleasePatchedStream(&pCachedStream->Stream);
-		free(pCachedStream);
-    }
+	g_PatchedStreamsCache.remove(pKey); // Note : Leads to a call to ResourceDisposePatchedStream
 }
 
 bool XTL::CxbxVertexBufferConverter::ApplyCachedStream
@@ -367,8 +380,11 @@ bool XTL::CxbxVertexBufferConverter::ConvertStream
 		// the missing parts in the CompressedVertices sample (in Vertex shader mode).
 		uiHostVertexStride = (bNeedVertexPatching) ? pStreamDynamicPatch->ConvertedStride : uiXboxVertexStride;
 		dwHostVertexDataSize = uiVertexCount * uiHostVertexStride;
-		g_pD3DDevice8->CreateVertexBuffer(dwHostVertexDataSize, 0, 0, XTL::D3DPOOL_MANAGED, &pNewHostVertexBuffer);
-        if (FAILED(pNewHostVertexBuffer->Lock(0, 0, &pHostVertexData, D3DLOCK_DISCARD)))
+		HRESULT hRet = g_pD3DDevice8->CreateVertexBuffer(dwHostVertexDataSize, 0, 0, XTL::D3DPOOL_MANAGED, &pNewHostVertexBuffer);
+		if (FAILED(hRet))
+			CxbxKrnlCleanup("Couldn't CreateVertexBuffer");
+
+		if (FAILED(pNewHostVertexBuffer->Lock(0, 0, &pHostVertexData, D3DLOCK_DISCARD)))
             CxbxKrnlCleanup("Couldn't lock the new buffer");
         
 		bNeedStreamCopy = true;

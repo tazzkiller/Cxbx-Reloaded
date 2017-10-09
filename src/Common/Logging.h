@@ -174,6 +174,7 @@ constexpr const char* remove_emupatch_prefix(const char* str) {
 extern thread_local std::string _logPrefix;
 
 #define LOG_THREAD_INIT \
+	CXBX_CHECK_INTEGRITY(); \
 	if (_logPrefix.length() == 0) { \
 		std::stringstream tmp; \
 		tmp << "[" << hexstring16 << GetCurrentThreadId() << "] "; \

@@ -66,5 +66,6 @@ extern uint32 *g_pPrimaryPB;
 extern bool g_bStepPush;
 extern bool g_bSkipPush;
 extern bool g_bBrkPush;
+extern bool g_bIntegrityChecking;
 
 #endif

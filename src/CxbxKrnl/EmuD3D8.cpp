@@ -54,7 +54,7 @@ namespace xboxkrnl
 #include "EmuFS.h"
 #include "EmuShared.h"
 #include "DbgConsole.h"
-#include "ResourceTracker.h"
+#include "ResourceTracker.h" // For g_VBTrackTotal, g_bVBSkipStream //, g_AlignCache
 #include "MemoryManager.h"
 #include "EmuXTL.h"
 #include "HLEDatabase.h"
@@ -332,6 +332,7 @@ g_EmuCDPD = {0};
 
 #define DEBUG_D3DRESULT(hRet, message) \
 	do { \
+		CXBX_CHECK_INTEGRITY(); \
 		if (FAILED(hRet)) \
 			if(g_bPrintfOn) \
 				printf("%s : %s D3D error (0x%.08X: %s)\n", _logFuncPrefix.c_str(), message, hRet, D3DErrorString(hRet)); \
@@ -1672,8 +1673,22 @@ void DeriveXboxD3DDeviceAddresses()
 	if (XTL::Xbox_D3DDevice == Derived_Xbox_D3DDevice)
 		return;
 
+	// Derive Xbox_D3DDevice member addresses in incrementing order of occurence 
 	XTL::Xbox_D3DDevice = Derived_Xbox_D3DDevice;
 	DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice (Derived)\n", XTL::Xbox_D3DDevice);
+
+	// Determine the active vertex index
+	// This reads from g_pDevice->m_IndexBase in Xbox D3D
+	XTL::Xbox_D3DDevice_IndexBase = &(XTL::Xbox_D3DDevice[7]);
+	DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice_IndexBase (Derived)\n", XTL::Xbox_D3DDevice_IndexBase);
+
+	// Derive the address where active pixel shader pointer is stored
+	if (XTL::offsetof_Xbox_D3DDevice_m_PixelShader > 0) {
+		XTL::Xbox_D3DDevice_m_PixelShader = (DWORD *)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_PixelShader);
+		DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice_m_PixelShader (Derived)\n", XTL::Xbox_D3DDevice_m_PixelShader);
+	}
+	else
+		XTL::Xbox_D3DDevice_m_PixelShader = NULL;
 
 	// Derive the address where active texture pointers are stored
 	if (XTL::offsetof_Xbox_D3DDevice_m_Textures > 0) {
@@ -1690,19 +1705,6 @@ void DeriveXboxD3DDeviceAddresses()
 	}
 	else
 		XTL::Xbox_D3DDevice_m_Palettes = NULL;
-
-	// Derive the address where active pixel shader pointer is stored
-	if (XTL::offsetof_Xbox_D3DDevice_m_PixelShader > 0) {
-		XTL::Xbox_D3DDevice_m_PixelShader = (DWORD *)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_PixelShader);
-		DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice_m_PixelShader (Derived)\n", XTL::Xbox_D3DDevice_m_PixelShader);
-	}
-	else
-		XTL::Xbox_D3DDevice_m_PixelShader = NULL;
-
-	// Determine the active vertex index
-	// This reads from g_pDevice->m_IndexBase in Xbox D3D
-	XTL::Xbox_D3DDevice_IndexBase = &(XTL::Xbox_D3DDevice[7]);
-	DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice_IndexBase (Derived)\n", XTL::Xbox_D3DDevice_IndexBase);
 }
 
 bool IsAddressAllocated(void *addr)
@@ -1711,6 +1713,33 @@ bool IsAddressAllocated(void *addr)
 	VirtualQuery(addr, &MemInfo, sizeof(MemInfo));
 	return (MemInfo.State & MEM_COMMIT) > 0;
 }
+
+bool g_bIntegrityChecking = false;
+int thread_local recursion = 0;
+#ifdef _DEBUG
+void CxbxCheckIntegrity()
+{
+	if (g_bIntegrityChecking) {
+		if (recursion++ == 0) {
+			//_CrtCheckMemory();
+			if (XTL::Xbox_D3DDevice_m_Textures) {
+				for (int Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++) {
+					void *Addr;
+
+					Addr = XTL::GetXboxBaseTexture(Stage);
+					if (Addr && !IsAddressAllocated(Addr))
+						CxbxPopupMessage("Texture %d got damaged to 0x%p!", Stage, Addr);
+
+					Addr = XTL::GetXboxPalette(Stage);
+					if (Addr && !IsAddressAllocated(Addr))
+						CxbxPopupMessage("Palette %d got damaged to 0x%p!", Stage, Addr);
+				}
+			}
+		}
+		recursion--;
+	}
+}
+#endif
 
 // TODO : Move to own file
 void CxbxUpdateTextureStages()
@@ -2233,6 +2262,10 @@ static LRESULT WINAPI EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
                     ToggleFauxFullscreen(hWnd);
                 }
             }
+			else if (wParam == VK_F2)
+			{
+				g_bIntegrityChecking = !g_bIntegrityChecking;
+			}
 			else if (wParam == VK_F6)
 			{
 				// For some unknown reason, F6 isn't handled in WndMain::WndProc
@@ -6501,6 +6534,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 							pSrc, dwMipWidth, dwMipHeight, 1, // Was PixelJar.dwDepth, TODO : Why does this break Turok gallery?
 							pDest, dwDestPitch, PixelJar.dwBPP / 8
 						);
+						CXBX_CHECK_INTEGRITY();
 
 						if (bConvertToARGB) {
 							// After unswizzling, convert to ARGB from the intermediate (unswizzled) buffer
@@ -6541,6 +6575,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 								d += dwDestPitch - dwDestWidthInBytes;
 							}
 						}
+						CXBX_CHECK_INTEGRITY();
 					}
 					else
 					{
@@ -6558,6 +6593,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 							ConvertRowToARGB(((uint8 *)pSrc) + SrcRowOff, pDestRow, dwMipWidth);
 							SrcRowOff += dwSrcPitch;
 							pDestRow += dwDestPitch;
+							CXBX_CHECK_INTEGRITY();
 						}
 					}
 				}
