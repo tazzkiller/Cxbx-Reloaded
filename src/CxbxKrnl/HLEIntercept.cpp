@@ -435,10 +435,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 				if (strcmp(LibraryName.c_str(), Lib_XGRAPHC) == 0)
 				{
-					// Skip scanning for XGRAPHC (XG) symbols when LLE GPU is selected
-					if (bLLE_GPU)
-						continue;
-
 					if (BuildVersion == 3944)
 						BuildVersion = 3911;
 					if (OrigBuildVersion == 4531)
@@ -447,10 +443,6 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 				if (strcmp(LibraryName.c_str(), Lib_D3D8) == 0)
 				{
-					// Skip scanning for D3D8 symbols when LLE GPU is selected
-					if (bLLE_GPU)
-						continue;
-
 					// Some 3911 titles have different D3D8 builds
 					if (BuildVersion <= 3948)
 						BuildVersion = 3925;
