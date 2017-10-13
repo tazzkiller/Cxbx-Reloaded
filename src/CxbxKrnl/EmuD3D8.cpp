@@ -131,6 +131,8 @@ static XTL::LPDIRECT3D8             g_pD3D8 = nullptr;		// Direct3D8
 static XTL::D3DDEVTYPE				g_D3DDeviceType;		// Direct3D8 Device type
 static XTL::D3DCAPS8                g_D3DCaps;              // Direct3D8 Caps
 static XTL::D3DDISPLAYMODE          g_D3DDisplayMode = {};  // Direct3D8 Adapter Display mode
+static XTL::X_D3DPRESENT_PARAMETERS XboxD3DPresentParameters = {};
+
 
 // Modifieable, behaviour-changing variable
 int                                 g_FillModeOverride = 0; // Default 0=Xbox pass-through, 1=D3DFILL_WIREFRAME, 2=D3DFILL_POINT, 3=D3DFILL_SOLID
@@ -214,19 +216,154 @@ uint XTL::offsetof_Xbox_D3DDevice_m_Palettes = 0;
 XTL::X_D3DPalette **XTL::Xbox_D3DDevice_m_Palettes = NULL; // Can only be set once Xbox CreateDevice has ran
 uint XTL::offsetof_Xbox_D3DDevice_m_PixelShader = 0;
 XTL::DWORD *XTL::Xbox_D3DDevice_m_PixelShader = NULL;
+static TextureCache g_TextureCache; // TODO : Move to own file?
 
-void CxbxClearGlobals()
+// Forward function declarations
+const char *D3DErrorString(HRESULT hResult); // forward
+XTL::X_D3DSurface *EmuNewD3DSurface(); // forward
+void ConvertHostSurfaceHeaderToXbox
+(
+	XTL::IDirect3DSurface8 *pHostSurface,
+	XTL::X_D3DPixelContainer* pPixelContainer
+); // forward
+void UpdateDepthStencilFlags(const XTL::X_D3DSurface *pXboxSurface); // forward
+void Cxbx_Direct3D_CreateDevice(); // forward
+
+
+#ifdef _DEBUG_TRACE
+
+#define DEBUG_D3DRESULT(hRet, message) \
+	do { \
+		CXBX_CHECK_INTEGRITY(); \
+		if (FAILED(hRet)) \
+			if(g_bPrintfOn) \
+				printf("%s : %s D3D error (0x%.08X: %s)\n", _logFuncPrefix.c_str(), message, hRet, D3DErrorString(hRet)); \
+	} while (0)
+
+#else
+
+#define DEBUG_D3DRESULT(hRet, message) \
+	do { \
+		if (FAILED(hRet)) \
+			if(g_bPrintfOn) \
+				DbgPrintf("%s : %s D3D error (0x%.08X: %s)\n", __func__, message, hRet, D3DErrorString(hRet)); \
+	} while (0)
+
+#endif
+
+void CxbxInitD3DState()
+{
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
+	HRESULT hRet;
+
+	// HACK : Try to map Xbox to Host for : BackBuffer, RenderTarget and DepthStencil
+	// TODO : This doesn't really help, and introduces host-allocated resources into
+	// Xbox-land - it would be (much) better if we could run Xbox CreateDevice unpatched!
+	{
+		// Init backbuffer
+		hRet = g_pD3DDevice8->GetBackBuffer(0, XTL::D3DBACKBUFFER_TYPE_MONO, &g_pInitialHostBackBuffer);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
+
+		if (SUCCEEDED(hRet)) {
+			g_pInitialXboxBackBuffer = EmuNewD3DSurface();
+			if (g_pInitialHostBackBuffer != nullptr) {
+				ConvertHostSurfaceHeaderToXbox(g_pInitialHostBackBuffer, g_pInitialXboxBackBuffer);
+
+				//SetHostSurface(g_pInitialXboxBackBuffer, g_pInitialHostBackBuffer);
+				g_pInitialHostBackBuffer->Release();
+			}
+		}
+
+		g_pActiveXboxBackBuffer = g_pInitialXboxBackBuffer;
+
+		// update render target cache
+		hRet = g_pD3DDevice8->GetRenderTarget(&g_pInitialHostRenderTarget);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
+
+		if (SUCCEEDED(hRet)) {
+			g_pInitialXboxRenderTarget = EmuNewD3DSurface();
+			if (g_pInitialHostRenderTarget != nullptr) {
+				ConvertHostSurfaceHeaderToXbox(g_pInitialHostRenderTarget, g_pInitialXboxRenderTarget);
+
+				XTL::D3DLOCKED_RECT LockedRect;
+				g_pInitialHostRenderTarget->LockRect(&LockedRect, nullptr, 0);
+				g_pInitialXboxRenderTarget->Data = (DWORD)LockedRect.pBits;// Was CXBX_D3DRESOURCE_DATA_RENDER_TARGET;
+
+				//SetHostSurface(g_pInitialXboxRenderTarget, g_pInitialHostRenderTarget);
+				g_pInitialHostRenderTarget->Release();
+			}
+		}
+
+		g_pActiveXboxRenderTarget = g_pInitialXboxRenderTarget;
+
+		// update z-stencil surface cache
+		hRet = g_pD3DDevice8->GetDepthStencilSurface(&g_pInitialHostDepthStencil);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetDepthStencilSurface");
+
+		if (SUCCEEDED(hRet)) {
+			g_pInitialXboxDepthStencil = EmuNewD3DSurface();
+			if (g_pInitialXboxDepthStencil != nullptr) {
+				ConvertHostSurfaceHeaderToXbox(g_pInitialHostDepthStencil, g_pInitialXboxDepthStencil);
+
+				XTL::D3DLOCKED_RECT LockedRect;
+				g_pInitialHostDepthStencil->LockRect(&LockedRect, nullptr, 0);
+				g_pInitialXboxDepthStencil->Data = (DWORD)LockedRect.pBits; // Was CXBX_D3DRESOURCE_DATA_DEPTH_STENCIL;
+
+				//SetHostSurface(g_pInitialXboxDepthStencil, g_pInitialHostDepthStencil);
+				g_pInitialHostDepthStencil->Release();
+			}
+		}
+
+		g_pActiveXboxDepthStencil = g_pInitialXboxDepthStencil;
+
+		UpdateDepthStencilFlags(g_pActiveXboxDepthStencil);
+	}
+
+	hRet = g_pD3DDevice8->CreateVertexBuffer
+	(
+		1, 0, 0, XTL::D3DPOOL_MANAGED,
+		&g_pDummyBuffer
+	);
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateVertexBuffer");
+
+	for (int Streams = 0; Streams < MAX_NBR_STREAMS; Streams++)
+	{
+		// Dxbx note : Why do we need a dummy stream at all?
+		hRet = g_pD3DDevice8->SetStreamSource(Streams, g_pDummyBuffer, 1);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetStreamSource");
+	}
+
+}
+
+void CxbxClearD3DDeviceState()
 {
 	if (pClosingLineLoopIndexBuffer != nullptr) {
-// TODO		pClosingLineLoopIndexBuffer->Release();
+		pClosingLineLoopIndexBuffer->Release(); // TODO : This did crash - why?
 		pClosingLineLoopIndexBuffer = nullptr;
+		// Will be recreated by CxbxDrawIndexedClosingLine()
 	}
 
 	if (pQuadToTriangleD3DIndexBuffer != nullptr) {
-// TODO		pQuadToTriangleD3DIndexBuffer->Release();
+		pQuadToTriangleD3DIndexBuffer->Release(); // TODO : This did crash - why?
 		pQuadToTriangleD3DIndexBuffer = nullptr;
+		// Will be recreated by CxbxAssureQuadListD3DIndexBuffer()
 	}
 
+	if (g_pDummyBuffer != nullptr) {
+		g_pDummyBuffer->Release();
+		g_pDummyBuffer = nullptr;
+	}
+
+	g_TextureCache.Clear(); // Make sure all textures will be reconverted
+	// TODO : g_ConvertedIndexBuffers.Clear();
+	// TODO : g_VertexBufferCache.Clear(); // See g_PatchedStreamsCache
+	// TODO : g_VertexShaderCache.Clear();
+	// TODO : g_PixelShaderCache.Clear();
+}
+
+void CxbxClearGlobals()
+{
 	// g_hEmuWindow = nullptr;
 	g_pD3DDevice8 = nullptr;
 	g_pDDSPrimary7 = nullptr;
@@ -269,8 +406,6 @@ void CxbxClearGlobals()
 	g_pIndexBuffer = nullptr;
 	g_dwBaseVertexIndex = 0;
 #endif
-
-	g_pDummyBuffer = nullptr;
 
 	g_VBData = { 0 };
 	g_VBLastSwap = 0;
@@ -318,7 +453,7 @@ struct EmuD3D8CreateDeviceProxyData
 	XTL::X_D3DDEVICE_CREATION_PARAMETERS XboxCreationParameters; // Converted to Xbox
 	XTL::X_D3DPRESENT_PARAMETERS         XboxPresentationParameters; // Original Xbox version
 	XTL::  D3DPRESENT_PARAMETERS		 HostPresentationParameters; // Converted to Windows
-	XTL::IDirect3DDevice8              **ppReturnedDeviceInterface;
+//	XTL::IDirect3DDevice8              **ppReturnedDeviceInterface;
 	volatile bool                        bSignalled;
     union
     {
@@ -327,27 +462,6 @@ struct EmuD3D8CreateDeviceProxyData
     };
 }
 g_EmuCDPD = {0};
-
-#ifdef _DEBUG_TRACE
-
-#define DEBUG_D3DRESULT(hRet, message) \
-	do { \
-		CXBX_CHECK_INTEGRITY(); \
-		if (FAILED(hRet)) \
-			if(g_bPrintfOn) \
-				printf("%s : %s D3D error (0x%.08X: %s)\n", _logFuncPrefix.c_str(), message, hRet, D3DErrorString(hRet)); \
-	} while (0)
-
-#else
-
-#define DEBUG_D3DRESULT(hRet, message) \
-	do { \
-		if (FAILED(hRet)) \
-			if(g_bPrintfOn) \
-				DbgPrintf("%s : %s D3D error (0x%.08X: %s)\n", __func__, message, hRet, D3DErrorString(hRet)); \
-	} while (0)
-
-#endif
 
 const char *CxbxGetErrorDescription(HRESULT hResult)
 {
@@ -1665,10 +1779,9 @@ void DeriveXboxD3DDeviceAddresses()
 {
 	// Read the Xbox g_pDevice pointer into our D3D Device object 
 	DWORD *Derived_Xbox_D3DDevice = *(DWORD **)XTL::Xbox_pD3DDevice;
-	if (Derived_Xbox_D3DDevice == NULL) {
-		// As long as it isn't set, guess g_Device resides right next to g_pDevice :
-		Derived_Xbox_D3DDevice = (DWORD*)(XTL::Xbox_pD3DDevice + sizeof(void*));
-	}
+	if (Derived_Xbox_D3DDevice == NULL)
+		// As long as it isn't set, don't guess :
+		return;
 
 	if (XTL::Xbox_D3DDevice == Derived_Xbox_D3DDevice)
 		return;
@@ -1721,7 +1834,7 @@ void CxbxCheckIntegrity()
 {
 	if (g_bIntegrityChecking) {
 		if (recursion++ == 0) {
-			//_CrtCheckMemory();
+			_CrtCheckMemory();
 			if (XTL::Xbox_D3DDevice_m_Textures) {
 				for (int Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++) {
 					void *Addr;
@@ -1746,19 +1859,29 @@ void CxbxUpdateTextureStages()
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
+	// HACK! DeriveXboxD3DDeviceAddresses should be called as soon as Xbox CreateDevice has set g_pDevice (to g_Device)
+	// TODO : Move this call to the appropriate time (so it won't be repeated as often as now, here in CxbxUpdateTextureStages)
 	DeriveXboxD3DDeviceAddresses();
 
 	for (int Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++) {
 		XTL::IDirect3DBaseTexture8 *pHostBaseTexture = nullptr;
 		if (g_FillModeOverride == 0) {
 			auto XboxPalette = XTL::GetXboxPalette(Stage);
-			DWORD *PaletteColors = (XboxPalette != NULL) ? (DWORD*)GetDataFromXboxResource(XboxPalette) : NULL;
 			XTL::X_D3DBaseTexture *XboxBaseTexture = XTL::GetXboxBaseTexture(Stage);
+
 			if (XboxBaseTexture != NULL) {
-				if (IsAddressAllocated(XboxBaseTexture))
-					pHostBaseTexture = CxbxUpdateTexture(XboxBaseTexture, PaletteColors);
-				else {
+				if (!IsAddressAllocated(XboxBaseTexture))
 					EmuWarning("CxbxUpdateTextureStages read a rogue pointer! [%d]=0x%p", Stage, XboxBaseTexture);
+				else {
+					DWORD *PaletteColors = NULL;
+					if (XboxPalette != NULL) {
+						if (!IsAddressAllocated(XboxPalette))
+							EmuWarning("CxbxUpdateTextureStages read a rogue pointer! [%d]=0x%p", Stage, XboxPalette);
+						else
+							PaletteColors = (DWORD*)GetDataFromXboxResource(XboxPalette);
+					}
+
+					pHostBaseTexture = CxbxUpdateTexture(XboxBaseTexture, PaletteColors);
 				}
 			}
 		}
@@ -1961,9 +2084,6 @@ VOID XTL::EmuD3DInit()
 
 	// create default device
 	{
-		// Keep this static, as members might be addressed later
-		static X_D3DPRESENT_PARAMETERS XboxD3DPresentParameters = {};
-
 		// Defaults, probably overwritten by settings below
 		XboxD3DPresentParameters.BackBufferWidth = 640;
 		XboxD3DPresentParameters.BackBufferHeight = 480;
@@ -2014,7 +2134,7 @@ VOID XTL::EmuD3DInit()
 				XboxD3DPresentParameters.BackBufferFormat = X_D3DFMT_A8R8G8B8;
 		}
 
-		EMUPATCH(Direct3D_CreateDevice)(0, X_D3DDEVTYPE_HAL, 0, D3DCREATE_HARDWARE_VERTEXPROCESSING, &XboxD3DPresentParameters, &g_pD3DDevice8);
+		Cxbx_Direct3D_CreateDevice();
     }
 }
 
@@ -2562,16 +2682,28 @@ void CxbxClear
 	}
 }
 
+HRESULT CxbxReset()
+{
+	LOG_INIT // Allows use of DEBUG_D3DRESULT
+
+	// https ://msdn.microsoft.com/en-us/library/windows/desktop/bb174425(v=vs.85).aspx
+	// "Before calling the IDirect3DDevice9::Reset method for a device, an application should
+	// release any explicit render targets, depth stencil surfaces, additional swap chains,
+	// state blocks, and D3DPOOL_DEFAULT resources associated with the device." :
+	CxbxClearD3DDeviceState();
+
+	HRESULT hRet = g_pD3DDevice8->Reset(&(g_EmuCDPD.HostPresentationParameters));
+	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Reset");
+
+	return hRet;
+}
+
 // A wrapper for Present() with an extra safeguard to restore 'device lost' errors
 void CxbxPresent()
 {
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	HRESULT hRet;
-
-	// HACK! DeriveXboxD3DDeviceAddresses should be called as soon as Xbox CreateDevice has set g_pDevice (to g_Device)
-	// TODO : Move this call to the appropriate time (so it won't be repeated as often as now, here in Present)
-	DeriveXboxD3DDeviceAddresses();
 
 	CxbxReleaseSurface(&g_pActiveHostBackBuffer);
 
@@ -2581,7 +2713,7 @@ void CxbxPresent()
 	hRet = g_pD3DDevice8->Present(nullptr, nullptr, 0, nullptr);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Present");
 
-	if (hRet == D3DERR_DEVICELOST)
+	if (hRet == D3DERR_DEVICELOST) {
 		while (hRet != D3D_OK)
 		{
 			hRet = g_pD3DDevice8->TestCooperativeLevel();
@@ -2589,8 +2721,11 @@ void CxbxPresent()
 				Sleep(500); // Wait a bit so we don't burn through cycles for no reason
 			else
 				if (hRet == D3DERR_DEVICENOTRESET) // Lost but we can reset it now
-					hRet = g_pD3DDevice8->Reset(&(g_EmuCDPD.HostPresentationParameters));
+					hRet = CxbxReset();
 		}
+
+		CxbxInitD3DState();
+	}
 
 	hRet = g_pD3DDevice8->BeginScene();
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
@@ -2599,7 +2734,7 @@ void CxbxPresent()
 }
 
 // thread dedicated to create devices
-static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
+static DWORD WINAPI EmuCreateDeviceProxy(LPVOID) // TODO : Figure out whether it's still needed to do this via a proxy thread
 {
 	LOG_FUNC(); // Required for DEBUG_D3DRESULT (_logFuncPrefix)
 
@@ -2621,11 +2756,13 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 
 					// Address DirectX Debug Runtime reported error in _DEBUG builds
 					// Direct3D8: (ERROR) :Not all objects were freed: the following indicate the types of unfreed objects.
-#ifndef _DEBUG
-					while (g_pD3DDevice8->Release() != 0);
-#endif
+					CxbxClearD3DDeviceState();
 
-					// Prevent exceptions on stale pointers in release-builds :
+					// Cleanup previous device (and all related state) :
+					while (g_pD3DDevice8->Release() > 0)
+						;
+
+					// Prevent exceptions on stale pointers
 					CxbxClearGlobals();
 				}
 
@@ -2730,16 +2867,6 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 				// Dxbx addition : Prevent Direct3D from changing the FPU Control word :
 				g_EmuCDPD.HostCreationParameters.BehaviorFlags |= D3DCREATE_FPU_PRESERVE;
 
-				// Cleanup previous device (and all related state) if necessary :
-				if (g_pD3DDevice8 != nullptr)
-				{
-					while (g_pD3DDevice8->Release() > 0)
-						;
-
-					// Prevent exceptions on stale pointers
-					CxbxClearGlobals();
-				}
-
 				// Address debug DirectX runtime warning in _DEBUG builds
 				// Direct3D8: (WARN) :Device that was created without D3DCREATE_MULTITHREADED is being used by a thread other than the creation thread.
 				g_EmuCDPD.HostCreationParameters.BehaviorFlags |= D3DCREATE_MULTITHREADED;
@@ -2752,7 +2879,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					g_EmuCDPD.HostCreationParameters.hFocusWindow,
 					g_EmuCDPD.HostCreationParameters.BehaviorFlags,
 					&(g_EmuCDPD.HostPresentationParameters),
-					g_EmuCDPD.ppReturnedDeviceInterface
+					&g_pD3DDevice8
 				);
 				DEBUG_D3DRESULT(g_EmuCDPD.hRet, "IDirect3D8::CreateDevice");
 
@@ -2769,16 +2896,13 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 						g_EmuCDPD.HostCreationParameters.hFocusWindow,
 						g_EmuCDPD.HostCreationParameters.BehaviorFlags,
 						&(g_EmuCDPD.HostPresentationParameters),
-						g_EmuCDPD.ppReturnedDeviceInterface
+						&g_pD3DDevice8
 					);
 					DEBUG_D3DRESULT(g_EmuCDPD.hRet, "IDirect3D8::CreateDevice");
 				}
 
 				if (FAILED(g_EmuCDPD.hRet))
                     CxbxKrnlCleanup("IDirect3D8::CreateDevice failed");
-
-				// cache device pointer
-				g_pD3DDevice8 = *g_EmuCDPD.ppReturnedDeviceInterface;
 
 				HRESULT hRet;
 
@@ -2907,82 +3031,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID)
 					}
                 }
 
-				// HACK : Try to map Xbox to Host for : BackBuffer, RenderTarget and DepthStencil
-				// TODO : This doesn't really help, and introduces host-allocated resources into
-				// Xbox-land - it would be (much) better if we could run Xbox CreateDevice unpatched!
-				{
-					// Init backbuffer
-					hRet = g_pD3DDevice8->GetBackBuffer(0, XTL::D3DBACKBUFFER_TYPE_MONO, &g_pInitialHostBackBuffer);
-					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
-
-					if (SUCCEEDED(hRet)) {
-						g_pInitialXboxBackBuffer = EmuNewD3DSurface();
-						if (g_pInitialHostBackBuffer != nullptr) {
-							ConvertHostSurfaceHeaderToXbox(g_pInitialHostBackBuffer, g_pInitialXboxBackBuffer);
-
-							//SetHostSurface(g_pInitialXboxBackBuffer, g_pInitialHostBackBuffer);
-							g_pInitialHostBackBuffer->Release();
-						}
-					}
-
-					g_pActiveXboxBackBuffer = g_pInitialXboxBackBuffer;
-
-					// update render target cache
-					hRet = g_pD3DDevice8->GetRenderTarget(&g_pInitialHostRenderTarget);
-					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
-
-					if (SUCCEEDED(hRet)) {
-						g_pInitialXboxRenderTarget = EmuNewD3DSurface();
-						if (g_pInitialHostRenderTarget != nullptr) {
-							ConvertHostSurfaceHeaderToXbox(g_pInitialHostRenderTarget, g_pInitialXboxRenderTarget);
-
-							XTL::D3DLOCKED_RECT LockedRect;
-							g_pInitialHostRenderTarget->LockRect(&LockedRect, nullptr, 0);
-							g_pInitialXboxRenderTarget->Data = (DWORD)LockedRect.pBits;// Was CXBX_D3DRESOURCE_DATA_RENDER_TARGET;
-
-							//SetHostSurface(g_pInitialXboxRenderTarget, g_pInitialHostRenderTarget);
-							g_pInitialHostRenderTarget->Release();
-						}
-					}
-
-					g_pActiveXboxRenderTarget = g_pInitialXboxRenderTarget;
-
-					// update z-stencil surface cache
-					hRet = g_pD3DDevice8->GetDepthStencilSurface(&g_pInitialHostDepthStencil);
-					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetDepthStencilSurface");
-
-					if (SUCCEEDED(hRet)) {
-						g_pInitialXboxDepthStencil = EmuNewD3DSurface();
-						if (g_pInitialXboxDepthStencil != nullptr) {
-							ConvertHostSurfaceHeaderToXbox(g_pInitialHostDepthStencil, g_pInitialXboxDepthStencil);
-
-							XTL::D3DLOCKED_RECT LockedRect;
-							g_pInitialHostDepthStencil->LockRect(&LockedRect, nullptr, 0);
-							g_pInitialXboxDepthStencil->Data = (DWORD)LockedRect.pBits; // Was CXBX_D3DRESOURCE_DATA_DEPTH_STENCIL;
-
-							//SetHostSurface(g_pInitialXboxDepthStencil, g_pInitialHostDepthStencil);
-							g_pInitialHostDepthStencil->Release();
-						}
-					}
-
-					g_pActiveXboxDepthStencil = g_pInitialXboxDepthStencil;
-
-					UpdateDepthStencilFlags(g_pActiveXboxDepthStencil);
-				}
-
-				hRet = g_pD3DDevice8->CreateVertexBuffer
-                (
-                    1, 0, 0, XTL::D3DPOOL_MANAGED,
-                    &g_pDummyBuffer
-                );
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateVertexBuffer");
-
-                for(int Streams = 0; Streams < MAX_NBR_STREAMS; Streams++)
-                {
-					// Dxbx note : Why do we need a dummy stream at all?
-					hRet = g_pD3DDevice8->SetStreamSource(Streams, g_pDummyBuffer, 1);
-					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetStreamSource");
-				}
+				CxbxInitD3DState();
 
 				// initially, show a black screen
 				UpdateDepthStencilFlags(g_pActiveXboxDepthStencil); // Update g_bHasDepthBits and g_bHasStencilBits
@@ -3211,31 +3260,16 @@ void CxbxUpdateActiveIndexBuffer
 		CxbxKrnlCleanup("CxbxUpdateActiveIndexBuffer: SetIndices Failed!");
 }
 
-// ******************************************************************
-// * Start of all D3D patches
-// ******************************************************************
-
-#if 1 // Patch disabled, but still callable
-HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
-(
-    UINT                        Adapter,
-    X_D3DDEVTYPE                DeviceType,
-    HWND                        hFocusWindow,
-    DWORD                       BehaviorFlags,
-    X_D3DPRESENT_PARAMETERS    *pPresentationParameters,
-    IDirect3DDevice8          **ppReturnedDeviceInterface
-)
+void Cxbx_Direct3D_CreateDevice()
+// Called by EmuD3DInit()
 {
-//	FUNC_EXPORTS
-
-	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(Adapter)
-		LOG_FUNC_ARG(DeviceType)
-		LOG_FUNC_ARG(hFocusWindow)
-		LOG_FUNC_ARG(BehaviorFlags) // Xbox BehaviorFlags are ignored
-		LOG_FUNC_ARG(pPresentationParameters)
-		LOG_FUNC_ARG(ppReturnedDeviceInterface)
-		LOG_FUNC_END;
+	// EMUPATCH(Direct3D_CreateDevice)(0, X_D3DDEVTYPE_HAL, 0, D3DCREATE_HARDWARE_VERTEXPROCESSING, &XboxD3DPresentParameters, &g_pD3DDevice8);
+	UINT							Adapter = 0;
+	XTL::X_D3DDEVTYPE				DeviceType = XTL::X_D3DDEVTYPE_HAL;
+	HWND							hFocusWindow = 0;
+	DWORD							BehaviorFlags = D3DCREATE_HARDWARE_VERTEXPROCESSING; // Xbox BehaviorFlags are ignored
+	XTL::X_D3DPRESENT_PARAMETERS   *pPresentationParameters = &XboxD3DPresentParameters;
+//	XTL::IDirect3DDevice8         **ppReturnedDeviceInterface = &g_pD3DDevice8;
 
 	// Print a few of the pPresentationParameters contents to the console
 	DbgPrintf("BackBufferWidth:        = %d\n"
@@ -3251,7 +3285,6 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 			  pPresentationParameters->SwapEffect, pPresentationParameters->EnableAutoDepthStencil,
 			  pPresentationParameters->AutoDepthStencilFormat, pPresentationParameters->Flags );
 
-	// Direct3D_CreateDevice is called by EmuD3DInit(), and probably also by Xbox code;
 	// Check if this is a second call requesting identical setup to the previous one
 	if (g_pD3DDevice8 != nullptr)
 	if (g_EmuCDPD.XboxCreationParameters.AdapterOrdinal == Adapter)
@@ -3266,8 +3299,8 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 	if (g_EmuCDPD.XboxPresentationParameters.Flags == pPresentationParameters->Flags) {
 		DbgPrintf("D3D8: Prevented duplicate CreateDevice proxy call.\n");
 		g_EmuCDPD.XboxPresentationParameters = *pPresentationParameters; // Do use the Xbox pointer
-		*ppReturnedDeviceInterface = *g_EmuCDPD.ppReturnedDeviceInterface;
-		return g_EmuCDPD.hRet;
+//		*ppReturnedDeviceInterface = *g_EmuCDPD.ppReturnedDeviceInterface;
+//		return g_EmuCDPD.hRet;
 	}
 
     // Cache parameters
@@ -3275,7 +3308,7 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
     g_EmuCDPD.XboxCreationParameters.DeviceType = DeviceType;
     g_EmuCDPD.XboxCreationParameters.hFocusWindow = hFocusWindow;
     g_EmuCDPD.XboxPresentationParameters = *pPresentationParameters;
-	g_EmuCDPD.ppReturnedDeviceInterface = ppReturnedDeviceInterface;
+//	g_EmuCDPD.ppReturnedDeviceInterface = ppReturnedDeviceInterface;
 
     // Wait until proxy is done with an existing call (i highly doubt this situation will come up)
     while (g_EmuCDPD.bSignalled)
@@ -3289,7 +3322,7 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
     while (g_EmuCDPD.bSignalled)
         Sleep(10);
 
-	DeriveXboxD3DDeviceAddresses();
+	using namespace XTL;
 
 	// Finally, set all default render and texture states
 	// All commented out states are unsupported on this version of DirectX 8
@@ -3417,10 +3450,12 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 		//g_pD3DDevice8->SetTextureStageState(stage, D3DTSS_COLORKEYCOLOR, 0);
 	}
 
-    return g_EmuCDPD.hRet;
+//    return g_EmuCDPD.hRet;
 }
-#endif
 
+// ******************************************************************
+// * Start of all D3D patches
+// ******************************************************************
 BOOL WINAPI XTL::EMUPATCH(D3DDevice_IsBusy)()
 {
 	FUNC_EXPORTS
@@ -5260,14 +5295,29 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
     X_D3DBaseTexture  *pTexture
 )
 {
-//	FUNC_EXPORTS
+	FUNC_EXPORTS
+
+	if (pTexture) {
+		if (!IsAddressAllocated(pTexture)) {
+			CxbxPopupMessage("D3DDevice_SetTexture : Unexpected texture addresss!");
+			pTexture = NULL; // Prevent logging crash
+		}
+	}
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Stage)
 		LOG_FUNC_ARG(pTexture)
 		LOG_FUNC_END;
 
+	if (pTexture)
+		pTexture->Common++; // EMUPATCH(D3DResource_AddRef)(pTexture) would give too much overhead (and needless logging)
+
+	X_D3DBaseTexture  *pOldTexture = GetXboxBaseTexture(Stage);
 	SetXboxBaseTexture(Stage, pTexture); // Note : Is reference-counting needed?
+
+	if (pOldTexture) {
+		pOldTexture->Common--; // NOTE : Reaching zero should lead to destruction - we igore that for testing purposes
+	}
 
 #if 0
 	IDirect3DBaseTexture8 *pHostBaseTexture = nullptr;
@@ -6068,8 +6118,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	const DWORD *pPalette
 )
 {
-	static TextureCache g_TextureCache; // TODO : Move to own file
-
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	if (pPixelContainer == NULL)
