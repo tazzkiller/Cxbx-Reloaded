@@ -723,7 +723,7 @@ const char *GameRegionToString(DWORD aGameRegion)
 	};
 
 	if ((aGameRegion & ~XBEIMAGE_GAME_REGION_KNOWN) > 0)
-		return "REGION ERROR";
+		DbgPrintf("REGION ERROR! (0x%X)\n", aGameRegion);
 
 	DWORD index = (aGameRegion & 7) | (aGameRegion & XBEIMAGE_GAME_REGION_MANUFACTURING ? 8 : 0);
 	return Regions[index];
