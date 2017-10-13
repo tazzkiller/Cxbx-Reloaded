@@ -226,7 +226,7 @@ extern void XTL::EmuExecutePushBufferRaw
             pdwPushData += dwCount;
             // retrieve vertex shader
             g_pD3DDevice8->GetVertexShader(&dwVertexShader);
-            if (dwVertexShader > 0xFFFF) {
+            if (!VshHandleIsFVF(dwVertexShader)) {
                 CxbxKrnlCleanup("Non-FVF Vertex Shaders not yet supported for PushBuffer emulation!");
                 dwVertexShader = 0;
             }
@@ -657,7 +657,7 @@ void XTL::DbgDumpPushBuffer(PPUSH PBData, DWORD dwSize)
 					"GetVertexShader = 0x%.08X\n" );
 	}*/
 
-	if (dwVertexShader > 0xFFFF) {
+	if (!VshHandleIsFVF(dwVertexShader)) {
 		EmuWarning("Cannot dump pushbuffer without an FVF (programmable shaders not supported)");
 		return;
 	}
