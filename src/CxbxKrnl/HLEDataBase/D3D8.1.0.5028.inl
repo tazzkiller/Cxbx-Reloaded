@@ -189,7 +189,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_GetRenderTarget2
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_GetRenderTarget2, 5028, 6)
+OOVPA_XREF(D3DDevice_GetRenderTarget2, 5028, 1+6,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x08, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET), // Derived. TODO : Verify
 
         { 0x05, 0x56 },
         { 0x06, 0x8B },
@@ -202,7 +207,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_GetDepthStencilSurface2
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_GetDepthStencilSurface2, 5028, 7)
+OOVPA_XREF(D3DDevice_GetDepthStencilSurface2, 5028, 1+7,
+	
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x08, XREF_OFFSET_D3DDEVICE_M_DEPTHSTENCIL), // Derived
 
         { 0x05, 0x56 },
         { 0x06, 0x8B },

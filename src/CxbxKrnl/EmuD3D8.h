@@ -78,37 +78,43 @@ extern xbaddr Xbox_pD3DDevice; // The address where an Xbe will put it's D3DDevi
 
 extern DWORD *Xbox_D3DDevice; // Once known, the actual D3DDevice pointer
 
-extern DWORD *Xbox_D3DDevice_IndexBase;
-
-extern uint offsetof_Xbox_D3DDevice_m_Textures;
-extern X_D3DBaseTexture **Xbox_D3DDevice_m_Textures;
-
-extern uint offsetof_Xbox_D3DDevice_m_Palettes;
-extern X_D3DPalette **Xbox_D3DDevice_m_Palettes;
+extern DWORD *Xbox_D3DDevice_m_IndexBase;
 
 extern uint offsetof_Xbox_D3DDevice_m_PixelShader;
 extern DWORD *Xbox_D3DDevice_m_PixelShader;
 
+extern uint offsetof_Xbox_D3DDevice_m_pTextures;
+extern X_D3DBaseTexture **Xbox_D3DDevice_m_pTextures;
+
+extern uint offsetof_Xbox_D3DDevice_m_pPalettes;
+extern X_D3DPalette **Xbox_D3DDevice_m_pPalettes;
+
+extern uint offsetof_Xbox_D3DDevice_m_pRenderTarget;
+extern X_D3DSurface **Xbox_D3DDevice_m_pRenderTarget;
+
+extern uint offsetof_Xbox_D3DDevice_m_pDepthStencil;
+extern X_D3DSurface **Xbox_D3DDevice_m_pDepthStencil;
+
 #if 0 // unused
 inline void SetXboxBaseTexture(UINT uiStage, X_D3DBaseTexture *pTexture)
 {
-	if(Xbox_D3DDevice_m_Textures != NULL)
-		Xbox_D3DDevice_m_Textures[uiStage] = pTexture;
+	if(Xbox_D3DDevice_m_pTextures != NULL)
+		Xbox_D3DDevice_m_pTextures[uiStage] = pTexture;
 }
 #endif
 
 inline X_D3DBaseTexture *GetXboxBaseTexture(UINT uiStage)
 {
-	if (Xbox_D3DDevice_m_Textures != NULL)
-		return Xbox_D3DDevice_m_Textures[uiStage];
+	if (Xbox_D3DDevice_m_pTextures != NULL)
+		return Xbox_D3DDevice_m_pTextures[uiStage];
 
 	return NULL;
 }
 
 inline X_D3DPalette *GetXboxPalette(UINT uiStage)
 {
-	if(Xbox_D3DDevice_m_Palettes != NULL) 
-		return Xbox_D3DDevice_m_Palettes[uiStage];
+	if(Xbox_D3DDevice_m_pPalettes != NULL) 
+		return Xbox_D3DDevice_m_pPalettes[uiStage];
 
 	return NULL;
 }
@@ -633,7 +639,7 @@ VOID WINAPI EMUPATCH(D3DDevice_SetTexture)
 );
 #endif
 
-#if 0 // Patch disabled - We read the result from Xbox_D3DDevice_m_Textures anyway. The pushed (PGRAPH) commands are currently ignored in our puller.
+#if 0 // Patch disabled - We read the result from Xbox_D3DDevice_m_pTextures anyway. The pushed (PGRAPH) commands are currently ignored in our puller.
 // ******************************************************************
 // * patch: D3DDevice_SwitchTexture
 // ******************************************************************

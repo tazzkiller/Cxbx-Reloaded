@@ -194,9 +194,11 @@ void SetGlobalSymbols()
 	XTL::Xbox_D3D__RenderState_Deferred = (DWORD*)FindSymbolAddress("D3D__RenderState_Deferred");
 	XTL::Xbox_D3D_TextureState = (DWORD*)FindSymbolAddress("D3D__TextureState");
 	XTL::Xbox_g_Stream = (XTL::X_Stream *)FindSymbolAddress("g_Stream", Warn); // Optional. Test case : aerox2
-	XTL::offsetof_Xbox_D3DDevice_m_Textures = (uint)FindSymbolAddress("offsetof(D3DDevice,m_Textures)", Warn); // Optional. Test case: Micro Machines, Metal Gear Solid 2 (might need D3DDevice_SetTexture 4928 OOVPA + XREF_OFFSET_D3DDEVICE_M_TEXTURES)
-	XTL::offsetof_Xbox_D3DDevice_m_Palettes = (uint)FindSymbolAddress("offsetof(D3DDevice,m_Palettes)", Warn); // Optional. Test case: X-Marbles
 	XTL::offsetof_Xbox_D3DDevice_m_PixelShader = (uint)FindSymbolAddress("offsetof(D3DDevice,m_PixelShader)", Warn); // Optional. Test case: needed
+	XTL::offsetof_Xbox_D3DDevice_m_pTextures = (uint)FindSymbolAddress("offsetof(D3DDevice,m_Textures)", Warn); // Optional. Test case: Micro Machines, Metal Gear Solid 2 (might need D3DDevice_SetTexture 4928 OOVPA + XREF_OFFSET_D3DDEVICE_M_TEXTURES)
+	XTL::offsetof_Xbox_D3DDevice_m_pPalettes = (uint)FindSymbolAddress("offsetof(D3DDevice,m_Palettes)", Warn); // Optional. Test case: X-Marbles
+	XTL::offsetof_Xbox_D3DDevice_m_pRenderTarget = (uint)FindSymbolAddress("offsetof(D3DDevice,m_RenderTarget)", Warn); // Optional. Test case: needed
+	XTL::offsetof_Xbox_D3DDevice_m_pDepthStencil = (uint)FindSymbolAddress("offsetof(D3DDevice,m_DepthStencil)", Warn); // Optional. Test case: needed
 }
 
 void EmuHLEIntercept(Xbe::Header *pXbeHeader)
@@ -362,9 +364,11 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 		XRefDataBase[XREF_D3DRS_CULLMODE] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_G_STREAM] = XREF_ADDR_DERIVE;
+		XRefDataBase[XREF_OFFSET_D3DDEVICE_M_PIXELSHADER] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_OFFSET_D3DDEVICE_M_PALETTES] = XREF_ADDR_DERIVE;
-		XRefDataBase[XREF_OFFSET_D3DDEVICE_M_PIXELSHADER] = XREF_ADDR_DERIVE;
+		XRefDataBase[XREF_OFFSET_D3DDEVICE_M_RENDERTARGET] = XREF_ADDR_DERIVE;
+		XRefDataBase[XREF_OFFSET_D3DDEVICE_M_DEPTHSTENCIL] = XREF_ADDR_DERIVE;
 
 		for(int p=0;UnResolvedXRefs < LastUnResolvedXRefs;p++)
         {
@@ -614,20 +618,17 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 	printf("\n");
 
-	if (XRefAddrFound(XREF_OFFSET_D3DDEVICE_M_TEXTURES)) {
-		g_SymbolAddresses["offsetof(D3DDevice,m_Textures)"] = XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES];
-		printf("HLE: Derived 0x%.08X -> offsetof(D3DDevice,m_Textures)\n", XRefDataBase[XREF_OFFSET_D3DDEVICE_M_TEXTURES]);
+#define MapXRefToSymbol(XREF, symbol) \
+	if (XRefAddrFound(XREF)) { \
+		g_SymbolAddresses[symbol] = XRefDataBase[XREF]; \
+		printf("HLE: Derived 0x%.08X -> " ## symbol ## "\n", XRefDataBase[XREF]); \
 	}
 
-	if (XRefAddrFound(XREF_OFFSET_D3DDEVICE_M_PALETTES)) {
-		g_SymbolAddresses["offsetof(D3DDevice,m_Palettes)"] = XRefDataBase[XREF_OFFSET_D3DDEVICE_M_PALETTES];
-		printf("HLE: Derived 0x%.08X -> offsetof(D3DDevice,m_Palettes)\n", XRefDataBase[XREF_OFFSET_D3DDEVICE_M_PALETTES]);
-	}
-
-	if (XRefAddrFound(XREF_OFFSET_D3DDEVICE_M_PIXELSHADER)) {
-		g_SymbolAddresses["offsetof(D3DDevice,m_PixelShader)"] = XRefDataBase[XREF_OFFSET_D3DDEVICE_M_PIXELSHADER];
-		printf("HLE: Derived 0x%.08X -> offsetof(D3DDevice,m_PixelShader)\n", XRefDataBase[XREF_OFFSET_D3DDEVICE_M_PIXELSHADER]);
-	}
+	MapXRefToSymbol(XREF_OFFSET_D3DDEVICE_M_PIXELSHADER, "offsetof(D3DDevice,m_PixelShader)");
+	MapXRefToSymbol(XREF_OFFSET_D3DDEVICE_M_TEXTURES, "offsetof(D3DDevice,m_Textures)");
+	MapXRefToSymbol(XREF_OFFSET_D3DDEVICE_M_PALETTES, "offsetof(D3DDevice,m_Palettes)");
+	MapXRefToSymbol(XREF_OFFSET_D3DDEVICE_M_RENDERTARGET, "offsetof(D3DDevice,m_RenderTarget)");
+	MapXRefToSymbol(XREF_OFFSET_D3DDEVICE_M_DEPTHSTENCIL, "offsetof(D3DDevice,m_DepthStencil)");
 
 	SetGlobalSymbols();
 

@@ -544,7 +544,7 @@ OOVPA_XREF(D3DDevice_SetPalette, 5344, 1+12,
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES),
+		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES), // Derived
 
         // D3DDevice_SetPalette+0x0D : mov eax, [esi+edi*4+0B78h]
         { 0x0D, 0x8B },
@@ -956,7 +956,7 @@ OOVPA_XREF(D3DDevice_SetTexture, 5344, 1+26, // Also for 5558, 5659, 5788, 5849,
     XRefNoSaveIndex,
     XRefOne)
 
-		XREF_ENTRY( 0x13, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
+		XREF_ENTRY( 0x13, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // Derived
 
 		{ 0x00, 0x83 },
 		{ 0x01, 0xEC },

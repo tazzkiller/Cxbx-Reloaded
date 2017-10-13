@@ -963,7 +963,7 @@ OOVPA_XREF(D3DDevice_SetTexture, 4034, 1+10, // TODO : Alias 3911 instead ?
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x13	, XREF_OFFSET_D3DDEVICE_M_TEXTURES), // derived - verified for 4432 DolphinClassic 0x00021D10(SetTexture)+0x10=00021D20 : 8B 84 B7 78 0A 00 00 mov eax,[edi+esi*4+$00000A78]
+		XREF_ENTRY(0x13	, XREF_OFFSET_D3DDEVICE_M_TEXTURES), // Derived - verified for 4432 DolphinClassic 0x00021D10(SetTexture)+0x10=00021D20 : 8B 84 B7 78 0A 00 00 mov eax,[edi+esi*4+$00000A78]
 
         // D3DDevice_SetTexture+0x09 : push edi
         { 0x09, 0x57 },
@@ -994,7 +994,7 @@ OOVPA_XREF(D3DDevice_SetPalette, 4034, 1+12,
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES),
+		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES), // Derived
 
         // D3DDevice_SetPalette+0x0D : mov eax, [edi+esi*4+0x0C08]
         { 0x0D, 0x8B },
@@ -1307,7 +1307,7 @@ OOVPA_XREF(D3DDevice_SetPixelShader, 4039, 1+8,
 	XRefNoSaveIndex,
 	XRefOne)
 
-	XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER), // TODO : Verify offset
+	XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER), // Derived. TODO : Verify offset
 
         { 0x04, 0x85 },
         { 0x05, 0xC0 },
@@ -1689,7 +1689,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_GetRenderTarget
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_GetRenderTarget, 4039, 11)
+OOVPA_XREF(D3DDevice_GetRenderTarget, 4039, 1+11,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x07, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET), // Derived. TODO : Verify
 
         // D3DDevice_GetRenderTarget+0x00 : mov eax, [addr]
         { 0x00, 0xA1 },

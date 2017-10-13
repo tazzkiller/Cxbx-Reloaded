@@ -516,7 +516,7 @@ OOVPA_XREF(D3DDevice_SetPixelShader, 3925, 1+10,
 	XRefNoSaveIndex,
 	XRefOne)
 
-	XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER),
+	XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER), // Derived
 
         // D3DDevice_SetPixelShader+0x0E : mov esi, [ebx+0x0414]
         { 0x0E, 0x8B },
@@ -614,7 +614,7 @@ OOVPA_XREF(D3DDevice_SetTexture, 3911, 1+28,
     XRefNoSaveIndex,
     XRefOne)
 
-		XREF_ENTRY( 0x11, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
+		XREF_ENTRY( 0x11, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // Derived
 
 		{ 0x00, 0x51 },
 		{ 0x01, 0x53 },
@@ -726,7 +726,7 @@ OOVPA_XREF(D3DDevice_GetTexture2, 3911, 1 + 21, // Also for 4361
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY( 0x0E, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
+		XREF_ENTRY( 0x0E, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // Derived
 
 		{ 0x00, 0x8B },
 		{ 0x01, 0x44 },
@@ -980,7 +980,7 @@ OOVPA_XREF(D3DDevice_SetPalette, 3925, 1+12,
 	XRefNoSaveIndex,
 	XRefOne)
 	
-		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES), // verified on 3911
+		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES), // Derived verified on 3911
 
         // D3DDevice_SetPalette+0x0D : mov eax, [edi+esi*4+0x0BB0]
         { 0x0D, 0x8B },
@@ -1724,7 +1724,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_GetRenderTarget
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_GetRenderTarget, 3925, 9)
+OOVPA_XREF(D3DDevice_GetRenderTarget, 3925, 1+9,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x07, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET), // Derived
 
         // D3DDevice_GetRenderTarget+0x00 : mov eax, [addr]
         { 0x00, 0xA1 },
@@ -1747,7 +1752,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_GetDepthStencilSurface
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_GetDepthStencilSurface, 3911, 18)
+OOVPA_XREF(D3DDevice_GetDepthStencilSurface, 3911, 1+18,
+	
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x07, XREF_OFFSET_D3DDEVICE_M_DEPTHSTENCIL), // Derived
 
         { 0x00, 0xA1 },
 

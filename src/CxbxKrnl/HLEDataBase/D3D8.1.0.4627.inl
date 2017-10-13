@@ -485,7 +485,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_GetRenderTarget2
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_GetRenderTarget2, 4627, 10)
+OOVPA_XREF(D3DDevice_GetRenderTarget2, 4627, 1+10,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x08, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET), // Derived
 
         // D3DDevice_GetRenderTarget2+0x00 : mov eax, [addr]
         { 0x00, 0xA1 },
@@ -531,7 +536,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_GetDepthStencilSurface2
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_GetDepthStencilSurface2, 4627, 10)
+OOVPA_XREF(D3DDevice_GetDepthStencilSurface2, 4627, 1+10,
+	
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x08, XREF_OFFSET_D3DDEVICE_M_DEPTHSTENCIL), // Derived
 
         // D3DDevice_GetDepthStencilSurface2+0x00 : mov eax, [addr]
         { 0x00, 0xA1 },
@@ -815,7 +825,7 @@ OOVPA_XREF(D3DDevice_SetPixelShader, 4627, 1+16,
 	XRefNoSaveIndex,
 	XRefOne)
 
-	XREF_ENTRY(0x0A, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER),
+	XREF_ENTRY(0x0A, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER), // Derived
 
         { 0x03, 0x1D },
 
@@ -1033,7 +1043,7 @@ OOVPA_XREF(D3DDevice_SetTexture, 4627, 1+28,
     XRefNoSaveIndex,
     XRefOne)
 
-		XREF_ENTRY( 0x13, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
+		XREF_ENTRY( 0x13, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // Derived
 
 		{ 0x00, 0x83 },
 		{ 0x01, 0xEC },
@@ -1074,7 +1084,7 @@ OOVPA_XREF(D3DDevice_SetTexture, 4928, 1+10,
     XRefNoSaveIndex,
     XRefOne)
 
-		XREF_ENTRY( 0x13, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
+		XREF_ENTRY( 0x13, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // Derived
 
 #if 0 // PatrickvL preparations // 1+28,
 		{ 0x00, 0x83 },
@@ -2354,7 +2364,7 @@ OOVPA_XREF(D3DDevice_SetPalette, 4627, 1+7,
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES),
+		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES), // Derived
 
         { 0x10, 0x48 },
         { 0x22, 0x0B },
@@ -2444,7 +2454,7 @@ OOVPA_XREF(D3DDevice_GetTexture2, 4627, 1 + 21, // Also for 5344, 5558, 5659, 57
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY( 0x0E, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // derived
+		XREF_ENTRY( 0x0E, XREF_OFFSET_D3DDEVICE_M_TEXTURES ), // Derived
 
 		{ 0x00, 0x8B },
 		{ 0x01, 0x44 },

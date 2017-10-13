@@ -209,13 +209,17 @@ XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 // Xbox D3DDevice related variables
 xbaddr XTL::Xbox_pD3DDevice = NULL; // The address where an Xbe will put it's D3DDevice pointer
 DWORD *XTL::Xbox_D3DDevice = NULL; // Once known, the actual D3DDevice pointer (see DeriveXboxD3DDeviceAddresses)
-DWORD *XTL::Xbox_D3DDevice_IndexBase = NULL;
-uint XTL::offsetof_Xbox_D3DDevice_m_Textures = 0;
-XTL::X_D3DBaseTexture **XTL::Xbox_D3DDevice_m_Textures = NULL; // Can only be set once Xbox CreateDevice has ran
-uint XTL::offsetof_Xbox_D3DDevice_m_Palettes = 0;
-XTL::X_D3DPalette **XTL::Xbox_D3DDevice_m_Palettes = NULL; // Can only be set once Xbox CreateDevice has ran
+DWORD *XTL::Xbox_D3DDevice_m_IndexBase = NULL;
+uint XTL::offsetof_Xbox_D3DDevice_m_pTextures = 0;
+XTL::X_D3DBaseTexture **XTL::Xbox_D3DDevice_m_pTextures = NULL; // Can only be set once Xbox CreateDevice has ran
+uint XTL::offsetof_Xbox_D3DDevice_m_pPalettes = 0;
+XTL::X_D3DPalette **XTL::Xbox_D3DDevice_m_pPalettes = NULL; // Can only be set once Xbox CreateDevice has ran
 uint XTL::offsetof_Xbox_D3DDevice_m_PixelShader = 0;
 XTL::DWORD *XTL::Xbox_D3DDevice_m_PixelShader = NULL;
+uint XTL::offsetof_Xbox_D3DDevice_m_pRenderTarget = 0;
+XTL::X_D3DSurface **XTL::Xbox_D3DDevice_m_pRenderTarget = NULL;
+uint XTL::offsetof_Xbox_D3DDevice_m_pDepthStencil = 0;
+XTL::X_D3DSurface **XTL::Xbox_D3DDevice_m_pDepthStencil = NULL;
 static TextureCache g_TextureCache; // TODO : Move to own file?
 
 // Forward function declarations
@@ -441,8 +445,11 @@ void CxbxClearGlobals()
 	// g_pTexturePaletteStages = { nullptr, nullptr, nullptr, nullptr };
 	g_VertexShaderConstantMode = X_D3DSCM_192CONSTANTS;
 	//XTL::EmuD3DTileCache = { 0 };
-	// KEEP Xbox_D3DDevice_m_Textures
-	// KEEP Xbox_D3DDevice_m_Palettes
+	// KEEP Xbox_D3DDevice_m_PixelShader
+	// KEEP Xbox_D3DDevice_m_pTextures
+	// KEEP Xbox_D3DDevice_m_pPalettes
+	// KEEP Xbox_D3DDevice_m_pRenderTarget
+	// KEEP Xbox_D3DDevice_m_pDepthStencil
 	// KEEP g_EmuCDPD = { 0 };
 }
 
@@ -1790,34 +1797,24 @@ void DeriveXboxD3DDeviceAddresses()
 	XTL::Xbox_D3DDevice = Derived_Xbox_D3DDevice;
 	DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice (Derived)\n", XTL::Xbox_D3DDevice);
 
+#define DeriveD3DDeviceMember(offsetof_Xbox_D3DDevice_m, type, variable) \
+	if (offsetof_Xbox_D3DDevice_m > 0) { \
+		variable = (type)((uint8 *)XTL::Xbox_D3DDevice + offsetof_Xbox_D3DDevice_m); \
+		DbgPrintf("INIT: 0x%p -> " ## #variable ## " (Derived)\n", (void *)variable); \
+	} \
+	else { \
+		variable = NULL; \
+		DbgPrintf("INIT: Missing D3D : " ## #variable ## "\n"); \
+	}
+
 	// Determine the active vertex index
 	// This reads from g_pDevice->m_IndexBase in Xbox D3D
-	XTL::Xbox_D3DDevice_IndexBase = &(XTL::Xbox_D3DDevice[7]);
-	DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice_IndexBase (Derived)\n", XTL::Xbox_D3DDevice_IndexBase);
-
-	// Derive the address where active pixel shader pointer is stored
-	if (XTL::offsetof_Xbox_D3DDevice_m_PixelShader > 0) {
-		XTL::Xbox_D3DDevice_m_PixelShader = (DWORD *)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_PixelShader);
-		DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice_m_PixelShader (Derived)\n", XTL::Xbox_D3DDevice_m_PixelShader);
-	}
-	else
-		XTL::Xbox_D3DDevice_m_PixelShader = NULL;
-
-	// Derive the address where active texture pointers are stored
-	if (XTL::offsetof_Xbox_D3DDevice_m_Textures > 0) {
-		XTL::Xbox_D3DDevice_m_Textures = (XTL::X_D3DBaseTexture **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Textures);
-		DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice_m_Textures (Derived)\n", XTL::Xbox_D3DDevice_m_Textures);
-	}
-	else
-		XTL::Xbox_D3DDevice_m_Textures = NULL;
-
-	// Derive the address where active palette pointers are stored
-	if (XTL::offsetof_Xbox_D3DDevice_m_Palettes > 0) {
-		XTL::Xbox_D3DDevice_m_Palettes = (XTL::X_D3DPalette **)((uint8 *)XTL::Xbox_D3DDevice + XTL::offsetof_Xbox_D3DDevice_m_Palettes);
-		DbgPrintf("INIT: 0x%p -> Xbox_D3DDevice_m_Palettes (Derived)\n", XTL::Xbox_D3DDevice_m_Palettes);
-	}
-	else
-		XTL::Xbox_D3DDevice_m_Palettes = NULL;
+	DeriveD3DDeviceMember(7 * sizeof(DWORD), DWORD *, XTL::Xbox_D3DDevice_m_IndexBase);
+	DeriveD3DDeviceMember(XTL::offsetof_Xbox_D3DDevice_m_PixelShader, DWORD *, XTL::Xbox_D3DDevice_m_PixelShader);
+	DeriveD3DDeviceMember(XTL::offsetof_Xbox_D3DDevice_m_pTextures, XTL::X_D3DBaseTexture **, XTL::Xbox_D3DDevice_m_pTextures);
+	DeriveD3DDeviceMember(XTL::offsetof_Xbox_D3DDevice_m_pPalettes, XTL::X_D3DPalette **, XTL::Xbox_D3DDevice_m_pPalettes);
+	DeriveD3DDeviceMember(XTL::offsetof_Xbox_D3DDevice_m_pRenderTarget, XTL::X_D3DSurface **, XTL::Xbox_D3DDevice_m_pRenderTarget);
+	DeriveD3DDeviceMember(XTL::offsetof_Xbox_D3DDevice_m_pDepthStencil, XTL::X_D3DSurface **, XTL::Xbox_D3DDevice_m_pDepthStencil);
 }
 
 bool IsAddressAllocated(void *addr)
@@ -2485,7 +2482,7 @@ std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<double,
 
 	// TODO: Read display frequency from Xbox Display Adapter
 	// This is accessed by calling CMiniport::GetRefreshRate(); 
-	// This reads from the structure located at CMinpPort::m_CurrentAvInfo
+	// This reads from the structure located at CMiniPort::m_CurrentAvInfo
 	// This will require at least Direct3D_CreateDevice being unpatched
 	// otherwise, m_CurrentAvInfo will never be initialised!
 	// 20ms should be used in the case of 50hz
@@ -3246,10 +3243,10 @@ void CxbxUpdateActiveIndexBuffer
 
 	UINT uiIndexBase = 0;
 
-	if (*XTL::Xbox_D3DDevice_IndexBase > 0) {
-		// TODO : Research if (or when) using *Xbox_D3DDevice_IndexBase is needed
-		// uiIndexBase = *Xbox_D3DDevice_IndexBase;
-		LOG_TEST_CASE("*Xbox_D3DDevice_IndexBase > 0");
+	if (*XTL::Xbox_D3DDevice_m_IndexBase > 0) {
+		// TODO : Research if (or when) using *Xbox_D3DDevice_m_IndexBase is needed
+		// uiIndexBase = *Xbox_D3DDevice_m_IndexBase;
+		LOG_TEST_CASE("*Xbox_D3DDevice_m_IndexBase > 0");
 	}
 
 	// Activate the new native index buffer :
@@ -3355,8 +3352,8 @@ void Cxbx_Direct3D_CreateDevice()
 	g_pD3DDevice8->SetRenderState(D3DRS_FOGENABLE, FALSE);
 	g_pD3DDevice8->SetRenderState(D3DRS_FOGTABLEMODE, D3DFOG_NONE);
 	g_pD3DDevice8->SetRenderState(D3DRS_FOGSTART, 0);
-	g_pD3DDevice8->SetRenderState(D3DRS_FOGEND, (DWORD)(1.0f));
-	g_pD3DDevice8->SetRenderState(D3DRS_FOGDENSITY, (DWORD)(1.0f));
+	g_pD3DDevice8->SetRenderState(D3DRS_FOGEND, (::DWORD)(1.0f));
+	g_pD3DDevice8->SetRenderState(D3DRS_FOGDENSITY, (::DWORD)(1.0f));
 	g_pD3DDevice8->SetRenderState(D3DRS_RANGEFOGENABLE, FALSE);
 	g_pD3DDevice8->SetRenderState(D3DRS_WRAP0, 0);
 	g_pD3DDevice8->SetRenderState(D3DRS_WRAP1, 0);
@@ -3376,16 +3373,16 @@ void Cxbx_Direct3D_CreateDevice()
 	g_pD3DDevice8->SetRenderState(D3DRS_EMISSIVEMATERIALSOURCE, D3DMCS_MATERIAL);
 	//g_pD3DDevice8->SetRenderState(D3DRS_BACKAMBIENT, 0);
 	g_pD3DDevice8->SetRenderState(D3DRS_AMBIENT, 0);
-	g_pD3DDevice8->SetRenderState(D3DRS_POINTSIZE, (DWORD)(1.0f));
+	g_pD3DDevice8->SetRenderState(D3DRS_POINTSIZE, (::DWORD)(1.0f));
 	g_pD3DDevice8->SetRenderState(D3DRS_POINTSIZE_MIN, 0);
 	g_pD3DDevice8->SetRenderState(D3DRS_POINTSPRITEENABLE, 0);
 	g_pD3DDevice8->SetRenderState(D3DRS_POINTSCALEENABLE, 0);
-	g_pD3DDevice8->SetRenderState(D3DRS_POINTSCALE_A, (DWORD)(1.0f));
+	g_pD3DDevice8->SetRenderState(D3DRS_POINTSCALE_A, (::DWORD)(1.0f));
 	g_pD3DDevice8->SetRenderState(D3DRS_POINTSCALE_B, 0);
 	g_pD3DDevice8->SetRenderState(D3DRS_POINTSCALE_C, 0);
-	g_pD3DDevice8->SetRenderState(D3DRS_POINTSIZE_MAX, (DWORD)(64.0f));
+	g_pD3DDevice8->SetRenderState(D3DRS_POINTSIZE_MAX, (::DWORD)(64.0f));
 	g_pD3DDevice8->SetRenderState(D3DRS_PATCHEDGESTYLE, D3DPATCHEDGE_DISCRETE);
-	g_pD3DDevice8->SetRenderState(D3DRS_PATCHSEGMENTS, (DWORD)(1.0f));
+	g_pD3DDevice8->SetRenderState(D3DRS_PATCHSEGMENTS, (::DWORD)(1.0f));
 	//g_pD3DDevice8->SetRenderState(D3DRS_PSTEXTUREMODES, 0);
 	g_pD3DDevice8->SetRenderState(D3DRS_VERTEXBLEND, D3DVBF_DISABLE);
 	g_pD3DDevice8->SetRenderState(D3DRS_FOGCOLOR, 0);
@@ -5399,7 +5396,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 }
 #endif
 
-#if 0 // Patch disabled - We read the result from Xbox_D3DDevice_m_Textures anyway. The pushed (PGRAPH) commands are currently ignored in our puller.
+#if 0 // Patch disabled - We read the result from Xbox_D3DDevice_m_pTextures anyway. The pushed (PGRAPH) commands are currently ignored in our puller.
 VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
 (
     DWORD           Method,

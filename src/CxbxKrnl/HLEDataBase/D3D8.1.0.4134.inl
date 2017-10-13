@@ -290,6 +290,7 @@ OOVPA_NO_XREF(D3DDevice_GetBackBuffer, 4134, 12)
         { 0x20, 0x7C },
         { 0x21, 0x20 },
 OOVPA_END;
+
 #if 0 // No longer used, replaced by generic 3911 version
 // ******************************************************************
 // * D3DDevice_GetDepthStencilSurface
@@ -465,7 +466,7 @@ OOVPA_XREF(D3DDevice_SetPixelShader, 4134, 1+10,
 	XRefNoSaveIndex,
 	XRefOne)
 
-	XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER),
+	XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER), // Derived
 
         // D3DDevice_SetPixelShader+0x0E : mov esi, [ebx+0x0370]
         { 0x0E, 0x8B },
@@ -1664,7 +1665,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_GetRenderTarget
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_GetRenderTarget, 4134, 11)
+OOVPA_XREF(D3DDevice_GetRenderTarget, 4134, 1+11,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY(0x07, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET), // Derived - TODO : verify
 
         // D3DDevice_GetRenderTarget+0x00 : mov eax, [addr]
         { 0x00, 0xA1 },
@@ -1890,7 +1896,7 @@ OOVPA_XREF(D3DDevice_SetPalette, 4134, 1+12,
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES),
+		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES), // Derived
 
         // D3DDevice_SetPalette+0x0D : mov eax, [edi+esi*4+0x0A88]
         { 0x0D, 0x8B },
