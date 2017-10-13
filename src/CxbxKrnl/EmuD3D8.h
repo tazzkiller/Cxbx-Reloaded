@@ -119,6 +119,7 @@ IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContain
 
 IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer *pXboxVertexBuffer);
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: Direct3D_CreateDevice
 // ******************************************************************
@@ -131,6 +132,7 @@ HRESULT WINAPI EMUPATCH(Direct3D_CreateDevice)
     X_D3DPRESENT_PARAMETERS    *pPresentationParameters,
     IDirect3DDevice8          **ppReturnedDeviceInterface
 );
+#endif
 
 // ******************************************************************
 // * patch: IDirect3DResource8_IsBusy
