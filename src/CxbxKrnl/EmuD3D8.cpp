@@ -3996,12 +3996,13 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetGammaRamp)
 	g_pD3DDevice8->SetGammaRamp(dwPCFlags, &HostGammaRamp);
 }
 
+#if 0 // Patch disabled
 XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer2)
 (
     INT                 BackBuffer
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(BackBuffer);
 
@@ -4064,7 +4065,9 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer2)
 
     RETURN(pBackBuffer);
 }
+#endif
 
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer)
 (
     INT                 BackBuffer,
@@ -4072,12 +4075,13 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackBuffer)
     X_D3DSurface      **ppBackBuffer
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FORWARD("D3DDevice_GetBackBuffer2");
 
     *ppBackBuffer = EMUPATCH(D3DDevice_GetBackBuffer2)(BackBuffer);
 }
+#endif
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetViewport)
 (
@@ -6995,7 +6999,7 @@ VOID WINAPI XTL::EMUPATCH(Lock3DSurface)
 }
 #endif
 
-#if 1 // TODO : Can be DISABLED once CreateDevice is unpatched (because this reads Data from the first Xbox FrameBuffer)
+#if 0 // Patch disabled now CreateDevice is unpatched (because this reads Data from the first Xbox FrameBuffer)
 // Dxbx : Needs a patch because it accesses _D3D__pDevice at some offset,
 // probably comparing the data of this pixelcontainer to the framebuffer
 // and setting the MultiSampleType as a result to either the device's
@@ -7007,7 +7011,7 @@ VOID WINAPI XTL::EMUPATCH(Get2DSurfaceDesc)
     X_D3DSURFACE_DESC   *pDesc
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pPixelContainer)

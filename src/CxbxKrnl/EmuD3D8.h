@@ -330,6 +330,7 @@ VOID WINAPI EMUPATCH(D3DDevice_GetGammaRamp)
     X_D3DGAMMARAMP     *pRamp
 );
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_GetBackBuffer2
 // ******************************************************************
@@ -337,7 +338,9 @@ X_D3DSurface* WINAPI EMUPATCH(D3DDevice_GetBackBuffer2)
 (
     INT                 BackBuffer
 );
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_GetBackBuffer
 // ******************************************************************
@@ -347,6 +350,7 @@ VOID WINAPI EMUPATCH(D3DDevice_GetBackBuffer)
     D3DBACKBUFFER_TYPE  Type,
     X_D3DSurface      **ppBackBuffer
 );
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_SetViewport
@@ -846,7 +850,7 @@ VOID WINAPI EMUPATCH(Lock3DSurface)
 );
 #endif
 
-#if 1 // TODO : Can be DISABLED once CreateDevice is unpatched (because this reads Data from the first Xbox FrameBuffer)
+#if 0 // Patch dsiabled now CreateDevice is unpatched (because this reads Data from the first Xbox FrameBuffer)
 // ******************************************************************
 // * patch: Get2DSurfaceDesc
 // ******************************************************************
