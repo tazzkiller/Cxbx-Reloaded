@@ -584,7 +584,7 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								// Now that both Derived XREF and OOVPA-based function-contents match,
 								// correct base-address (because "g_Stream" is actually "g_Stream"+8") :
 								Derived_g_Stream -= offsetof(X_Stream, pVertexBuffer);
-								g_SymbolAddresses["g_Stream"] = (xbaddr)Derived_g_Stream ;
+								g_SymbolAddresses["g_Stream"] = (xbaddr)Derived_g_Stream;
 								printf("HLE: Derived 0x%.08X -> g_Stream\n", Derived_g_Stream);
 							}
 						}

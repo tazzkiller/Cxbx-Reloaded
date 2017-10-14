@@ -1833,10 +1833,11 @@ static void VshConvertToken_STREAM(DWORD          *pToken,
 		if(VshAddStreamPatch(pPatchData))
         {
 			// Reset fields for next patch :
+			pPatchData->NeedPatching = FALSE;
+			// pPatchData->CurrentStreamNumber = 0; // already set below
 			pPatchData->ConvertedStride = 0;
-            pPatchData->TypePatchData.NbrTypes = 0;
-            pPatchData->NeedPatching = FALSE;
-			pPatchData->StreamPatchData.NbrStreams = 0; // Dxbx addition
+			pPatchData->TypePatchData.NbrTypes = 0;
+			// NOTE : pPatchData->StreamPatchData.NbrStreams must not be reset, as it's incremented below
 		}
 
 		pPatchData->CurrentStreamNumber = (WORD)StreamNumber;

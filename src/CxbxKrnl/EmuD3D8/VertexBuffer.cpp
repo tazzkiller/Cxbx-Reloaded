@@ -371,6 +371,12 @@ bool XTL::CxbxVertexBufferConverter::ConvertStream
 	} 
 	else {
 		pXboxVertexData = (uint08*)GetDataFromXboxResource(Xbox_g_Stream[uiStream].pVertexBuffer);
+		if (pXboxVertexData == NULL) {
+			if (FAILED(g_pD3DDevice8->SetStreamSource(uiStream, nullptr, 0)))
+				XTL::CxbxKrnlCleanup("g_pD3DDevice8->SetStreamSource(uiStream, nullptr, 0)\n");
+			return false;
+		}
+
 		uiXboxVertexStride = Xbox_g_Stream[uiStream].Stride;
 		uiXboxVertexDataSize = g_MemoryManager.QueryAllocationSize(pXboxVertexData);
 		// Derive the vertex count
@@ -601,10 +607,10 @@ void XTL::CxbxVertexBufferConverter::Apply(CxbxDrawContext *pDrawContext)
 		if (pHostVertexShader != nullptr) {
 			// TODO : Introduce VshGetVertexDynamicPatch(Handle) ?
 			CxbxVertexShaderDynamicPatch *pVertexShaderDynamicPatch = &(pHostVertexShader->VertexShaderDynamicPatch);
+			m_uiNbrStreams = pVertexShaderDynamicPatch->NbrStreams;
 			for (uint32 i = 0; i < pVertexShaderDynamicPatch->NbrStreams; i++) {
 				if (pVertexShaderDynamicPatch->pStreamPatches[i].NeedPatch) {
 					m_pVertexShaderDynamicPatch = pVertexShaderDynamicPatch;
-					m_uiNbrStreams = pVertexShaderDynamicPatch->NbrStreams;
 					break;
 				}
 			}
