@@ -162,11 +162,14 @@ static XTL::X_D3DMATERIAL           g_BackMaterial = { 0 };
 #endif
 
 // cached Direct3D state variable(s)
+#ifndef USE_XBOX_BUFFERS
 static XTL::X_D3DSurface           *g_pInitialXboxBackBuffer = NULL;
 static XTL::IDirect3DSurface8      *g_pInitialHostBackBuffer = nullptr;
 static XTL::X_D3DSurface           *g_pActiveXboxBackBuffer = NULL;
+#endif
 static XTL::IDirect3DSurface8      *g_pActiveHostBackBuffer = nullptr;
 
+#ifndef USE_XBOX_BUFFERS
 static XTL::X_D3DSurface           *g_pInitialXboxRenderTarget = NULL;
 static XTL::IDirect3DSurface8      *g_pInitialHostRenderTarget = nullptr;
 static XTL::X_D3DSurface           *g_pActiveXboxRenderTarget = NULL;
@@ -176,6 +179,7 @@ static XTL::X_D3DSurface           *g_pInitialXboxDepthStencil = NULL;
 static XTL::IDirect3DSurface8      *g_pInitialHostDepthStencil = nullptr;
 static XTL::X_D3DSurface           *g_pActiveXboxDepthStencil = NULL;
 static XTL::IDirect3DSurface8      *g_pActiveHostDepthStencil = nullptr;
+#endif
 
 static XTL::IDirect3DIndexBuffer8  *pClosingLineLoopIndexBuffer = nullptr;
 
@@ -186,8 +190,23 @@ static XTL::INDEX16                *pQuadToTriangleIndexBuffer = nullptr;
 static UINT                         QuadToTriangleIndexBuffer_Size = 0; // = NrOfQuadVertices
 
 // TODO : Read this from Xbox, so [Get|Set][RenderTarget|DepthStencil] patches can be disabled
-XTL::X_D3DSurface *GetXboxRenderTarget() { return g_pActiveXboxRenderTarget; }
-XTL::X_D3DSurface *GetXboxDepthStencil() { return g_pActiveXboxDepthStencil; }
+XTL::X_D3DSurface *GetXboxRenderTarget()
+{
+#ifdef USE_XBOX_BUFFERS
+	return XTL::Xbox_D3DDevice_m_pRenderTarget ? *XTL::Xbox_D3DDevice_m_pRenderTarget : NULL;
+#else
+	return g_pInitialXboxRenderTarget;
+#endif
+}
+
+XTL::X_D3DSurface *GetXboxDepthStencil()
+{
+#ifdef USE_XBOX_BUFFERS
+	return XTL::Xbox_D3DDevice_m_pDepthStencil ? *XTL::Xbox_D3DDevice_m_pDepthStencil : NULL;
+#else
+	return g_pActiveXboxDepthStencil;
+#endif
+}
 
 #if 0
 static XTL::X_D3DSurface           *g_pCachedYuvSurface = NULL;
@@ -260,7 +279,7 @@ void CxbxInitD3DState()
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	HRESULT hRet;
-
+#ifndef USE_XBOX_BUFFERS
 	// HACK : Try to map Xbox to Host for : BackBuffer, RenderTarget and DepthStencil
 	// TODO : This doesn't really help, and introduces host-allocated resources into
 	// Xbox-land - it would be (much) better if we could run Xbox CreateDevice unpatched!
@@ -323,6 +342,7 @@ void CxbxInitD3DState()
 
 		UpdateDepthStencilFlags(g_pActiveXboxDepthStencil);
 	}
+#endif
 
 	hRet = g_pD3DDevice8->CreateVertexBuffer
 	(
@@ -422,11 +442,14 @@ void CxbxClearGlobals()
 #if 0
 	g_BackMaterial = { 0 };
 #endif
+#ifndef USE_XBOX_BUFFERS
 	g_pInitialXboxBackBuffer = NULL;
 	g_pInitialHostBackBuffer = nullptr;
 	g_pActiveXboxBackBuffer = NULL;
+#endif
 	g_pActiveHostBackBuffer = nullptr;
 
+#ifndef USE_XBOX_BUFFERS
 	g_pInitialXboxRenderTarget = NULL;
 	g_pInitialHostRenderTarget = nullptr;
 	g_pActiveXboxRenderTarget = NULL;
@@ -436,6 +459,7 @@ void CxbxClearGlobals()
 	g_pInitialHostDepthStencil = nullptr;
 	g_pActiveXboxDepthStencil = NULL;
 	g_pActiveHostDepthStencil = nullptr;
+#endif
 
 #if 0
 	g_pCachedYuvSurface = NULL;
@@ -1832,7 +1856,7 @@ void CxbxCheckIntegrity()
 	if (g_bIntegrityChecking) {
 		if (recursion++ == 0) {
 			_CrtCheckMemory();
-			if (XTL::Xbox_D3DDevice_m_Textures) {
+			if (XTL::Xbox_D3DDevice_m_pTextures) {
 				for (int Stage = 0; Stage < X_D3DTSS_STAGECOUNT; Stage++) {
 					void *Addr;
 
@@ -1909,8 +1933,8 @@ void CxbxUpdateActiveRenderTarget()
 
 	XTL::X_D3DSurface *pActiveXboxRenderTarget = GetXboxRenderTarget();
 	XTL::X_D3DSurface *pActiveXboxDepthStencil = GetXboxDepthStencil();
-	g_pActiveHostRenderTarget = CxbxUpdateSurface(pActiveXboxRenderTarget);
-	g_pActiveHostDepthStencil = CxbxUpdateSurface(pActiveXboxDepthStencil);
+	XTL::IDirect3DSurface8 *g_pActiveHostRenderTarget = CxbxUpdateSurface(pActiveXboxRenderTarget);
+	XTL::IDirect3DSurface8 *g_pActiveHostDepthStencil = CxbxUpdateSurface(pActiveXboxDepthStencil);
 
 	HRESULT hRet = g_pD3DDevice8->SetRenderTarget(g_pActiveHostRenderTarget, g_pActiveHostDepthStencil);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderTarget");
@@ -2641,7 +2665,7 @@ void CxbxClear
 
 		if (Flags & (XTL::X_D3DCLEAR_ZBUFFER | XTL::X_D3DCLEAR_ZBUFFER)) {
 			// Only when Z/Depth flags are given, check if these components are present :
-			UpdateDepthStencilFlags(g_pActiveXboxDepthStencil); // Update g_bHasDepthBits and g_bHasStencilBits
+			UpdateDepthStencilFlags(GetXboxDepthStencil()); // Update g_bHasDepthBits and g_bHasStencilBits
 
 			// Do not needlessly clear Z Buffer
 			if (Flags & XTL::X_D3DCLEAR_ZBUFFER) {
@@ -3031,7 +3055,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID) // TODO : Figure out whether it
 				CxbxInitD3DState();
 
 				// initially, show a black screen
-				UpdateDepthStencilFlags(g_pActiveXboxDepthStencil); // Update g_bHasDepthBits and g_bHasStencilBits
+				UpdateDepthStencilFlags(GetXboxDepthStencil()); // Update g_bHasDepthBits and g_bHasStencilBits
 				CxbxClear(
 					/*Count=*/0,
 					/*pRects=*/nullptr,
@@ -4225,12 +4249,13 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_Reset)
 }
 #endif
 
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget)
 (
     X_D3DSurface  **ppRenderTarget
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FORWARD("D3DDevice_GetRenderTarget2");
 
@@ -4238,10 +4263,12 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget)
 
     return D3D_OK; // Never returns D3DERR_NOTFOUND (D3DDevice_GetDepthStencilSurface does)
 }
+#endif
 
+#if 0 // Patch disabled
 XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget2)()
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC();
 
@@ -4251,13 +4278,15 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetRenderTarget2)()
 
     RETURN(result);
 }
+#endif
 
+#if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface)
 (
     X_D3DSurface  **ppZStencilSurface
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FORWARD("D3DDevice_GetDepthStencilSurface2");
 
@@ -4268,10 +4297,12 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface)
 
     return D3D_OK;
 }
+#endif
 
+#if 0 // Patch disabled
 XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface2)()
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC();
 
@@ -4281,6 +4312,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DDevice_GetDepthStencilSurface2)()
 		
 	RETURN(result);
 }
+#endif
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetTile)
 (
@@ -6124,6 +6156,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (pPixelContainer == NULL)
 		return nullptr;
 
+#ifndef USE_XBOX_BUFFERS
 	if (pPixelContainer == g_pInitialXboxBackBuffer)
 		return (IDirect3DBaseTexture8 *)g_pInitialHostBackBuffer;
 
@@ -6144,6 +6177,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (pPixelContainer == g_pActiveXboxDepthStencil)
 		if (g_pActiveHostDepthStencil != nullptr)
 			return (IDirect3DBaseTexture8 *)g_pActiveHostDepthStencil;
+#endif
 
 	X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pPixelContainer);
 	if (X_Format == X_D3DFMT_P8)
@@ -9219,13 +9253,14 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_GetLightEnable)
 	return hRet;
 }
 
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 (
     X_D3DSurface    *pRenderTarget,
     X_D3DSurface    *pNewZStencil
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pRenderTarget)
@@ -9241,6 +9276,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 
     // TODO: Follow that stencil!
 }
+#endif
 
 #if 0 // Patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette)
@@ -10863,6 +10899,7 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface2)()
 	RETURN(pSurface);
 }
 
+#if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTargetFast)
 (
     X_D3DSurface	*pRenderTarget,
@@ -10878,6 +10915,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTargetFast)
 	
 	EMUPATCH(D3DDevice_SetRenderTarget)(pRenderTarget, pNewZStencil);
 }
+#endif
 
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetScissors)
 (
