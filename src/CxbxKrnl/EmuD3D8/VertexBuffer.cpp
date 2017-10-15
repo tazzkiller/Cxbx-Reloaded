@@ -47,7 +47,7 @@
 
 #define HASH_SEED 0
 
-#define VERTEX_BUFFER_CACHE_SIZE 0 // TODO : Restore to 256 once 'too big' drawing in X-Marbles and Turok menu's is fixed
+#define VERTEX_BUFFER_CACHE_SIZE 256 // TODO : Restore to 256 once 'too big' drawing in X-Marbles and Turok menu's is fixed (0 crashes Cartoon - see ActivatePatchedStream)
 #define MAX_STREAM_NOT_USED_TIME (2 * CLOCKS_PER_SEC) // TODO: Trim the not used time
 
 // Inline vertex buffer emulation
@@ -73,7 +73,8 @@ void ActivatePatchedStream
 (
 	XTL::CxbxDrawContext *pDrawContext,
 	UINT uiStream,
-	XTL::CxbxPatchedStream *pPatchedStream
+	XTL::CxbxPatchedStream *pPatchedStream,
+	bool bRelease
 )
 {
 	// Use the cached stream values on the host
@@ -83,8 +84,17 @@ void ActivatePatchedStream
 		pDrawContext->uiHostVertexStreamZeroStride = pPatchedStream->uiCachedHostVertexStride;
 	}
 	else {
-		if (FAILED(g_pD3DDevice8->SetStreamSource(uiStream, pPatchedStream->pCachedHostVertexBuffer, pPatchedStream->uiCachedHostVertexStride)))
+		if (FAILED(g_pD3DDevice8->SetStreamSource(uiStream, pPatchedStream->pCachedHostVertexBuffer, pPatchedStream->uiCachedHostVertexStride))) {
 			XTL::CxbxKrnlCleanup("Failed to set the type patched buffer as the new stream source!\n");
+			// TODO : Cartoon hits the above case when the vertex cache size is 0.
+		}
+
+		// TODO : The following doesn't fix that - find our why and fix it for real
+		if (bRelease) {
+			// Always release to prevent leaks when it wasn't read from cache:
+			pPatchedStream->pCachedHostVertexBuffer->Release();
+			// NOTE : Even this doesn't prevent Cartoon breaking : g_pD3DDevice8->ResourceManagerDiscardBytes(0);
+		}
 	}
 }
 
@@ -290,7 +300,7 @@ bool XTL::CxbxVertexBufferConverter::ApplyCachedStream
     g_PatchedStreamsCache.Unlock();
 
 	if (bFoundInCache) {
-		ActivatePatchedStream(pDrawContext, uiStream, &m_PatchedStreams[uiStream]);
+		ActivatePatchedStream(pDrawContext, uiStream, &m_PatchedStreams[uiStream], false);
 	}
 
     return bFoundInCache;
@@ -586,10 +596,11 @@ bool XTL::CxbxVertexBufferConverter::ConvertStream
 		pPatchedStream->pCachedHostVertexBuffer = pNewHostVertexBuffer;
 	}
 
-	ActivatePatchedStream(pDrawContext, uiStream, pPatchedStream);
+	ActivatePatchedStream(pDrawContext, uiStream, pPatchedStream, 
+		/*Release=*/!bNeedStreamCopy); // Release when it won't get cached
 
 	return bNeedStreamCopy;
-}
+} // ConvertStream
 
 void XTL::CxbxVertexBufferConverter::Apply(CxbxDrawContext *pDrawContext)
 {

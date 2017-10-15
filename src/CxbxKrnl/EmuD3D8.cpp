@@ -10907,7 +10907,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTargetFast)
     DWORD			Flags
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FORWARD("D3DDevice_SetRenderTarget");
 
