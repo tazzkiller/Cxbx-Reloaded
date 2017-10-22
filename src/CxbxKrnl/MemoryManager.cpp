@@ -69,6 +69,9 @@ TypedMemoryBlock *MemoryManager::FindContainingTypedMemoryBlock(void* addr)
 
 	// Check if the requested address lies inside this block
 	TypedMemoryBlock *info = &(low->second);
+	if (addr < info->block.addr)
+		return nullptr;
+
 	if ((size_t)addr >= ((size_t)info->block.addr + info->block.size))
 		return nullptr;
 
