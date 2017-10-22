@@ -242,7 +242,6 @@ XTL::X_D3DSurface **XTL::Xbox_D3DDevice_m_pDepthStencil = NULL;
 static TextureCache g_TextureCache; // TODO : Move to own file?
 
 // Forward function declarations
-const char *D3DErrorString(HRESULT hResult); // forward
 XTL::X_D3DSurface *EmuNewD3DSurface(); // forward
 void ConvertHostSurfaceHeaderToXbox
 (
@@ -252,27 +251,6 @@ void ConvertHostSurfaceHeaderToXbox
 void UpdateDepthStencilFlags(const XTL::X_D3DSurface *pXboxSurface); // forward
 void Cxbx_Direct3D_CreateDevice(); // forward
 
-
-#ifdef _DEBUG_TRACE
-
-#define DEBUG_D3DRESULT(hRet, message) \
-	do { \
-		CXBX_CHECK_INTEGRITY(); \
-		if (FAILED(hRet)) \
-			if(g_bPrintfOn) \
-				printf("%s : %s D3D error (0x%.08X: %s)\n", _logFuncPrefix.c_str(), message, hRet, D3DErrorString(hRet)); \
-	} while (0)
-
-#else
-
-#define DEBUG_D3DRESULT(hRet, message) \
-	do { \
-		if (FAILED(hRet)) \
-			if(g_bPrintfOn) \
-				DbgPrintf("%s : %s D3D error (0x%.08X: %s)\n", __func__, message, hRet, D3DErrorString(hRet)); \
-	} while (0)
-
-#endif
 
 void CxbxInitD3DState()
 {
@@ -718,7 +696,7 @@ const char *CxbxGetErrorDescription(HRESULT hResult)
 	return nullptr;
 }
 
-const char *D3DErrorString(HRESULT hResult)
+const char *XTL::D3DErrorString(HRESULT hResult)
 {
 	static char buffer[1024];
 	buffer[0] = 0; // Reset static buffer!

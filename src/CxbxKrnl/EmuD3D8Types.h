@@ -1535,6 +1535,29 @@ typedef struct _CxbxVertexShader
 }
 CxbxVertexShader;
 
+extern const char *D3DErrorString(HRESULT hResult);
+
+#ifdef _DEBUG_TRACE
+
+#define DEBUG_D3DRESULT(hRet, message) \
+	do { \
+		CXBX_CHECK_INTEGRITY(); \
+		if (FAILED(hRet)) \
+			if(g_bPrintfOn) \
+				printf("%s : %s D3D error (0x%.08X: %s)\n", _logFuncPrefix.c_str(), message, hRet, XTL::D3DErrorString(hRet)); \
+	} while (0)
+
+#else
+
+#define DEBUG_D3DRESULT(hRet, message) \
+	do { \
+		if (FAILED(hRet)) \
+			if(g_bPrintfOn) \
+				DbgPrintf("%s : %s D3D error (0x%.08X: %s)\n", __func__, message, hRet, XTL::D3DErrorString(hRet)); \
+	} while (0)
+
+#endif
+
 // End of Cxbx Direct3D declarations
 #pragma endregion
 
