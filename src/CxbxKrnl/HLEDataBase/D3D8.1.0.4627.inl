@@ -2887,7 +2887,7 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_CreatePalette
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_CreatePalette, 4627, 10)
+OOVPA_NO_XREF(D3DDevice_CreatePalette, 4627, 9)
 
         { 0x04, 0x50 },
 

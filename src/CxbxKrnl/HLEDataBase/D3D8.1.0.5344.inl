@@ -282,7 +282,7 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_GetLightEnable
 // ******************************************************************
-OOVPA_XREF(D3DDevice_GetLightEnable, 5344, 1+29,
+OOVPA_XREF(D3DDevice_GetLightEnable, 5344, 1+28,
 
 	XRefNoSaveIndex,
 	XRefOne) // PatrickvL : Also for 5558, 5659, 5788, 5849, 5933
