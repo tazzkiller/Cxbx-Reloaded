@@ -322,7 +322,7 @@ enum XRefDataBaseOffset
 };
 
 #define XREF_ADDR_UNDETERMINED -1
-#define XREF_ADDR_NOT_FOUND ((xbaddr)nullptr)
+#define XREF_ADDR_NOT_FOUND (xbnullptr)
 #define XREF_ADDR_DERIVE 1
 
 // ******************************************************************

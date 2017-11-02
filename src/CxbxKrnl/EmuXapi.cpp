@@ -99,7 +99,7 @@ void SetupXboxDeviceTypes()
 	if (gDeviceType_Gamepad == nullptr) {
 		// First, attempt to find GetTypeInformation
 		auto typeInformation = g_SymbolAddresses.find("GetTypeInformation");
-		if (typeInformation != g_SymbolAddresses.end() && typeInformation->second != (xbaddr)nullptr) {
+		if (typeInformation != g_SymbolAddresses.end() && typeInformation->second != xbnullptr) {
 			printf("Deriving XDEVICE_TYPE_GAMEPAD from DeviceTable (via GetTypeInformation)\n");
 			// Read the offset values of the device table structure from GetTypeInformation
 			xbaddr deviceTableStartOffset = *(uint32_t*)((uint32_t)typeInformation->second + 0x01);

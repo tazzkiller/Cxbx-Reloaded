@@ -437,7 +437,7 @@ void EmuGenerateFS(Xbe::TLS *pTLS, void *pTLSData)
 
 		// prepare TLS
 		{
-			*(xbaddr*)pTLS->dwTLSIndexAddr = (xbaddr)nullptr;
+			*(xbaddr*)pTLS->dwTLSIndexAddr = xbnullptr;
 
 			// dword @ pTLSData := pTLSData
 			if (pNewTLS != nullptr)

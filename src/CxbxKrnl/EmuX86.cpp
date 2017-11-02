@@ -544,7 +544,7 @@ xbaddr EmuX86_Operand_Addr(LPEXCEPTION_POINTERS e, _DInst& info, int operand, bo
 	case O_NONE:
 	{
 		// ignore operand
-		return (xbaddr)nullptr;
+		return xbnullptr;
 	}
 	case O_REG:
 		is_internal_addr = true;
@@ -592,10 +592,10 @@ xbaddr EmuX86_Operand_Addr(LPEXCEPTION_POINTERS e, _DInst& info, int operand, bo
 		return (xbaddr)info.imm.ptr.off; // TODO : What about info.imm.ptr.seg ?
 	}
 	default:
-		return (xbaddr)nullptr;
+		return xbnullptr;
 	}
 
-	return (xbaddr)nullptr;
+	return xbnullptr;
 }
 
 bool EmuX86_Addr_Read(xbaddr srcAddr, bool is_internal_addr, uint16_t size, OUT uint32_t *value)
@@ -674,7 +674,7 @@ bool EmuX86_Operand_Read(LPEXCEPTION_POINTERS e, _DInst& info, int operand, OUT 
 {
 	bool is_internal_addr;
 	xbaddr srcAddr = EmuX86_Operand_Addr(e, info, operand, OUT is_internal_addr);
-	if (srcAddr != (xbaddr)nullptr)
+	if (srcAddr != xbnullptr)
 		return EmuX86_Addr_Read(srcAddr, is_internal_addr, info.ops[operand].size, value);
 
 	return false;
@@ -684,7 +684,7 @@ bool EmuX86_Operand_Write(LPEXCEPTION_POINTERS e, _DInst& info, int operand, uin
 {
 	bool is_internal_addr;
 	xbaddr destAddr = EmuX86_Operand_Addr(e, info, operand, OUT is_internal_addr);
-	if (destAddr != (xbaddr)nullptr)
+	if (destAddr != xbnullptr)
 		return EmuX86_Addr_Write(destAddr, is_internal_addr, info.ops[operand].size, value);
 
 	return false;
@@ -700,7 +700,7 @@ bool EmuX86_Opcode_ADD(LPEXCEPTION_POINTERS e, _DInst& info)
 	// ADD reads and writes destination :
 	bool is_internal_addr;
 	xbaddr addr = EmuX86_Operand_Addr(e, info, 0, OUT is_internal_addr);
-	if (addr == (xbaddr)nullptr)
+	if (addr == xbnullptr)
 		return false;
 
 	if (is_internal_addr)

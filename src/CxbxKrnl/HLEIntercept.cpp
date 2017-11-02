@@ -836,7 +836,7 @@ xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper)
 {
     // skip out if this is an unnecessary search
     if (!bXRefFirstPass && Oovpa->XRefCount == XRefZero && Oovpa->XRefSaveIndex == XRefNoSaveIndex)
-        return (xbaddr)nullptr;
+        return xbnullptr;
 
     uint32_t derive_indices = 0;
     // Check all XRefs are known (if not, don't do a useless scan) :
@@ -850,7 +850,7 @@ xbaddr EmuLocateFunction(OOVPA *Oovpa, xbaddr lower, xbaddr upper)
         // Undetermined XRef cannot be checked yet
         if (XRefAddr == XREF_ADDR_UNDETERMINED)
             // Skip this scan over the address range
-            return (xbaddr)nullptr;
+            return xbnullptr;
 
         // Don't verify an xref that has to be (but isn't yet) derived
         if (XRefAddr == XREF_ADDR_DERIVE) {
