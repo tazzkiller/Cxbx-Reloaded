@@ -214,6 +214,7 @@ __declspec(naked) void EmuFS_MovEsiFs00()
 
 __declspec(naked) void EmuFS_MovzxEaxBytePtrFs24()
 {
+	// Note : Inlined KeGetCurrentIrql()
 	__asm
 	{
 		mov eax, fs : [TIB_ArbitraryDataSlot]

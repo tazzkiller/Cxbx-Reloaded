@@ -367,6 +367,11 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 		// Request a few fundamental XRefs to be derived instead of checked
 		XRefDataBase[XREF_D3DDEVICE] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_D3DRS_CULLMODE] = XREF_ADDR_DERIVE;
+		XRefDataBase[XREF_D3DRS_MULTISAMPLERENDERTARGETMODE] = XREF_ADDR_DERIVE;
+		XRefDataBase[XREF_D3DRS_ROPZCMPALWAYSREAD] = XREF_ADDR_DERIVE;
+		XRefDataBase[XREF_D3DRS_ROPZREAD] = XREF_ADDR_DERIVE;
+		XRefDataBase[XREF_D3DRS_DONOTCULLUNCOMPRESSED] = XREF_ADDR_DERIVE;
+		XRefDataBase[XREF_D3DRS_STENCILCULLENABLE] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_D3DTSS_TEXCOORDINDEX] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_G_STREAM] = XREF_ADDR_DERIVE;
 		XRefDataBase[XREF_OFFSET_D3DDEVICE_M_PIXELSHADER] = XREF_ADDR_DERIVE;
@@ -403,8 +408,9 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 				if (strcmp(LibraryName.c_str(), Lib_D3D8LTCG) == 0)
 				{
 					// If LLE GPU is not enabled, show a warning that the title is not supported
-					if (!bLLE_GPU)
+					if (!bLLE_GPU) {
 						CxbxKrnlCleanup("LTCG Title Detected: This game is not supported by HLE");
+					}
 
 					// Skip LTCG libraries as we cannot reliably detect them
 					continue;
@@ -441,8 +447,8 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
                 {
                     if (strcmp(LibraryName.c_str(), Lib_D3D8) == 0) {
 						printf("HLE: Locating first few D3D8 symbols\n");
-                        // Save D3D8 build version
-                        g_BuildVersion = BuildVersion;
+						// Save D3D8 build version
+						g_BuildVersion = BuildVersion;
 
 						XTL::DxbxBuildRenderStateMappingTable();
 
@@ -497,15 +503,15 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 								// Derive address of a few other deferred render state slots (to help xref-based function location)
 								{
-#define DeriveAndPrint(D3DRS) \
-									XRefDataBase[XREF_##D3DRS] = (xbaddr)(Derived_D3D_RenderState + XTL::DxbxMapMostRecentToActiveVersion[XTL::X_##D3DRS]); \
-									printf("HLE: Derived XREF_"#D3DRS"(%d) 0x%.08X -> D3D__RenderState[%d/*="#D3DRS"]\n", (int)XREF_##D3DRS, XRefDataBase[XREF_##D3DRS], XTL::DxbxMapMostRecentToActiveVersion[XTL::X_##D3DRS]);
+#define DeriveAndPrint(XREF, D3DRS) \
+									XRefDataBase[XREF] = (xbaddr)(Derived_D3D_RenderState + XTL::DxbxMapMostRecentToActiveVersion[XTL::X_##D3DRS]); \
+									printf("HLE: Derived XREF_"#D3DRS"(%d) 0x%.08X -> D3D__RenderState[%d/*="#D3DRS"]\n", (int)XREF, XRefDataBase[XREF], XTL::DxbxMapMostRecentToActiveVersion[XTL::X_##D3DRS]);
 
-									DeriveAndPrint(D3DRS_MULTISAMPLERENDERTARGETMODE);
-									DeriveAndPrint(D3DRS_STENCILCULLENABLE);
-									DeriveAndPrint(D3DRS_ROPZCMPALWAYSREAD);
-									DeriveAndPrint(D3DRS_ROPZREAD);
-									DeriveAndPrint(D3DRS_DONOTCULLUNCOMPRESSED);
+									DeriveAndPrint(XREF_D3DRS_MULTISAMPLERENDERTARGETMODE, D3DRS_MULTISAMPLERENDERTARGETMODE);
+									DeriveAndPrint(XREF_D3DRS_STENCILCULLENABLE, D3DRS_STENCILCULLENABLE);
+									DeriveAndPrint(XREF_D3DRS_ROPZCMPALWAYSREAD, D3DRS_ROPZCMPALWAYSREAD);
+									DeriveAndPrint(XREF_D3DRS_ROPZREAD, D3DRS_ROPZREAD);
+									DeriveAndPrint(XREF_D3DRS_DONOTCULLUNCOMPRESSED, D3DRS_DONOTCULLUNCOMPRESSED);
 #undef DeriveAndPrint
 								}
 							}
@@ -702,7 +708,7 @@ inline void GetOovpaEntry(OOVPA *oovpa, int index, OUT uint32 &offset, OUT uint0
 	value = ((LOOVPA<1>*)oovpa)->Lovp[index].Value;
 }
 
-boolean CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
+bool CompareOOVPAToAddress(OOVPA *Oovpa, xbaddr cur)
 {
 	// NOTE : Checking offsets uses bytes. Doing that first is probably
 	// faster than first checking (more complex) xrefs.

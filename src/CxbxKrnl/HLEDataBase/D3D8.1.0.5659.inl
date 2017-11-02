@@ -138,7 +138,7 @@ OOVPA_XREF(D3DDevice_SetVerticalBlankCallback, 5659, 1+12,
     XRefNoSaveIndex,
     XRefOne)
 
-        XREF_ENTRY( 0x06, XREF_D3DDEVICE ),
+        XREF_ENTRY( 0x06, XREF_D3DDEVICE ), // Derived
 
         // D3DDevice_SetVerticalBlankCallback+0x00 : mov eax, [esp+0x04]
         { 0x00, 0x8B },

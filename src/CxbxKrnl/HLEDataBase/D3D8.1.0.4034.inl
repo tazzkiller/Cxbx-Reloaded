@@ -219,9 +219,9 @@ OOVPA_XREF(D3DDevice_SetRenderState_CullMode, 4034, 2+14,
     XREF_D3DDevice_SetRenderState_CullMode,
 	XRefTwo)
 
-		XREF_ENTRY(0x03, XREF_D3DDEVICE), // Derived
+		XREF_ENTRY( 0x03, XREF_D3DDEVICE ), // Derived
 
-		XREF_ENTRY(0x2B, XREF_D3DRS_CULLMODE), // Derived
+		XREF_ENTRY( 0x2B, XREF_D3DRS_CULLMODE ), // Derived
 
         // D3DDevice_SetRenderState_CullMode+0x00 : push esi
         { 0x00, 0x56 },
@@ -342,7 +342,7 @@ OOVPA_XREF(D3DDevice_SetStreamSource, 4034, 1+14, // 1+28
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x22, XREF_G_STREAM), // Derived
+		XREF_ENTRY( 0x22, XREF_G_STREAM ), // Derived
 #if 0
 		{ 0x00, 0x8B },
 		{ 0x01, 0x0D },
@@ -1143,7 +1143,7 @@ OOVPA_XREF(D3DDevice_SetPalette, 4034, 1+12,
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES), // Derived
+		XREF_ENTRY( 0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES ), // Derived
 
         { 0x00, 0x53 },
         { 0x08, 0x57 },
@@ -1194,7 +1194,7 @@ OOVPA_XREF(D3DDevice_SetTextureState_TexCoordIndex, 4034, 1+10,
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x18, XREF_D3DTSS_TEXCOORDINDEX), // Derived
+		XREF_ENTRY( 0x18, XREF_D3DTSS_TEXCOORDINDEX ), // Derived
 
         // D3DDevice_SetTextureState_TexCoordIndex+0x13 : shl eax, 0x07
         { 0x13, 0xC1 },
@@ -1384,7 +1384,7 @@ OOVPA_XREF(D3DDevice_CreateImageSurface, 4034, 1+1,
     XRefNoSaveIndex,
     XRefOne)
 
-        XREF_ENTRY( 0x01, XREF_D3D_CreateStandAloneSurface),
+        XREF_ENTRY( 0x01, XREF_D3D_CreateStandAloneSurface ),
 
         { 0x00, 0xE9 },
 OOVPA_END;
@@ -1549,7 +1549,7 @@ OOVPA_XREF(D3DDevice_SetRenderTarget, 4039, 1+9,
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x17, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET), // Derived TODO : Verify offset
+		XREF_ENTRY( 0x17, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET ), // Derived TODO : Verify offset
 
         { 0x06, 0x35 },
         { 0x12, 0x3B },
@@ -1570,7 +1570,7 @@ OOVPA_XREF(D3DDevice_SetPixelShader, 4034, 1+12,
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER), // Derived
+		XREF_ENTRY( 0x10, XREF_OFFSET_D3DDEVICE_M_PIXELSHADER ), // Derived
 
         { 0x00, 0x8B },
         { 0x01, 0x44 },
@@ -1918,19 +1918,25 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetRenderState_MultiSampleMode
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetRenderState_MultiSampleMode, 4034, 12)
+OOVPA_XREF(D3DDevice_SetRenderState_MultiSampleMode, 4034, 1+8,
+
+	XRefNoSaveIndex,
+	XRefOne)
+
+		XREF_ENTRY( 0x11, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET ), // Derived
 
         // D3DDevice_SetRenderState_MultiSampleMode+0x0F : mov ecx, [eax+0x21F0]
         { 0x0F, 0x8B },
         { 0x10, 0x88 },
-        { 0x11, 0xF0 },
-        { 0x12, 0x21 },
+		// { 0x11, 0xF0 }, // disabled. part of an offset
+		// { 0x12, 0x21 },
+
 
         // D3DDevice_SetRenderState_MultiSampleMode+0x15 : cmp ecx, [eax+0x21FC]
         { 0x15, 0x3B },
         { 0x16, 0x88 },
-        { 0x17, 0xFC },
-        { 0x18, 0x21 },
+        // { 0x17, 0xFC }, // disabled. part of an offset
+        // { 0x18, 0x21 },
 
         // D3DDevice_SetRenderState_MultiSampleMode+0x1B : jnz +0x0D
         { 0x1B, 0x75 },
@@ -1944,19 +1950,26 @@ OOVPA_END;
 // ******************************************************************
 // * D3DDevice_SetRenderState_MultiSampleRenderTargetMode
 // ******************************************************************
-OOVPA_NO_XREF(D3DDevice_SetRenderState_MultiSampleRenderTargetMode, 4034, 12)
+OOVPA_XREF(D3DDevice_SetRenderState_MultiSampleRenderTargetMode, 4034, 2+8,
+
+	XRefNoSaveIndex,
+	XRefTwo)
+
+		XREF_ENTRY( 0x0B, XREF_D3DRS_MULTISAMPLERENDERTARGETMODE ), // Derived
+
+		XREF_ENTRY( 0x11, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET ), // Derived
 
         // D3DDevice_SetRenderState_MultiSampleRenderTargetMode+0x0F : mov ecx, [eax+0x21F0]
         { 0x0F, 0x8B },
         { 0x10, 0x88 },
-        { 0x11, 0xF0 },
-        { 0x12, 0x21 },
+        // { 0x11, 0xF0 }, // disabled. part of an offset
+        // { 0x12, 0x21 },
 
         // D3DDevice_SetRenderState_MultiSampleRenderTargetMode+0x15 : cmp ecx, [eax+0x21FC]
         { 0x15, 0x3B },
         { 0x16, 0x88 },
-        { 0x17, 0xFC },
-        { 0x18, 0x21 },
+        // { 0x17, 0xFC }, // disabled. part of an offset
+        // { 0x18, 0x21 },
 
         // D3DDevice_SetRenderState_MultiSampleRenderTargetMode+0x1B : jz +0x0D
         { 0x1B, 0x74 },
@@ -1992,7 +2005,7 @@ OOVPA_XREF(D3DDevice_GetRenderTarget, 4039, 1+11,
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x07, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET), // Derived
+		XREF_ENTRY( 0x07, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET ), // Derived
 
         // D3DDevice_GetRenderTarget+0x00 : mov eax, [addr]
         { 0x00, 0xA1 },
@@ -2122,7 +2135,7 @@ OOVPA_XREF(D3DDevice_SetRenderState_StencilCullEnable, 4034, 1+12,
     XRefOne)
 
         // D3DDevice_SetRenderState_StencilCullEnable+0x0C : D3D__RenderState[D3DRS_STENCILCULLENABLE]
-        XREF_ENTRY( 0x0C, XREF_D3DRS_STENCILCULLENABLE),
+        XREF_ENTRY( 0x0C, XREF_D3DRS_STENCILCULLENABLE ), // Derived
 
         // D3DDevice_SetRenderState_StencilCullEnable+0x15 : jb +0x05
         { 0x15, 0x72 },
@@ -2473,7 +2486,7 @@ OOVPA_XREF(D3DDevice_BlockOnFence, 4039, 1+7,
     XRefNoSaveIndex,
     XRefOne)
 
-	XREF_ENTRY( 0x08, XREF_D3D_BlockOnTime ),
+		XREF_ENTRY( 0x08, XREF_D3D_BlockOnTime ),
 
         { 0x00, 0x8B },
         { 0x02, 0x24 },
@@ -2599,7 +2612,7 @@ OOVPA_XREF(D3DDevice_IsFencePending, 4039, 1+5,
     XRefNoSaveIndex,
     XRefOne)
 
-        XREF_ENTRY( 0x01, XREF_D3DDEVICE ),
+        XREF_ENTRY( 0x01, XREF_D3DDEVICE ), // Derived
 
         { 0x07, 0x34 },
         { 0x0A, 0x30 },

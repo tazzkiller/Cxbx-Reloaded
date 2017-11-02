@@ -450,7 +450,7 @@ OOVPA_XREF(D3DDevice_GetRenderTarget, 4361, 1+9,
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x07, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET), // Derived
+		XREF_ENTRY( 0x07, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET ), // Derived
 
         // D3DDevice_GetRenderTarget+0x00 : mov eax, [addr]
         { 0x00, 0xA1 },
@@ -642,7 +642,7 @@ OOVPA_XREF(D3DDevice_SetTextureState_TexCoordIndex, 4361, 1+10,
     XRefNoSaveIndex,
     XRefOne)
 
-        XREF_ENTRY(0x19, XREF_D3DTSS_TEXCOORDINDEX), // Derived
+        XREF_ENTRY( 0x19, XREF_D3DTSS_TEXCOORDINDEX ), // Derived
 
         // D3DDevice_SetTextureState_TexCoordIndex+0x0D : shl eax, 0x07
         { 0x0D, 0xC1 },

@@ -1743,7 +1743,7 @@ static DWORD VshConvertToken_CONSTMEM(DWORD *pToken)
 
     DbgVshPrintf("%u, %u),\n", ConstantAddress, Count);
 
-    //pToken = D3DVSD_CONST(ConstantAddress, Count);
+    //*pToken = D3DVSD_CONST(ConstantAddress, Count); // TODO : Would this be identical to input *pToken?
 
     for (uint i = 0; i < Count; i++)
     {

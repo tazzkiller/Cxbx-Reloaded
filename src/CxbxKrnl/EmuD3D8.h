@@ -401,6 +401,7 @@ HRESULT WINAPI EMUPATCH(D3DDevice_Reset)
 );
 #endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: D3DDevice_GetRenderTarget
 // ******************************************************************
@@ -408,11 +409,14 @@ HRESULT WINAPI EMUPATCH(D3DDevice_GetRenderTarget)
 (
     X_D3DSurface  **ppRenderTarget
 );
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
-// * patch: D3DDevice_GetRenderTarget
+// * patch: D3DDevice_GetRenderTarget2
 // ******************************************************************
 X_D3DSurface * WINAPI EMUPATCH(D3DDevice_GetRenderTarget2)();
+#endif
 
 // ******************************************************************
 // * patch: D3DDevice_GetDepthStencilSurface

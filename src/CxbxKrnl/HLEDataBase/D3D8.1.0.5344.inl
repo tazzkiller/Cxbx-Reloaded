@@ -191,7 +191,7 @@ OOVPA_XREF(D3DDevice_SetRenderState_MultiSampleRenderTargetMode, 5344, 1+7,
     XRefNoSaveIndex,
     XRefOne)
 
-        XREF_ENTRY( 0x0B, XREF_D3DRS_MULTISAMPLERENDERTARGETMODE),
+        XREF_ENTRY( 0x0B, XREF_D3DRS_MULTISAMPLERENDERTARGETMODE ), // Derived
 
         { 0x03, 0x04 },
         { 0x0F, 0x8B },
@@ -286,8 +286,8 @@ OOVPA_XREF(D3DDevice_LightEnable, 5344, 2+24,
 	XRefNoSaveIndex,
 	XRefTwo) // PatrickvL : Also for 5558, 5659, 5788, 5849, 5933
 
-	XREF_ENTRY(0x0B, XREF_D3DDEVICE),
-	XREF_ENTRY(0x67, XREF_D3DDevice_SetLight),
+	XREF_ENTRY( 0x0B, XREF_D3DDEVICE ), // Derived
+	XREF_ENTRY( 0x67, XREF_D3DDevice_SetLight ),
 
 	{ 0x00, 0x83 },
 	{ 0x01, 0xEC },
@@ -333,7 +333,7 @@ OOVPA_XREF(D3DDevice_GetLightEnable, 5344, 1+26,
 	XRefNoSaveIndex,
 	XRefOne) // PatrickvL : Also for 5558, 5659, 5788, 5849, 5933
 
-        XREF_ENTRY( 0x06, XREF_D3DDEVICE),
+        XREF_ENTRY( 0x06, XREF_D3DDEVICE ), // Derived
 
         { 0x00, 0x8B },
         { 0x01, 0x44 },
@@ -631,7 +631,7 @@ OOVPA_XREF(D3DDevice_SetRenderTarget, 5344, 1+9,
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x18, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET), // Derived
+		XREF_ENTRY( 0x18, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET ), // Derived
 
         { 0x00, 0x83 },
         { 0x08, 0x56 },
@@ -653,7 +653,7 @@ OOVPA_XREF(D3DDevice_SetPalette, 5344, 1+12,
 	XRefNoSaveIndex,
 	XRefOne)
 
-		XREF_ENTRY(0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES), // Derived
+		XREF_ENTRY( 0x10, XREF_OFFSET_D3DDEVICE_M_PALETTES ), // Derived
 
         // D3DDevice_SetPalette+0x0D : mov eax, [esi+edi*4+0B78h]
         { 0x0D, 0x8B },

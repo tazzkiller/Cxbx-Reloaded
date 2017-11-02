@@ -1881,6 +1881,7 @@ void CxbxUpdateTextureStages()
 					}
 
 					pHostBaseTexture = CxbxUpdateTexture(XboxBaseTexture, PaletteColors);
+					DbgPrintf("D3D : SetTexture - Stage : %d  Data : 0x%p\n", Stage, GetDataFromXboxResource(XboxBaseTexture));
 				}
 			}
 		}
