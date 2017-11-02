@@ -281,10 +281,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3D_CommonSetRenderTarget
 // ******************************************************************
-OOVPA_XREF(D3D_CommonSetRenderTarget, 4627, 12,
+OOVPA_XREF(D3D_CommonSetRenderTarget, 4627, 1+12,
 
     XREF_D3D_CommonSetRenderTarget,
-    XRefZero)
+	XRefOne)
+
+		XREF_ENTRY(0x18, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET), // Derived
 
         // D3D_CommonSetRenderTarget+0x00 : sub esp, 0x20
         { 0x00, 0x83 },
@@ -310,10 +312,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3D_CommonSetRenderTargetB
 // ******************************************************************
-OOVPA_XREF(D3D_CommonSetRenderTargetB, 4627, 11,
+OOVPA_XREF(D3D_CommonSetRenderTargetB, 4627, 1+11,
 
     XREF_D3D_CommonSetRenderTarget,
-    XRefZero)
+	XRefOne)
+
+		XREF_ENTRY(0x18, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET), // Derived TODO : Verify offset
 
         // D3D_CommonSetRenderTargetB+0x00 : sub esp, 0x24
         { 0x00, 0x83 },

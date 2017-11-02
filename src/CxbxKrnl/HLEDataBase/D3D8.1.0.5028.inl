@@ -771,10 +771,12 @@ OOVPA_END;
 // ******************************************************************
 // * D3D::CommonSetRenderTarget
 // ******************************************************************
-OOVPA_XREF(D3D_CommonSetRenderTarget, 5028, 12,
+OOVPA_XREF(D3D_CommonSetRenderTarget, 5028, 1+12,
 
     XREF_D3D_CommonSetRenderTarget,
-    XRefZero)
+	XRefOne)
+
+		XREF_ENTRY(0x18, XREF_OFFSET_D3DDEVICE_M_RENDERTARGET), // Derived TODO : Verify offset
 
         { 0x02, 0x1C },
         { 0x1A, 0x15 },
