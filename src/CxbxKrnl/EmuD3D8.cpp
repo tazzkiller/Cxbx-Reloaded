@@ -161,6 +161,8 @@ static DWORD						g_SwapLast = 0;
 static XTL::X_D3DMATERIAL           g_BackMaterial = { 0 };
 #endif
 
+#define USE_XBOX_BUFFERS 1
+
 // cached Direct3D state variable(s)
 #ifndef USE_XBOX_BUFFERS
 static XTL::X_D3DSurface           *g_pInitialXboxBackBuffer = NULL;
@@ -1912,8 +1914,14 @@ void CxbxUpdateActiveRenderTarget()
 
 	XTL::X_D3DSurface *pActiveXboxRenderTarget = GetXboxRenderTarget();
 	XTL::X_D3DSurface *pActiveXboxDepthStencil = GetXboxDepthStencil();
-	XTL::IDirect3DSurface8 *g_pActiveHostRenderTarget = CxbxUpdateSurface(pActiveXboxRenderTarget);
-	XTL::IDirect3DSurface8 *g_pActiveHostDepthStencil = CxbxUpdateSurface(pActiveXboxDepthStencil);
+#ifdef USE_XBOX_BUFFERS
+	XTL::IDirect3DSurface8 *
+#endif
+		g_pActiveHostRenderTarget = CxbxUpdateSurface(pActiveXboxRenderTarget);
+#ifdef USE_XBOX_BUFFERS
+	XTL::IDirect3DSurface8 *
+#endif
+		g_pActiveHostDepthStencil = CxbxUpdateSurface(pActiveXboxDepthStencil);
 
 	HRESULT hRet = g_pD3DDevice8->SetRenderTarget(g_pActiveHostRenderTarget, g_pActiveHostDepthStencil);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderTarget");
@@ -1940,8 +1948,8 @@ void CxbxUpdateNativeD3DResources()
 	*/
 	CxbxUpdateTextureStages();
 	XTL::DxbxUpdateActivePixelShader();
-	XTL::DxbxUpdateDeferredStates(); // BeginPush sample shows us that this must come *after* texture update!
 	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
+	XTL::DxbxUpdateDeferredStates(); // BeginPush sample shows us that this must come *after* texture update!
 	// TODO : Transfer matrices (projection/model/world view) from Xbox to Host using GetTransform or D3D_Device member pointers
 }
 
