@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->Xapi.1.0.4432.cpp
+// *   Cxbx->Win32->CxbxKrnl->HLEDataBase->Xapi.1.0.4432.inl
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -35,6 +35,42 @@
 // ******************************************************************
 // * XMountUtilityDrive
 // ******************************************************************
+OOVPA_NO_XREF(XMountUtilityDrive, 4432, 27)
+
+        { 0x00, 0x55 },
+        { 0x01, 0x8B },
+        { 0x02, 0xEC },
+        { 0x03, 0x81 },
+        { 0x04, 0xEC },
+        { 0x05, 0x14 },
+        { 0x06, 0x01 },
+        { 0x07, 0x00 },
+        { 0x08, 0x00 },
+        { 0x09, 0x53 },
+        { 0x0A, 0x56 },
+        { 0x0B, 0x57 },
+        { 0x0C, 0x8D },
+        { 0x0D, 0x45 },
+        { 0x0E, 0xF4 },
+        { 0x0F, 0x50 },
+        { 0x10, 0x8D },
+        { 0x11, 0x45 },
+        { 0x12, 0xFC },
+        { 0x13, 0x50 },
+        { 0x14, 0xFF },
+        { 0x15, 0x75 },
+        { 0x16, 0x08 },
+        { 0x17, 0xE8 },
+
+        { 0x51, 0x68 },
+        { 0x52, 0x04 },
+        { 0x53, 0x01 },
+OOVPA_END;
+
+#if 0 // No longer used, replaced by generic 4432 version
+// ******************************************************************
+// * XMountUtilityDrive
+// ******************************************************************
 OOVPA_NO_XREF(XMountUtilityDrive, 4432, 8)
 
         // XapiUnknownBad1+0x51 : push 0x0104
@@ -53,51 +89,4 @@ OOVPA_NO_XREF(XMountUtilityDrive, 4432, 8)
 
         // TODO: Finish signature, toss out function call basically
 OOVPA_END;
-
-// ******************************************************************
-// * XAPI_4432
-// ******************************************************************
-OOVPATable XAPI_4432[] = {
-
-	REGISTER_OOVPA(XMountUtilityDrive, 4432, PATCH),
-	REGISTER_OOVPA(XInitDevices, 3911, PATCH),
-	REGISTER_OOVPA(XGetDevices, 3911, PATCH),
-	REGISTER_OOVPA(XInputOpen, 4361, PATCH),
-	REGISTER_OOVPA(XID_fCloseDevice, 4361, XREF),
-	REGISTER_OOVPA(XInputClose, 3911, PATCH),
-	REGISTER_OOVPA(XInputGetCapabilities, 4361, PATCH),
-	REGISTER_OOVPA(XInputGetState, 4361, PATCH),
-	REGISTER_OOVPA(XInputSetState, 4361, PATCH),
-	REGISTER_OOVPA(XGetDeviceChanges, 3911, PATCH),
-    // REGISTER_OOVPA(XapiThreadStartup, 4361, PATCH),
-	REGISTER_OOVPA(GetExitCodeThread, 3911, PATCH),
-	REGISTER_OOVPA(GetTimeZoneInformation, 3911, DISABLED),
-	REGISTER_OOVPA(SetThreadPriority, 3911, PATCH),
-	REGISTER_OOVPA(SignalObjectAndWait, 3911, PATCH),
-	REGISTER_OOVPA(CreateFiber, 3911, DISABLED),
-	REGISTER_OOVPA(DeleteFiber, 3911, DISABLED),
-	REGISTER_OOVPA(SwitchToFiber, 3911, DISABLED),
-	REGISTER_OOVPA(ConvertThreadToFiber, 3911, DISABLED),
-	REGISTER_OOVPA(QueueUserAPC, 3911, PATCH),
-	REGISTER_OOVPA(timeSetEvent, 3911, PATCH),
-	REGISTER_OOVPA(timeKillEvent, 3911, PATCH),
-	REGISTER_OOVPA(XLaunchNewImageA, 3911, PATCH),
-	REGISTER_OOVPA(OutputDebugStringA, 3911, PATCH),
-	REGISTER_OOVPA(XRegisterThreadNotifyRoutine, 3911, PATCH),
-	REGISTER_OOVPA(SetThreadPriorityBoost, 3911, PATCH),
-	REGISTER_OOVPA(GetThreadPriority, 3911, PATCH),
-	REGISTER_OOVPA(XMountAlternateTitleA, 3911, PATCH),
-	REGISTER_OOVPA(XUnmountAlternateTitleA, 3911, PATCH),
-	REGISTER_OOVPA(XMountMUA, 4361, PATCH),
-	REGISTER_OOVPA(XMountMURootA, 4361, PATCH),
-	REGISTER_OOVPA(XInputPoll, 3911, PATCH),
-	REGISTER_OOVPA(XFormatUtilityDrive, 4361, PATCH),
-	REGISTER_OOVPA(GetOverlappedResult, 3911, PATCH),
-	REGISTER_OOVPA(XSetProcessQuantumLength, 4134, PATCH),
-	REGISTER_OOVPA(RaiseException, 3911, PATCH),
-};
-
-// ******************************************************************
-// * XAPI_4432_SIZE
-// ******************************************************************
-uint32 XAPI_4432_SIZE = sizeof(XAPI_4432);
+#endif

@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->XOnline.1.0.5558.inl
+// *   Cxbx->Win32->CxbxKrnl->HLEDataBase->XOnline.1.0.5558.inl
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -59,6 +59,7 @@ OOVPA_XREF(CXo_XOnlineLogon, 5558, 14,
         { 0x32, 0xE9 },
 OOVPA_END;
 
+#if 0 // No longer used, replaced by generic XNet 4361 version
 // ******************************************************************
 // * WSAStartup
 // ******************************************************************
@@ -72,7 +73,8 @@ OOVPA_NO_XREF(WSAStartup, 5558, 7)
         { 0x18, 0xC2 },
         { 0x1A, 0x00 },
 OOVPA_END;
-
+#endif
+#if 0 // Moved to XNet 5455
 // ******************************************************************
 // * CXnSock::socket
 // ******************************************************************
@@ -90,12 +92,12 @@ OOVPA_NO_XREF(socket, 5558, 10) // Up to 5849
         { 0xBE, 0xFF },
         { 0xBF, 0x15 },
 OOVPA_END;
-
+#endif
 #if 0 // No longer used, replaced by generic 4361 version
 // ******************************************************************
 // * XOnlineLogon
 // ******************************************************************
-OOVPA_XREF(XOnlineLogon, 5558, 8,
+OOVPA_XREF(XOnlineLogon, 5558, 1+7,
 
     XRefNoSaveIndex,
     XRefOne)
@@ -111,31 +113,3 @@ OOVPA_XREF(XOnlineLogon, 5558, 8,
         { 0x0A, 0xE9 },
 OOVPA_END;
 #endif
-
-// ******************************************************************
-// * XOnline_5558
-// ******************************************************************
-// * TODO: Verify all of these
-// ******************************************************************
-OOVPATable XOnline_5558[] = {
-
-	REGISTER_OOVPA(XnInit, 4627, XREF),
-	REGISTER_OOVPA(XNetStartup, 5233, PATCH),
-	REGISTER_OOVPA(WSAStartup, 5558, PATCH),
-	REGISTER_OOVPA(socket, 5558, PATCH),
-	REGISTER_OOVPA(bind, 4627, PATCH),
-	REGISTER_OOVPA(listen, 4627, PATCH),
-	REGISTER_OOVPA(ioctlsocket, 4627, PATCH),
-	REGISTER_OOVPA(connect, 5233, PATCH),
-	REGISTER_OOVPA(send, 3911, PATCH),
-	REGISTER_OOVPA(recv, 3911, PATCH),
-	REGISTER_OOVPA(XNetGetEthernetLinkStatus, 4627, PATCH),
-	REGISTER_OOVPA(XoUpdateLaunchNewImageInternal, 4627, XREF),
-	REGISTER_OOVPA(CXo_XOnlineLogon, 5558, XREF),
-	REGISTER_OOVPA(XOnlineLogon, 4361, PATCH),
-};
-
-// ******************************************************************
-// * XOnline_5558_SIZE
-// ******************************************************************
-uint32 XOnline_5558_SIZE = sizeof(XOnline_5558);

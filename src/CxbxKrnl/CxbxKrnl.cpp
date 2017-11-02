@@ -103,6 +103,9 @@ DWORD_PTR g_CPUOthers = 0;
 
 HANDLE g_CurrentProcessHandle = 0; // Set in CxbxKrnlMain
 
+// Define function located in EmuXApi so we can call it from here
+void SetupXboxDeviceTypes();
+
 // ported from Dxbx's XbeExplorer
 XbeType GetXbeType(Xbe::Header *pXbeHeader)
 {
@@ -176,7 +179,6 @@ void CxbxLaunchXbe(void(*Entry)())
 	__try
 	{
 		Entry();
-		
 	}
 	__except (EmuException(GetExceptionInformation()))
 	{
@@ -592,6 +594,11 @@ void CxbxKrnlMain(int argc, char* argv[])
 		g_EmuShared->SetXbePath(xbePath.c_str());
 		CxbxKrnl_Xbe = new Xbe(xbePath.c_str()); // TODO : Instead of using the Xbe class, port Dxbx _ReadXbeBlock()
 
+		if (CxbxKrnl_Xbe->HasFatalError()) {
+			CxbxKrnlCleanup(CxbxKrnl_Xbe->GetError().c_str());
+			return;
+		}
+
 		// Detect XBE type :
 		g_XbeType = GetXbeType(&CxbxKrnl_Xbe->m_Header);
 
@@ -601,27 +608,19 @@ void CxbxKrnlMain(int argc, char* argv[])
 		// Determine memory size accordingly :
 		SIZE_T memorySize = (g_bIsChihiro ? CHIHIRO_MEMORY_SIZE : XBOX_MEMORY_SIZE);
 
-		// Copy over loaded Xbe Header to specified base address
+		// Copy over loaded Xbe Headers to specified base address
 		memcpy((void*)CxbxKrnl_Xbe->m_Header.dwBaseAddr, &CxbxKrnl_Xbe->m_Header, sizeof(Xbe::Header));
-		// Copy over the certificate
 		memcpy((void*)(CxbxKrnl_Xbe->m_Header.dwBaseAddr + sizeof(Xbe::Header)), CxbxKrnl_Xbe->m_HeaderEx, CxbxKrnl_Xbe->m_ExSize);
-		// Copy over the library versions
-		memcpy((void*)CxbxKrnl_Xbe->m_Header.dwLibraryVersionsAddr, CxbxKrnl_Xbe->m_LibraryVersion, CxbxKrnl_Xbe->m_Header.dwLibraryVersions * sizeof(DWORD));
-		// TODO : Actually, instead of copying from CxbxKrnl_Xbe, we should load the entire Xbe directly into memory, like Dxbx does - see _ReadXbeBlock()
 
-		// Verify no section would load outside virtual_memory_placeholder (which would overwrite Cxbx code)
+		// Load all sections marked as preload using the in-memory copy of the xbe header
+		xboxkrnl::PXBEIMAGE_SECTION sectionHeaders = (xboxkrnl::PXBEIMAGE_SECTION)CxbxKrnl_Xbe->m_Header.dwSectionHeadersAddr;
 		for (uint32 i = 0; i < CxbxKrnl_Xbe->m_Header.dwSections; i++) {
-			xbaddr section_end = CxbxKrnl_Xbe->m_SectionHeader[i].dwVirtualAddr + CxbxKrnl_Xbe->m_SectionHeader[i].dwSizeofRaw;
-			if (section_end >= XBE_MAX_VA)
-			{
-				CxbxPopupMessage("Couldn't load XBE section - please report this!");
-				return; // TODO : Halt(0); 
+			if ((sectionHeaders[i].Flags & XBEIMAGE_SECTION_PRELOAD) != 0) {
+				NTSTATUS result = xboxkrnl::XeLoadSection(&sectionHeaders[i]);
+				if (FAILED(result)) {
+					CxbxKrnlCleanup("Failed to preload XBE section: %s", CxbxKrnl_Xbe->m_szSectionName[i]);
+				}
 			}
-		}
-
-		// Load all sections to their requested Virtual Address :
-		for (uint32 i = 0; i < CxbxKrnl_Xbe->m_Header.dwSections; i++) {
-			memcpy((void*)CxbxKrnl_Xbe->m_SectionHeader[i].dwVirtualAddr, CxbxKrnl_Xbe->m_bzSection[i], CxbxKrnl_Xbe->m_SectionHeader[i].dwSizeofRaw);
 		}
 
 		// We need to remember a few XbeHeader fields, so we can switch between a valid ExeHeader and XbeHeader :
@@ -748,7 +747,12 @@ __declspec(noreturn) void CxbxKrnlInit
 	CxbxKrnl_hEmuParent = IsWindow(hwndParent) ? hwndParent : NULL;
 	CxbxKrnl_DebugMode = DbgMode;
 	CxbxKrnl_DebugFileName = (char*)szDebugFilename;
-	g_pCertificate = (Xbe::Certificate *)(CxbxKrnl_XbeHeader->dwCertificateAddr);
+
+	// A patch to dwCertificateAddr is a requirement due to Windows TLS is overwriting dwGameRegion data address.
+	// By using unalternated certificate data, it should no longer cause any problem with titles running and Cxbx's log as well.
+	CxbxKrnl_XbeHeader->dwCertificateAddr = (uint32)&CxbxKrnl_Xbe->m_Certificate;
+	g_pCertificate = &CxbxKrnl_Xbe->m_Certificate;
+
 	// for unicode conversions
 	setlocale(LC_ALL, "English");
 	CxbxInitPerformanceCounters();
@@ -812,7 +816,7 @@ __declspec(noreturn) void CxbxKrnlInit
 	{
 		int XInputEnabled;
 		g_EmuShared->GetXInputEnabled(&XInputEnabled);
-		g_XInputEnabled = (bool)(XInputEnabled > 0);
+		g_XInputEnabled = !!XInputEnabled;
 	}
 
 #ifdef _DEBUG_PRINT_CURRENT_CONF
@@ -948,6 +952,7 @@ __declspec(noreturn) void CxbxKrnlInit
     XTL::CxbxInitAudio();
 
 	EmuHLEIntercept(pXbeHeader);
+	SetupXboxDeviceTypes();
 
 	// Always initialise NV2A: We may need it for disabled HLE patches too!
 	EmuNV2A_Init();

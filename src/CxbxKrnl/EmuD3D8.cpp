@@ -2193,6 +2193,17 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
         RegisterClassEx(&wc);
     }
 
+	bool bMultiXbe;
+	g_EmuShared->GetMultiXbeFlag(&bMultiXbe);
+
+	// precaution for multi-xbe titles in the case CrashMonitor has still not destoyed the previous mutex
+	while (bMultiXbe)
+	{
+		g_EmuShared->GetMultiXbeFlag(&bMultiXbe);
+	}
+
+	HANDLE hCrashMutex = CreateMutex(NULL, TRUE, "CrashMutex");
+
     // create the window
     {
         DWORD dwStyle = (g_XBVideo.GetFullscreen() || (CxbxKrnl_hEmuParent == 0))? WS_OVERLAPPEDWINDOW : WS_CHILD;
@@ -2281,6 +2292,8 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
         g_bRenderWindowActive = false;
 
         delete dbgConsole;
+
+		if (hCrashMutex != NULL) { ReleaseMutex(hCrashMutex); }
 
         CxbxKrnlCleanup(nullptr);
     }

@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->XactEng.1.0.5849.inl
+// *   Cxbx->Win32->CxbxKrnl->HLEDataBase->XactEng.1.0.5849.inl
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -32,6 +32,7 @@
 // *
 // ******************************************************************
 
+#if 0 // No longer used, replaced by generic 5120 version
 // *****************************************************************
 // * XACTEngineCreate
 // ******************************************************************
@@ -55,16 +56,4 @@ OOVPA_NO_XREF(XACTEngineCreate, 5849, 11)
 		{ 0xA2, 0xC2 },
 		{ 0xA3, 0x08 },
 OOVPA_END;
-
-// ******************************************************************
-// * XactEng_5849
-// ******************************************************************
-OOVPATable XactEng_5849[] = {
-	REGISTER_OOVPA(XACTEngineCreate, 5849, PATCH),
-	REGISTER_OOVPA(XACTEngineDoWork, 4627, PATCH),
-};
-
-// ******************************************************************
-// * XACTENG_5849_SIZE
-// ******************************************************************
-uint32 XactEng_5849_SIZE = sizeof(XactEng_5849);
+#endif

@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->Xapi.1.0.5788.cpp
+// *   Cxbx->Win32->CxbxKrnl->HLEDataBase->Xapi.1.0.5788.inl
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -32,6 +32,7 @@
 // *
 // ******************************************************************
 
+#if 0 // No longer used, replaced by generic 5028 version
 // ******************************************************************
 // * XapiInitProcess
 // ******************************************************************
@@ -46,6 +47,7 @@ OOVPA_NO_XREF(XapiInitProcess, 5788, 8)
         { 0xDE, 0x00 },
         { 0xFE, 0x53 },
 OOVPA_END;
+#endif
 
 // ******************************************************************
 // * GetThreadPriority
@@ -103,6 +105,7 @@ OOVPA_NO_XREF(XGetDeviceEnumerationStatus, 5788, 7)
 OOVPA_END;
 #endif
 
+#if 0 // No longer used, replaced by generic 3911 version
 // ******************************************************************
 // * SwitchToThread
 // ******************************************************************
@@ -115,56 +118,4 @@ OOVPA_NO_XREF(SwitchToThread, 5788, 6)
         { 0x0D, 0x0F },
         { 0x10, 0x8B },
 OOVPA_END;
-
-// ******************************************************************
-// * XAPI_5788
-// ******************************************************************
-OOVPATable XAPI_5788[] = {
-
-	REGISTER_OOVPA(SetThreadPriority, 3911, PATCH),
-	REGISTER_OOVPA(XMountUtilityDrive, 4432, PATCH),
-	REGISTER_OOVPA(XInitDevices, 5233, PATCH),
-	REGISTER_OOVPA(XGetDevices, 3911, PATCH),
-	REGISTER_OOVPA(XInputOpen, 4361, PATCH),
-	REGISTER_OOVPA(XInputGetCapabilities, 5558, PATCH),
-	REGISTER_OOVPA(XInputGetState, 5558, PATCH),
-	REGISTER_OOVPA(XGetDeviceChanges, 5233, PATCH), // Was PATCH
-    // REGISTER_OOVPA(XapiThreadStartup, 4361, PATCH), // obsolete?
-	REGISTER_OOVPA(XGetLaunchInfo, 3911, DISABLED),
-	REGISTER_OOVPA(QueueUserAPC, 3911, PATCH),
-	REGISTER_OOVPA(XRegisterThreadNotifyRoutine, 3911, PATCH),
-	REGISTER_OOVPA(GetThreadPriority, 5788, PATCH),
-	REGISTER_OOVPA(SetThreadPriorityBoost, 5788, PATCH),
-	// REGISTER_OOVPA(GetThreadPriorityBoost, 5788, PATCH),
-	REGISTER_OOVPA(XMountMUA, 4361, PATCH),
-	REGISTER_OOVPA(GetTimeZoneInformation, 3911, DISABLED),
-	REGISTER_OOVPA(RaiseException, 3911, PATCH),
-	REGISTER_OOVPA(XLaunchNewImageA, 5558, PATCH),
-	REGISTER_OOVPA(XInputSetState, 5233, PATCH),
-	REGISTER_OOVPA(XGetDeviceEnumerationStatus, 4831, PATCH),
-	// REGISTER_OOVPA(SwitchToThread, 5788, PATCH),
-	REGISTER_OOVPA(XFormatUtilityDrive, 4361, PATCH),
-	REGISTER_OOVPA(CreateFiber, 3911, DISABLED),
-	REGISTER_OOVPA(DeleteFiber, 3911, DISABLED),
-	REGISTER_OOVPA(SwitchToFiber, 3911, DISABLED),
-	REGISTER_OOVPA(ConvertThreadToFiber, 3911, DISABLED),
-	REGISTER_OOVPA(XID_fCloseDevice, 5558, XREF),
-	REGISTER_OOVPA(XInputClose, 5558, PATCH),
-	REGISTER_OOVPA(OutputDebugStringA, 3911, PATCH),
-	REGISTER_OOVPA(GetExitCodeThread, 3911, PATCH),
-	REGISTER_OOVPA(SignalObjectAndWait, 3911, PATCH),
-	REGISTER_OOVPA(XMountAlternateTitleA, 5558, PATCH),
-	REGISTER_OOVPA(XUnmountAlternateTitleA, 3911, PATCH),
-	REGISTER_OOVPA(XMountMURootA, 4361, PATCH),
-	REGISTER_OOVPA(XInputPoll, 3911, PATCH),
-	REGISTER_OOVPA(timeSetEvent, 3911, PATCH),
-	REGISTER_OOVPA(timeKillEvent, 3911, PATCH),
-	REGISTER_OOVPA(GetOverlappedResult, 3911, PATCH),
-	REGISTER_OOVPA(XSetProcessQuantumLength, 4134, PATCH),
-	REGISTER_OOVPA(XInputGetDeviceDescription, 5344, PATCH),
-};
-
-// ******************************************************************
-// * XAPI_5788_SIZE
-// ******************************************************************
-uint32 XAPI_5788_SIZE = sizeof(XAPI_5788);
+#endif

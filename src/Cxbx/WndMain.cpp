@@ -53,8 +53,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-typedef BOOL (WINAPI *ChangeWindowMessageFilterType)(UINT, DWORD); // for GetProcAddress()
-
 static int gameLogoWidth, gameLogoHeight;
 
 void ClearHLECache()
@@ -233,18 +231,6 @@ WndMain::WndMain(HINSTANCE x_hInstance) :
         }
     }
 
-	// Allow Drag and Drop if Cxbx is run with elevated privileges on Windows Vista and above
-
-	HMODULE hUser32 = LoadLibrary("User32.dll");
-	ChangeWindowMessageFilterType pChangeWindowMessageFilter = (ChangeWindowMessageFilterType)GetProcAddress(hUser32, "ChangeWindowMessageFilter");
-	if(pChangeWindowMessageFilter)
-	{
-		ChangeWindowMessageFilter(WM_DROPFILES, MSGFLT_ADD);
-		ChangeWindowMessageFilter(WM_COPYDATA, MSGFLT_ADD);
-		ChangeWindowMessageFilter(0x0049, MSGFLT_ADD);
-	}
-	FreeLibrary(hUser32);
-
     return;
 }
 
@@ -404,6 +390,12 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
             SetClassLong(hwnd, GCL_HICON, (LONG)LoadIcon(GetModuleHandle(NULL), MAKEINTRESOURCE(IDI_CXBX)));
 			DragAcceptFiles(hwnd, TRUE);
 
+			// Allow Drag and Drop if Cxbx is run with elevated privileges on Windows Vista and above
+
+			ChangeWindowMessageFilterEx(hwnd, WM_DROPFILES, MSGFLT_ALLOW, nullptr);
+			ChangeWindowMessageFilterEx(hwnd, WM_COPYDATA, MSGFLT_ALLOW, nullptr);
+			ChangeWindowMessageFilterEx(hwnd, 0x0049, MSGFLT_ALLOW, nullptr);
+
             m_bCreated = true;
         }
         break;
@@ -414,6 +406,7 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
             {
                 case WM_CREATE:
                 {
+					CreateThread(NULL, NULL, CrashMonitorWrapper, (void*)this, NULL, NULL); // create the crash monitoring thread 
 					if (m_hwndChild == NULL) {
 						float fps = 0;
 						float mspf = 0;
@@ -423,6 +416,10 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 						m_hwndChild = GetWindow(hwnd, GW_CHILD); // (HWND)HIWORD(wParam) seems to be NULL
 						UpdateCaption();
 						RefreshMenus();
+					}
+					else
+					{
+						m_hwndChild = GetWindow(hwnd, GW_CHILD);
 					}
                 }
                 break;
@@ -1013,7 +1010,9 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 				// Hash the loaded XBE's header, use it as a filename
 				uint32_t uiHash = XXHash32::hash((void*)&m_Xbe->m_Header, sizeof(Xbe::Header), 0);
 				std::stringstream sstream;
-				sstream << cacheDir << std::hex << uiHash << ".ini";
+				std::string szTitleName(m_Xbe->m_szAsciiTitle);
+				m_Xbe->PurgeBadChar(szTitleName);
+				sstream << cacheDir << szTitleName << "-" << std::hex << uiHash << ".ini";
 				std::string fullpath = sstream.str();
 
 				if (DeleteFile(fullpath.c_str())) {
@@ -1345,9 +1344,9 @@ struct XprHeader
 void WndMain::LoadGameLogo()
 {
 	// Export Game Logo bitmap (XTIMAG or XSIMAG)
-	uint8 *pSection = (uint8 *)m_Xbe->FindSection("$$XTIMAG"); // Check for XTIMAGE
+	uint8 *pSection = (uint8 *)m_Xbe->FindSection("$$XTIMAGE"); // Check for XTIMAGE
 	if (!pSection) {
-		pSection = (uint8 *)m_Xbe->FindSection("$$XSIMAG"); // if XTIMAGE isn't present, check for XSIMAGE (smaller)
+		pSection = (uint8 *)m_Xbe->FindSection("$$XSIMAGE"); // if XTIMAGE isn't present, check for XSIMAGE (smaller)
 		if (!pSection) {
 			return;
 		}
@@ -1956,4 +1955,53 @@ void WndMain::StopEmulation()
 
 	UpdateCaption();
     RefreshMenus();
+}
+
+
+// wrapper function to call CrashMonitor
+DWORD WINAPI WndMain::CrashMonitorWrapper(LPVOID lpVoid)
+{
+	static_cast<WndMain*>(lpVoid)->CrashMonitor();
+	return 0;
+}
+
+// monitor for crashes
+void WndMain::CrashMonitor()
+{
+	bool bMultiXbe;
+	HANDLE hCrashMutex = OpenMutex(MUTEX_ALL_ACCESS, FALSE, "CrashMutex");
+
+	DWORD state = WaitForSingleObject(hCrashMutex, INFINITE);
+
+	g_EmuShared->GetMultiXbeFlag(&bMultiXbe);
+
+	if (state == WAIT_OBJECT_0) // StopEmulation
+	{
+		CloseHandle(hCrashMutex);
+		return;
+	}
+
+	if (state == WAIT_ABANDONED && !bMultiXbe) // that's a crash
+	{
+		CloseHandle(hCrashMutex);
+		if (m_bIsStarted) // that's a hard crash, Dr Watson is invoked
+		{
+			KillTimer(m_hwnd, TIMERID_FPS);
+			//KillTimer(m_hwnd, 2); for the LED
+			//DrawDefaultLedBitmap(hwnd); for the LED
+			m_hwndChild = NULL;
+			m_bIsStarted = false;
+			UpdateCaption();
+			RefreshMenus();
+		}
+		return;
+	}
+
+	// multi-xbe
+	// destroy this thread and start a new one
+	CloseHandle(hCrashMutex);
+	bMultiXbe = false;
+	g_EmuShared->SetMultiXbeFlag(&bMultiXbe);
+
+	return;
 }

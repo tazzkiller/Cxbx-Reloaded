@@ -35,7 +35,6 @@
 #define CXBXKRNL_H
 
 #include "Cxbx.h"
-
 #include "Common/Xbe.h"
 
 #undef FIELD_OFFSET     // prevent macro redefinition warnings
@@ -59,6 +58,9 @@ extern "C" {
 // Thread Information Block offsets - see https://www.microsoft.com/msj/archive/S2CE.aspx
 #define TIB_ArbitraryDataSlot 0x14
 #define TIB_LinearSelfAddress 0x18
+
+/*! xbnullptr is the type of null pointer address*/
+#define xbnullptr (xbaddr)nullptr
 
 #define XBADDR_BITS 32
 #define XBADDR_MAX UINT32_MAX

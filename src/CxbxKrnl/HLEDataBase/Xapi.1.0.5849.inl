@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->Xapi.1.0.5849.cpp
+// *   Cxbx->Win32->CxbxKrnl->HLEDataBase->Xapi.1.0.5849.inl
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -32,6 +32,10 @@
 // *
 // ******************************************************************
 
+#if 0 // Moved to 5455
+// ******************************************************************
+// * timeSetEvent
+// ******************************************************************
 //Xbe Explorer generated pattern, derived from address $0027927D in "EA SPORTSÅERUGBY 2005" :
 //558BEC83EC14536880153200FF15........8B0D........33DB3BCB7548538D 1F 4046 0124 _timeSetEvent@20 ^ 000ED __imp__RtlEnterCriticalSection@4 ^ 0014D _XapiMmTimerThreadState ^ 003FR _CreateThread@24 ^ 0047D _timeSetEvent@20+0112 ^ 004DR _CloseHandle@4 ^ 005CD __imp__KeWaitForSingleObject@20 ^ 0062D _XapiMmTimerThreadState ^0082D _timeSetEvent@20+010F ^0090D _XapiMmTimerSerialNumber ^0097D _XapiMmTimerSerialNumber ^ 00C0R __allmul ^ 00CCD __imp__KeQueryInterruptTime@0 ^00E7D __imp__KeSetTimerEx@20 ^ 00ECD _XapiMmTimerThreadState ^ 00FBD __imp__KeSetEvent@12 ^0119D __imp__RtlLeaveCriticalSection@4
 //Improved pattern using timeSetEvent in "Kingdom Under Fire: The Crusaders" at address $00221F2E
@@ -47,7 +51,8 @@ OOVPA_NO_XREF(timeSetEvent, 5849, 10)
 	{0x19, 0xDB},
 	{0x1A, 0x3B}
 OOVPA_END;
-
+#endif
+#if 0 // No longer used, replaced by generic 3911 version
 //; Xbe Explorer generated pattern, derived from address $002793A1 in "EA SPORTSÅERUGBY 2005" :
 //5657BF8015320057FF15........8B54240C8B0D........0FB7C24885C9743E 1D AD12 006F _timeKillEvent@4 ^ 000AD __imp__RtlEnterCriticalSection@4 ^ 0014D _XapiMmTimerThreadState ^ 003DD __imp__KeCancelTimer@4 ^ 0046D _XapiMmTimerThreadState ^ 0056D __imp__KeSetEvent@12 ^ 0064D __imp__RtlLeaveCriticalSection@4
 OOVPA_NO_XREF(timeKillEvent, 5849, 10)
@@ -62,6 +67,7 @@ OOVPA_NO_XREF(timeKillEvent, 5849, 10)
 	{ 0x18, 0x0F },
 	{ 0x1F, 0x3E }
 OOVPA_END;
+#endif
 #if 0 // No longer used, replaced by generic 4831 version
 // ******************************************************************
 // * XGetDeviceEnumerationStatus
@@ -77,6 +83,7 @@ OOVPA_NO_XREF(XGetDeviceEnumerationStatus, 5849, 7)
         { 0x28, 0xC3 },
 OOVPA_END;
 #endif
+#if 0 // No longer used, replaced by generic 3911 version
 // ******************************************************************
 // * SwitchToThread
 // ******************************************************************
@@ -89,54 +96,4 @@ OOVPA_NO_XREF(SwitchToThread, 5849, 6)
         { 0x0D, 0x0F },
         { 0x10, 0x8B },
 OOVPA_END;
-
-// ******************************************************************
-// * XAPI_5849
-// ******************************************************************
-OOVPATable XAPI_5849[] = {
-
-	REGISTER_OOVPA(SetThreadPriority, 3911, PATCH),
-	REGISTER_OOVPA(XMountUtilityDrive, 4432, PATCH),
-	REGISTER_OOVPA(XInitDevices, 5233, PATCH),
-	REGISTER_OOVPA(XGetDevices, 3911, PATCH),
-	REGISTER_OOVPA(XInputOpen, 4361, PATCH),
-	REGISTER_OOVPA(XID_fCloseDevice, 5558, XREF),
-	REGISTER_OOVPA(XInputClose, 5558, PATCH),
-	REGISTER_OOVPA(XInputGetCapabilities, 5558, PATCH),
-	REGISTER_OOVPA(XInputGetState, 5558, PATCH),
-	REGISTER_OOVPA(XGetDeviceChanges, 5233, PATCH),
-	// REGISTER_OOVPA(XapiThreadStartup, 4361, PATCH), // obsolete?
-	REGISTER_OOVPA(QueueUserAPC, 3911, PATCH),
-	REGISTER_OOVPA(GetThreadPriority, 5788, PATCH),
-	REGISTER_OOVPA(SetThreadPriorityBoost, 5788, PATCH),
-	// REGISTER_OOVPA(GetThreadPriorityBoost, 5849, PATCH),
-	REGISTER_OOVPA(timeSetEvent, 5849, PATCH),
-	REGISTER_OOVPA(timeKillEvent, 5849, PATCH),
-	REGISTER_OOVPA(RaiseException, 3911, PATCH),
-	REGISTER_OOVPA(XLaunchNewImageA, 5558, PATCH),
-	REGISTER_OOVPA(XInputSetState, 5233, PATCH),
-	REGISTER_OOVPA(XGetDeviceEnumerationStatus, 4831, PATCH),
-	// REGISTER_OOVPA(SwitchToThread, 5849, PATCH),
-	REGISTER_OOVPA(XFormatUtilityDrive, 4361, PATCH),
-	REGISTER_OOVPA(CreateFiber, 3911, DISABLED),
-	REGISTER_OOVPA(DeleteFiber, 3911, DISABLED),
-	REGISTER_OOVPA(SwitchToFiber, 3911, DISABLED),
-	REGISTER_OOVPA(ConvertThreadToFiber, 3911, DISABLED),
-	REGISTER_OOVPA(OutputDebugStringA, 3911, PATCH),
-	REGISTER_OOVPA(GetExitCodeThread, 3911, PATCH),
-	REGISTER_OOVPA(XRegisterThreadNotifyRoutine, 3911, PATCH),
-	REGISTER_OOVPA(SignalObjectAndWait, 3911, PATCH),
-	REGISTER_OOVPA(XMountAlternateTitleA, 5558, PATCH),
-	REGISTER_OOVPA(XUnmountAlternateTitleA, 3911, PATCH),
-	REGISTER_OOVPA(XMountMUA, 4361, PATCH),
-	REGISTER_OOVPA(XMountMURootA, 4361, PATCH),
-	REGISTER_OOVPA(XInputPoll, 3911, PATCH),
-	REGISTER_OOVPA(GetOverlappedResult, 3911, PATCH),
-	REGISTER_OOVPA(XSetProcessQuantumLength, 4134, PATCH),
-	REGISTER_OOVPA(XInputGetDeviceDescription, 5344, PATCH),
-};
-
-// ******************************************************************
-// * XAPI_5849_SIZE
-// ******************************************************************
-uint32 XAPI_5849_SIZE = sizeof(XAPI_5849);
+#endif

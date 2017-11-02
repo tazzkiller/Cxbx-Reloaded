@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->XG.1.0.3911.inl
+// *   Cxbx->Win32->CxbxKrnl->HLEDataBase->XG.1.0.3911.inl
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -153,6 +153,29 @@ OOVPA_END;
 // ******************************************************************
 // * XGCompressRect
 // ******************************************************************
+//Generic OOVPA as of 3911 and newer.
+OOVPA_NO_XREF(XGCompressRect, 3911, 12)
+
+        { 0x00, 0x55 },
+        { 0x01, 0x8D },
+
+        { 0x14, 0x83 },
+        { 0x15, 0x7D },
+        { 0x16, 0x6C },
+        { 0x17, 0x00 },
+        { 0x18, 0x56 },
+        { 0x19, 0x57 },
+        { 0x1A, 0xC7 },
+        { 0x1B, 0x45 },
+
+        { 0xC0, 0x7E },
+        { 0xC1, 0x01 },
+OOVPA_END;
+
+#if 0 // No longer used, replaced by generic 3911 version
+// ******************************************************************
+// * XGCompressRect
+// ******************************************************************
 OOVPA_NO_XREF(XGCompressRect, 3911, 8)
 
         { 0x01, 0x8D },
@@ -164,7 +187,7 @@ OOVPA_NO_XREF(XGCompressRect, 3911, 8)
         { 0xBE, 0x80 },
         { 0xDA, 0xAF },
 OOVPA_END;
-
+#endif
 // ******************************************************************
 // * XGSetIndexBufferHeader
 // ******************************************************************
@@ -208,25 +231,3 @@ OOVPA_NO_XREF(XGSetVertexBufferHeader, 3911, 13)
         { 0x11, 0xC2 },
         { 0x12, 0x18 },
 OOVPA_END;
-
-// ******************************************************************
-// * XG_3911
-// ******************************************************************
-OOVPATable XG_3911[] = {
-
-	REGISTER_OOVPA(XGIsSwizzledFormat, 3911, DISABLED),
-	// REGISTER_OOVPA(XGSwizzleRect, 3911, DISABLED), // TODO : Uncomment
-	// REGISTER_OOVPA(XGUnswizzleRect, 3911, DISABLED), // TODO : Uncomment
-	REGISTER_OOVPA(XGSwizzleBox, 3911, DISABLED),
-	REGISTER_OOVPA(XGWriteSurfaceOrTextureToXPR, 3911, PATCH),
-	REGISTER_OOVPA(XGSetTextureHeader, 3911, PATCH),
-	REGISTER_OOVPA(XGSetVertexBufferHeader, 3911, XREF),
-	REGISTER_OOVPA(XGSetIndexBufferHeader, 3911, XREF),
-	REGISTER_OOVPA(XGCompressRect, 3911, XREF),
-	REGISTER_OOVPA(XGUnswizzleBox, 3911, DISABLED),
-};
-
-// ******************************************************************
-// * XG_3911_SIZE
-// ******************************************************************
-uint32 XG_3911_SIZE = sizeof(XG_3911);

@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Cxbx->Win32->CxbxKrnl->XNet.1.0.3911.cpp
+// *   Cxbx->Win32->CxbxKrnl->HLEDataBase->XNet.1.0.3911.inl
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -35,13 +35,13 @@
 // ******************************************************************
 // * XNetStartup
 // ******************************************************************
-OOVPA_XREF(XNetStartup, 3911, 9,
+OOVPA_XREF(XNetStartup, 3911, 1+8,
 
     XRefNoSaveIndex,
     XRefOne)
 
         // XNetStartup+0x07 : call [XnInit]
-        XREF_ENTRY( 0x07, XREF_XNINIT ), 
+        XREF_ENTRY( 0x07, XREF_XnInit ),
 
         // XNetStartup+0x00 : push 0
         { 0x00, 0x6A },
@@ -61,13 +61,13 @@ OOVPA_END;
 // ******************************************************************
 // * WSAStartup
 // ******************************************************************
-OOVPA_XREF(WSAStartup, 3911, 11,
+OOVPA_XREF(WSAStartup, 3911, 1+10,
 
     XRefNoSaveIndex,
     XRefOne)
 
         // WSAStartup+0x07 : call [XnInit]
-        XREF_ENTRY( 0x07, XREF_XNINIT ), 
+        XREF_ENTRY( 0x07, XREF_XnInit ),
 
         // WSAStartup+0x01 : push 1; xor ebx, ebx
         { 0x01, 0x6A },
@@ -87,9 +87,10 @@ OOVPA_END;
 // ******************************************************************
 // * XnInit
 // ******************************************************************
+// For only XNETS library, XNET library is different OOVPA.
 OOVPA_XREF(XnInit, 3911, 11,
 
-    XREF_XNINIT,
+    XREF_XnInit,
     XRefZero)
 
         // XnInit+0x31 : push 0x3554454E
@@ -113,6 +114,31 @@ OOVPA_END;
 // ******************************************************************
 // * XNetGetEthernetLinkStatus
 // ******************************************************************
+OOVPA_NO_XREF(XNetGetEthernetLinkStatus, 3911, 14)
+
+        { 0x00, 0x56 },
+        { 0x01, 0x33 },
+        { 0x02, 0xF6 },
+        { 0x03, 0xB8 },
+        { 0x04, 0x00 },
+        { 0x05, 0x00 },
+        { 0x06, 0x00 },
+        { 0x07, 0x00 },
+        { 0x08, 0xB9 },
+
+        { 0x0D, 0xBA },
+        { 0x1A, 0xE8 },
+
+        { 0x27, 0x75 },
+        { 0x2C, 0x15 },
+
+        { 0x3F, 0xC3 },
+OOVPA_END;
+
+#if 0 // No longer used, replaced by generic 3911 version
+// ******************************************************************
+// * XNetGetEthernetLinkStatus
+// ******************************************************************
 OOVPA_NO_XREF(XNetGetEthernetLinkStatus, 3911, 8)
 
         // XNetGetEthernetLinkStatus+0x12 : cmpxchg [ecx], edx
@@ -131,7 +157,7 @@ OOVPA_NO_XREF(XNetGetEthernetLinkStatus, 3911, 8)
         // XNetStartup+0x3F : retn
         { 0x3F, 0xC3 },
 OOVPA_END;
-
+#endif
 
 // ******************************************************************
 // * CXnSock::socket
@@ -181,7 +207,10 @@ OOVPA_END;
 // ******************************************************************
 // * CXnSock::listen
 // ******************************************************************
-OOVPA_NO_XREF(listen, 3911, 9)
+OOVPA_NO_XREF(listen, 3911, 10)
+
+        // listen+0x00 : push edi
+        { 0x00, 0x57 },
 
         // listen+0x10 : push 0x276D
         { 0x10, 0x68 },
@@ -204,7 +233,10 @@ OOVPA_END;
 // ******************************************************************
 // * CXnSock::ioctlsocket
 // ******************************************************************
-OOVPA_NO_XREF(ioctlsocket, 3911, 10)
+OOVPA_NO_XREF(ioctlsocket, 3911, 11)
+
+        // ioctlsocket+0x00 : push ebp
+        { 0x00, 0x55 },
 
         // ioctlsocket+0x12 : push 0x276D
         { 0x12, 0x68 },
@@ -228,7 +260,8 @@ OOVPA_END;
 // ******************************************************************
 // * CXnSock::send
 // ******************************************************************
-OOVPA_NO_XREF(send, 3911, 14) // Up to 5849
+//Generic OOVPA as of 3911 and newer.
+OOVPA_NO_XREF(send, 3911, 14)
 
         { 0x00, 0x55 },
         { 0x01, 0x8B },
@@ -272,7 +305,8 @@ OOVPA_END;
 // ******************************************************************
 // * CXnSock::recv
 // ******************************************************************
-OOVPA_NO_XREF(recv, 3911, 14) // Up to 5849
+//Generic OOVPA as of 3911 and newer.
+OOVPA_NO_XREF(recv, 3911, 14)
 
         { 0x00, 0x55 },
         { 0x01, 0x8B },
@@ -290,26 +324,3 @@ OOVPA_NO_XREF(recv, 3911, 14) // Up to 5849
         { 0x12, 0x00 },
         { 0x1A, 0x00 },
 OOVPA_END;
-
-// ******************************************************************
-// * XNet_3911
-// ******************************************************************
-OOVPATable XNet_3911[] = {
-
-	REGISTER_OOVPA(XnInit, 3911, XREF),
-	REGISTER_OOVPA(XNetStartup, 3911, PATCH),
-	REGISTER_OOVPA(WSAStartup, 3911, PATCH),
-	REGISTER_OOVPA(XNetGetEthernetLinkStatus, 3911, PATCH),
-	REGISTER_OOVPA(socket, 3911, PATCH),
-	REGISTER_OOVPA(bind, 3911, PATCH),
-	REGISTER_OOVPA(listen, 3911, PATCH),
-	REGISTER_OOVPA(ioctlsocket, 3911, PATCH),
-	REGISTER_OOVPA(connect, 3911, PATCH),
-	REGISTER_OOVPA(send, 3911, PATCH),
-	REGISTER_OOVPA(recv, 3911, PATCH),
-};
-
-// ******************************************************************
-// * XNet_3911_SIZE
-// ******************************************************************
-uint32 XNet_3911_SIZE = sizeof(XNet_3911);

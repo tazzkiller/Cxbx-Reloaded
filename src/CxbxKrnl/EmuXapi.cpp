@@ -63,6 +63,8 @@ extern HANDLE g_hInputHandle[XINPUT_HANDLE_SLOTS] = {0};
 
 bool g_bXInputOpenCalled = false;
 
+XTL::PXPP_DEVICE_TYPE gDeviceType_Gamepad = nullptr;
+
 bool CxbxMountUtilityDrive(bool formatClean);
 
 // ******************************************************************
@@ -90,6 +92,86 @@ XFIBER g_Fibers[256];
 
 // Number of fiber routines queued
 int	   g_FiberCount = 0;
+
+void SetupXboxDeviceTypes()
+{
+	// If we don't yet have the offset to gDeviceType_Gamepad, work it out!
+	if (gDeviceType_Gamepad == nullptr) {
+		// First, attempt to find GetTypeInformation
+		auto typeInformation = g_SymbolAddresses.find("GetTypeInformation");
+		if (typeInformation != g_SymbolAddresses.end() && typeInformation->second != (xbaddr)nullptr) {
+			printf("Deriving XDEVICE_TYPE_GAMEPAD from DeviceTable (via GetTypeInformation)\n");
+			// Read the offset values of the device table structure from GetTypeInformation
+			xbaddr deviceTableStartOffset = *(uint32_t*)((uint32_t)typeInformation->second + 0x01);
+			xbaddr deviceTableEndOffset = *(uint32_t*)((uint32_t)typeInformation->second + 0x09);
+
+			// Calculate the number of device entires in the table
+			size_t deviceTableEntryCount = (deviceTableEndOffset - deviceTableStartOffset) / sizeof(uint32_t);
+
+			printf("DeviceTableStart: 0x%08X\n", deviceTableStartOffset);
+			printf("DeviceTableEnd: 0x%08X\n", deviceTableEndOffset);
+			printf("DeviceTable Entires: %u\n", deviceTableEntryCount);
+
+			// Sanity check: Where all these device offsets within Xbox memory
+			if (deviceTableStartOffset >= XBOX_MEMORY_SIZE || deviceTableEndOffset >= XBOX_MEMORY_SIZE) {
+				CxbxKrnlCleanup("XAPI DeviceTable Location is outside of Xbox Memory range");
+			}
+
+			// Iterate through the table until we find gamepad
+			XTL::PXID_TYPE_INFORMATION* deviceTable = (XTL::PXID_TYPE_INFORMATION*)(deviceTableStartOffset);
+			for (unsigned int i = 0; i < deviceTableEntryCount; i++) {
+				printf("----------------------------------------\n");
+				printf("DeviceTable[%u]->ucType = %d\n", i, deviceTable[i]->ucType);
+				printf("DeviceTable[%u]->XppType = 0x%08X (", i, deviceTable[i]->XppType);
+
+				switch (deviceTable[i]->ucType) {
+				case 1:
+					gDeviceType_Gamepad = deviceTable[i]->XppType;
+					printf("XDEVICE_TYPE_GAMEPAD)\n");
+					break;
+				default:
+					printf("Unknown)\n");
+					break;
+				}
+			}
+		} else {
+			// XDKs without GetTypeInformation have the GamePad address hardcoded in XInputOpen
+			// Only the earliest XDKs use this code path, and the offset never changed between them
+			// so this works well for us.
+			void* XInputOpenAddr = (void*)g_SymbolAddresses["XInputOpen"];
+			if (XInputOpenAddr != nullptr) {
+				printf("XAPI: Deriving XDEVICE_TYPE_GAMEPAD from XInputOpen (0x%08X)\n", XInputOpenAddr);
+				gDeviceType_Gamepad = *(XTL::PXPP_DEVICE_TYPE*)((uint32_t)XInputOpenAddr + 0x0B);
+			}
+		}
+
+		if (gDeviceType_Gamepad == nullptr) {
+			EmuWarning("XAPI: XDEVICE_TYPE_GAMEPAD was not found");
+			return;
+		}
+
+		printf("XAPI: XDEVICE_TYPE_GAMEPAD Found at 0x%08X\n", gDeviceType_Gamepad);
+
+		// Set the device as connected
+		// We need to set the ChangeConnected attribute so that titles calling
+		// XGetDeviceChanges before calling XGetDevices work as expected
+		// This fixes input in Far Cry Instincts
+		gDeviceType_Gamepad->CurrentConnected = 1;
+		gDeviceType_Gamepad->ChangeConnected = 1;
+		gDeviceType_Gamepad->PreviousConnected = 0;
+
+		// JSRF Hack: Don't set the ChangeConnected flag. 
+		// Without this, JSRF hard crashes 
+		// TODO: Why is this still needed? 
+		// TODO: Perhaps we should implement LLE for OHCI/USB much sooner than planned
+		// TitleID 0x49470018 = JSRF NTSC-U
+		// TitleID 0x5345000A = JSRF PAL, NTSC-J
+		// TitleID 0x53450016 = JSRF NTSC-J (Demo)
+		if (g_pCertificate->dwTitleId == 0x49470018 || g_pCertificate->dwTitleId == 0x5345000A || g_pCertificate->dwTitleId == 0x53450016) {
+			gDeviceType_Gamepad->ChangeConnected = 0;
+		}
+	}
+}
 
 // ******************************************************************
 // * patch: XFormatUtilityDrive
@@ -153,6 +235,10 @@ VOID WINAPI XTL::EMUPATCH(XInitDevices)
 
 // ******************************************************************
 // * patch: XGetDevices
+// * Note: This could be unpatched however,
+// * XInitDevices is required to be unpatched first.
+// * This in turn requires USB LLE to be implemented, or USBD_Init 
+// * patched with a stub, so this patch is still enabled for now
 // ******************************************************************
 DWORD WINAPI XTL::EMUPATCH(XGetDevices)
 (
@@ -163,19 +249,23 @@ DWORD WINAPI XTL::EMUPATCH(XGetDevices)
 
 	LOG_FUNC_ONE_ARG(DeviceType);
 
-	if (DeviceType->CurrentConnected == 0) {
-		DeviceType->CurrentConnected = 1;
-	}
-		
-    DWORD ret = DeviceType->CurrentConnected;
+	UCHAR oldIrql = xboxkrnl::KeRaiseIrqlToDpcLevel();
+
+	DWORD ret = DeviceType->CurrentConnected;
 	DeviceType->ChangeConnected = 0;
 	DeviceType->PreviousConnected = DeviceType->CurrentConnected;
+
+	xboxkrnl::KfLowerIrql(oldIrql);
 
 	RETURN(ret);
 }
 
 // ******************************************************************
 // * patch: XGetDeviceChanges
+// * Note: This could be unpatched however,
+// * XInitDevices is required to be unpatched first.
+// * This in turn requires USB LLE to be implemented, or USBD_Init 
+// * patched with a stub, so this patch is still enabled for now
 // ******************************************************************
 BOOL WINAPI XTL::EMUPATCH(XGetDeviceChanges)
 (
@@ -194,35 +284,6 @@ BOOL WINAPI XTL::EMUPATCH(XGetDeviceChanges)
 
 	BOOL ret = FALSE;
 
-	// JSRF Hack: Always return no device changes
-	// Without this, JSRF hard crashes sometime after calling this function
-	// I HATE game specific hacks, but I've wasted three weeks trying to solve this already
-	// TitleID 0x49470018 = JSRF NTSC-U
-	// TitleID 0x5345000A = JSRF PAL, NTSC-J
-	// TitleID 0x53450016 = JSRF NTSC-J (Demo)
-	// ~Luke Usher
-	if (g_pCertificate->dwTitleId == 0x49470018 || g_pCertificate->dwTitleId == 0x5345000A || g_pCertificate->dwTitleId == 0x53450016) {
-		RETURN(ret);
-	}
-
-	// TitleID 0x4D57000E = Gauntlet Dark Legacy
-	// ~PatrickvL
-	if (g_pCertificate->dwTitleId == 0x4D57000E) {
-		RETURN(ret);
-	}
-
-	// If we have no connected devices, report one insertion
-	if (DeviceType->CurrentConnected == 0) {
-		*pdwInsertions = 1;
-		ret = TRUE;
-	} else	{
-		// Otherwise, report no changes
-		*pdwInsertions = 0;
-	}
-
-	*pdwRemovals = 0;  
-
-/*
     if(!DeviceType->ChangeConnected)
     {
         *pdwInsertions = 0;
@@ -230,6 +291,8 @@ BOOL WINAPI XTL::EMUPATCH(XGetDeviceChanges)
     }
     else
     {
+		UCHAR oldIrql = xboxkrnl::KeRaiseIrqlToDpcLevel();
+
         *pdwInsertions = (DeviceType->CurrentConnected & ~DeviceType->PreviousConnected);
         *pdwRemovals = (DeviceType->PreviousConnected & ~DeviceType->CurrentConnected);
         ULONG RemoveInsert = DeviceType->ChangeConnected &
@@ -240,8 +303,10 @@ BOOL WINAPI XTL::EMUPATCH(XGetDeviceChanges)
         DeviceType->ChangeConnected = 0;
         DeviceType->PreviousConnected = DeviceType->CurrentConnected;
         ret = (*pdwInsertions | *pdwRemovals) ? TRUE : FALSE;
+
+		xboxkrnl::KfLowerIrql(oldIrql);
     }
-*/
+
 	RETURN(ret);
 }
 

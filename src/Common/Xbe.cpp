@@ -187,18 +187,18 @@ Xbe::Xbe(const char *x_szFilename)
     {
         printf("Xbe::Xbe: Reading Section Names...\n");
 
-        m_szSectionName = new char[m_Header.dwSections][9];
+        m_szSectionName = new char[m_Header.dwSections][10];
         for(uint32 v=0;v<m_Header.dwSections;v++)
         {
             printf("Xbe::Xbe: Reading Section Name 0x%.04X...", v);
 
             uint08 *sn = GetAddr(m_SectionHeader[v].dwSectionNameAddr);
 
-            memset(m_szSectionName[v], 0, 9);
+            memset(m_szSectionName[v], 0, 10);
 
             if(sn != 0)
             {
-                for(int b=0;b<8;b++)
+                for(int b=0;b<9;b++)
                 {
                     m_szSectionName[v][b] = sn[b];
 
@@ -1003,4 +1003,13 @@ void *Xbe::FindSection(char *zsSectionName)
 	}
 
 	return NULL;
+}
+
+void Xbe::PurgeBadChar(std::string &s, const std::string &illegalChars)
+{
+	for (auto it = s.begin(); it < s.end(); ++it)
+	{
+		bool found = illegalChars.find(*it) != std::string::npos;
+		if (found) { *it = '_'; }
+	}
 }
