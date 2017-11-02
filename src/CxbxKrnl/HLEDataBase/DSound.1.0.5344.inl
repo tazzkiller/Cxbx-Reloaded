@@ -634,6 +634,7 @@ OOVPA_XREF(CDirectSoundBuffer_StopEx, 5344, 9,
         { 0x47, 0x68 },
 OOVPA_END;
 #endif
+
 #if 0 // Replaced with generic OOVPA 3911
 // ******************************************************************
 // * IDirectSound_SetEffectData

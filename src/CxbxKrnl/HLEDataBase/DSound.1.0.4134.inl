@@ -2808,6 +2808,7 @@ OOVPA_XREF(IDirectSoundBuffer_SetMixBinVolumes_8, 4134, 1+11,
         { 0x12, 0xC8 },
 OOVPA_END;
 #endif
+
 #if 0 // Moved to 4039
 // ******************************************************************
 // * CDirectSoundStream_SetMixBinVolumes_8

@@ -80,6 +80,7 @@ OOVPA_NO_XREF(IDirectSound_Release, 4432, 12)
         { 0x12, 0x08 },
 OOVPA_END;
 #endif
+
 #if 0 // Used 4134
 // ******************************************************************
 

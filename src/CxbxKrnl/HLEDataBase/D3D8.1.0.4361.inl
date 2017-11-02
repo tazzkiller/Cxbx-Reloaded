@@ -750,6 +750,7 @@ OOVPA_NO_XREF(D3DBaseTexture_GetLevelCount, 4361, 13)
         { 0x0C, 0x04 },
 OOVPA_END;
 #endif
+
 #if 0 // No longer used, replaced by generic 4039 version
 // ******************************************************************
 // * D3DDevice_SetShaderConstantMode
@@ -775,6 +776,7 @@ OOVPA_NO_XREF(D3DDevice_SetShaderConstantMode, 4361, 12)
         { 0xEA, 0x01 },
 OOVPA_END;
 #endif
+
 #if 0 // No longer used, replaced by generic 3911 version
 // ******************************************************************
 // * D3DDevice_SetFlickerFilter
@@ -799,6 +801,7 @@ OOVPA_NO_XREF(D3DDevice_SetFlickerFilter, 4361, 11)
         { 0x40, 0x04 },
 OOVPA_END;
 #endif
+
 #if 0 // No longer used, replaced by generic 4134 version
 // ******************************************************************
 // * D3DDevice_PrimeVertexCache
@@ -814,6 +817,7 @@ OOVPA_NO_XREF(D3DDevice_PrimeVertexCache, 4361, 7)
         { 0x6E, 0x04 },
 OOVPA_END;
 #endif
+
 #if 0 // Moved to 4134
 // ******************************************************************
 // * D3DDevice_BeginPush
@@ -1085,6 +1089,7 @@ OOVPA_NO_XREF(D3DDevice_SetVertexShaderInput, 4361, 8)
         { 0xFE, 0x89 },
 OOVPA_END;
 #endif
+
 #if 0 // No longer used, replaced by generic 4134 version
 // ******************************************************************
 // * D3DDevice_SetVertexData2s
@@ -1101,6 +1106,7 @@ OOVPA_NO_XREF(D3DDevice_SetVertexData2s, 4361, 8)
         { 0x1F, 0xBF },
 OOVPA_END;
 #endif
+
 #if 0 // No longer used, replaced by generic 4134 version
 // ******************************************************************
 // * D3DDevice_SetVertexData4s
