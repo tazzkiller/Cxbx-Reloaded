@@ -337,7 +337,6 @@ void CxbxInitD3DState()
 		hRet = g_pD3DDevice8->SetStreamSource(Streams, g_pDummyBuffer, 1);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetStreamSource");
 	}
-
 }
 
 void CxbxClearD3DDeviceState()
@@ -1430,14 +1429,32 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 		return D3DFMT_A8R8G8B8;
 	}
 
+	// The only formats that come here, are the ones where (FormatInfos[X_Format].components == NoCmpnts).
+#if 0 // These are :
+	/* 0x24 X_D3DFMT_YUY2         */ { 16, Undfnd, NoCmpnts, XTL::D3DFMT_YUY2      },
+	/* 0x25 X_D3DFMT_UYVY         */ { 16, Undfnd, NoCmpnts, XTL::D3DFMT_UYVY      },
+	/* 0x2A X_D3DFMT_D24S8        */ { 32, Swzzld, NoCmpnts, XTL::D3DFMT_D24S8     , DepthBuffer },
+	/* 0x2B X_D3DFMT_F24S8        */ { 32, Swzzld, NoCmpnts, XTL::D3DFMT_D24S8     , DepthBuffer, "X_D3DFMT_F24S8 -> D3DFMT_D24S8" }, // HACK : PC doesn't have D3DFMT_F24S8 (Float vs Int)
+	/* 0x2C X_D3DFMT_D16          */ { 16, Swzzld, NoCmpnts, XTL::D3DFMT_D16       , DepthBuffer }, // Alias : X_D3DFMT_D16_LOCKABLE // TODO : D3DFMT_D16 is always lockable on Xbox; Should PC use D3DFMT_D16_LOCKABLE instead? Needs testcase.
+	/* 0x2D X_D3DFMT_F16          */ { 16, Swzzld, NoCmpnts, XTL::D3DFMT_D16       , DepthBuffer, "X_D3DFMT_F16 -> D3DFMT_D16" }, // HACK : PC doesn't have D3DFMT_F16 (Float vs Int)
+	/* 0x2E X_D3DFMT_LIN_D24S8    */ { 32, Linear, NoCmpnts, XTL::D3DFMT_D24S8     , DepthBuffer },
+	/* 0x2F X_D3DFMT_LIN_F24S8    */ { 32, Linear, NoCmpnts, XTL::D3DFMT_D24S8     , DepthBuffer, "X_D3DFMT_LIN_F24S8 -> D3DFMT_D24S8" }, // HACK : PC doesn't have D3DFMT_F24S8 (Float vs Int)
+	/* 0x30 X_D3DFMT_LIN_D16      */ { 16, Linear, NoCmpnts, XTL::D3DFMT_D16       , DepthBuffer }, // TODO : D3DFMT_D16 is always lockable on Xbox; Should PC use D3DFMT_D16_LOCKABLE instead? Needs testcase.
+	/* 0x31 X_D3DFMT_LIN_F16      */ { 16, Linear, NoCmpnts, XTL::D3DFMT_D16       , DepthBuffer, "X_D3DFMT_LIN_F16 -> D3DFMT_D16" }, // HACK : PC doesn't have D3DFMT_F16 (Float vs Int)
+	/* 0x33 X_D3DFMT_V16U16       */ { 32, Swzzld, NoCmpnts, XTL::D3DFMT_V16U16    },
+	/* 0x36 X_D3DFMT_LIN_V16U16   */ { 32, Linear, NoCmpnts, XTL::D3DFMT_V16U16    },
+#endif
+
 	D3DFORMAT FirstResult = Result;
 	switch (Result) {
+#if 0 // unused since we now have ______P8ToARGBRow_C
 	case D3DFMT_P8: 
 		// Note : Allocate a BPP-identical format instead of P8 (which is nearly never supported natively),
 		// so that we at least have a BPP-identical format. Conversion to ARGB is done via bConvertToARGB in
 		// in CxbxUpdateTexture :
 		Result = D3DFMT_L8;
 		break;
+#endif
 	case D3DFMT_D16:
 		switch (aResourceType) {
 		case X_D3DRTYPE_TEXTURE:
@@ -1478,19 +1495,36 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 		}
 		}
 		break;
+#if 0 // unused since we now have X1R5G5B5ToARGBRow_C
 	case D3DFMT_X1R5G5B5:
 		// TODO: HACK: This texture format fails on some newer hardware
 		Result = D3DFMT_R5G6B5;
 		break;
+#endif
 	case D3DFMT_V16U16:
 		// HACK. This fixes NoSortAlphaBlend (after B button - z-replace) on nvidia:
 		Result = D3DFMT_A8R8G8B8;
 		break;
 	case D3DFMT_YUY2:
-		// TODO : Is this still neccessary?
-		Result = D3DFMT_V8U8; // Use another format that's also 16 bits wide
+	case D3DFMT_UYVY:
+		if (GetXboxRenderState(X_D3DRS_YUVENABLE) == (DWORD)TRUE) {
+			if (X_Format == D3DFMT_YUY2)
+				LOG_TEST_CASE("fallback to D3DFMT_V8U8 from D3DFMT_YUY2");
+			else
+				LOG_TEST_CASE("fallback to D3DFMT_V8U8 from D3DFMT_UYVY");
 
+			Result = D3DFMT_V8U8; // Use another format that's also 16 bits wide
+		} else {
+			EmuWarning("RenderState D3DRS_YUVENABLE not set for Y-Cb-Cr. Colors will be wrong");
+			// TODO : To handle this like the NV2A does, we should decompress the
+			// Y, Cb and Cr channels per pixel, but leave out the conversion to RGB,
+			// but instead show the values themselves as RGB values (use Cr for Red,
+			// Y for Green, and Cb for Blue).
+			Result = D3DFMT_R5G6B5; // HACK to at least keep the BitsPerPixel compatible
+		}
 		break;
+	default:
+		assert(false && "Unhandled case");
 	}
 
 	if (FirstResult != Result) {
@@ -1953,8 +1987,8 @@ void CxbxUpdateNativeD3DResources()
 	*/
 	CxbxUpdateTextureStages();
 	XTL::DxbxUpdateActivePixelShader();
-	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
 	XTL::DxbxUpdateDeferredStates(); // BeginPush sample shows us that this must come *after* texture update!
+	CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used - TODO : At which point should we do this??
 	// TODO : Transfer matrices (projection/model/world view) from Xbox to Host using GetTransform or D3D_Device member pointers
 }
 
@@ -2932,9 +2966,6 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID) // TODO : Figure out whether it
 
 				HRESULT hRet;
 
-				hRet = g_pD3DDevice8->BeginScene();
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
-
 				// Update XboxPresentationParameters from actual HostPresentationParameters
 				g_EmuCDPD.XboxPresentationParameters.BackBufferWidth = g_EmuCDPD.HostPresentationParameters.BackBufferWidth;
 				g_EmuCDPD.XboxPresentationParameters.BackBufferHeight = g_EmuCDPD.HostPresentationParameters.BackBufferHeight;
@@ -3057,6 +3088,9 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID) // TODO : Figure out whether it
 					}
                 }
 
+				hRet = g_pD3DDevice8->BeginScene();
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
+
 				CxbxInitD3DState();
 
 				// initially, show a black screen
@@ -3068,6 +3102,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID) // TODO : Figure out whether it
 					/*Color=*/0xFF000000, // TODO : Use constant for this
 					/*Z=*/g_bHasDepthBits ? 1.0f : 0.0f,
 					/*Stencil=*/g_bHasStencilBits ? 0 : 0); // TODO : What to set these to?
+
 				CxbxPresent();
             }
             else { // !bCreate
@@ -5973,16 +6008,18 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
 
 	CxbxPresent();
 
-	g_DeltaTime += currentDrawFunctionCallTime - lastDrawFunctionCallTime;
-	lastDrawFunctionCallTime = currentDrawFunctionCallTime;
-	g_Frames++;
-
-	if (g_DeltaTime >= CLOCKS_PER_SEC) {
-		UpdateCurrentMSpFAndFPS();
-		g_Frames = 0;
-		g_DeltaTime -= CLOCKS_PER_SEC;
+	if (lastDrawFunctionCallTime > 0) {
+		g_DeltaTime += currentDrawFunctionCallTime - lastDrawFunctionCallTime;
+		g_Frames++;
+		if (g_DeltaTime >= CLOCKS_PER_SEC) {
+			UpdateCurrentMSpFAndFPS();
+			g_Frames = 0;
+			g_DeltaTime -= CLOCKS_PER_SEC;
+		}
 	}
-	
+
+	lastDrawFunctionCallTime = currentDrawFunctionCallTime;
+
 	if (Flags == CXBX_SWAP_PRESENT_FORWARD) // Only do this when forwarded from Present
 	{
 		// Put primitives per frame in the title
@@ -6002,8 +6039,7 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
 
 		if (g_VBData.VBlankCounter == g_VBLastSwap + 1)
 			g_VBData.Flags = 1; // D3DVBLANK_SWAPDONE
-		else
-		{
+		else {
 			g_VBData.Flags = 2; // D3DVBLANK_SWAPMISSED
 			g_SwapData.MissedVBlanks++;
 		}
@@ -6012,12 +6048,8 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
 	// Handle Swap Callback function
 	{
 		g_SwapData.Swap++;
-
-		if(g_pSwapCallback != NULL) 
-		{
-				
+		if(g_pSwapCallback != NULL) {
 			g_pSwapCallback(&g_SwapData);
-				
 		}
 	}
 
@@ -6238,10 +6270,9 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	}
 #endif
 
-	// TODO: HACK: Temporary?
+#if 0 // Disabled, now handled by DxbxXB2PC_D3DFormat
 	switch (X_Format)
 	{
-// TODO :  Disable to see if DepthStencils would break anything
 	case X_D3DFMT_LIN_D24S8:
 	{
 		// Test case : Turok hits this
@@ -6292,6 +6323,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		}
 	}
 	}
+#endif
 
 	// One of these will be created :
 	IDirect3DSurface8 *pNewHostSurface = nullptr;
@@ -6639,8 +6671,8 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				{
 					assert(!PixelJar.bIsCompressed); // compressed format never requires conversion
 
+#if 0 // Disabled, now handled by ______P8ToARGBRow_C
 					uint dwDestWidthInBytes = dwMipWidth * sizeof(D3DCOLOR);
-
 					if (X_Format == X_D3DFMT_P8)
 					{
 						EmuWarning("Expanding X_D3DFMT_P8 to D3DFMT_A8R8G8B8");
@@ -6666,6 +6698,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 						CXBX_CHECK_INTEGRITY();
 					}
 					else
+#endif
 					{
 						EmuWarning("Unsupported texture format, expanding to D3DFMT_A8R8G8B8");
 
@@ -6674,10 +6707,16 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 						if (ConvertRowToARGB == nullptr)
 							CxbxKrnlCleanup("Unhandled conversion!");
 
+						int AdditionalArgument;
+						if (X_Format == X_D3DFMT_P8)
+							AdditionalArgument = (int)pPalette;
+						else
+							AdditionalArgument = dwDestPitch;
+
 						DWORD SrcRowOff = 0;
 						uint8 *pDestRow = (uint8 *)pDest;
 						while (SrcRowOff < dwMipSizeInBytes) {
-							*(int*)pDestRow = dwDestPitch; // Dirty hack, to avoid an extra parameter to all conversion callbacks
+							*(int*)pDestRow = AdditionalArgument; // Dirty hack, to avoid an extra parameter to all conversion callbacks
 							ConvertRowToARGB(((uint8 *)pSrc) + SrcRowOff, pDestRow, dwMipWidth);
 							SrcRowOff += dwSrcPitch;
 							pDestRow += dwDestPitch;
@@ -10752,7 +10791,7 @@ void WINAPI XTL::EMUPATCH(D3D_BlockOnTime)( DWORD Unknown1, int Unknown2 ) // TO
 	// create an XRef...
 
 	//__asm int 3;
-	EmuWarning("D3D::BlockOnTime not implemented (tell blueshogun)");
+	EmuWarning("D3D::BlockOnTime not implemented");
 
 	LOG_UNIMPLEMENTED();
 }
