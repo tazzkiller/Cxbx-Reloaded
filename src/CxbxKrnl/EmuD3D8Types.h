@@ -757,9 +757,9 @@ X_D3DPIXELSHADERDEF;
 #define X_D3DCOMMON_INTREFCOUNT_1      (1 << X_D3DCOMMON_INTREFCOUNT_SHIFT) // Dxbx addition
 #define X_D3DCOMMON_VIDEOMEMORY        0x00800000 // Not used.
 #define X_D3DCOMMON_D3DCREATED         0x01000000
-#define X_D3DCOMMON_ISLOCKED           0x02000010 // Surface is currently locked (potential unswizzle candidate)
-#define X_D3DCOMMON_UNUSED_MASK        0xFE000000 // Dxbx has 0xFC000000
-#define X_D3DCOMMON_UNUSED_SHIFT       25
+//#define X_D3DCOMMON_ISLOCKED           0x02000010 // Surface is currently locked (potential unswizzle candidate)
+//#define X_D3DCOMMON_UNUSED_MASK        0xFE000000 // Dxbx has 0xFC000000
+//#define X_D3DCOMMON_UNUSED_SHIFT       25
 
 // special resource lock flags
 #define X_D3DRESOURCE_LOCK_FLAG_NOSIZE  0xEFFFFFFF
