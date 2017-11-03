@@ -250,7 +250,7 @@ void ConvertHostSurfaceHeaderToXbox
 	XTL::IDirect3DSurface8 *pHostSurface,
 	XTL::X_D3DPixelContainer* pPixelContainer
 ); // forward
-void UpdateDepthStencilFlags(const XTL::X_D3DSurface *pXboxSurface); // forward
+void UpdateDepthStencilFlags(); // forward
 void Cxbx_Direct3D_CreateDevice(); // forward
 
 
@@ -320,7 +320,7 @@ void CxbxInitD3DState()
 
 		g_pActiveXboxDepthStencil = g_pInitialXboxDepthStencil;
 
-		UpdateDepthStencilFlags(g_pActiveXboxDepthStencil);
+		UpdateDepthStencilFlags();
 	}
 #endif
 
@@ -1123,8 +1123,10 @@ inline bool IsResourceTypeGPUReadable(const DWORD ResourceType)
 	return false;
 }
 
-void UpdateDepthStencilFlags(const XTL::X_D3DSurface *pXboxSurface)
+void UpdateDepthStencilFlags()
 {
+	XTL::X_D3DSurface *pXboxSurface = GetXboxDepthStencil();
+
 	g_bHasDepthBits = FALSE;
 	g_bHasStencilBits = FALSE;
 	if (pXboxSurface != NULL) // Prevents D3D error in EMUPATCH(D3DDevice_Clear)
@@ -1132,14 +1134,17 @@ void UpdateDepthStencilFlags(const XTL::X_D3DSurface *pXboxSurface)
 		const XTL::X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pXboxSurface);
 		switch (X_Format)
 		{
-		case XTL::X_D3DFMT_D16:
-		case XTL::X_D3DFMT_LIN_D16: { g_bHasDepthBits = TRUE; break; }
+		case XTL::X_D3DFMT_D16: // == X_D3DFMT_D16_LOCKABLE
+		case XTL::X_D3DFMT_F16:
+		case XTL::X_D3DFMT_LIN_D16:
+		case XTL::X_D3DFMT_LIN_F16:
+			{ g_bHasDepthBits = TRUE; break; }
 
 		case XTL::X_D3DFMT_D24S8:
-		case XTL::X_D3DFMT_LIN_D24S8: { g_bHasDepthBits = TRUE; g_bHasStencilBits = TRUE; break; }
-
 		case XTL::X_D3DFMT_F24S8:
-		case XTL::X_D3DFMT_LIN_F24S8: { g_bHasStencilBits = TRUE; break; }
+		case XTL::X_D3DFMT_LIN_D24S8:
+		case XTL::X_D3DFMT_LIN_F24S8:
+			{ g_bHasDepthBits = TRUE; g_bHasStencilBits = TRUE; break; }
 		}
 	}
 }
@@ -2665,7 +2670,7 @@ void CxbxClear
 
 		if (Flags & (XTL::X_D3DCLEAR_ZBUFFER | XTL::X_D3DCLEAR_ZBUFFER)) {
 			// Only when Z/Depth flags are given, check if these components are present :
-			UpdateDepthStencilFlags(GetXboxDepthStencil()); // Update g_bHasDepthBits and g_bHasStencilBits
+			UpdateDepthStencilFlags(); // Update g_bHasDepthBits and g_bHasStencilBits
 
 			// Do not needlessly clear Z Buffer
 			if (Flags & XTL::X_D3DCLEAR_ZBUFFER) {
@@ -3055,7 +3060,7 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID) // TODO : Figure out whether it
 				CxbxInitD3DState();
 
 				// initially, show a black screen
-				UpdateDepthStencilFlags(GetXboxDepthStencil()); // Update g_bHasDepthBits and g_bHasStencilBits
+				UpdateDepthStencilFlags(); // Update g_bHasDepthBits and g_bHasStencilBits (used below)
 				CxbxClear(
 					/*Count=*/0,
 					/*pRects=*/nullptr,
@@ -9272,7 +9277,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 
 	g_pActiveXboxDepthStencil = pNewZStencil;
 
-	UpdateDepthStencilFlags(pNewZStencil);
+	UpdateDepthStencilFlags();
 
     // TODO: Follow that stencil!
 }
