@@ -205,6 +205,7 @@ VOID WINAPI XTL::EMUPATCH(XGSwizzleBox)
 }
 #endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: XGWriteSurfaceOrTextureToXPR
 // ******************************************************************
@@ -215,7 +216,7 @@ HRESULT WINAPI XTL::EMUPATCH(XGWriteSurfaceOrTextureToXPR)
 	BOOL			bWriteSurfaceAsTexture
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pResource)
@@ -231,7 +232,9 @@ HRESULT WINAPI XTL::EMUPATCH(XGWriteSurfaceOrTextureToXPR)
 
 	RETURN(S_OK);
 }
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: XGSetTextureHeader
 // ******************************************************************
@@ -248,7 +251,7 @@ VOID WINAPI XTL::EMUPATCH(XGSetTextureHeader)
 	UINT			Pitch
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Width)
@@ -300,6 +303,7 @@ VOID WINAPI XTL::EMUPATCH(XGSetTextureHeader)
 		| (((Height - 1) << X_D3DSIZE_HEIGHT_SHIFT) & X_D3DSIZE_HEIGHT_MASK)
         | (((Pitch - 1) << X_D3DSIZE_PITCH_SHIFT) & X_D3DSIZE_PITCH_MASK);
 }
+#endif
 
 // ******************************************************************
 // * patch: XFONT_OpenBitmapFontFromMemory 

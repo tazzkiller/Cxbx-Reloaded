@@ -88,6 +88,7 @@ VOID WINAPI EMUPATCH(XGSwizzleBox)
 );
 #endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: XGWriteSurfaceOrTextureToXPR
 // ******************************************************************
@@ -97,7 +98,9 @@ HRESULT WINAPI EMUPATCH(XGWriteSurfaceOrTextureToXPR)
 	const char*		cPath,
 	BOOL			bWriteSurfaceAsTexture
 );
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: XGSetTextureHeader
 // ******************************************************************
@@ -113,7 +116,9 @@ VOID	WINAPI EMUPATCH(XGSetTextureHeader)
 	UINT			Data,
 	UINT			Pitch
 );
+#endif
 
+#if 0 // Patch disabled
 // ******************************************************************
 // * patch: XFONT_OpenBitmapFontFromMemory 
 // ******************************************************************
@@ -123,5 +128,6 @@ HRESULT WINAPI EMUPATCH(XFONT_OpenBitmapFontFromMemory)
 	unsigned		uFontDataSize,
 	void			**ppFont
 );
+#endif
 
 #endif
