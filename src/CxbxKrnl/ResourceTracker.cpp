@@ -52,7 +52,6 @@ ResourceTracker g_PBTrackTotal;
 ResourceTracker g_PBTrackDisable;
 ResourceTracker g_PBTrackShowOnce;
 #if 0 // unuseed
-ResourceTracker g_DataToTexture;
 ResourceTracker g_AlignCache;
 #endif
 

@@ -45,7 +45,7 @@
 // initialize render window
 extern VOID CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize);
 
-#if 1 // temporarily used by ConvertHostSurfaceHeaderToXbox() and WndMain::LoadGameLogo()
+#if 1 // temporarily used by WndMain::LoadGameLogo()
 extern VOID CxbxSetPixelContainerHeader
 (
 	XTL::X_D3DPixelContainer* pPixelContainer,
@@ -121,7 +121,7 @@ inline X_D3DPalette *GetXboxPalette(UINT uiStage)
 
 extern void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource);
 
-IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, const DWORD *pPalette);
+IDirect3DBaseTexture8 *CxbxUpdateTexture(XTL::X_D3DPixelContainer *pPixelContainer, const DWORD D3DUsage, const DWORD *pPalette);
 
 IDirect3DVertexBuffer8 *CxbxUpdateVertexBuffer(const XTL::X_D3DVertexBuffer *pXboxVertexBuffer);
 

@@ -88,7 +88,6 @@ g_PBTrackDisable,
 g_PBTrackShowOnce,
 g_PatchedStreamsCache 
 #if 0 // unused
-, g_DataToTexture
 , g_AlignCache
 #endif
 ;

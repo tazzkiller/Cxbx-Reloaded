@@ -92,7 +92,6 @@ static DWORD WINAPI                 EmuCreateDeviceProxy(LPVOID);
 static LRESULT WINAPI               EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 static DWORD WINAPI                 EmuUpdateTickCount(LPVOID);
 #if 0
-static void                         CxbxUpdateResource(XTL::X_D3DResource *pResource);
 static void                         EmuAdjustPower2(UINT *dwWidth, UINT *dwHeight);
 #endif
 static void							UpdateCurrentMSpFAndFPS(); // Used for benchmarking/fps count
@@ -119,8 +118,8 @@ static XTL::X_D3DSWAPCALLBACK		g_pSwapCallback = NULL;	// Swap/Present callback 
 static XTL::X_D3DCALLBACK			g_pCallback		= NULL;	// D3DDevice::InsertCallback routine
 static XTL::X_D3DCALLBACKTYPE		g_CallbackType;			// Callback type
 static DWORD						g_CallbackParam;		// Callback param
-static BOOL                         g_bHasDepthBits = FALSE;    // Has the Depth/Stencil surface a depth component?
-static BOOL                         g_bHasStencilBits = FALSE;  // Has the Depth/Stencil surface a stencil component?
+static BOOL                         g_bXboxHasDepthBits = FALSE;    // Has the Depth/Stencil surface a depth component?
+static BOOL                         g_bXboxHasStencilBits = FALSE;  // Has the Depth/Stencil surface a stencil component?
 static clock_t						g_DeltaTime = 0;			 // Used for benchmarking/fps count
 static unsigned int					g_Frames = 0;				 // Used for benchmarking/fps count
 static DWORD						g_dwPrimPerFrame = 0;	// Number of primitives within one frame
@@ -161,27 +160,8 @@ static DWORD						g_SwapLast = 0;
 static XTL::X_D3DMATERIAL           g_BackMaterial = { 0 };
 #endif
 
-#define USE_XBOX_BUFFERS 1
-
 // cached Direct3D state variable(s)
-#ifndef USE_XBOX_BUFFERS
-static XTL::X_D3DSurface           *g_pInitialXboxBackBuffer = NULL;
-static XTL::IDirect3DSurface8      *g_pInitialHostBackBuffer = nullptr;
-static XTL::X_D3DSurface           *g_pActiveXboxBackBuffer = NULL;
-#endif
 static XTL::IDirect3DSurface8      *g_pActiveHostBackBuffer = nullptr;
-
-#ifndef USE_XBOX_BUFFERS
-static XTL::X_D3DSurface           *g_pInitialXboxRenderTarget = NULL;
-static XTL::IDirect3DSurface8      *g_pInitialHostRenderTarget = nullptr;
-static XTL::X_D3DSurface           *g_pActiveXboxRenderTarget = NULL;
-static XTL::IDirect3DSurface8      *g_pActiveHostRenderTarget = nullptr;
-
-static XTL::X_D3DSurface           *g_pInitialXboxDepthStencil = NULL;
-static XTL::IDirect3DSurface8      *g_pInitialHostDepthStencil = nullptr;
-static XTL::X_D3DSurface           *g_pActiveXboxDepthStencil = NULL;
-static XTL::IDirect3DSurface8      *g_pActiveHostDepthStencil = nullptr;
-#endif
 
 static XTL::IDirect3DIndexBuffer8  *pClosingLineLoopIndexBuffer = nullptr;
 
@@ -194,20 +174,12 @@ static UINT                         QuadToTriangleIndexBuffer_Size = 0; // = NrO
 // TODO : Read this from Xbox, so [Get|Set][RenderTarget|DepthStencil] patches can be disabled
 XTL::X_D3DSurface *GetXboxRenderTarget()
 {
-#ifdef USE_XBOX_BUFFERS
 	return XTL::Xbox_D3DDevice_m_pRenderTarget ? *XTL::Xbox_D3DDevice_m_pRenderTarget : NULL;
-#else
-	return g_pInitialXboxRenderTarget;
-#endif
 }
 
 XTL::X_D3DSurface *GetXboxDepthStencil()
 {
-#ifdef USE_XBOX_BUFFERS
 	return XTL::Xbox_D3DDevice_m_pDepthStencil ? *XTL::Xbox_D3DDevice_m_pDepthStencil : NULL;
-#else
-	return g_pActiveXboxDepthStencil;
-#endif
 }
 
 #if 0
@@ -228,7 +200,7 @@ static XTL::X_D3DSHADERCONSTANTMODE g_VertexShaderConstantMode = X_D3DSCM_192CON
 XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 
 // Xbox D3DDevice related variables
-xbaddr XTL::Xbox_pD3DDevice = NULL; // The address where an Xbe will put it's D3DDevice pointer
+xbaddr XTL::Xbox_pD3DDevice = xbnullptr; // The address where an Xbe will put it's D3DDevice pointer
 DWORD *XTL::Xbox_D3DDevice = NULL; // Once known, the actual D3DDevice pointer (see DeriveXboxD3DDeviceAddresses)
 DWORD *XTL::Xbox_D3DDevice_m_IndexBase = NULL;
 uint XTL::offsetof_Xbox_D3DDevice_m_pTextures = 0;
@@ -244,13 +216,6 @@ XTL::X_D3DSurface **XTL::Xbox_D3DDevice_m_pDepthStencil = NULL;
 static TextureCache g_TextureCache; // TODO : Move to own file?
 
 // Forward function declarations
-XTL::X_D3DSurface *EmuNewD3DSurface(); // forward
-void ConvertHostSurfaceHeaderToXbox
-(
-	XTL::IDirect3DSurface8 *pHostSurface,
-	XTL::X_D3DPixelContainer* pPixelContainer
-); // forward
-void UpdateDepthStencilFlags(); // forward
 void Cxbx_Direct3D_CreateDevice(); // forward
 
 
@@ -259,70 +224,6 @@ void CxbxInitD3DState()
 	LOG_INIT // Allows use of DEBUG_D3DRESULT
 
 	HRESULT hRet;
-#ifndef USE_XBOX_BUFFERS
-	// HACK : Try to map Xbox to Host for : BackBuffer, RenderTarget and DepthStencil
-	// TODO : This doesn't really help, and introduces host-allocated resources into
-	// Xbox-land - it would be (much) better if we could run Xbox CreateDevice unpatched!
-	{
-		// Init backbuffer
-		hRet = g_pD3DDevice8->GetBackBuffer(0, XTL::D3DBACKBUFFER_TYPE_MONO, &g_pInitialHostBackBuffer);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
-
-		if (SUCCEEDED(hRet)) {
-			g_pInitialXboxBackBuffer = EmuNewD3DSurface();
-			if (g_pInitialHostBackBuffer != nullptr) {
-				ConvertHostSurfaceHeaderToXbox(g_pInitialHostBackBuffer, g_pInitialXboxBackBuffer);
-
-				//SetHostSurface(g_pInitialXboxBackBuffer, g_pInitialHostBackBuffer);
-				g_pInitialHostBackBuffer->Release();
-			}
-		}
-
-		g_pActiveXboxBackBuffer = g_pInitialXboxBackBuffer;
-
-		// update render target cache
-		hRet = g_pD3DDevice8->GetRenderTarget(&g_pInitialHostRenderTarget);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetRenderTarget");
-
-		if (SUCCEEDED(hRet)) {
-			g_pInitialXboxRenderTarget = EmuNewD3DSurface();
-			if (g_pInitialHostRenderTarget != nullptr) {
-				ConvertHostSurfaceHeaderToXbox(g_pInitialHostRenderTarget, g_pInitialXboxRenderTarget);
-
-				XTL::D3DLOCKED_RECT LockedRect;
-				g_pInitialHostRenderTarget->LockRect(&LockedRect, nullptr, 0);
-				g_pInitialXboxRenderTarget->Data = (DWORD)LockedRect.pBits;// Was CXBX_D3DRESOURCE_DATA_RENDER_TARGET;
-
-				//SetHostSurface(g_pInitialXboxRenderTarget, g_pInitialHostRenderTarget);
-				g_pInitialHostRenderTarget->Release();
-			}
-		}
-
-		g_pActiveXboxRenderTarget = g_pInitialXboxRenderTarget;
-
-		// update z-stencil surface cache
-		hRet = g_pD3DDevice8->GetDepthStencilSurface(&g_pInitialHostDepthStencil);
-		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->GetDepthStencilSurface");
-
-		if (SUCCEEDED(hRet)) {
-			g_pInitialXboxDepthStencil = EmuNewD3DSurface();
-			if (g_pInitialXboxDepthStencil != nullptr) {
-				ConvertHostSurfaceHeaderToXbox(g_pInitialHostDepthStencil, g_pInitialXboxDepthStencil);
-
-				XTL::D3DLOCKED_RECT LockedRect;
-				g_pInitialHostDepthStencil->LockRect(&LockedRect, nullptr, 0);
-				g_pInitialXboxDepthStencil->Data = (DWORD)LockedRect.pBits; // Was CXBX_D3DRESOURCE_DATA_DEPTH_STENCIL;
-
-				//SetHostSurface(g_pInitialXboxDepthStencil, g_pInitialHostDepthStencil);
-				g_pInitialHostDepthStencil->Release();
-			}
-		}
-
-		g_pActiveXboxDepthStencil = g_pInitialXboxDepthStencil;
-
-		UpdateDepthStencilFlags();
-	}
-#endif
 
 	hRet = g_pD3DDevice8->CreateVertexBuffer
 	(
@@ -394,8 +295,8 @@ void CxbxClearGlobals()
 	g_pCallback = NULL;
 	// g_CallbackType;
 	// g_CallbackParam;
-	g_bHasDepthBits = FALSE;
-	g_bHasStencilBits = FALSE;
+	g_bXboxHasDepthBits = FALSE;
+	g_bXboxHasStencilBits = FALSE;
 	// g_dwPrimPerFrame = 0;
 
 	// KEEP g_ddguid;
@@ -421,24 +322,8 @@ void CxbxClearGlobals()
 #if 0
 	g_BackMaterial = { 0 };
 #endif
-#ifndef USE_XBOX_BUFFERS
-	g_pInitialXboxBackBuffer = NULL;
-	g_pInitialHostBackBuffer = nullptr;
-	g_pActiveXboxBackBuffer = NULL;
-#endif
 	g_pActiveHostBackBuffer = nullptr;
 
-#ifndef USE_XBOX_BUFFERS
-	g_pInitialXboxRenderTarget = NULL;
-	g_pInitialHostRenderTarget = nullptr;
-	g_pActiveXboxRenderTarget = NULL;
-	g_pActiveHostRenderTarget = nullptr;
-
-	g_pInitialXboxDepthStencil = NULL;
-	g_pInitialHostDepthStencil = nullptr;
-	g_pActiveXboxDepthStencil = NULL;
-	g_pActiveHostDepthStencil = nullptr;
-#endif
 
 #if 0
 	g_pCachedYuvSurface = NULL;
@@ -1084,16 +969,6 @@ XTL::X_D3DRESOURCETYPE GetXboxD3DResourceType(const XTL::X_D3DResource *pXboxRes
 	return XTL::X_D3DRTYPE_NONE;
 }
 
-#if 0
-inline bool IsSpecialXboxResource(const XTL::X_D3DResource *pXboxResource)
-{
-	// Don't pass in unassigned Xbox resources
-	assert(pXboxResource != NULL);
-
-	return ((pXboxResource->Data & CXBX_D3DRESOURCE_DATA_FLAG_SPECIAL) == CXBX_D3DRESOURCE_DATA_FLAG_SPECIAL);
-}
-#endif
-
 // This can be used to determine if resource Data adddresses
 // need the MM_SYSTEM_PHYSICAL_MAP bit set or cleared
 inline bool IsResourceTypeGPUReadable(const DWORD ResourceType)
@@ -1122,225 +997,6 @@ inline bool IsResourceTypeGPUReadable(const DWORD ResourceType)
 	return false;
 }
 
-void UpdateDepthStencilFlags()
-{
-	XTL::X_D3DSurface *pXboxSurface = GetXboxDepthStencil();
-
-	g_bHasDepthBits = FALSE;
-	g_bHasStencilBits = FALSE;
-	if (pXboxSurface != NULL) // Prevents D3D error in EMUPATCH(D3DDevice_Clear)
-	{
-		const XTL::X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pXboxSurface);
-		switch (X_Format)
-		{
-		case XTL::X_D3DFMT_D16: // == X_D3DFMT_D16_LOCKABLE
-		case XTL::X_D3DFMT_F16:
-		case XTL::X_D3DFMT_LIN_D16:
-		case XTL::X_D3DFMT_LIN_F16:
-			{ g_bHasDepthBits = TRUE; break; }
-
-		case XTL::X_D3DFMT_D24S8:
-		case XTL::X_D3DFMT_F24S8:
-		case XTL::X_D3DFMT_LIN_D24S8:
-		case XTL::X_D3DFMT_LIN_F24S8:
-			{ g_bHasDepthBits = TRUE; g_bHasStencilBits = TRUE; break; }
-		}
-	}
-}
-
-#if 0 // unused
-inline bool IsYuvSurface(const XTL::X_D3DResource *pXboxResource)
-{
-	DWORD dwCommonType = GetXboxCommonResourceType(pXboxResource);
-	if (dwCommonType == X_D3DCOMMON_TYPE_SURFACE)
-		if (GetXboxPixelContainerFormat((XTL::X_D3DPixelContainer *)pXboxResource) == XTL::X_D3DFMT_YUY2)
-			return true;
-
-	return false;
-}
-#endif
-
-#if 0 // unused
-inline bool IsXboxResourceLocked(const XTL::X_D3DResource *pXboxResource)
-{
-	bool result = !!(pXboxResource->Common & X_D3DCOMMON_ISLOCKED);
-	return result;
-}
-#endif
-
-#if 0 // unused
-inline bool IsXboxResourceD3DCreated(const XTL::X_D3DResource *pXboxResource)
-{
-	bool result = !!(pXboxResource->Common & X_D3DCOMMON_D3DCREATED);
-	return result;
-}
-#endif
-
-#if 0 // unused
-static std::map<XTL::X_D3DResource *, XTL::IDirect3DResource8 *> g_XboxToHostResourceMappings;
-
-void SetHostResource(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DResource8 *pHostResource)
-{
-	g_XboxToHostResourceMappings[pXboxResource] = pHostResource;
-}
-
-XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
-{
-	if (pXboxResource == NULL)
-		return nullptr;
-
-	switch (GetXboxCommonResourceType(pXboxResource)) {
-	case X_D3DCOMMON_TYPE_PUSHBUFFER:
-		return nullptr;
-	case X_D3DCOMMON_TYPE_PALETTE:
-		return nullptr;
-	case X_D3DCOMMON_TYPE_FIXUP:
-		return nullptr;
-	}
-
-#if 0
-	if (IsSpecialXboxResource(pXboxResource))
-		return nullptr;
-#endif
-
-	XTL::IDirect3DResource8 *result = g_XboxToHostResourceMappings[pXboxResource];
-	if (result == nullptr) {
-		EmuWarning("Xbox resource has no host resource mapped (yet)");
-	}
-
-	return result;
-}
-#endif
-
-#if 0 // unused
-XTL::IDirect3DSurface8 *GetHostSurface(XTL::X_D3DResource *pXboxResource)
-{
-	if (pXboxResource == NULL)
-		return nullptr;
-
-	if (GetXboxCommonResourceType(pXboxResource) != X_D3DCOMMON_TYPE_SURFACE) // Allows breakpoint below
-		return nullptr; // TODO : Jet Set Radio Future hits this assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_SURFACE);
-
-	return (XTL::IDirect3DSurface8 *)GetHostResource(pXboxResource);
-}
-#endif
-
-#if 0 // unused
-XTL::IDirect3DBaseTexture8 *GetHostBaseTexture(XTL::X_D3DResource *pXboxResource)
-{
-	if (pXboxResource == NULL)
-		return nullptr;
-
-	if (GetXboxCommonResourceType(pXboxResource) != X_D3DCOMMON_TYPE_TEXTURE) // Allows breakpoint below
-		assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_TEXTURE);
-
-	return (XTL::IDirect3DBaseTexture8 *)GetHostResource(pXboxResource);
-}
-#endif
-
-#if 0 // unused
-XTL::IDirect3DTexture8 *GetHostTexture(XTL::X_D3DResource *pXboxResource)
-{
-	return (XTL::IDirect3DTexture8 *)GetHostBaseTexture(pXboxResource);
-
-	// TODO : Check for 1 face (and 2 dimensions)?
-}
-#endif
-
-#if 0 // unused
-XTL::IDirect3DCubeTexture8 *GetHostCubeTexture(XTL::X_D3DResource *pXboxResource)
-{
-	return (XTL::IDirect3DCubeTexture8 *)GetHostBaseTexture(pXboxResource);
-
-	// TODO : Check for 6 faces (and 2 dimensions)?
-}
-#endif
-
-#if 0 // unused
-XTL::IDirect3DVolumeTexture8 *GetHostVolumeTexture(XTL::X_D3DResource *pXboxResource)
-{
-	return (XTL::IDirect3DVolumeTexture8 *)GetHostBaseTexture(pXboxResource);
-
-	// TODO : Check for 3 dimensions?
-}
-#endif
-
-#if 0 // unused
-XTL::IDirect3DIndexBuffer8 *GetHostIndexBuffer(XTL::X_D3DResource *pXboxResource)
-{
-	if (pXboxResource == NULL)
-		return nullptr;
-
-	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_INDEXBUFFER);
-
-	return (XTL::IDirect3DIndexBuffer8 *)GetHostResource(pXboxResource);
-}
-#endif
-
-#if 0 // unused
-XTL::IDirect3DVertexBuffer8 *GetHostVertexBuffer(XTL::X_D3DResource *pXboxResource)
-{
-	if (pXboxResource == NULL)
-		return nullptr;
-
-	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_VERTEXBUFFER);
-
-	return (XTL::IDirect3DVertexBuffer8 *)GetHostResource(pXboxResource);
-}
-#endif
-
-#if 0 // unused
-void SetHostSurface(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DSurface8 *pHostSurface)
-{
-	assert(pXboxResource != NULL);
-
-	if (GetXboxCommonResourceType(pXboxResource) != X_D3DCOMMON_TYPE_SURFACE) // Allows breakpoint below
-		assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_SURFACE); // Hit by LensFlare XDK sample
-
-	SetHostResource(pXboxResource, (XTL::IDirect3DResource8 *)pHostSurface);
-}
-
-void SetHostTexture(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DTexture8 *pHostTexture)
-{
-	assert(pXboxResource != NULL);
-	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_TEXTURE);
-
-	SetHostResource(pXboxResource, (XTL::IDirect3DResource8 *)pHostTexture);
-}
-
-void SetHostCubeTexture(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DCubeTexture8 *pHostCubeTexture)
-{
-	assert(pXboxResource != NULL);
-	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_TEXTURE);
-
-	SetHostResource(pXboxResource, (XTL::IDirect3DResource8 *)pHostCubeTexture);
-}
-
-void SetHostVolumeTexture(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DVolumeTexture8 *pHostVolumeTexture)
-{
-	assert(pXboxResource != NULL);
-	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_TEXTURE);
-
-	SetHostResource(pXboxResource, (XTL::IDirect3DResource8 *)pHostVolumeTexture);
-}
-
-void SetHostIndexBuffer(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DIndexBuffer8 *pHostIndexBuffer)
-{
-	assert(pXboxResource != NULL);
-	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_INDEXBUFFER);
-
-	SetHostResource(pXboxResource, (XTL::IDirect3DResource8 *)pHostIndexBuffer);
-}
-
-void SetHostVertexBuffer(XTL::X_D3DResource *pXboxResource, XTL::IDirect3DVertexBuffer8 *pHostVertexBuffer)
-{
-	assert(pXboxResource != NULL);
-	assert(GetXboxCommonResourceType(pXboxResource) == X_D3DCOMMON_TYPE_VERTEXBUFFER);
-
-	SetHostResource(pXboxResource, (XTL::IDirect3DResource8 *)pHostVertexBuffer);
-}
-#endif
-
 void *XTL::GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 {
 	// Don't pass in unassigned Xbox resources
@@ -1348,30 +1004,35 @@ void *XTL::GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 		return nullptr;
 
 	xbaddr pData = pXboxResource->Data;
-	if (pData == NULL)
+	if (pData == xbnullptr)
 		return nullptr;
-
-#if 0
-	if (IsSpecialXboxResource(pXboxResource))
-	{
-		switch (pData) {
-		case CXBX_D3DRESOURCE_DATA_BACK_BUFFER:
-			return nullptr;
-		case CXBX_D3DRESOURCE_DATA_RENDER_TARGET:
-			return nullptr;
-		case CXBX_D3DRESOURCE_DATA_DEPTH_STENCIL:
-			return nullptr;
-		default:
-			CxbxKrnlCleanup("Unhandled special resource type");
-		}
-	}
-#endif
 
 	DWORD dwCommonType = GetXboxCommonResourceType(pXboxResource);
 	if (IsResourceTypeGPUReadable(dwCommonType))
 		pData |= MM_SYSTEM_PHYSICAL_MAP;
 
 	return (uint08*)pData;
+}
+
+// Prevents D3D error in EMUPATCH(D3DDevice_Clear)
+void UpdateXboxDepthStencilFlags()
+{
+	XTL::X_D3DSurface *pXboxSurface = GetXboxDepthStencil();
+
+	g_bXboxHasDepthBits = FALSE;
+	g_bXboxHasStencilBits = FALSE;
+	if (pXboxSurface != NULL) {
+		const XTL::X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pXboxSurface);
+		g_bXboxHasDepthBits = EmuXBFormatIsDepthBuffer(X_Format);
+
+		switch (X_Format) {
+		case XTL::X_D3DFMT_D24S8:
+		case XTL::X_D3DFMT_F24S8:
+		case XTL::X_D3DFMT_LIN_D24S8:
+		case XTL::X_D3DFMT_LIN_F24S8:
+			g_bXboxHasStencilBits = TRUE;
+		}
+	}
 }
 
 void DxbxDetermineSurFaceAndLevelByData(const DecodedPixelContainer PixelJar, OUT UINT &Level, OUT XTL::D3DCUBEMAP_FACES &FaceType)
@@ -1435,27 +1096,38 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 	/* 0x25 X_D3DFMT_UYVY         */ { 16, Undfnd, NoCmpnts, XTL::D3DFMT_UYVY      },
 	/* 0x2A X_D3DFMT_D24S8        */ { 32, Swzzld, NoCmpnts, XTL::D3DFMT_D24S8     , DepthBuffer },
 	/* 0x2B X_D3DFMT_F24S8        */ { 32, Swzzld, NoCmpnts, XTL::D3DFMT_D24S8     , DepthBuffer, "X_D3DFMT_F24S8 -> D3DFMT_D24S8" }, // HACK : PC doesn't have D3DFMT_F24S8 (Float vs Int)
-	/* 0x2C X_D3DFMT_D16          */ { 16, Swzzld, NoCmpnts, XTL::D3DFMT_D16       , DepthBuffer }, // Alias : X_D3DFMT_D16_LOCKABLE // TODO : D3DFMT_D16 is always lockable on Xbox; Should PC use D3DFMT_D16_LOCKABLE instead? Needs testcase.
-	/* 0x2D X_D3DFMT_F16          */ { 16, Swzzld, NoCmpnts, XTL::D3DFMT_D16       , DepthBuffer, "X_D3DFMT_F16 -> D3DFMT_D16" }, // HACK : PC doesn't have D3DFMT_F16 (Float vs Int)
+	/* 0x2C X_D3DFMT_D16          */ { 16, Swzzld, NoCmpnts, XTL::D3DFMT_D16_LOCKABLE, DepthBuffer }, // Alias : X_D3DFMT_D16_LOCKABLE // Note : D3DFMT_D16 is always lockable on Xbox, D3DFMT_D16 on host is not.
+	/* 0x2D X_D3DFMT_F16          */ { 16, Swzzld, NoCmpnts, XTL::D3DFMT_D16_LOCKABLE, DepthBuffer, "X_D3DFMT_F16 -> D3DFMT_D16" }, // HACK : PC doesn't have D3DFMT_F16 (Float vs Int)
 	/* 0x2E X_D3DFMT_LIN_D24S8    */ { 32, Linear, NoCmpnts, XTL::D3DFMT_D24S8     , DepthBuffer },
 	/* 0x2F X_D3DFMT_LIN_F24S8    */ { 32, Linear, NoCmpnts, XTL::D3DFMT_D24S8     , DepthBuffer, "X_D3DFMT_LIN_F24S8 -> D3DFMT_D24S8" }, // HACK : PC doesn't have D3DFMT_F24S8 (Float vs Int)
-	/* 0x30 X_D3DFMT_LIN_D16      */ { 16, Linear, NoCmpnts, XTL::D3DFMT_D16       , DepthBuffer }, // TODO : D3DFMT_D16 is always lockable on Xbox; Should PC use D3DFMT_D16_LOCKABLE instead? Needs testcase.
-	/* 0x31 X_D3DFMT_LIN_F16      */ { 16, Linear, NoCmpnts, XTL::D3DFMT_D16       , DepthBuffer, "X_D3DFMT_LIN_F16 -> D3DFMT_D16" }, // HACK : PC doesn't have D3DFMT_F16 (Float vs Int)
+	/* 0x30 X_D3DFMT_LIN_D16      */ { 16, Linear, NoCmpnts, XTL::D3DFMT_D16_LOCKABLE, DepthBuffer }, // Note : D3DFMT_D16 is always lockable on Xbox, D3DFMT_D16 on host is not.
+	/* 0x31 X_D3DFMT_LIN_F16      */ { 16, Linear, NoCmpnts, XTL::D3DFMT_D16_LOCKABLE, DepthBuffer, "X_D3DFMT_LIN_F16 -> D3DFMT_D16" }, // HACK : PC doesn't have D3DFMT_F16 (Float vs Int)
 	/* 0x33 X_D3DFMT_V16U16       */ { 32, Swzzld, NoCmpnts, XTL::D3DFMT_V16U16    },
 	/* 0x36 X_D3DFMT_LIN_V16U16   */ { 32, Linear, NoCmpnts, XTL::D3DFMT_V16U16    },
 #endif
 
 	D3DFORMAT FirstResult = Result;
 	switch (Result) {
-#if 0 // unused since we now have ______P8ToARGBRow_C
-	case D3DFMT_P8: 
-		// Note : Allocate a BPP-identical format instead of P8 (which is nearly never supported natively),
-		// so that we at least have a BPP-identical format. Conversion to ARGB is done via bConvertToARGB in
-		// in CxbxUpdateTexture :
-		Result = D3DFMT_L8;
+	case D3DFMT_YUY2:
+	case D3DFMT_UYVY:
+		if (GetXboxRenderState(X_D3DRS_YUVENABLE) == (DWORD)TRUE) {
+			if (X_Format == D3DFMT_YUY2)
+				LOG_TEST_CASE("fallback to D3DFMT_V8U8 from D3DFMT_YUY2");
+			else
+				LOG_TEST_CASE("fallback to D3DFMT_V8U8 from D3DFMT_UYVY");
+
+			Result = D3DFMT_V8U8; // Use another format that's also 16 bits wide
+		}
+		else {
+			EmuWarning("RenderState D3DRS_YUVENABLE not set for Y-Cb-Cr. Colors will be wrong");
+			// TODO : To handle this like the NV2A does, we should decompress the
+			// Y, Cb and Cr channels per pixel, but leave out the conversion to RGB,
+			// but instead show the values themselves as RGB values (use Cr for Red,
+			// Y for Green, and Cb for Blue).
+			Result = D3DFMT_R5G6B5; // HACK to at least keep the BitsPerPixel compatible
+		}
 		break;
-#endif
-	case D3DFMT_D16:
+	case D3DFMT_D16_LOCKABLE: // Was D3DFMT_D16
 		switch (aResourceType) {
 		case X_D3DRTYPE_TEXTURE:
 		case X_D3DRTYPE_VOLUMETEXTURE:
@@ -1469,16 +1141,19 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 
 					// Since this cannot longer be created as a DepthStencil, reset the usage flag :
 					aUsage &= ~X_D3DUSAGE_DEPTHSTENCIL; // TODO : This asks for a testcase!
-					LOG_TEST_CASE("fallback to D3DFMT_R5G6B5");
+					LOG_TEST_CASE("fallback to D3DFMT_R5G6B5 from D3DFMT_D16_LOCKABLE");
 				}
 			}
-			else
+			else {
 				Result = D3DFMT_R5G6B5; // also CheckDeviceMultiSampleType
+				LOG_TEST_CASE("fallback to D3DFMT_R5G6B5");
+			}
 
 			break;
 		}
 		case X_D3DRTYPE_SURFACE:
-			Result = D3DFMT_D16_LOCKABLE;
+			Result = D3DFMT_R5G6B5;
+			LOG_TEST_CASE("fallback to D3DFMT_R5G6B5 for X_D3DRTYPE_SURFACE");
 			break;
 		}
 		break;
@@ -1489,39 +1164,19 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 		case X_D3DRTYPE_CUBETEXTURE: {
 			Result = D3DFMT_A8R8G8B8;
 			// Since this cannot longer be created as a DepthStencil, reset the usage flag :
-			aUsage &= ~X_D3DUSAGE_DEPTHSTENCIL; // TODO : This asks for a testcase!
-			LOG_TEST_CASE("fallback to D3DFMT_A8R8G8B8");
+			if ((aUsage & X_D3DUSAGE_DEPTHSTENCIL) > 0) {
+				aUsage &= ~X_D3DUSAGE_DEPTHSTENCIL; // TODO : This asks for a testcase!
+				LOG_TEST_CASE("fallback to D3DFMT_A8R8G8B8 from D3DFMT_D24S8");
+			}
+
 			break;
 		}
 		}
 		break;
-#if 0 // unused since we now have X1R5G5B5ToARGBRow_C
-	case D3DFMT_X1R5G5B5:
-		// TODO: HACK: This texture format fails on some newer hardware
-		Result = D3DFMT_R5G6B5;
-		break;
-#endif
 	case D3DFMT_V16U16:
 		// HACK. This fixes NoSortAlphaBlend (after B button - z-replace) on nvidia:
 		Result = D3DFMT_A8R8G8B8;
-		break;
-	case D3DFMT_YUY2:
-	case D3DFMT_UYVY:
-		if (GetXboxRenderState(X_D3DRS_YUVENABLE) == (DWORD)TRUE) {
-			if (X_Format == D3DFMT_YUY2)
-				LOG_TEST_CASE("fallback to D3DFMT_V8U8 from D3DFMT_YUY2");
-			else
-				LOG_TEST_CASE("fallback to D3DFMT_V8U8 from D3DFMT_UYVY");
-
-			Result = D3DFMT_V8U8; // Use another format that's also 16 bits wide
-		} else {
-			EmuWarning("RenderState D3DRS_YUVENABLE not set for Y-Cb-Cr. Colors will be wrong");
-			// TODO : To handle this like the NV2A does, we should decompress the
-			// Y, Cb and Cr channels per pixel, but leave out the conversion to RGB,
-			// but instead show the values themselves as RGB values (use Cr for Red,
-			// Y for Green, and Cb for Blue).
-			Result = D3DFMT_R5G6B5; // HACK to at least keep the BitsPerPixel compatible
-		}
+		LOG_TEST_CASE("fallback to D3DFMT_A8R8G8B8 from D3DFMT_V16U16");
 		break;
 	default:
 		assert(false && "Unhandled case");
@@ -1546,16 +1201,6 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 } // end of namespace XTL;
 
 #if 0 // unused
-inline XTL::X_D3DPALETTESIZE GetXboxPaletteSize(const XTL::X_D3DPalette *pPalette)
-{
-	XTL::X_D3DPALETTESIZE PaletteSize = (XTL::X_D3DPALETTESIZE)
-		((pPalette->Common & X_D3DPALETTE_COMMON_PALETTESIZE_MASK) >> X_D3DPALETTE_COMMON_PALETTESIZE_SHIFT);
-
-	return PaletteSize;
-}
-#endif
-
-#if 0 // unused
 int GetD3DResourceRefCount(XTL::IDirect3DResource8 *EmuResource)
 {
 	if (EmuResource != nullptr)
@@ -1573,57 +1218,14 @@ int GetD3DResourceRefCount(XTL::IDirect3DResource8 *EmuResource)
 
 // TODO : Avoid returning allocations outside Xbox heap, back to Xbox
 XTL::X_D3DSurface *EmuNewD3DSurface()
+// Solely used by D3DDevice_GetPersistedSurface
 {
 	XTL::X_D3DSurface *result = (XTL::X_D3DSurface *)g_MemoryManager.AllocateZeroed(1, sizeof(XTL::X_D3DSurface));
 	result->Common = X_D3DCOMMON_D3DCREATED | X_D3DCOMMON_TYPE_SURFACE | 1; // Set refcount to 1
 	return result;
 }
 
-#if 0 // No longer used (now we stopped patching D3DDevice_Create* functions)
-XTL::X_D3DTexture *EmuNewD3DTexture()
-{
-	XTL::X_D3DTexture *result = (XTL::X_D3DTexture *)g_MemoryManager.AllocateZeroed(1, sizeof(XTL::X_D3DTexture));
-	result->Common = X_D3DCOMMON_D3DCREATED | X_D3DCOMMON_TYPE_TEXTURE | 1; // Set refcount to 1
-	return result;
-}
-
-XTL::X_D3DVolumeTexture *EmuNewD3DVolumeTexture()
-{
-	XTL::X_D3DVolumeTexture *result = (XTL::X_D3DVolumeTexture *)g_MemoryManager.AllocateZeroed(1, sizeof(XTL::X_D3DVolumeTexture));
-	result->Common = X_D3DCOMMON_D3DCREATED | X_D3DCOMMON_TYPE_TEXTURE | 1; // Set refcount to 1
-	return result;
-}
-
-XTL::X_D3DCubeTexture *EmuNewD3DCubeTexture()
-{
-	XTL::X_D3DCubeTexture *result = (XTL::X_D3DCubeTexture *)g_MemoryManager.AllocateZeroed(1, sizeof(XTL::X_D3DCubeTexture));
-	result->Common = X_D3DCOMMON_D3DCREATED | X_D3DCOMMON_TYPE_TEXTURE | 1; // Set refcount to 1
-	return result;
-}
-
-XTL::X_D3DIndexBuffer *EmuNewD3DIndexBuffer()
-{
-	XTL::X_D3DIndexBuffer *result = (XTL::X_D3DIndexBuffer *)g_MemoryManager.AllocateZeroed(1, sizeof(XTL::X_D3DIndexBuffer));
-	result->Common = X_D3DCOMMON_D3DCREATED | X_D3DCOMMON_TYPE_INDEXBUFFER | 1; // Set refcount to 1
-	return result;
-}
-
-XTL::X_D3DVertexBuffer *EmuNewD3DVertexBuffer()
-{
-	XTL::X_D3DVertexBuffer *result = (XTL::X_D3DVertexBuffer *)g_MemoryManager.AllocateZeroed(1, sizeof(XTL::X_D3DVertexBuffer));
-	result->Common = X_D3DCOMMON_D3DCREATED | X_D3DCOMMON_TYPE_VERTEXBUFFER | 1; // Set refcount to 1
-	return result;
-}
-
-XTL::X_D3DPalette *EmuNewD3DPalette()
-{
-	XTL::X_D3DPalette *result = (XTL::X_D3DPalette *)g_MemoryManager.AllocateZeroed(1, sizeof(XTL::X_D3DPalette));
-	result->Common = X_D3DCOMMON_D3DCREATED | X_D3DCOMMON_TYPE_PALETTE | 1; // Set refcount to 1
-	return result;
-}
-#endif
-
-#if 1 // temporarily used by ConvertHostSurfaceHeaderToXbox() and WndMain::LoadGameLogo()
+#if 1 // temporarily used by WndMain::LoadGameLogo()
 // TODO : Move to own file
 VOID XTL::CxbxSetPixelContainerHeader
 (
@@ -1669,32 +1271,6 @@ VOID XTL::CxbxSetPixelContainerHeader
 		| (((Height - 1) << X_D3DSIZE_HEIGHT_SHIFT) & X_D3DSIZE_HEIGHT_MASK)
 		| (((Pitch - 1) << X_D3DSIZE_PITCH_SHIFT) & X_D3DSIZE_PITCH_MASK)
 		;
-}
-
-// TODO : Move to own file
-// HACK : Approximate the format
-void ConvertHostSurfaceHeaderToXbox
-(
-	XTL::IDirect3DSurface8 *pHostSurface,
-	XTL::X_D3DPixelContainer* pPixelContainer
-)
-{
-	XTL::D3DSURFACE_DESC HostSurfaceDesc;
-
-	pHostSurface->GetDesc(&HostSurfaceDesc);
-	const uint MipMapLevels = 1; // ??
-	XTL::X_D3DFORMAT X_Format = EmuPC2XB_D3DFormat(HostSurfaceDesc.Format);
-	const uint Dimensions = 2;
-	uint Pitch = HostSurfaceDesc.Width * EmuXBFormatBitsPerPixel(X_Format) / 8;
-
-	XTL::CxbxSetPixelContainerHeader(pPixelContainer,
-		pPixelContainer->Common,
-		HostSurfaceDesc.Width,
-		HostSurfaceDesc.Height,
-		MipMapLevels,
-		X_Format,
-		Dimensions,
-		Pitch);
 }
 #endif
 
@@ -1921,7 +1497,7 @@ void CxbxUpdateTextureStages()
 							PaletteColors = (DWORD*)GetDataFromXboxResource(XboxPalette);
 					}
 
-					pHostBaseTexture = CxbxUpdateTexture(XboxBaseTexture, PaletteColors);
+					pHostBaseTexture = CxbxUpdateTexture(XboxBaseTexture, 0, PaletteColors);
 					DbgPrintf("D3D : SetTexture - Stage : %d  Data : 0x%p\n", Stage, GetDataFromXboxResource(XboxBaseTexture));
 				}
 			}
@@ -1933,17 +1509,25 @@ void CxbxUpdateTextureStages()
 }
 
 // TODO : Move to own file
-XTL::IDirect3DSurface8 *CxbxUpdateSurface(const XTL::X_D3DSurface *pXboxSurface)
+XTL::IDirect3DSurface8 *CxbxUpdateSurface(const XTL::X_D3DSurface *pXboxSurface, const DWORD D3DUsage)
 {
 	if (pXboxSurface == NULL)
 		return nullptr;
 
 /* Note : I don't this an update of this surface's Parent is needed, but if it is, here's how :
 	if (pXboxSurface->Parent != NULL)
-		(XTL::IDirect3DSurface8 *)CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pXboxSurface->Parent, NULL);
+		(XTL::IDirect3DSurface8 *)CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pXboxSurface->Parent, D3DUsage, NULL);
 
 */
-	return (XTL::IDirect3DSurface8 *)CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pXboxSurface, NULL);
+
+	XTL::IDirect3DSurface8 *Result;
+
+	Result = (XTL::IDirect3DSurface8 *)CxbxUpdateTexture((XTL::X_D3DPixelContainer *)pXboxSurface, D3DUsage, NULL);
+
+	if (Result != nullptr)
+		Result->UnlockRect(); // remove old lock
+
+	return Result;
 }
 
 // TODO : Move to own file
@@ -1953,16 +1537,11 @@ void CxbxUpdateActiveRenderTarget()
 
 	XTL::X_D3DSurface *pActiveXboxRenderTarget = GetXboxRenderTarget();
 	XTL::X_D3DSurface *pActiveXboxDepthStencil = GetXboxDepthStencil();
-#ifdef USE_XBOX_BUFFERS
-	XTL::IDirect3DSurface8 *
-#endif
-		g_pActiveHostRenderTarget = CxbxUpdateSurface(pActiveXboxRenderTarget);
-#ifdef USE_XBOX_BUFFERS
-	XTL::IDirect3DSurface8 *
-#endif
-		g_pActiveHostDepthStencil = CxbxUpdateSurface(pActiveXboxDepthStencil);
 
-	HRESULT hRet = g_pD3DDevice8->SetRenderTarget(g_pActiveHostRenderTarget, g_pActiveHostDepthStencil);
+	XTL::IDirect3DSurface8 *pActiveHostRenderTarget = CxbxUpdateSurface(pActiveXboxRenderTarget, D3DUSAGE_RENDERTARGET);
+	XTL::IDirect3DSurface8 *pActiveHostDepthStencil = CxbxUpdateSurface(pActiveXboxDepthStencil, D3DUSAGE_DEPTHSTENCIL);
+
+	HRESULT hRet = g_pD3DDevice8->SetRenderTarget(pActiveHostRenderTarget, pActiveHostDepthStencil);
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderTarget");
 
 	// This tries to fix VolumeFog on ATI :
@@ -1970,7 +1549,7 @@ void CxbxUpdateActiveRenderTarget()
 	{
 		// TODO : Maybe some info : http://xboxforums.create.msdn.com/forums/t/2124.aspx
 		EmuWarning("SetRenderTarget failed! Trying ATI fix");
-		hRet = g_pD3DDevice8->SetRenderTarget(g_pActiveHostRenderTarget, nullptr);
+		hRet = g_pD3DDevice8->SetRenderTarget(pActiveHostRenderTarget, nullptr);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->SetRenderTarget [second]");
 	}
 }
@@ -2695,49 +2274,46 @@ void CxbxClear
 
 	// make adjustments to parameters to make sense with windows d3d
 	DWORD PCFlags = XTL::EmuXB2PC_D3DCLEAR_FLAGS(Flags);
-	{
-		if (Flags & XTL::X_D3DCLEAR_TARGET) {
-			// TODO: D3DCLEAR_TARGET_A, *R, *G, *B don't exist on windows
-			if ((Flags & XTL::X_D3DCLEAR_TARGET) != XTL::X_D3DCLEAR_TARGET)
-				EmuWarning("Unsupported : Partial D3DCLEAR_TARGET flag(s) for D3DDevice_Clear : 0x%.08X", Flags & XTL::X_D3DCLEAR_TARGET);
-		}
 
-		if (Flags & (XTL::X_D3DCLEAR_ZBUFFER | XTL::X_D3DCLEAR_ZBUFFER)) {
-			// Only when Z/Depth flags are given, check if these components are present :
-			UpdateDepthStencilFlags(); // Update g_bHasDepthBits and g_bHasStencilBits
+	if (Flags & (XTL::X_D3DCLEAR_ZBUFFER | XTL::X_D3DCLEAR_ZBUFFER)) {
+		// Only when Z/Depth flags are given, check if these components are present :
+		UpdateXboxDepthStencilFlags(); // Update g_bXboxHasDepthBits and g_bXboxHasStencilBits
 
-			// Do not needlessly clear Z Buffer
-			if (Flags & XTL::X_D3DCLEAR_ZBUFFER) {
-				if (!g_bHasDepthBits) {
-					PCFlags &= ~D3DCLEAR_ZBUFFER;
-					EmuWarning("Ignored D3DCLEAR_ZBUFFER flag (there's no Depth component in the DepthStencilSurface)");
-				}
-			}
-
-			// Only clear depth buffer and stencil if present
-			//
-			// Avoids following DirectX Debug Runtime error report
-			//    [424] Direct3D8: (ERROR) :Invalid flag D3DCLEAR_ZBUFFER: no zbuffer is associated with device. Clear failed. 
-			if (Flags & XTL::X_D3DCLEAR_STENCIL) {
-				if (!g_bHasStencilBits) {
-					PCFlags &= ~D3DCLEAR_STENCIL;
-					EmuWarning("Ignored D3DCLEAR_STENCIL flag (there's no Stencil component in the DepthStencilSurface)");
-				}
+		// Do not needlessly clear Z Buffer
+		if (Flags & XTL::X_D3DCLEAR_ZBUFFER) {
+			if (!g_bXboxHasDepthBits) {
+				PCFlags &= ~D3DCLEAR_ZBUFFER;
+				EmuWarning("Ignored D3DCLEAR_ZBUFFER flag (there's no Depth component in the DepthStencilSurface)");
 			}
 		}
-		if (Flags & ~(XTL::X_D3DCLEAR_TARGET | XTL::X_D3DCLEAR_ZBUFFER | XTL::X_D3DCLEAR_STENCIL))
-			EmuWarning("Unsupported Flag(s) for D3DDevice_Clear : 0x%.08X", Flags & ~(XTL::X_D3DCLEAR_TARGET | XTL::X_D3DCLEAR_ZBUFFER | XTL::X_D3DCLEAR_STENCIL));
+
+		// Only clear depth buffer and stencil if present
+		//
+		// Avoids following DirectX Debug Runtime error report
+		//    [424] Direct3D8: (ERROR) :Invalid flag D3DCLEAR_ZBUFFER: no zbuffer is associated with device. Clear failed. 
+		if (Flags & XTL::X_D3DCLEAR_STENCIL) {
+			if (!g_bXboxHasStencilBits) {
+				PCFlags &= ~D3DCLEAR_STENCIL;
+				EmuWarning("Ignored D3DCLEAR_STENCIL flag (there's no Stencil component in the DepthStencilSurface)");
+			}
+		}
 	}
 
-	// Since we filter the flags, make sure there are some left (else, clear isn't necessary) :
-	if (PCFlags > 0)
-	{
-		HRESULT hRet;
+	if (Flags & XTL::X_D3DCLEAR_TARGET) {
+		// TODO: D3DCLEAR_TARGET_A, *R, *G, *B don't exist on windows
+		if ((Flags & XTL::X_D3DCLEAR_TARGET) != XTL::X_D3DCLEAR_TARGET)
+			EmuWarning("Unsupported : Partial D3DCLEAR_TARGET flag(s) for D3DDevice_Clear : 0x%.08X", Flags & XTL::X_D3DCLEAR_TARGET);
+	}
 
+	if (Flags & ~(XTL::X_D3DCLEAR_TARGET | XTL::X_D3DCLEAR_ZBUFFER | XTL::X_D3DCLEAR_STENCIL))
+		EmuWarning("Unsupported Flag(s) for D3DDevice_Clear : 0x%.08X", Flags & ~(XTL::X_D3DCLEAR_TARGET | XTL::X_D3DCLEAR_ZBUFFER | XTL::X_D3DCLEAR_STENCIL));
+
+	// Since we filter the flags, make sure there are some left (else, clear isn't necessary) :
+	if (PCFlags > 0) {
 		// Before clearing, make sure the correct output surfaces are used
 		CxbxUpdateActiveRenderTarget(); // No need to call full-fledged CxbxUpdateNativeD3DResources
 
-		hRet = g_pD3DDevice8->Clear(Count, pRects, PCFlags, Color, Z, Stencil);
+		HRESULT hRet = g_pD3DDevice8->Clear(Count, pRects, PCFlags, Color, Z, Stencil);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->Clear");
 	}
 }
@@ -3094,14 +2670,14 @@ static DWORD WINAPI EmuCreateDeviceProxy(LPVOID) // TODO : Figure out whether it
 				CxbxInitD3DState();
 
 				// initially, show a black screen
-				UpdateDepthStencilFlags(); // Update g_bHasDepthBits and g_bHasStencilBits (used below)
+				UpdateXboxDepthStencilFlags(); // Update g_bXboxHasDepthBits and g_bXboxHasStencilBits (used below)
 				CxbxClear(
 					/*Count=*/0,
 					/*pRects=*/nullptr,
-					XTL::X_D3DCLEAR_TARGET | (g_bHasDepthBits ? XTL::X_D3DCLEAR_ZBUFFER : 0) | (g_bHasStencilBits ? XTL::X_D3DCLEAR_STENCIL : 0),
+					XTL::X_D3DCLEAR_TARGET | (g_bXboxHasDepthBits ? XTL::X_D3DCLEAR_ZBUFFER : 0) | (g_bXboxHasStencilBits ? XTL::X_D3DCLEAR_STENCIL : 0),
 					/*Color=*/0xFF000000, // TODO : Use constant for this
-					/*Z=*/g_bHasDepthBits ? 1.0f : 0.0f,
-					/*Stencil=*/g_bHasStencilBits ? 0 : 0); // TODO : What to set these to?
+					/*Z=*/g_bXboxHasDepthBits ? 1.0f : 0.0f,
+					/*Stencil=*/g_bXboxHasStencilBits ? 0 : 0); // TODO : What to set these to?
 
 				CxbxPresent();
             }
@@ -3922,14 +3498,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_CopyRects)
 
 	// TODO : Do we need : CxbxUpdateActiveRenderTarget(); // Make sure the correct output surfaces are used
 
-	XTL::IDirect3DSurface8 *pHostSourceSurface = CxbxUpdateSurface(pSourceSurface);
-	XTL::IDirect3DSurface8 *pHostDestinationSurface = CxbxUpdateSurface(pDestinationSurface);
-
-	if (pHostSourceSurface != nullptr)
-		pHostSourceSurface->UnlockRect(); // remove old lock
-
-	if (pHostDestinationSurface != nullptr)
-		pHostDestinationSurface->UnlockRect(); // remove old lock
+	XTL::IDirect3DSurface8 *pHostSourceSurface = CxbxUpdateSurface(pSourceSurface, 0);
+	XTL::IDirect3DSurface8 *pHostDestinationSurface = CxbxUpdateSurface(pDestinationSurface, 0);
 
     /*
     static int kthx = 0;
@@ -5397,7 +4967,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
 
 	if(pTexture != NULL)
     {
-		pHostBaseTexture = CxbxUpdateTexture(pTexture, g_pTexturePaletteStages[Stage]);
+		pHostBaseTexture = CxbxUpdateTexture(pTexture, 0, g_pTexturePaletteStages[Stage]);
 
 #ifdef _DEBUG_DUMP_TEXTURE_SETTEXTURE
         if(pTexture != NULL && (pHostBaseTexture != nullptr))
@@ -6086,7 +5656,7 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 		return nullptr;
 
 	xbaddr pVertexBufferData = (xbaddr)GetDataFromXboxResource((X_D3DResource *)pXboxVertexBuffer);
-	if (pVertexBufferData == NULL)
+	if (pVertexBufferData == xbnullptr)
 		return nullptr; // TODO : Cleanup without data?
 
 	int Size = g_MemoryManager.QueryAllocationSize((void *)pVertexBufferData); // TODO : Use g_MemoryManager.QueryRemainingAllocationSize
@@ -6185,6 +5755,7 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 (
 	XTL::X_D3DPixelContainer *pPixelContainer,
+	DWORD D3DUsage, // 0 or D3DUSAGE_RENDERTARGET or D3DUSAGE_DEPTHSTENCIL
 	const DWORD *pPalette
 )
 {
@@ -6193,27 +5764,10 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	if (pPixelContainer == NULL)
 		return nullptr;
 
-#ifndef USE_XBOX_BUFFERS
-	if (pPixelContainer == g_pInitialXboxBackBuffer)
-		return (IDirect3DBaseTexture8 *)g_pInitialHostBackBuffer;
-
-	if (pPixelContainer == g_pInitialXboxRenderTarget)
-		return (IDirect3DBaseTexture8 *)g_pInitialHostRenderTarget;
-
-	if (pPixelContainer == g_pInitialXboxDepthStencil)
-		return (IDirect3DBaseTexture8 *)g_pInitialHostDepthStencil;
-
+#if 0
 	if (pPixelContainer == g_pActiveXboxBackBuffer)
 		if (g_pActiveHostBackBuffer != nullptr)
 			return (IDirect3DBaseTexture8 *)g_pActiveHostBackBuffer;
-
-	if (pPixelContainer == g_pActiveXboxRenderTarget)
-		if (g_pActiveHostRenderTarget != nullptr)
-			return (IDirect3DBaseTexture8 *)g_pActiveHostRenderTarget;
-
-	if (pPixelContainer == g_pActiveXboxDepthStencil)
-		if (g_pActiveHostDepthStencil != nullptr)
-			return (IDirect3DBaseTexture8 *)g_pActiveHostDepthStencil;
 #endif
 
 	X_D3DFORMAT X_Format = GetXboxPixelContainerFormat(pPixelContainer);
@@ -6223,11 +5777,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			EmuWarning("CxbxUpdateTexture can't handle paletized textures without a given palette!");
 			return nullptr;
 		}
-
-#if 0
-	if (IsSpecialXboxResource(pPixelContainer))
-		return nullptr;
-#endif
 
 	PVOID pTextureData = GetDataFromXboxResource((X_D3DResource *)pPixelContainer);
 	if (pTextureData == NULL)
@@ -6239,13 +5788,10 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 	// Find a cached host texture
 	struct TextureCache::TextureCacheEntry &CacheEntry = g_TextureCache.Find(textureKey, pPalette);
-	if (CacheEntry.pConvertedHostTexture != nullptr)
+	if (CacheEntry.pConvertedHostTexture != nullptr) {
+		// TODO? : CxbxUnlockHostBaseTexture(CacheEntry.pConvertedHostTexture);
 		return CacheEntry.pConvertedHostTexture;
-
-#if 0 // unused
-	// Make sure D3DDevice_SwitchTexture can associate a Data pointer with this texture
-	g_DataToTexture.insert(pTextureData, (void *)pPixelContainer);
-#endif
+	}
 
 	IDirect3DBaseTexture8 *result = nullptr;
 
@@ -6270,61 +5816,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	}
 #endif
 
-#if 0 // Disabled, now handled by DxbxXB2PC_D3DFormat
-	switch (X_Format)
-	{
-	case X_D3DFMT_LIN_D24S8:
-	{
-		// Test case : Turok hits this
-		EmuWarning("D3DFMT_LIN_D24S8 not yet supported!");
-		X_Format = X_D3DFMT_LIN_A8R8G8B8;
-		break;
-	}
-	case X_D3DFMT_LIN_D16:
-	{
-		// Test case : aerox 2 hits this
-		EmuWarning("D3DFMT_LIN_D16 not yet supported!");
-		X_Format = X_D3DFMT_LIN_R5G6B5;
-		break;
-	}
-	case X_D3DFMT_X1R5G5B5:
-	{
-		// TODO: HACK : (blueshogun) Since I have trouble with this texture format on modern hardware,
-		// Let's try using some 16-bit format instead...
-		EmuWarning("X_D3DFMT_X1R5G5B5 -> D3DFMT_R5GB5");
-		X_Format = X_D3DFMT_R5G6B5;
-		break;
-	}
-	case X_D3DFMT_UYVY:
-	case X_D3DFMT_YUY2:
-	{
-		if (GetXboxRenderState(X_D3DRS_YUVENABLE) == (DWORD)TRUE)
-		{
-#if 0
-			if (X_Format == X_D3DFMT_YUY2)
-			{
-				// cache the overlay size
-				g_dwOverlayW = dwWidth;
-				g_dwOverlayH = dwHeight;
-				g_dwOverlayP = RoundUp(g_dwOverlayW, 64) * dwBPP / 8;
-			}
-#endif
-
-			break;
-		}
-		else
-		{
-			EmuWarning("RenderState D3DRS_YUVENABLE not set for Y-Cb-Cr. Colors will be wrong");
-			// TODO : To handle this like the NV2A does, we should decompress the
-			// Y, Cb and Cr channels per pixel, but leave out the conversion to RGB,
-			// but instead show the values themselves as RGB values (use Cr for Red,
-			// Y for Green, and Cb for Blue).
-			X_Format = X_D3DFMT_LIN_R5G6B5; // HACK to at least keep the BitsPerPixel compatible
-		}
-	}
-	}
-#endif
-
 	// One of these will be created :
 	IDirect3DSurface8 *pNewHostSurface = nullptr;
 	IDirect3DTexture8 *pNewHostTexture = nullptr;
@@ -6334,8 +5825,30 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	// Note : For now, we create and fill textures only once (Xbox changes are put
 	// in new host resources), so it seems using D3DUSAGE_DYNAMIC and D3DPOOL_DEFAULT
 	// isn't needed (plus, we don't have to check for D3DCAPS2_DYNAMICTEXTURES)
-	DWORD D3DUsage = 0; // TODO : | D3DUSAGE_RENDERTARGET | D3DUSAGE_DEPTHSTENCIL
 	D3DPOOL D3DPool = D3DPOOL_MANAGED;
+	// Textures created in D3DPOOL_DEFAULT are not lockable.
+
+	bool bNeedUpdateTexture = false;
+	if (D3DUsage & D3DUSAGE_DEPTHSTENCIL) {
+		// The only lockable format for a depth-stencil surface is D3DFMT_D16_LOCKABLE.
+		// So, other formats should be updated by other means;
+		if (X_Format != D3DFMT_D16_LOCKABLE) {
+			// To put Xbox contents in those, we could first copy/convert Xbox data
+			// to an intermediate D3DPOOL_SYSTEMMEM texture, and send that to the host
+			// GPU texture (created with D3DPOOL_DEFAULT) by calling UpdateTexture().
+			// Make sure to call AddDirtyRect(nullptr) before, so all data will be copied.
+			if (g_D3DCaps.Caps2 & D3DCAPS2_DYNAMICTEXTURES) {
+				D3DPool = D3DPOOL_SYSTEMMEM;
+				bNeedUpdateTexture = true; // TODO : After D3DPOOL_DEFAULT
+			}
+		}
+	}
+
+	/* 
+	// https://msdn.microsoft.com/en-us/library/windows/desktop/bb219800.aspx#Reading_DepthStencil_Buffers
+	if (D3DUsage & D3DUSAGE_RENDERTARGET)
+		D3DPool = D3DPOOL_DEFAULT;
+	*/
 
 	X_D3DRESOURCETYPE X_D3DResourceType = GetXboxD3DResourceType(pPixelContainer);
 
@@ -6345,6 +5858,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 	HRESULT hRet = S_OK;
 
+		
 	// create the happy little texture
 	DWORD dwCommonType = GetXboxCommonResourceType(pPixelContainer);
 	// TODO : Remove by splitting this over texture and surface variants
@@ -6354,7 +5868,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		// Retrieve the PC resource that represents the parent of this surface,
 		// including it's contents (updated if necessary) :
 		// Samples like CubeMap show that render target formats must be applied to both surface and texture:
-		IDirect3DBaseTexture8 *pHostParentTexture = CxbxUpdateTexture(pSurfaceParent, pPalette);
+		IDirect3DBaseTexture8 *pHostParentTexture = CxbxUpdateTexture(pSurfaceParent, D3DUsage, pPalette);
 		if (pHostParentTexture != nullptr) {
 			// Determine which face & mipmap level where used in the creation of this Xbox surface, using the Data pointer :
 			UINT Level;
@@ -6388,7 +5902,9 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		}
 		else {
 			// Differentiate between images & depth buffers :
-			if (EmuXBFormatIsRenderTarget(X_Format)) {
+			// For bNeedUpdateTexture, create the intermediate resource in D3DPOOL_SYSTEMMEM (not D3DPOOL_DEFAULT) :
+			if (EmuXBFormatIsRenderTarget(X_Format) || bNeedUpdateTexture) {
+				// D3DPool : Image surfaces are placed in the D3DPOOL_SYSTEMMEM memory class.
 				hRet = g_pD3DDevice8->CreateImageSurface(PixelJar.dwWidth, PixelJar.dwHeight, PCFormat, &pNewHostSurface);
 				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateImageSurface");
 
@@ -6399,6 +5915,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			else {
 				if (EmuXBFormatIsDepthBuffer(X_Format)) {
 					LOG_TEST_CASE("pSurfaceParent IsDepthBuffer");
+					// D3DPool : The memory class of the depth-stencil buffer is always D3DPOOL_DEFAULT.
 					hRet = g_pD3DDevice8->CreateDepthStencilSurface(
 						PixelJar.dwWidth, PixelJar.dwHeight,
 						PCFormat,
@@ -6541,7 +6058,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 	BYTE* pTmpBuffer = nullptr;
 
 	// This outer loop walks over all faces (6 for CubeMaps, just 1 for anything else) :
-	uint nrfaces = PixelJar.format.bIsCubeMap ? 6 : 1;
+	uint nrfaces = (PixelJar.format.bIsCubeMap) ? 6: 1;
 	for (uint face = 0; face < nrfaces; face++)
 	{
 		// as we iterate through mipmap levels, we'll adjust the source resource offset
@@ -6819,6 +6336,24 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		}
 	}
 #endif
+
+	if (bNeedUpdateTexture) {
+		assert(D3DPool == D3DPOOL_SYSTEMMEM);
+		D3DPool = D3DPOOL_DEFAULT;
+
+		hRet = g_pD3DDevice8->CreateTexture
+		(
+			PixelJar.dwWidth, PixelJar.dwHeight, PixelJar.dwMipMapLevels, D3DUsage, PCFormat,
+			D3DPool, &pNewHostTexture
+		);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateTexture");
+
+		hRet = g_pD3DDevice8->UpdateTexture(result, pNewHostTexture);
+		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->UpdateTexture");
+
+		result->Release();
+		result = pNewHostTexture;
+	}
 
 	g_TextureCache.AddConvertedResource(CacheEntry, result);
 
@@ -9316,8 +8851,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 
 	g_pActiveXboxDepthStencil = pNewZStencil;
 
-	UpdateDepthStencilFlags();
-
     // TODO: Follow that stencil!
 }
 #endif
@@ -9841,7 +9374,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetDepthClipPlanes)
         break;
 
         default:
-            EmuWarning("Unknown SetDepthClipPlanes Flags provided");;
+            EmuWarning("Unknown SetDepthClipPlanes Flags provided");
     }
 
     // TODO
