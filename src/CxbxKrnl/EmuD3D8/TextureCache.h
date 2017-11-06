@@ -63,8 +63,9 @@ public:
 	};
 
 	struct TextureCacheEntry {
-		DWORD Hash = 0;
-		//UINT XboxDataSize = 0;
+		uint32_t PaletteHash = 0;
+		uint32_t Hash = 0;
+		uint32_t XboxDataSize = 0;
 		DWORD XboxDataSamples[16] = {}; // Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
 		XTL::IDirect3DBaseTexture8* pConvertedHostTexture = nullptr;
 
@@ -110,18 +111,57 @@ public:
 		m_Mutex.unlock();
 	}
 
+	const uint32_t GetPolynomial(const int32_t aRange)
+	{
+		static uint32_t Polynomials[] = {
+			0x00000000,
+			0x00000001, 0x00000003, 0x00000006, 0x0000000C,
+			0x00000014, 0x00000030, 0x00000060, 0x000000B8,
+			0x00000110, 0x00000240, 0x00000500, 0x00000CA0,
+			0x00001B00, 0x00003500, 0x00006000, 0x0000B400,
+			0x00012000, 0x00020400, 0x00072000, 0x00090000,
+			0x00140000, 0x00300000, 0x00400000, 0x00D80000,
+			0x01200000, 0x03880000, 0x07200000, 0x09000000,
+			0x14000000, 0x32800000, 0x48000000, 0xA3000000
+		};
+		DWORD bsr; _BitScanReverse(&bsr, aRange - 1); // MSVC intrinsic; GCC has __builtin_clz
+		return Polynomials[bsr];
+	}
+
 	struct TextureCacheEntry &Find(const struct TextureResourceKey textureKey, const DWORD *pPalette)
 	{
 		m_Mutex.lock();
 		Evict();
 		// Reference the converted texture (when the entry is not present, it's added) :
 		struct TextureCacheEntry &cacheEntry = g_TextureCacheEntries[textureKey];
-		// Check if the data needs an updated conversion or not, first via a few samples
+
+		uint32_t PaletteHash = textureKey.Format ^ textureKey.Size; // seed with characteristics
+		if (pPalette != NULL)
+			PaletteHash = XXHash32::hash((void *)pPalette, (uint64_t)256 * sizeof(XTL::D3DCOLOR), PaletteHash);
+
+		uint32_t XboxDataSize = g_MemoryManager.QueryAllocationSize((void*)textureKey.TextureData);
+
+		// Check if the data needs an updated conversion or not, first via a few quick checks
 		if (cacheEntry.pConvertedHostTexture != nullptr) {
-			boolean CanReuseCachedTexture = true;
+			boolean CanReuseCachedTexture = true;			
+			if (cacheEntry.XboxDataSize != XboxDataSize)
+				CanReuseCachedTexture = false;
+
+			if (cacheEntry.PaletteHash != PaletteHash)
+				CanReuseCachedTexture = false;
+
+			uint32_t lfsr = 0;
+			uint32_t magic = GetPolynomial(XboxDataSize);
 			for (int i = 0; i < 16; i++) {
-				// TODO : Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
-				DWORD Sample = ((DWORD*)textureKey.TextureData)[i];
+				// Read sample indices using https://en.wikipedia.org/wiki/Linear-feedback_shift_register#Galois_LFSRs
+				do {
+					if (lfsr & 1)
+						lfsr >>= 1;
+					else
+						lfsr = (lfsr >> 1) ^ magic;
+				} while (lfsr >= XboxDataSize);
+
+				DWORD Sample = ((DWORD*)textureKey.TextureData)[lfsr];
 				if (cacheEntry.XboxDataSamples[i] != Sample)
 					CanReuseCachedTexture = false;
 
@@ -134,12 +174,8 @@ public:
 			}
 		}
 
-		int Size = g_MemoryManager.QueryAllocationSize((void*)textureKey.TextureData);
 		// TODO : Don't hash every time (see CxbxVertexBufferConverter::ApplyCachedStream)
-		uint32_t uiHash = textureKey.Format ^ textureKey.Size; // seed with characteristics
-		uiHash = XXHash32::hash((void*)textureKey.TextureData, (uint64_t)Size, uiHash);
-		if (pPalette != NULL)
-			uiHash = XXHash32::hash((void *)pPalette, (uint64_t)256 * sizeof(XTL::D3DCOLOR), uiHash);
+		uint32_t uiHash = XXHash32::hash((void*)textureKey.TextureData, (uint64_t)XboxDataSize, PaletteHash);
 
 		// Check if the data needs an updated conversion or not, now via the hash
 		if (cacheEntry.pConvertedHostTexture != nullptr) {
@@ -155,7 +191,9 @@ public:
 			cacheEntry.pConvertedHostTexture = nullptr;
 		}
 
+		cacheEntry.PaletteHash = PaletteHash;
 		cacheEntry.Hash = uiHash;
+		cacheEntry.XboxDataSize = XboxDataSize;
 		m_Mutex.unlock();
 		return cacheEntry;
 	}
