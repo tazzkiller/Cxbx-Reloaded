@@ -441,9 +441,13 @@ XBSYSAPI EXPORTNUM(49) xboxkrnl::VOID DECLSPEC_NORETURN NTAPI xboxkrnl::HalRetur
 		else
 		{
 			// Save the launch data page to disk for later.
-			// (Note : XWriteTitleInfoNoReboot does this too)
-			// Commented out because XLaunchNewImage is disabled!
-			// MmPersistContiguousMemory((PVOID)xboxkrnl::LaunchDataPage, sizeof(LAUNCH_DATA_PAGE), TRUE);
+			// Note : Unpatched XWriteTitleInfoNoReboot calls this too,
+			// so once XWriteTitleInfoNoReboot is unpatched,
+			// this call to MmPersistContiguousMemory can be removed :
+			MmPersistContiguousMemory((PVOID)xboxkrnl::LaunchDataPage, sizeof(LAUNCH_DATA_PAGE), TRUE);
+
+			// Regardless, we must persist memory here, so it will survice a restart (see CxbxRestorePersistentMemoryRegions)
+			CxbxStorePersistentMemoryRegions();
 
 			std::string TitlePath = xboxkrnl::LaunchDataPage->Header.szLaunchPath;
 			char szWorkingDirectoy[MAX_PATH];
@@ -520,8 +524,7 @@ XBSYSAPI EXPORTNUM(49) xboxkrnl::VOID DECLSPEC_NORETURN NTAPI xboxkrnl::HalRetur
 		LOG_UNIMPLEMENTED();
 	}
 
-	EmuShared::Cleanup();
-	ExitProcess(EXIT_SUCCESS);
+	EmuExitProcess(EXIT_SUCCESS);
 }
 
 // ******************************************************************

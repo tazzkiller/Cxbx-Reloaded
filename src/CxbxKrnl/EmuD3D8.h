@@ -1952,11 +1952,14 @@ void WINAPI EMUPATCH(D3DDevice_SetSwapCallback)
 	X_D3DSWAPCALLBACK		pCallback
 );
 
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: D3DDevice_PersistDisplay
 // ******************************************************************
 HRESULT WINAPI EMUPATCH(D3DDevice_PersistDisplay)();
+#endif
 
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: D3DDevice_GetPersistedSurface
 // ******************************************************************
@@ -1964,11 +1967,14 @@ VOID WINAPI EMUPATCH(D3DDevice_GetPersistedSurface)
 (
 	X_D3DSurface **ppSurface
 );
+#endif
 
+#if 0 // patch disabled
 // ******************************************************************
 // * patch: D3DDevice_GetPersistedSurface2
 // ******************************************************************
 X_D3DSurface* WINAPI EMUPATCH(D3DDevice_GetPersistedSurface2)();
+#endif
 
 #if 0 // Patch disabled, calls AvSendTVEncoderOption which calls our AvQueryAvCapabilities
 // ******************************************************************

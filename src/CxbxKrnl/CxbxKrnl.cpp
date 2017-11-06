@@ -90,6 +90,7 @@ static HANDLE g_hThreads[MAXIMUM_XBOX_THREADS] = { 0 };
 char szFilePath_CxbxReloaded_Exe[MAX_PATH] = { 0 };
 char szFolder_CxbxReloadedData[MAX_PATH] = { 0 };
 char szFilePath_LaunchDataPage_bin[MAX_PATH] = { 0 };
+char szFilePath_SavedData_bin[MAX_PATH] = { 0 };
 char szFilePath_EEPROM_bin[MAX_PATH] = { 0 };
 char szFilePath_memory_bin[MAX_PATH] = { 0 };
 
@@ -1004,6 +1005,7 @@ void CxbxInitFilePaths()
 		CxbxKrnlCleanup("CxbxInitFilePaths : Couldn't create Cxbx-Reloaded AppData folder!");
 
 	snprintf(szFilePath_LaunchDataPage_bin, MAX_PATH, "%s\\CxbxLaunchDataPage.bin", szFolder_CxbxReloadedData);
+	snprintf(szFilePath_SavedData_bin, MAX_PATH, "%s\\CxbxSavedData.bin", szFolder_CxbxReloadedData);
 	snprintf(szFilePath_EEPROM_bin, MAX_PATH, "%s\\EEPROM.bin", szFolder_CxbxReloadedData);
 	snprintf(szFilePath_memory_bin, MAX_PATH, "%s\\memory.bin", szFolder_CxbxReloadedData);
 
@@ -1020,6 +1022,9 @@ xboxkrnl::LAUNCH_DATA_PAGE DefaultLaunchDataPage =
 		0
 	}
 };
+
+// Indicates if xboxkrnl::LaunchDataPage needs to be persisted (set in MmPersistContiguousMemory)
+bool PersistLaunchDataPage = false;
 
 void CxbxRestoreLaunchDataPage()
 {
@@ -1043,12 +1048,91 @@ void CxbxRestoreLaunchDataPage()
 
 		DbgPrintf("INIT: Restored LaunchDataPage\n");
 	}
+
+	PersistLaunchDataPage = false;
+}
+
+void CxbxStoreLaunchDataPage()
+{
+	if (PersistLaunchDataPage) { // Set in MmPersistContiguousMemory
+		FILE* fp = fopen(szFilePath_LaunchDataPage_bin, "wb"); // TODO : Support wide char paths using _wfopen
+		if (fp)
+		{
+			DbgPrintf("KNRL: Persisting LaunchDataPage\n");
+			fseek(fp, 0, SEEK_SET);
+			fwrite(xboxkrnl::LaunchDataPage, sizeof(xboxkrnl::LAUNCH_DATA_PAGE), 1, fp);
+			fclose(fp);
+		}
+		else
+			DbgPrintf("KNRL: Can't persist LaunchDataPage to %s!\n", szFilePath_LaunchDataPage_bin);
+	}
+	else {
+		DbgPrintf("KNRL: Forgetting LaunchDataPage\n");
+		remove(szFilePath_LaunchDataPage_bin);
+	}
+}
+
+void CxbxRestoreSavedData()
+{
+	// If CxbxSavedData.bin exist, load it into "persistent" memory
+	FILE* fp = fopen(szFilePath_SavedData_bin, "rb");
+	if (!fp)
+		return;
+
+	// Make sure LaunchDataPage is writeable  :
+	ULONG Size = fseek(fp, 0, SEEK_END);
+	if (Size > 0) {
+		PVOID pSavedData = xboxkrnl::MmAllocateContiguousMemory(Size);
+		if (pSavedData != NULL) {
+			DbgPrintf("KNRL: Restoring SavedData\n");
+			// Read in the contents.
+			fseek(fp, 0, SEEK_SET);
+			fread(pSavedData, Size, 1, fp);
+			// TODO : Update the surface's Data pointer correctly (CxbxPresent will show it)
+			xboxkrnl::AvSetSavedDataAddress(pSavedData);
+		}
+	}
+
+	fclose(fp);
+	// Delete the file once we're done.
+	remove(szFilePath_SavedData_bin);
+
+	DbgPrintf("INIT: Restored SaveData\n");
+}
+
+void CxbxStoreSavedData()
+{
+	PVOID pSavedData = xboxkrnl::AvGetSavedDataAddress();
+	if (pSavedData == NULL)
+		return;
+
+	ULONG Size = xboxkrnl::MmQueryAllocationSize(pSavedData);
+	if (Size == 0)
+		return;
+
+	FILE* fp = fopen(szFilePath_SavedData_bin, "wb"); // TODO : Support wide char paths using _wfopen
+	if (fp) {
+		DbgPrintf("KNRL: Persisting SavedData\n");
+		fseek(fp, 0, SEEK_SET);
+		fwrite(pSavedData, Size, 1, fp);
+		fclose(fp);
+	}
+	else
+		DbgPrintf("KNRL: Can't persist SavedData to %s!\n", szFilePath_SavedData_bin);
 }
 
 void CxbxRestorePersistentMemoryRegions()
 {
 	CxbxRestoreLaunchDataPage();
+	CxbxRestoreSavedData();
 	// TODO : Restore all other persistent memory regions here too.
+}
+
+void CxbxStorePersistentMemoryRegions()
+{
+	CxbxStoreLaunchDataPage();
+	CxbxStoreSavedData();
+	// TODO : Store all other persistent memory regions here too.
 }
 
 __declspec(noreturn) void CxbxKrnlCleanup(const char *szErrorMessage, ...)
@@ -1070,24 +1154,7 @@ __declspec(noreturn) void CxbxKrnlCleanup(const char *szErrorMessage, ...)
 		CxbxPopupMessage("Received Fatal Message:\n\n* %s\n", szBuffer2); // Will also DbgPrintf
     }
 
-    printf("[0x%.4X] MAIN: Terminating Process\n", GetCurrentThreadId());
-    fflush(stdout);
-
-    // cleanup debug output
-    {
-        FreeConsole();
-
-        char buffer[16];
-
-        if(GetConsoleTitle(buffer, 16) != NULL)
-            freopen("nul", "w", stdout);
-    }
-
-    if(CxbxKrnl_hEmuParent != NULL)
-        SendMessage(CxbxKrnl_hEmuParent, WM_PARENTNOTIFY, WM_DESTROY, 0);
-
-	EmuShared::Cleanup();
-    TerminateProcess(g_CurrentProcessHandle, 0);
+	EmuExitProcess(1);
 }
 
 void CxbxKrnlRegisterThread(HANDLE hThread)

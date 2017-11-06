@@ -48,7 +48,7 @@ namespace xboxkrnl
 #include "Logging.h" // For LOG_FUNC()
 #include "EmuKrnl.h" // For DefaultLaunchDataPage
 #include "EmuKrnlLogging.h"
-#include "CxbxKrnl.h" // For CxbxKrnlCleanup
+#include "CxbxKrnl.h" // For CxbxKrnlCleanup, PersistLaunchDataPage
 #include "Emu.h" // For EmuWarning()
 #include "MemoryManager.h"
 
@@ -446,26 +446,9 @@ XBSYSAPI EXPORTNUM(178) xboxkrnl::VOID NTAPI xboxkrnl::MmPersistContiguousMemory
 		LOG_FUNC_ARG(Persist)
 		LOG_FUNC_END;
 
-	if (BaseAddress == LaunchDataPage)
-	{
-		if (Persist)
-		{
-			FILE* fp = fopen(szFilePath_LaunchDataPage_bin, "wb"); // TODO : Support wide char paths using _wfopen
-			if (fp)
-			{
-				DbgPrintf("KNRL: Persisting LaunchDataPage\n");
-				fseek(fp, 0, SEEK_SET);
-				fwrite(LaunchDataPage, sizeof(LAUNCH_DATA_PAGE), 1, fp);
-				fclose(fp);
-			}
-			else
-				DbgPrintf("KNRL: Can't persist LaunchDataPage to %s!\n", szFilePath_LaunchDataPage_bin);
-		}
-		else
-		{
-			DbgPrintf("KNRL: Forgetting LaunchDataPage\n");
-			remove(szFilePath_LaunchDataPage_bin);
-		}
+	if (BaseAddress == LaunchDataPage) {
+		PersistLaunchDataPage = Persist;
+		// See CxbxStorePersistentMemoryRegions & CxbxRestorePersistentMemoryRegions
 	}
 	else
 		// TODO : Store/forget other pages to be remembered across a "reboot"

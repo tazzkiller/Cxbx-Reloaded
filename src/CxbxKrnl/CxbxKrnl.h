@@ -169,6 +169,10 @@ void CxbxInitPerformanceCounters(); // Implemented in EmuKrnlKe.cpp
 
 void CxbxInitFilePaths();
 
+extern bool PersistLaunchDataPage;
+
+void CxbxStorePersistentMemoryRegions();
+
 void CxbxRestorePersistentMemoryRegions();
 
 void ConnectWindowsTimersToThunkTable();
@@ -197,7 +201,6 @@ extern char* CxbxKrnl_DebugFileName;
 /*! file paths */
 extern char szFilePath_CxbxReloaded_Exe[MAX_PATH];
 extern char szFolder_CxbxReloadedData[MAX_PATH];
-extern char szFilePath_LaunchDataPage_bin[MAX_PATH];
 extern char szFilePath_EEPROM_bin[MAX_PATH];
 
 #ifdef __cplusplus

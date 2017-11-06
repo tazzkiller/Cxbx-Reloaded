@@ -824,6 +824,7 @@ static const FormatInfo FormatInfos[] = {
 #endif
 };
 
+// If available, returns a converter that can convert the supplied format's components into ARGB.
 const XTL::FormatToARGBRow XTL::EmuXBFormatComponentConverter(X_D3DFORMAT Format)
 {
 	if (Format <= X_D3DFMT_LIN_R8G8B8A8)
@@ -833,17 +834,19 @@ const XTL::FormatToARGBRow XTL::EmuXBFormatComponentConverter(X_D3DFORMAT Format
 	return nullptr;
 }
 
+// Is there a converter available from the supplied format to ARGB?
 bool XTL::EmuXBFormatCanBeConvertedToARGB(X_D3DFORMAT Format)
 {
 	const FormatToARGBRow info = EmuXBFormatComponentConverter(Format);
 	return (info != nullptr);
 }
 
+// Returns if convertion to ARGB is required. This is the case when
+// the format has a warning message and there's a converter present.
 bool XTL::EmuXBFormatRequiresConversionToARGB(X_D3DFORMAT Format)
 {
-	// Conversion is required if there's ARGB conversion info present, and the format has a warning message
-	if (EmuXBFormatCanBeConvertedToARGB(Format))
-		if (FormatInfos[Format].warning != nullptr)
+	if (FormatInfos[Format].warning != nullptr)
+		if (EmuXBFormatCanBeConvertedToARGB(Format))
 			return true;
 
 	return false;

@@ -47,6 +47,8 @@ void NTAPI EmuWarning(const char *szWarningMessage, ...);
 inline void NTAPI EmuWarning(const char *szWarningMessage, ...) { }
 #endif
 
+extern __declspec(noreturn) void EmuExitProcess(DWORD exitCode);
+
 // exception handler
 extern int EmuException(LPEXCEPTION_POINTERS e);
 

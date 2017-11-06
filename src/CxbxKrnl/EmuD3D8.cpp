@@ -651,8 +651,7 @@ VOID XTL::CxbxInitWindow(Xbe::Header *XbeHeader, uint32 XbeHeaderSize)
 
 		if (hRenderWindowThread == NULL) {
 			CxbxPopupMessage("Creating EmuRenderWindowThread Failed: %08X", GetLastError());
-			EmuShared::Cleanup();
-			ExitProcess(0);
+			EmuExitProcess(1);
 		}
 
 		DbgPrintf("INIT: Created Message-Pump thread. Handle : 0x%X, ThreadId : [0x%.4X]\n", hRenderWindowThread, dwThreadId);
@@ -1085,7 +1084,7 @@ D3DFORMAT DxbxXB2PC_D3DFormat(X_D3DFORMAT X_Format, X_D3DRESOURCETYPE aResourceT
 		return Result;
 
 	// Can we convert this format to ARGB?
-	ConversionToARGBNeeded = EmuXBFormatCanBeConvertedToARGB(X_Format);
+	/*OUT*/ConversionToARGBNeeded = EmuXBFormatCanBeConvertedToARGB(X_Format);
 	if (ConversionToARGBNeeded) {
 		return D3DFMT_A8R8G8B8;
 	}
@@ -1340,6 +1339,7 @@ VOID CxbxGetPixelContainerMeasures
 }
 
 // TODO : Move to own file
+// TODO : Merge with CxbxUpdateTexture
 uint8 *XTL::ConvertD3DTextureToARGB(
 	XTL::X_D3DPixelContainer *pXboxPixelContainer,
 	uint8 *pSrc,
@@ -2367,6 +2367,29 @@ void CxbxPresent()
 	DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->BeginScene");
 
 	CxbxGetActiveHostBackBuffer();
+
+	// Only show the persisted surface at the first frame :
+	if (g_VBData.SwapCounter == 0) {
+		xboxkrnl::PVOID pSavedDataAddress = xboxkrnl::AvGetSavedDataAddress();
+		if (pSavedDataAddress != NULL) { // TODO : Should the pointer be verified to be a valid surface ?
+			LOG_TEST_CASE("Showing persisted surface");
+			XTL::X_D3DSurface *pXboxSurface = (XTL::X_D3DSurface *)pSavedDataAddress;
+			XTL::IDirect3DSurface8 *pConvertedSurface = CxbxUpdateSurface(pXboxSurface, /*D3DUsage*/0);
+			if (pConvertedSurface != nullptr) {
+				// TODO : Do we need to QueryInterface instead of a hard cast?
+				hRet = g_pD3DDevice8->UpdateTexture((XTL::IDirect3DBaseTexture8*)pConvertedSurface, (XTL::IDirect3DBaseTexture8*)g_pActiveHostBackBuffer); // source > dest
+				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->UpdateTexture");
+/*
+				ULONG AllocSize = xboxkrnl::MmQueryAllocationSize(SavedDataAddress);
+				MmPersistContiguousMemory(SavedDataAddress, AllocSize, FALSE);
+				MmFreeContiguousMemory(SavedDataAddress);
+*/
+
+				xboxkrnl::AvSetSavedDataAddress(NULL); // Avoid recursion
+				CxbxPresent(); // Show the surface
+			}
+		}
+	}
 }
 
 // thread dedicated to create devices
@@ -5740,8 +5763,6 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
     memcpy(pNativeData, (void*)pVertexBufferData, Size);
     pNewHostVertexBuffer->Unlock();
 
-	//SetHostVertexBuffer((XTL::X_D3DResource *)pXboxVertexBuffer, pNewHostVertexBuffer);
-
 	result = pNewHostVertexBuffer;
 	result->AddRef();
 	convertedVertexBuffer.pConvertedHostVertexBuffer = result;
@@ -5752,6 +5773,7 @@ XTL::IDirect3DVertexBuffer8 *XTL::CxbxUpdateVertexBuffer
 }
 
 // TODO : Move to own file
+// TODO : Merge with ConvertD3DTextureToARGB
 XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 (
 	XTL::X_D3DPixelContainer *pPixelContainer,
@@ -5932,7 +5954,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			}
 		}
 
-		//SetHostSurface((X_D3DResource *)pPixelContainer, pNewHostSurface);
 		DbgPrintf("CxbxUpdateTexture : Successfully created surface (0x%.08X, 0x%.08X)\n", pPixelContainer, pNewHostSurface);
 		DbgPrintf("CxbxUpdateTexture : Width : %d, Height : %d, Format : %d\n", PixelJar.dwWidth, PixelJar.dwHeight, PCFormat);
 
@@ -5975,7 +5996,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				CxbxKrnlCleanup("CreateCubeTexture Failed!\n\nError: \nDesc: "/*,
 				DXGetErrorString8A(hRet), DXGetErrorDescription8A(hRet)*/);
 
-			//SetHostCubeTexture((X_D3DResource *)pPixelContainer, pNewHostCubeTexture);
 			DbgPrintf("CxbxUpdateTexture : CreateCubeTexture succeeded : 0x%.08X (0x%.08X)\n", pPixelContainer, pNewHostCubeTexture);
 
 			result = (IDirect3DBaseTexture8 *)pNewHostCubeTexture;
@@ -5998,7 +6018,6 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 				CxbxKrnlCleanup("CreateVolumeTexture Failed!\n\nError: \nDesc: "/*,
 				DXGetErrorString8A(hRet), DXGetErrorDescription8A(hRet)*/);
 
-			//SetHostVolumeTexture((X_D3DResource *)pPixelContainer, pNewHostVolumeTexture);
 			DbgPrintf("CxbxUpdateTexture: CreateVolumeTexture succeeded : 0x%.08X (0x%.08X)\n", pPixelContainer, pNewHostVolumeTexture);
 
 			result = (IDirect3DBaseTexture8 *)pNewHostVolumeTexture;
@@ -6018,22 +6037,11 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 			);
 			DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateTexture");
 
-			/*if(FAILED(hRet))
-			{
-				hRet = g_pD3DDevice8->CreateTexture
-				(
-					PixelJar.dwWidth, PixelJar.dwHeight, PixelJar.dwMipMapLevels, D3DUsage, PCFormat,
-					D3DPOOL_SYSTEMMEM, &pNewHostTexture
-				);
-				DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateTexture(D3DPOOL_SYSTEMMEM)");
-			}*/
-
 			if(FAILED(hRet))
 				EmuWarning("CreateTexture Failed!\n\n"
 					"Error: 0x%X\nFormat: %d\nDimensions: %dx%d", hRet, PCFormat, PixelJar.dwWidth, PixelJar.dwHeight);
 			else
             {
-				//SetHostTexture((X_D3DResource *)pPixelContainer, pNewHostTexture);
 				DbgPrintf("CxbxUpdateTexture : CreateTexture succeeded : 0x%.08X (0x%.08X)\n", pPixelContainer, pNewHostTexture);
 
 				result = (IDirect3DBaseTexture8 *)pNewHostTexture;
@@ -6339,8 +6347,11 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 
 	if (bNeedUpdateTexture) {
 		assert(D3DPool == D3DPOOL_SYSTEMMEM);
-		D3DPool = D3DPOOL_DEFAULT;
+		assert(D3DUsage & D3DUSAGE_DEPTHSTENCIL);
+		assert(X_Format != D3DFMT_D16_LOCKABLE);
+		assert(result == pNewHostTexture);
 
+		pNewHostTexture = nullptr;
 		hRet = g_pD3DDevice8->CreateTexture
 		(
 			PixelJar.dwWidth, PixelJar.dwHeight, PixelJar.dwMipMapLevels, D3DUsage, PCFormat,
@@ -6348,7 +6359,7 @@ XTL::IDirect3DBaseTexture8 *XTL::CxbxUpdateTexture
 		);
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateTexture");
 
-		hRet = g_pD3DDevice8->UpdateTexture(result, pNewHostTexture);
+		hRet = g_pD3DDevice8->UpdateTexture(result, pNewHostTexture); // source > dest
 		DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->UpdateTexture");
 
 		result->Release();
@@ -9956,9 +9967,10 @@ void WINAPI XTL::EMUPATCH(D3DDevice_SetSwapCallback)
     g_pSwapCallback = pCallback;
 }
 
+#if 0 // patch disabled
 HRESULT WINAPI XTL::EMUPATCH(D3DDevice_PersistDisplay)()
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC();
 
@@ -10022,6 +10034,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_PersistDisplay)()
 
 	return hRet;
 }
+#endif
 
 #if 0 // Patch disabled, calls AvSendTVEncoderOption which calls our AvQueryAvCapabilities
 DWORD WINAPI XTL::EMUPATCH(D3D_CMiniport_GetDisplayCapabilities)()
@@ -10434,12 +10447,13 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetPixelShader)
 }
 #endif
 
+#if 0 // patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface)
 (
 	OUT X_D3DSurface **ppSurface
 )
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG_OUT(ppSurface);
 
@@ -10462,10 +10476,12 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface)
 			DbgPrintf( "Successfully loaded persisted_surface.bmp\n" );
 	}
 }
+#endif
 
+#if 0 // patch disabled
 XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface2)()
 {
-	FUNC_EXPORTS
+//	FUNC_EXPORTS
 
 	LOG_FORWARD("D3DDevice_GetPersistedSurface");
 
@@ -10475,6 +10491,7 @@ XTL::X_D3DSurface* WINAPI XTL::EMUPATCH(D3DDevice_GetPersistedSurface2)()
 
 	RETURN(pSurface);
 }
+#endif
 
 #if 0 // Patch disabled
 VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTargetFast)

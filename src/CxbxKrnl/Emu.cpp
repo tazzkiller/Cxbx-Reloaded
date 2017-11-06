@@ -159,16 +159,45 @@ void EmuExceptionPrintDebugInformation(LPEXCEPTION_POINTERS e, bool IsBreakpoint
 	fflush(stdout);
 }
 
-void EmuExceptionExitProcess()
+__declspec(noreturn) void EmuExitProcess(DWORD exitCode)
 {
-	printf("[0x%.4X] MAIN: Aborting Emulation\n", GetCurrentThreadId());
+	printf("[0x%.4X] MAIN: End of emulation\n", GetCurrentThreadId());
 	fflush(stdout);
+
+	// cleanup debug output
+	{
+		FreeConsole();
+
+		char buffer[16];
+		if (GetConsoleTitle(buffer, 16) != NULL)
+			freopen("nul", "w", stdout);
+	}
 
 	if (CxbxKrnl_hEmuParent != NULL)
 		SendMessage(CxbxKrnl_hEmuParent, WM_PARENTNOTIFY, WM_DESTROY, 0);
 
 	EmuShared::Cleanup();
-	ExitProcess(1);
+	Sleep(100);
+
+	printf("[0x%.4X] MAIN: Terminating Process\n", GetCurrentThreadId());
+	fflush(stdout);
+
+	// Terminate without a signal to DLL's
+	if (TerminateProcess(g_CurrentProcessHandle, exitCode))
+		// Allow some time to pass for thread-cleanup and such
+		WaitForSingleObject(g_CurrentProcessHandle, 1000);
+
+	// Fallback termination (if above didn't work) :
+	ExitProcess(exitCode);
+
+	//assert(false && "Exit failed (twice)!");
+	//TODO : Halt(0); ?
+}
+
+__declspec(noreturn) void EmuExceptionExitProcess()
+{
+	printf("[0x%.4X] MAIN: Aborting Emulation\n", GetCurrentThreadId());
+	EmuExitProcess(1);
 }
 
 bool EmuExceptionBreakpointAsk(LPEXCEPTION_POINTERS e)
@@ -257,6 +286,7 @@ extern int EmuException(LPEXCEPTION_POINTERS e)
 }
 
 // exception handle for that tough final exit :)
+// TODO : Never used; Should this be used again? But when?
 int ExitException(LPEXCEPTION_POINTERS e)
 {
     static int count = 0;
@@ -278,10 +308,7 @@ int ExitException(LPEXCEPTION_POINTERS e)
         return EXCEPTION_CONTINUE_SEARCH;
     }
 
-    if(CxbxKrnl_hEmuParent != NULL)
-        SendMessage(CxbxKrnl_hEmuParent, WM_PARENTNOTIFY, WM_DESTROY, 0);
-
-    ExitProcess(1);
+    EmuExitProcess(1);
 
     return EXCEPTION_CONTINUE_SEARCH;
 }
