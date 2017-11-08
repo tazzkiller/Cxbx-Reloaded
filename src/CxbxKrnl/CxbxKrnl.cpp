@@ -719,6 +719,16 @@ void CxbxKrnlInit
 #endif
 	}
 
+	if (0) { // Enable to test AddressToString()
+		xbaddr addr = 0;
+		srand(0xF8D7E6C4);
+		for (int i = 0; i < 1000000; i++) {
+			addr += rand();
+			std::string addr_string = AddressToString(addr);
+			DbgPrintf("%s\n", addr_string.c_str());
+		}
+	}
+
 #ifdef _DEBUG_TRACE
 	// VerifyHLEDataBase();
 #endif

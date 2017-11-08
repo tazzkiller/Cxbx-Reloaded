@@ -107,7 +107,7 @@ std::string GetDetectedSymbolName(xbaddr address, int *symbolOffset)
 	}
 
 	*symbolOffset = 0;
-	return "unknown";
+	return "";
 }
 
 void *GetEmuPatchAddr(std::string aFunctionName)

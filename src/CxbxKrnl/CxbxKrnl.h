@@ -196,4 +196,6 @@ extern char szFilePath_EEPROM_bin[MAX_PATH];
 }
 #endif
 
+std::string AddressToString(xbaddr addr);
+
 #endif
