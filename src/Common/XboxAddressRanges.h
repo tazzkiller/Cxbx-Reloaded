@@ -42,9 +42,9 @@ XboxAddressRange XboxAddressRanges[] = {
 	{ DeviceUSB0,    0xFED00000, KB(  4) }, // .. 0xFED01000
 	{ DeviceUSB1,    0xFED08000, KB(  4) }, // .. 0xFED09000
 	{ DeviceNVNet,   0xFEF00000, KB(  1) }, // .. 0xFEF00400
-	{ DeviceFlash,   0xFF000000, MB(  4) }, // .. 0xFF3FFFFF
-	{ DeviceFlash,   0xFF400000, MB(  4) }, // .. 0xFF7FFFFF (Flash mirror 1)
-	{ DeviceFlash,   0xFF800000, MB(  4) }, // .. 0xFFBFFFFF (Flash mirror 2)
-	{ DeviceFlash,   0xFFC00000, MB(  4) }, // .. 0xFFFFFFFF (Flash mirror 3) - Will probably fail reservation
+	{ DeviceFlash,   0xFF000000, MB(  4) }, // .. 0xFF3FFFFF (Flash mirror 1)
+	{ DeviceFlash,   0xFF400000, MB(  4) }, // .. 0xFF7FFFFF (Flash mirror 2)
+	{ DeviceFlash,   0xFF800000, MB(  4) }, // .. 0xFFBFFFFF (Flash mirror 3)
+	{ DeviceFlash,   0xFFC00000, MB(  4) }, // .. 0xFFFFFFFF (Flash mirror 4) - Will probably fail reservation
 	{ DeviceMCPX,    0xFFFFFE00,    512  }, // .. 0xFFFFFFFF (not Chihiro, Xbox - if enabled)
 };
