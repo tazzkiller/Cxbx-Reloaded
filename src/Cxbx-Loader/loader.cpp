@@ -4,15 +4,18 @@
 
 #include "..\Common\XboxAddressRanges.h"
 
-DWORD XboxMemoryTypeToPageProtectionFlags(XboxAddressRangeType type)
+// Maps an XboxAddressRangeType to page protection flags, for use by VirtualAlloc
+DWORD XboxAddressRangeTypeToVirtualAllocPageProtectionFlags(XboxAddressRangeType type)
 {
-	static DWORD ExecutableMemPageProtection = PAGE_EXECUTE_READWRITE;
-	static DWORD MemPageProtection = PAGE_READWRITE;
-	static DWORD DevicePageProtection = PAGE_READWRITE; //  TODO : (PAGE_NOACCESS | PAGE_GUARD) doesn't work - why?
-	
 	switch (type) {
 	case MemLowVirtual:
-		return ExecutableMemPageProtection;
+	case MemPhysical: // Note : We'll allow execution in kernel space
+		return PAGE_EXECUTE_READWRITE;
+
+	case MemPageTable:
+	case MemNV2APRAMIN:
+		return PAGE_READWRITE;
+
 	case DeviceNV2A:
 	case DeviceAPU:
 	case DeviceAC97:
@@ -21,61 +24,11 @@ DWORD XboxMemoryTypeToPageProtectionFlags(XboxAddressRangeType type)
 	case DeviceNVNet:
 	case DeviceFlash:
 	case DeviceMCPX:
-		return DevicePageProtection;
+		return PAGE_NOACCESS;
+
+	default:
+		return 0; // UNHANDLED
 	}
-
-	// case MemPhysical: // Note : If we ever use a real kernel, 'MemPhysical' would need 
-	// ExecutableMemPageProtection, as the kernel is loaded to & runs from this memory region.
-	// case MemPageTable:
-	// case MemNV2APRAMIN:
-	return MemPageProtection;
-
-#if 0 // research if we need to use any of these page protection flags instead :
-#define PAGE_NOACCESS          0x01     
-#define PAGE_READONLY          0x02     
-#define PAGE_READWRITE         0x04     
-#define PAGE_WRITECOPY         0x08     
-#pragma region Desktop Family           
-#if WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) 
-#define PAGE_EXECUTE           0x10     
-#define PAGE_EXECUTE_READ      0x20     
-#define PAGE_EXECUTE_READWRITE 0x40     
-#define PAGE_EXECUTE_WRITECOPY 0x80     
-#endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_DESKTOP) */ 
-#pragma endregion                       
-#define PAGE_GUARD            0x100     
-#define PAGE_NOCACHE          0x200     
-#define PAGE_WRITECOMBINE     0x400     
-#define PAGE_REVERT_TO_FILE_MAP     0x80000000     
-#define MEM_COMMIT                  0x1000      
-#define MEM_RESERVE                 0x2000      
-#define MEM_DECOMMIT                0x4000      
-#define MEM_RELEASE                 0x8000      
-#define MEM_FREE                    0x10000     
-#define MEM_PRIVATE                 0x20000     
-#define MEM_MAPPED                  0x40000     
-#define MEM_RESET                   0x80000     
-#define MEM_TOP_DOWN                0x100000    
-#define MEM_WRITE_WATCH             0x200000    
-#define MEM_PHYSICAL                0x400000    
-#define MEM_ROTATE                  0x800000    
-#define MEM_DIFFERENT_IMAGE_BASE_OK 0x800000    
-#define MEM_RESET_UNDO              0x1000000   
-#define MEM_LARGE_PAGES             0x20000000  
-#define MEM_4MB_PAGES               0x80000000  
-#define SEC_FILE           0x800000     
-#define SEC_IMAGE         0x1000000     
-#define SEC_PROTECTED_IMAGE  0x2000000  
-#define SEC_RESERVE       0x4000000     
-#define SEC_COMMIT        0x8000000     
-#define SEC_NOCACHE      0x10000000     
-#define SEC_WRITECOMBINE 0x40000000     
-#define SEC_LARGE_PAGES  0x80000000     
-#define SEC_IMAGE_NO_EXECUTE (SEC_IMAGE | SEC_NOCACHE)     
-#define MEM_IMAGE         SEC_IMAGE     
-#define WRITE_WATCH_FLAG_RESET  0x01     
-#define MEM_UNMAP_WITH_TRANSIENT_BOOST  0x01     
-#endif
 }
 
 #define ARRAY_SIZE(a)                               \
@@ -84,26 +37,43 @@ DWORD XboxMemoryTypeToPageProtectionFlags(XboxAddressRangeType type)
 
 DWORD CALLBACK rawMain()
 {
-	// Reserve space for the result of reserving all ranges
+	// Reserve space for the result of reserving all address ranges
 	LPVOID VirtualAllocResults[ARRAY_SIZE(XboxAddressRanges)];
 
-Sleep(1000 * 60); // DEBUG : One minute to take an initial snapshot using SysInternals VMMap
+//Sleep(1000 * 60); // DEBUG : One minute to take an initial snapshot using SysInternals VMMap
 
-	// Note: 0 is a marker, indicating the first page above the loader executable itself (0x00010000 + image-size)
-	// Loop over all Xbox ranges
+	// Loop over all Xbox address ranges
 	for (int i = 0; i < ARRAY_SIZE(XboxAddressRanges); i++) {
+		// Low memory needs special treatment
 		xbaddr Start = XboxAddressRanges[i].Start;
 		if (XboxAddressRanges[i].Type == MemLowVirtual)
 			Start = 0x00040000; // TODO : Read this from image header
 
-		// Reserve this memory, and store the result
+		// Reserve this address range, and store the result
 		VirtualAllocResults[i] = VirtualAlloc(
 			(LPVOID)Start,
 			(SIZE_T)XboxAddressRanges[i].Size,
 			MEM_RESERVE,
-			XboxMemoryTypeToPageProtectionFlags(XboxAddressRanges[i].Type)
+			XboxAddressRangeTypeToVirtualAllocPageProtectionFlags(XboxAddressRanges[i].Type)
 		);
 	}
+
+	// Note : Ranges that failed under Windows 7 Wow64 :
+	//
+	// { DeviceUSB1, 0xFED08000, KB(4) }, // .. 0xFED09000
+	// { DeviceFlash,   0xFFC00000, MB(4) }, // .. 0xFFFFFFFF (Flash mirror 4) - Will probably fail reservation
+	// { DeviceMCPX,    0xFFFFFE00,    512 }, // .. 0xFFFFFFFF (not Chihiro, Xbox - if enabled)
+	//
+	// .. none of which are an issue for now.
+	// 
+	// More problematic however, is this failure :
+	//
+	// { MemLowVirtual, 0x00000000, MB(128) }, // .. 0x08000000 (Retail Xbox uses 64 MB)
+	//
+	// SysInternals VMMap shows there are a few 'Unusable' pages in there, a DLL,
+	// thread stack, private and shared data, all in the lower 128 MB....
+	//
+	// TODO : We *really* need to fix that, otherwise the loaded-approach has little added value.
 
 Sleep(1000 * 60 * 5); // DEBUG : Five minutes to look at the result in SysInternals VMMap
 
