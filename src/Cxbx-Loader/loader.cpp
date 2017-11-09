@@ -2,24 +2,35 @@
 
 #include <Windows.h> // For DWORD, CALLBACK, VirtualAlloc, LPVOID, SIZE_T, HMODULE 
 
-#include "..\Common\XboxMemoryRanges.h"
+#include "..\Common\XboxAddressRanges.h"
 
-DWORD XboxMemoryTypeToPageProtectionFlags(XboxMemoryRangeType type)
+DWORD XboxMemoryTypeToPageProtectionFlags(XboxAddressRangeType type)
 {
+	static DWORD ExecutableMemPageProtection = PAGE_EXECUTE_READWRITE;
+	static DWORD MemPageProtection = PAGE_READWRITE;
+	static DWORD DevicePageProtection = PAGE_READWRITE; //  TODO : (PAGE_NOACCESS | PAGE_GUARD) doesn't work - why?
+	
 	switch (type) {
-	case ImageBase:
-		return PAGE_EXECUTE_READWRITE;
-	case Physical:
-		return PAGE_READWRITE;
-	case PageTable:
-		return PAGE_READWRITE;
+	case MemLowVirtual:
+		return ExecutableMemPageProtection;
 	case DeviceNV2A:
-		return PAGE_NOACCESS | PAGE_GUARD; // TODO : This doesn't work? Also, PRAMIN should use PAGE_READWRITE
+	case DeviceAPU:
+	case DeviceAC97:
+	case DeviceUSB0:
+	case DeviceUSB1:
+	case DeviceNVNet:
+	case DeviceFlash:
+	case DeviceMCPX:
+		return DevicePageProtection;
 	}
 
-	return PAGE_READWRITE;
+	// case MemPhysical: // Note : If we ever use a real kernel, 'MemPhysical' would need 
+	// ExecutableMemPageProtection, as the kernel is loaded to & runs from this memory region.
+	// case MemPageTable:
+	// case MemNV2APRAMIN:
+	return MemPageProtection;
 
-#if 0 // research if we need to use any of these page protection flags instead of :
+#if 0 // research if we need to use any of these page protection flags instead :
 #define PAGE_NOACCESS          0x01     
 #define PAGE_READONLY          0x02     
 #define PAGE_READWRITE         0x04     
@@ -73,23 +84,28 @@ DWORD XboxMemoryTypeToPageProtectionFlags(XboxMemoryRangeType type)
 
 DWORD CALLBACK rawMain()
 {
-	// Reserve space for the result of reservating all ranges
-	LPVOID VirtualAllocResults[ARRAY_SIZE(XboxMemoryRanges)];
+	// Reserve space for the result of reserving all ranges
+	LPVOID VirtualAllocResults[ARRAY_SIZE(XboxAddressRanges)];
 
+Sleep(1000 * 60); // DEBUG : One minute to take an initial snapshot using SysInternals VMMap
+
+	// Note: 0 is a marker, indicating the first page above the loader executable itself (0x00010000 + image-size)
 	// Loop over all Xbox ranges
-	for (int i = 0; i < ARRAY_SIZE(XboxMemoryRanges); i++) {
-		xbaddr Start = XboxMemoryRanges[i].Start;
-		if (Start == 0)
+	for (int i = 0; i < ARRAY_SIZE(XboxAddressRanges); i++) {
+		xbaddr Start = XboxAddressRanges[i].Start;
+		if (XboxAddressRanges[i].Type == MemLowVirtual)
 			Start = 0x00040000; // TODO : Read this from image header
 
 		// Reserve this memory, and store the result
 		VirtualAllocResults[i] = VirtualAlloc(
 			(LPVOID)Start,
-			(SIZE_T)XboxMemoryRanges[i].Size,
+			(SIZE_T)XboxAddressRanges[i].Size,
 			MEM_RESERVE,
-			XboxMemoryTypeToPageProtectionFlags(XboxMemoryRanges[i].Type)
+			XboxMemoryTypeToPageProtectionFlags(XboxAddressRanges[i].Type)
 		);
 	}
+
+Sleep(1000 * 60 * 5); // DEBUG : Five minutes to look at the result in SysInternals VMMap
 
 	// Only after the required memory ranges are reserved, load our emulation DLL
 	HMODULE hEmulationDLL = LoadLibrary(L"Cxbx-Reloaded.DLL");
