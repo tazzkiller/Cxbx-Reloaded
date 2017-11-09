@@ -18,6 +18,12 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\src\Cxbx-Loader\loader.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\src\Common\XboxAddressRanges.h" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{21B9DA35-37F6-4C0F-A127-BB8DD65B13C0}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
@@ -162,12 +168,6 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="..\..\..\src\Cxbx-Loader\loader.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\..\src\Common\XboxMemoryRanges.h" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
