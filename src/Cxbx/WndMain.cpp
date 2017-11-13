@@ -1332,6 +1332,52 @@ typedef struct {
 	DWORD           dwReserved2;
 } DDS_HEADER;
 
+VOID CxbxSetPixelContainerHeader
+(
+	XTL::X_D3DPixelContainer* pPixelContainer,
+	DWORD				Common,
+	UINT				Width,
+	UINT				Height,
+	UINT				Levels,
+	XTL::X_D3DFORMAT	Format,
+	UINT				Dimensions,
+	UINT				Pitch
+)
+{
+	// Set X_D3DResource field(s) :
+	pPixelContainer->Common = Common;
+	// DON'T SET pPixelContainer->Data
+	// DON'T SET pPixelContainer->Lock
+
+	// Are Width and Height both a power of two?
+	DWORD l2w; _BitScanReverse(&l2w, Width); // MSVC intrinsic; GCC has __builtin_clz
+	DWORD l2h; _BitScanReverse(&l2h, Height);
+	if (((1 << l2w) == Width) && ((1 << l2h) == Height)) {
+		Width = Height = Pitch = 1; // When setting Format, clear Size field
+	}
+	else {
+		l2w = l2h = 0; // When setting Size, clear D3DFORMAT_USIZE and VSIZE
+	}
+
+	// TODO : Must this be set using Usage / Pool / something else?
+	const int Depth = 1;
+
+	// Set X_D3DPixelContainer field(s) :
+	pPixelContainer->Format = 0
+		| ((Dimensions << X_D3DFORMAT_DIMENSION_SHIFT) & X_D3DFORMAT_DIMENSION_MASK)
+		| (((DWORD)Format << X_D3DFORMAT_FORMAT_SHIFT) & X_D3DFORMAT_FORMAT_MASK)
+		| ((Levels << X_D3DFORMAT_MIPMAP_SHIFT) & X_D3DFORMAT_MIPMAP_MASK)
+		| ((l2w << X_D3DFORMAT_USIZE_SHIFT) & X_D3DFORMAT_USIZE_MASK)
+		| ((l2h << X_D3DFORMAT_VSIZE_SHIFT) & X_D3DFORMAT_VSIZE_MASK)
+		| ((Depth << X_D3DFORMAT_PSIZE_SHIFT) & X_D3DFORMAT_PSIZE_MASK)
+		;
+	pPixelContainer->Size = 0
+		| (((Width - 1) /*X_D3DSIZE_WIDTH_SHIFT*/) & X_D3DSIZE_WIDTH_MASK)
+		| (((Height - 1) << X_D3DSIZE_HEIGHT_SHIFT) & X_D3DSIZE_HEIGHT_MASK)
+		| (((Pitch - 1) << X_D3DSIZE_PITCH_SHIFT) & X_D3DSIZE_PITCH_MASK)
+		;
+}
+
 // load game logo bitmap
 void WndMain::LoadGameLogo()
 {
@@ -1372,9 +1418,9 @@ void WndMain::LoadGameLogo()
 		ImageData = (uint8 *)(pSection + sizeof(DWORD) + pDDSHeader->dwSize);
 		//gameLogoHeight = pDDSHeader->dwHeight;
 		//gameLogoWidth = pDDSHeader->dwWidth;
-		
+
 		// TODO : Use PixelCopy code here to decode. For now, fake it :
-		XTL::CxbxSetPixelContainerHeader(&XboxPixelContainer,
+		CxbxSetPixelContainerHeader(&XboxPixelContainer,
 			0, // Common - could be X_D3DCOMMON_TYPE_TEXTURE
 			(XTL::UINT)pDDSHeader->dwWidth,
 			(XTL::UINT)pDDSHeader->dwHeight,
@@ -1914,13 +1960,10 @@ void WndMain::StartEmulation(HWND hwndParent)
 		if (spot != NULL)
 			*spot = '\0';
 
-		char szExeFileName[MAX_PATH];
-		GetModuleFileName(GetModuleHandle(NULL), szExeFileName, MAX_PATH);
-
 		char szArgsBuffer[4096];
-		snprintf(szArgsBuffer, 4096, "/load \"%s\" %d %d \"%s\"", m_XbeFilename, (int)hwndParent, (int)m_KrnlDebug, m_KrnlDebugFilename);
+		snprintf(szArgsBuffer, 4096, "\"%s\" %d %d \"%s\"", m_XbeFilename, (int)hwndParent, (int)m_KrnlDebug, m_KrnlDebugFilename);
 
-        if((int)ShellExecute(NULL, "open", szExeFileName, szArgsBuffer, szBuffer, SW_SHOWDEFAULT) <= 32)
+        if((int)ShellExecute(NULL, "open", "Cxbx-Loader.exe", szArgsBuffer, szBuffer, SW_HIDE) <= 32) // Was SW_SHOWDEFAULT
         {
             MessageBox(m_hwnd, "Emulation failed.\n\n If this message repeats, the Xbe is not supported.", "Cxbx-Reloaded", MB_ICONSTOP | MB_OK);
 
