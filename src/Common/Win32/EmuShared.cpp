@@ -57,7 +57,7 @@ HANDLE hMapObject = NULL;
 // ******************************************************************
 // * func: EmuShared::EmuSharedInit
 // ******************************************************************
-void EmuShared::Init()
+bool EmuShared::Init()
 {
     // ******************************************************************
     // * Ensure initialization only occurs once
@@ -67,8 +67,8 @@ void EmuShared::Init()
     // ******************************************************************
     // * Prevent multiple initializations
     // ******************************************************************
-    if(hMapObject != NULL)
-        return;
+    if (hMapObject != NULL)
+        return true;
 
     // ******************************************************************
     // * Create the shared memory "file"
@@ -84,10 +84,10 @@ void EmuShared::Init()
             "Local\\EmuShared"      // name of map object
         );
 
-        if(hMapObject == NULL)
-            CxbxKrnlCleanup("Could not map shared memory!");
+		if (hMapObject == NULL)
+			return false; // CxbxKrnlCleanup("Could not map shared memory!");
 
-        if(GetLastError() == ERROR_ALREADY_EXISTS)
+        if (GetLastError() == ERROR_ALREADY_EXISTS)
             bRequireConstruction = false;
     }
 
@@ -104,17 +104,18 @@ void EmuShared::Init()
             0               // default: map entire file
         );
 
-        if(g_EmuShared == nullptr)
-            CxbxKrnlCleanup("Could not map view of shared memory!");
+		if (g_EmuShared == nullptr)
+			return false; //  CxbxKrnlCleanup("Could not map view of shared memory!");
     }
 
     // ******************************************************************
     // * Executed only on first initialization of shared memory
     // ******************************************************************
-    if(bRequireConstruction)
+    if (bRequireConstruction)
         g_EmuShared->EmuShared::EmuShared();
 
     g_EmuShared->m_RefCount++;
+	return true;
 }
 
 // ******************************************************************

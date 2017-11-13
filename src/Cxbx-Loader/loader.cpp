@@ -9,7 +9,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   Common->ReservedMemory.h
+// *   Cxbx-Loader->loader.cpp
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -33,7 +33,10 @@
 // *  All rights reserved
 // *
 // ******************************************************************
-#include <Windows.h> // For DWORD, CALLBACK, VirtualAlloc, LPVOID, SIZE_T, HMODULE 
+
+#include <SDKDDKVer.h>
+#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+#include <windows.h> // For DWORD, CALLBACK, VirtualAlloc, LPVOID, SIZE_T, HMODULE 
 
 #include "..\Common\XboxAddressRanges.h" // For XboxAddressRangeType, XboxAddressRanges
 
@@ -108,6 +111,7 @@ DWORD CALLBACK rawMain()
 			// .. none of which are an issue for now.
 			switch (XboxAddressRanges[i].Type) {
 			case MemLowVirtual: // Already reserved via virtual_memory_placeholder
+			case MemTiled:
 			case DeviceUSB1: // Won't be emulated for a long while
 			case DeviceMCPX: // Can safely be ignored
 				continue;
@@ -123,9 +127,32 @@ DWORD CALLBACK rawMain()
 	}
 
 	// Only after the required memory ranges are reserved, load our emulation DLL
-	HMODULE hEmulationDLL = LoadLibrary(L"Cxbx-Reloaded.DLL");
-	if (!hEmulationDLL)
+	HMODULE hEmulationDLL = LoadLibrary(L"Cxbx-Emulator.dll");
+	if (!hEmulationDLL) {
+		DWORD err = GetLastError();
+
+		// Translate ErrorCode to String.
+		LPTSTR Error = 0;
+		if (::FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+			NULL,
+			err,
+			0,
+			(LPTSTR)&Error,
+			0,
+			NULL) == 0)
+		{
+			// Failed in translating.
+		}
+
+		// Free the buffer.
+		if (Error)
+		{
+			::LocalFree(Error);
+			Error = 0;
+		}
+
 		return ERROR_RESOURCE_NOT_FOUND;
+	}
 
 	// Find the main emulation function in our DLL
 	typedef DWORD (WINAPI * Emulate_t)();
