@@ -34,28 +34,126 @@
 // *
 // ******************************************************************
 
-#include "WndMain.h"
-
+#include "Cxbx.h" // For FUNC_EXPORTS
 #include "CxbxKrnl/CxbxKrnl.h"
 #include "CxbxKrnl/Emu.h"
 #include "CxbxKrnl/EmuShared.h"
 #include <commctrl.h>
 
-// Enable Visual Styles
-#pragma comment(linker,"\"/manifestdependency:type='win32' \
-name = 'Microsoft.Windows.Common-Controls' version = '6.0.0.0' \
-processorArchitecture = '*' publicKeyToken = '6595b64144ccf1df' language = '*'\"")
-
-/*! program entry point */
-int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
+// The entry point for the DLL application.
+BOOL APIENTRY DllMain(HMODULE hModule,
+	DWORD  ul_reason_for_call,
+	LPVOID lpReserved
+)
 {
-	/*! verify Cxbx.exe is loaded to base address 0x00010000 */
+	switch (ul_reason_for_call)
+	{
+	case DLL_PROCESS_ATTACH:
+	case DLL_THREAD_ATTACH:
+	case DLL_THREAD_DETACH:
+	case DLL_PROCESS_DETACH:
+		break;
+	}
+	return TRUE;
+}
+
+PCHAR*
+CommandLineToArgvA(
+	PCHAR CmdLine,
+	int* _argc
+)
+{
+	PCHAR* argv;
+	PCHAR  _argv;
+	ULONG   len;
+	ULONG   argc;
+	CHAR   a;
+	ULONG   i, j;
+
+	BOOLEAN  in_QM;
+	BOOLEAN  in_TEXT;
+	BOOLEAN  in_SPACE;
+
+	len = strlen(CmdLine);
+	i = ((len + 2) / 2) * sizeof(PVOID) + sizeof(PVOID);
+
+	argv = (PCHAR*)LocalAlloc(GMEM_FIXED,
+		i + (len + 2) * sizeof(CHAR));
+
+	_argv = (PCHAR)(((PUCHAR)argv) + i);
+
+	argc = 0;
+	argv[argc] = _argv;
+	in_QM = FALSE;
+	in_TEXT = FALSE;
+	in_SPACE = TRUE;
+	i = 0;
+	j = 0;
+
+	while (a = CmdLine[i]) {
+		if (in_QM) {
+			if (a == '\"') {
+				in_QM = FALSE;
+			}
+			else {
+				_argv[j] = a;
+				j++;
+			}
+		}
+		else {
+			switch (a) {
+			case '\"':
+				in_QM = TRUE;
+				in_TEXT = TRUE;
+				if (in_SPACE) {
+					argv[argc] = _argv + j;
+					argc++;
+				}
+				in_SPACE = FALSE;
+				break;
+			case ' ':
+			case '\t':
+			case '\n':
+			case '\r':
+				if (in_TEXT) {
+					_argv[j] = '\0';
+					j++;
+				}
+				in_TEXT = FALSE;
+				in_SPACE = TRUE;
+				break;
+			default:
+				in_TEXT = TRUE;
+				if (in_SPACE) {
+					argv[argc] = _argv + j;
+					argc++;
+				}
+				_argv[j] = a;
+				j++;
+				in_SPACE = FALSE;
+				break;
+			}
+		}
+		i++;
+	}
+	_argv[j] = '\0';
+	argv[argc] = NULL;
+
+	(*_argc) = argc;
+	return argv;
+}
+
+DWORD WINAPI Emulate()
+{
+	FUNC_EXPORTS
+
+	/*! verify Cxbx-Loader.exe is loaded to base address 0x00010000 */
 	if ((UINT_PTR)GetModuleHandle(nullptr) != CXBX_BASE_ADDR)
 	{
 		/*! CXBX_BASE_ADDR is defined as 0x00010000, which is the base address of
 			the Cxbx.exe host executable.
 		    Set in Cxbx Project options, Linker, Advanced, Base Address */
-		MessageBox(NULL, "Cxbx.exe is not loaded to base address 0x00010000 (which is a requirement for Xbox emulation)", "Cxbx-Reloaded", MB_OK);
+		MessageBox(NULL, "Cxbx-Loader.exe was not loaded to base address 0x00010000 (which is a requirement for Xbox emulation)", "Cxbx-Reloaded", MB_OK);
 		return 1;
 	}
 
@@ -64,45 +162,19 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 
     /*! initialize shared memory */
 	if (!EmuShared::Init()) {
+		MessageBox(NULL, "Could not map shared memory!", "Cxbx-Reloaded", MB_OK);
 		return 1;
 	}
 
-	INITCOMMONCONTROLSEX icc;
-	icc.dwSize = sizeof(icc);
-	icc.dwICC = ICC_WIN95_CLASSES;
-	InitCommonControlsEx(&icc);
+	LPSTR CommandLine = GetCommandLine();
+	int argc;
+	PCHAR *argv = CommandLineToArgvA(CommandLine, &argc);
 
-    WndMain *MainWindow = new WndMain(hInstance);
+	CxbxKrnlMain(argc, argv);
 
-    /*! wait for window to be created, or failure */
-    while(!MainWindow->isCreated() && MainWindow->ProcessMessages())
-    {
-        Sleep(20);
-    }
+	LocalFree(argv);
 
-    /*! optionally open xbe and start emulation, if command line parameter was specified */
-    if(__argc > 1 && false == MainWindow->HasError())
-    {
-        MainWindow->OpenXbe(__argv[1]);
-
-        MainWindow->StartEmulation(MainWindow->GetHwnd());
-    }
-
-    /*! wait for window to be closed, or failure */
-    while(!MainWindow->HasError() && MainWindow->ProcessMessages())
-    {
-        Sleep(10);
-    }
-
-    /*! if an error occurred, notify user */
-    if(MainWindow->HasError())
-    {
-        MessageBox(NULL, MainWindow->GetError().c_str(), "Cxbx-Reloaded", MB_ICONSTOP | MB_OK);
-    }
-
-    delete MainWindow;
-
-    /*! cleanup shared memory */
+	/*! cleanup shared memory */
     EmuShared::Cleanup();
 
     return 0;

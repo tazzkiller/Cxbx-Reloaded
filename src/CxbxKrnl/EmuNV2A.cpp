@@ -3739,7 +3739,12 @@ static void nv2a_vblank_thread()
 void EmuNV2A_Init()
 {
 	// Allocate PRAMIN Region
-	VirtualAlloc((void*)(NV2A_ADDR + NV_PRAMIN_ADDR), NV_PRAMIN_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	if (nullptr == VirtualAlloc((void*)(NV2A_ADDR + NV_PRAMIN_ADDR), NV_PRAMIN_SIZE, MEM_COMMIT, PAGE_READWRITE)) { // MEM_RESERVE already done by Cxbx-Loader.exe
+		DbgPrintf("Couldn't allocate NV2A PRAMIN!\n");
+	}
+	else {
+		DbgPrintf("Allocated NV2A PRAMIN\n");
+	}
 
 	pcrtc.start = 0;
 

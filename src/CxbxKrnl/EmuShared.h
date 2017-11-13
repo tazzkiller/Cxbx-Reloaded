@@ -58,7 +58,7 @@ class EmuShared : public Mutex
 		// ******************************************************************
 		// * Each process needs to call this to initialize shared memory
 		// ******************************************************************
-		static void Init();
+		static bool Init();
 
 		void EmuShared::Load();
 		void EmuShared::Save();

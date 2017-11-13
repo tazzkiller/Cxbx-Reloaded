@@ -54,7 +54,7 @@ namespace xboxkrnl
 #include "EmuShared.h"
 #include "EmuNV2A.h" // For InitOpenGLContext
 #include "HLEIntercept.h"
-#include "ReservedMemory.h" // For virtual_memory_placeholder
+#include "..\Common\XboxAddressRanges.h" // For XboxAddressRangeType, XboxAddressRanges
 #include "MemoryManager.h"
 
 #include <shlobj.h>
@@ -264,14 +264,18 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 		}
 	}
 
-	// TODO : Make sure memory.bin is at least 64 MB in size - FileSeek(hFile, CONTIGUOUS_MEMORY_SIZE, soFromBeginning);
+	const DWORD PhysicalSize = XboxAddressRanges[MemPhysical].Size; // Was CONTIGUOUS_MEMORY_SIZE
+
+	// Make sure memory.bin is at least 128 MB in size
+	SetFilePointer(hFile, PhysicalSize, nullptr, FILE_BEGIN);
+	SetEndOfFile(hFile);
 
 	HANDLE hFileMapping = CreateFileMapping(
 		hFile,
 		/* lpFileMappingAttributes */nullptr,
 		PAGE_EXECUTE_READWRITE,
 		/* dwMaximumSizeHigh */0,
-		/* dwMaximumSizeLow */CONTIGUOUS_MEMORY_SIZE,
+		/* dwMaximumSizeLow */PhysicalSize,
 		/**/nullptr);
 	if (hFileMapping == NULL)
 	{
@@ -279,14 +283,16 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 		return nullptr;
 	}
 
+	// Right before mapping physical memory, free the address range reserved by the tiny loader
+	VirtualFree((void*)XboxAddressRanges[MemPhysical].Start, 0, MEM_RELEASE);
 	// Map memory.bin contents into memory :
 	void *memory = (void *)MapViewOfFileEx(
 		hFileMapping,
 		FILE_MAP_READ | FILE_MAP_WRITE | FILE_MAP_EXECUTE,
 		/* dwFileOffsetHigh */0,
 		/* dwFileOffsetLow */0,
-		CONTIGUOUS_MEMORY_SIZE,
-		(void *)MM_SYSTEM_PHYSICAL_MAP);
+		PhysicalSize,
+		(void *)XboxAddressRanges[MemPhysical].Start); // = MM_SYSTEM_PHYSICAL_MAP
 	if (memory == NULL)
 	{
 		CxbxKrnlCleanup("CxbxRestoreContiguousMemory: Couldn't map contiguous memory.bin into memory!");
@@ -302,13 +308,14 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 		DbgPrintf("EmuMain: Loaded contiguous memory.bin\n");
 
 	// Map memory.bin contents into tiled memory too :
+	VirtualFree((void*)XboxAddressRanges[MemTiled].Start, 0, MEM_RELEASE);
 	void *tiled_memory = (void *)MapViewOfFileEx(
 		hFileMapping,
 		FILE_MAP_READ | FILE_MAP_WRITE | FILE_MAP_EXECUTE,
 		/* dwFileOffsetHigh */0,
 		/* dwFileOffsetLow */0,
-		CONTIGUOUS_MEMORY_SIZE,
-		(void *)0xF0000000);
+		XboxAddressRanges[MemTiled].Size, // Was CONTIGUOUS_MEMORY_SIZE
+		(void *)XboxAddressRanges[MemTiled].Start); // = 0xF0000000
 	if (tiled_memory == NULL)
 	{
 		CxbxKrnlCleanup("CxbxRestoreContiguousMemory: Couldn't map contiguous memory.bin into tiled memory!");
@@ -393,26 +400,25 @@ static unsigned int WINAPI CxbxKrnlInterruptThread(PVOID param)
 
 void CxbxKrnlMain(int argc, char* argv[])
 {
-	// Skip '/load' switch
 	// Get XBE Name :
-	std::string xbePath = argv[2];
+	std::string xbePath = argv[1];
 
 	// Get DCHandle :
 	HWND hWnd = 0;
-	if (argc > 2) {
-		hWnd = (HWND)StrToInt(argv[3]);
+	if (argc > 1) {
+		hWnd = (HWND)StrToInt(argv[2]);
 	}
 
 	// Get KernelDebugMode :
 	DebugMode DbgMode = DebugMode::DM_NONE;
-	if (argc > 3) {
-		DbgMode = (DebugMode)StrToInt(argv[4]);
+	if (argc > 2) {
+		DbgMode = (DebugMode)StrToInt(argv[3]);
 	}
 
 	// Get KernelDebugFileName :
 	std::string DebugFileName;
-	if (argc > 4) {
-		DebugFileName = argv[5];
+	if (argc > 3) {
+		DebugFileName = argv[4];
 	}
 
 	// Now we got the arguments, start by initializing the Xbox memory map :
@@ -432,13 +438,14 @@ void CxbxKrnlMain(int argc, char* argv[])
 			return; // TODO : Halt(0); 
 		}
 
+/* TODO : Use VirtualQuery
 		// verify virtual_memory_placeholder is located at 0x00011000
 		if ((UINT_PTR)(&(virtual_memory_placeholder[0])) != (XBE_IMAGE_BASE + CXBX_BASE_OF_CODE))
 		{
 			CxbxPopupMessage("virtual_memory_placeholder is not loaded to base address 0x00011000 (which is a requirement for Xbox emulation)");
 			return; // TODO : Halt(0); 
 		}
-
+*/
 		// Create a safe copy of the complete EXE header:
 		DWORD ExeHeaderSize = ExeOptionalHeader->SizeOfHeaders; // Should end up as 0x400
 		NewDosHeader = (PIMAGE_DOS_HEADER)VirtualAlloc(nullptr, ExeHeaderSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
@@ -650,7 +657,7 @@ void CxbxKrnlInit
 	// for unicode conversions
 	setlocale(LC_ALL, "English");
 	g_CurrentProcessHandle = GetCurrentProcess();
-	CxbxInitPerformanceCounters();
+
 #ifdef _DEBUG
 //	CxbxPopupMessage("Attach a Debugger");
 //  Debug child processes using https://marketplace.visualstudio.com/items?itemName=GreggMiskelly.MicrosoftChildProcessDebuggingPowerTool
@@ -659,6 +666,7 @@ void CxbxKrnlInit
 	// debug console allocation (if configured)
 	if (DbgMode == DM_CONSOLE)
 	{
+		FreeConsole(); // Remove the Cxbx-Loader.exe console
 		if (AllocConsole())
 		{
 			HANDLE StdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -671,11 +679,12 @@ void CxbxKrnlInit
 			freopen("CONIN$", "rt", stdin);
 			SetConsoleTitle("Cxbx-Reloaded : Kernel Debug Console");
 			SetConsoleTextAttribute(StdHandle, FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);
+			ShowWindow(GetConsoleWindow(), SW_RESTORE); // Since ShellExecute "Cxbx-Loader.exe" used SW_HIDE
 		}
 	}
 	else
 	{
-		FreeConsole();
+		// Don't FreeConsole() from Cxbx-Loader.exe
 		if (DbgMode == DM_FILE)
 			freopen(szDebugFilename, "wt", stdout);
 		else
@@ -718,6 +727,29 @@ void CxbxKrnlInit
 		printf("[0x%X] EmuMain: Debug Trace Disabled.\n", GetCurrentThreadId());
 #endif
 	}
+
+	// Make sure the Xbox1 code runs on one core (as the box itself has only 1 CPU,
+	// this will better aproximate the environment with regard to multi-threading) :
+	DbgPrintf("EmuMain : Determining CPU affinity.\n");
+	{
+		if (!GetProcessAffinityMask(g_CurrentProcessHandle, &g_CPUXbox, &g_CPUOthers))
+			CxbxKrnlCleanup("EmuMain: GetProcessAffinityMask failed.");
+
+		// For the other threads, remove one bit from the processor mask:
+		g_CPUOthers = ((g_CPUXbox - 1) & g_CPUXbox);
+
+		// Test if there are any other cores available :
+		if (g_CPUOthers > 0) {
+			// If so, make sure the Xbox threads run on the core NOT running Xbox code :
+			g_CPUXbox = g_CPUXbox & (~g_CPUOthers);
+		}
+		else {
+			// Else the other threads must run on the same core as the Xbox code :
+			g_CPUOthers = g_CPUXbox;
+		}
+	}
+
+	CxbxInitPerformanceCounters();
 
 #ifdef _DEBUG_TRACE
 	// VerifyHLEDataBase();
@@ -855,26 +887,6 @@ void CxbxKrnlInit
 	// Clear critical section list
 	//extern void InitializeSectionStructures(void); 
 	InitializeSectionStructures();
-
-	// Make sure the Xbox1 code runs on one core (as the box itself has only 1 CPU,
-	// this will better aproximate the environment with regard to multi-threading) :
-	DbgPrintf("EmuMain : Determining CPU affinity.\n");
-	{
-		if (!GetProcessAffinityMask(g_CurrentProcessHandle, &g_CPUXbox, &g_CPUOthers))
-			CxbxKrnlCleanup("EmuMain: GetProcessAffinityMask failed.");
-
-		// For the other threads, remove one bit from the processor mask:
-		g_CPUOthers = ((g_CPUXbox - 1) & g_CPUXbox);
-
-		// Test if there are any other cores available :
-		if (g_CPUOthers > 0) {
-			// If so, make sure the Xbox threads run on the core NOT running Xbox code :
-			g_CPUXbox = g_CPUXbox & (~g_CPUOthers);
-		} else {
-			// Else the other threads must run on the same core as the Xbox code :
-			g_CPUOthers = g_CPUXbox;
-		}
-	}
 
 	// initialize grapchics
 	DbgPrintf("EmuMain: Initializing render window.\n");
