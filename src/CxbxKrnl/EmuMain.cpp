@@ -49,6 +49,7 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 	switch (ul_reason_for_call)
 	{
 	case DLL_PROCESS_ATTACH:
+		hEmulationModule = hModule;
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:
 	case DLL_PROCESS_DETACH:
@@ -151,8 +152,8 @@ DWORD WINAPI Emulate()
 	if ((UINT_PTR)GetModuleHandle(nullptr) != CXBX_BASE_ADDR)
 	{
 		/*! CXBX_BASE_ADDR is defined as 0x00010000, which is the base address of
-			the Cxbx.exe host executable.
-		    Set in Cxbx Project options, Linker, Advanced, Base Address */
+			the Cxbx-Loader.exe host executable.
+		    Set in Cxbx-Loader.exe Project options, Linker, Advanced, Base Address */
 		MessageBox(NULL, "Cxbx-Loader.exe was not loaded to base address 0x00010000 (which is a requirement for Xbox emulation)", "Cxbx-Reloaded", MB_OK);
 		return 1;
 	}

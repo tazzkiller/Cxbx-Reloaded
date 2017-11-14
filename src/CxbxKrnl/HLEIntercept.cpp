@@ -116,7 +116,7 @@ std::string GetDetectedSymbolName(xbaddr address, int *symbolOffset)
 void *GetEmuPatchAddr(std::string aFunctionName)
 {
 	std::string patchName = "XTL::EmuPatch_" + aFunctionName;
-	void* addr = GetProcAddress(GetModuleHandle(NULL), patchName.c_str());
+	void* addr = GetProcAddress(hEmulationModule, patchName.c_str());
 	return addr;
 }
 

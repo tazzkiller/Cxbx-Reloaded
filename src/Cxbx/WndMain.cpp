@@ -1457,7 +1457,7 @@ void WndMain::LoadGameLogo()
 	}
 	}
 
-	void *bitmapData = nullptr; // TODO : Reenable once easy to compile into Cxbx.exe : XTL::ConvertD3DTextureToARGB(pXboxPixelContainer, ImageData, &gameLogoWidth, &gameLogoHeight);
+	void *bitmapData = nullptr; // TODO : Reenable once easy to compile into GUI Cxbx.exe : XTL::ConvertD3DTextureToARGB(pXboxPixelContainer, ImageData, &gameLogoWidth, &gameLogoHeight);
 	if (!bitmapData)
 		return;
 
