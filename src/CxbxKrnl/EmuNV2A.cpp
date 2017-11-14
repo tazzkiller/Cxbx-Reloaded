@@ -3759,6 +3759,6 @@ void EmuNV2A_Init()
 	
 	// Only spawn VBlank thread when LLE is enabled
 	if (bLLE_GPU) {
-		vblank_thread = std::thread(nv2a_vblank_thread);;
+		vblank_thread = std::thread(nv2a_vblank_thread);
 	}
 }

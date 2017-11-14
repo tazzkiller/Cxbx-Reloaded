@@ -2105,7 +2105,7 @@ static void EmuUnswizzleTextureStages()
 
 typedef struct {
 	DWORD Hash = 0;
-	DWORD IndexCount = 0;;
+	DWORD IndexCount = 0;
 	XTL::IDirect3DIndexBuffer8* pHostIndexBuffer = nullptr;
 } ConvertedIndexBuffer;
 
@@ -8964,7 +8964,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_SetDepthClipPlanes)
         break;
 
         default:
-            EmuWarning("Unknown SetDepthClipPlanes Flags provided");;
+            EmuWarning("Unknown SetDepthClipPlanes Flags provided");
     }
 
     // TODO
