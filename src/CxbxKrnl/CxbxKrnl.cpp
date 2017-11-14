@@ -79,6 +79,8 @@ void *CxbxKrnl_TLSData = NULL;
 Xbe::Header *CxbxKrnl_XbeHeader = NULL;
 /*! parent window handle */
 
+HMODULE hEmulationModule;
+
 HWND CxbxKrnl_hEmuParent = NULL;
 DebugMode CxbxKrnl_DebugMode = DebugMode::DM_NONE;
 char* CxbxKrnl_DebugFileName = NULL;
@@ -584,11 +586,34 @@ void CxbxKrnlMain(int argc, char* argv[])
 		// Note : NewOptionalHeader->ImageBase can stay at ExeOptionalHeader->ImageBase = 0x00010000
 
 		// Note : Since virtual_memory_placeholder prevents overlap between reserved xbox memory
-		// and Cxbx.exe sections, section headers don't have to be patched up.
+		// and Cxbx-Loader.exe sections, section headers don't have to be patched up.
 
 		// Mark the virtual memory range completely accessible
 		DWORD OldProtection;
-		VirtualProtect((void*)XBE_IMAGE_BASE, XBE_MAX_VA - XBE_IMAGE_BASE, PAGE_EXECUTE_READWRITE, &OldProtection);
+		if (0 == VirtualProtect((void*)XBE_IMAGE_BASE, XBE_MAX_VA - XBE_IMAGE_BASE, PAGE_EXECUTE_READWRITE, &OldProtection)) {
+			DWORD err = GetLastError();
+
+			// Translate ErrorCode to String.
+			LPTSTR Error = 0;
+			if (::FormatMessage(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+				NULL,
+				err,
+				0,
+				(LPTSTR)&Error,
+				0,
+				NULL) == 0)
+			{
+				// Failed in translating.
+			}
+
+			// Free the buffer.
+			if (Error)
+			{
+				::LocalFree(Error);
+				Error = 0;
+			}
+
+		}
 
 		// Clear out the virtual memory range
 		memset((void*)XBE_IMAGE_BASE, 0, XBE_MAX_VA - XBE_IMAGE_BASE);

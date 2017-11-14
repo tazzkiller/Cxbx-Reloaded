@@ -136,7 +136,7 @@ extern "C" {
 // for XBOX_MEMORY_SIZE or even 128 MB for CHIHIRO_MEMORY_SIZE).
 #define XBE_MAX_VA	(64 * ONE_MB)
 
-/*! base address of Cxbx host executable, see Cxbx project options, Linker, Advanced, Base Address */
+/*! base address of Cxbx-Loader host executable, see Cxbx-Loader project options, Linker, Advanced, Base Address */
 #define CXBX_BASE_ADDR XBE_IMAGE_BASE
 #define CXBX_BASE_OF_CODE 0x00001000
 
@@ -215,6 +215,8 @@ extern void *CxbxKrnl_TLSData;
 extern Xbe::Header *CxbxKrnl_XbeHeader;
 
 extern Xbe *CxbxKrnl_Xbe;
+
+extern HMODULE hEmulationModule;
 
 /*! parent window handle */
 extern HWND CxbxKrnl_hEmuParent;
