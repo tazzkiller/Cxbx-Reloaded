@@ -107,8 +107,7 @@
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
-      <BaseAddress>0x10000</BaseAddress>
-      <FixedBaseAddress>true</FixedBaseAddress>
+      <FixedBaseAddress>false</FixedBaseAddress>
       <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <Bscmake>
@@ -139,7 +138,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
-      <AdditionalIncludeDirectories>..\..\src;..\..\src\Common;..\..\src\Common\Win32\;..\..\import\stb;%(AdditionalIncludeDirectories);..\..\import\OpenXDK\include;..\..\import\distorm\include;..\..\import\glew-2.0.0\include;..\..\src\Common\Win32;..\..\import\subhook\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\src;..\..\src\Common;..\..\src\Common\Win32;..\..\import\stb;%(AdditionalIncludeDirectories);..\..\import\OpenXDK\include;..\..\import\distorm\include;..\..\import\glew-2.0.0\include;..\..\import\subhook\</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>_WIN32_WINNT=0x0601;WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -168,8 +167,7 @@
       </DataExecutionPrevention>
       <TargetMachine>MachineX86</TargetMachine>
       <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
-      <BaseAddress>0x10000</BaseAddress>
-      <FixedBaseAddress>true</FixedBaseAddress>
+      <FixedBaseAddress>false</FixedBaseAddress>
       <LargeAddressAware>true</LargeAddressAware>
     </Link>
     <Bscmake>
