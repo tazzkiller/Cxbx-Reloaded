@@ -204,6 +204,7 @@
     <ClInclude Include="..\..\src\Common\Logging.h">
       <Filter>Shared</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8Logging.cpp">
@@ -389,6 +390,7 @@
     <ClCompile Include="..\..\src\Common\Logging.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.3911.inl">
