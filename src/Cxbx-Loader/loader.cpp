@@ -104,6 +104,7 @@ DWORD CALLBACK rawMain()
 			// Ranges that fail under Windows 7 Wow64 :
 			//
 			// { MemLowVirtual, 0x00000000, MB(128) }, // .. 0x08000000 (Retail Xbox uses 64 MB)
+			// { MemTiled,      0xF0000000, MB( 64) }, // .. 0xF4000000
 			// { DeviceUSB1,    0xFED08000, KB(  4) }, // .. 0xFED09000
 			// { DeviceFlash,   0xFFC00000, MB(  4) }, // .. 0xFFFFFFFF (Flash mirror 4) - Will probably fail reservation
 			// { DeviceMCPX,    0xFFFFFE00,    512  }, // .. 0xFFFFFFFF (not Chihiro, Xbox - if enabled)
@@ -111,8 +112,11 @@ DWORD CALLBACK rawMain()
 			// .. none of which are an issue for now.
 			switch (XboxAddressRanges[i].Type) {
 			case MemLowVirtual: // Already reserved via virtual_memory_placeholder
-			case MemTiled:
+				continue;
+			case MemTiled: // Even though it can't be reserved, MapViewOfFileEx to this range still works!?
+				continue;
 			case DeviceUSB1: // Won't be emulated for a long while
+				continue;
 			case DeviceMCPX: // Can safely be ignored
 				continue;
 			case DeviceFlash: // Losing mirror 4 is acceptable - the 3 others work just fine
@@ -121,13 +125,13 @@ DWORD CALLBACK rawMain()
 			}
 
 			// If we get here, emulation lacks important address ranges; Don't launch
-			OutputDebugString(L"Required address range couldn't be reserved!");
+			OutputDebugString("Required address range couldn't be reserved!");
 			return ERROR_NOT_ENOUGH_MEMORY;
 		}
 	}
 
 	// Only after the required memory ranges are reserved, load our emulation DLL
-	HMODULE hEmulationDLL = LoadLibrary(L"Cxbx-Emulator.dll");
+	HMODULE hEmulationDLL = LoadLibrary("Cxbx-Emulator.dll");
 	if (!hEmulationDLL) {
 		DWORD err = GetLastError();
 
