@@ -496,6 +496,7 @@ void CxbxKrnlMain(int argc, char* argv[])
 	// debug console allocation (if configured)
 	if (DbgMode == DM_CONSOLE)
 	{
+		FreeConsole(); // Remove the Cxbx-Loader.exe console
 		if (AllocConsole())
 		{
 			HANDLE StdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
@@ -508,11 +509,12 @@ void CxbxKrnlMain(int argc, char* argv[])
 			freopen("CONIN$", "rt", stdin);
 			SetConsoleTitle("Cxbx-Reloaded : Kernel Debug Console");
 			SetConsoleTextAttribute(StdHandle, FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);
+			ShowWindow(GetConsoleWindow(), SW_RESTORE); // Since ShellExecute "Cxbx-Loader.exe" used SW_HIDE
 		}
 	}
 	else
 	{
-		FreeConsole();
+		// Don't FreeConsole() from Cxbx-Loader.exe
 		if (DbgMode == DM_FILE)
 			freopen(DebugFileName.c_str(), "wt", stdout);
 		else
@@ -790,38 +792,6 @@ __declspec(noreturn) void CxbxKrnlInit
 //	CxbxPopupMessage("Attach a Debugger");
 //  Debug child processes using https://marketplace.visualstudio.com/items?itemName=GreggMiskelly.MicrosoftChildProcessDebuggingPowerTool
 #endif
-
-	// debug console allocation (if configured)
-	if (DbgMode == DM_CONSOLE)
-	{
-		FreeConsole(); // Remove the Cxbx-Loader.exe console
-		if (AllocConsole())
-		{
-			HANDLE StdHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-			// Maximise the console scroll buffer height :
-			CONSOLE_SCREEN_BUFFER_INFO coninfo;
-			GetConsoleScreenBufferInfo(StdHandle, &coninfo);
-			coninfo.dwSize.Y = SHRT_MAX - 1; // = 32767-1 = 32766 = maximum value that works
-			SetConsoleScreenBufferSize(StdHandle, coninfo.dwSize);
-			freopen("CONOUT$", "wt", stdout);
-			freopen("CONIN$", "rt", stdin);
-			SetConsoleTitle("Cxbx-Reloaded : Kernel Debug Console");
-			SetConsoleTextAttribute(StdHandle, FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_RED);
-			ShowWindow(GetConsoleWindow(), SW_RESTORE); // Since ShellExecute "Cxbx-Loader.exe" used SW_HIDE
-		}
-	}
-	else
-	{
-		// Don't FreeConsole() from Cxbx-Loader.exe
-		if (DbgMode == DM_FILE)
-			freopen(szDebugFilename, "wt", stdout);
-		else
-		{
-			char buffer[16];
-			if (GetConsoleTitle(buffer, 16) != NULL)
-				freopen("nul", "w", stdout);
-		}
-	}
 
 	// Write a header to the log
 	{

@@ -16,12 +16,6 @@
     <ClCompile Include="..\..\src\Cxbx\WndMain.cpp">
       <Filter>GUI</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8\Convert.cpp">
-      <Filter>EmuD3D8</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8\State.cpp">
-      <Filter>EmuD3D8</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\Common\Error.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
@@ -37,41 +31,14 @@
     <ClCompile Include="..\..\src\Common\Win32\XBVideo.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\CxbxKrnl.cpp">
-      <Filter>Emulator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\Emu.cpp">
-      <Filter>Emulator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8.cpp">
-      <Filter>Emulator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuDInput.cpp">
-      <Filter>Emulator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Common\Win32\EmuShared.cpp">
-      <Filter>Emulator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuXInput.cpp">
-      <Filter>Emulator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\Common\Logging.cpp">
-      <Filter>Emulator</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\Common\XDVDFS Tools\xdvdfs.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Common\XDVDFS Tools\buffered_io.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Common\EmuEEPROM.cpp">
-      <Filter>Shared</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\Cxbx\DlgAbout.cpp">
       <Filter>GUI</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8Logging.cpp">
-      <Filter>Emulator</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\Cxbx\DlgAudioConfig.cpp">
       <Filter>GUI</Filter>
@@ -79,54 +46,6 @@
     <ClCompile Include="..\..\src\Common\Win32\XBAudio.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\PhysicalMemory.cpp">
-      <Filter>Emulator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\VMManager.cpp">
-      <Filter>Emulator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\DbgConsole.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\device.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuAlloc.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8\PixelShader.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8\PushBuffer.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8\VertexBuffer.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8\VertexShader.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuDSound.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuFile.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuFS.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnl.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlAv.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlDbg.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlEx.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlFs.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlHal.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlIo.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlKd.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlKe.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlLogging.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlMm.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlNt.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlOb.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlPs.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlRtl.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlXbox.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlXc.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuKrnlXe.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuNtDll.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuNV2A.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuNVNet.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuSha.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuX86.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuXactEng.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuXapi.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuXG.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuXOnline.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\HLEDataBase.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\HLEIntercept.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\KernelThunk.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\LibRc4.cpp" />
-    <ClCompile Include="..\..\src\CxbxKrnl\ResourceTracker.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Cxbx\DlgControllerConfig.h">
@@ -144,16 +63,7 @@
     <ClInclude Include="..\..\import\stb\stb_image.h">
       <Filter>GUI</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\Convert.h">
-      <Filter>EmuD3D8</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\State.h">
-      <Filter>EmuD3D8</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\Cxbx.h">
-      <Filter>Shared</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\Emu.h">
       <Filter>Shared</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\CxbxKrnl\EmuShared.h">
@@ -177,33 +87,6 @@
     <ClInclude Include="..\..\src\Common\Win32\XBVideo.h">
       <Filter>Shared</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\CxbxKrnl.h">
-      <Filter>Emulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\DbgConsole.h">
-      <Filter>Emulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\device.h">
-      <Filter>Emulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8.h">
-      <Filter>Emulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8Types.h">
-      <Filter>Emulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuDInput.h">
-      <Filter>Emulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuXInput.h">
-      <Filter>Emulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuXTL.h">
-      <Filter>Emulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Common\Logging.h">
-      <Filter>Emulator</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\Common\Win32\AlignPosfix1.h">
       <Filter>Shared</Filter>
     </ClInclude>
@@ -216,20 +99,11 @@
     <ClInclude Include="..\..\src\Common\XDVDFS Tools\xdvdfs.h">
       <Filter>Shared</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Common\EmuEEPROM.h">
-      <Filter>Shared</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\CxbxVersion.h">
       <Filter>Shared</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Cxbx\DlgAbout.h">
       <Filter>GUI</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8Logging.h">
-      <Filter>Emulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Common\XADPCM.h">
-      <Filter>Shared</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Cxbx\DlgAudioConfig.h">
       <Filter>GUI</Filter>
@@ -248,32 +122,6 @@
     </ClInclude>
     <ClInclude Include="..\..\src\CxbxKrnl\DbgConsole.h" />
     <ClInclude Include="..\..\src\CxbxKrnl\device.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuAlloc.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\PixelShader.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\PushBuffer.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\VertexBuffer.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\VertexShader.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuDSound.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuDSoundInline.hpp" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuFile.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuFS.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuKrnlLogging.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuNtDll.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuNV2A.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuNVNet.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuSha.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuX86.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuXactEng.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuXapi.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuXG.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuXOnline.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\HLEDataBase.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\HLEIntercept.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\LibRc4.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\nv2a_int.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\OOVPA.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\ReservedMemory.h" />
-    <ClInclude Include="..\..\src\CxbxKrnl\ResourceTracker.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\resource\Splash.jpg">
@@ -288,241 +136,10 @@
     <None Include="..\..\CONTRIBUTORS" />
     <None Include="..\..\COPYING" />
     <None Include="..\..\README.md" />
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.OOVPA.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.3911.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.3925.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.3948.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.4034.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.4134.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.4242.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.4361.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.4432.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.4531.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.4627.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.4831.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.4928.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.5028.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.5120.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.5233.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.5344.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.5455.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.5558.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.5659.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.5788.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.5849.inl">
-      <Filter>HLEDatabase\D3D8</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.OOVPA.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.3911.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.3936.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.4039.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.4134.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.4242.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.4361.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.4432.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.4531.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.4627.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.4721.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.4831.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.5028.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.5233.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.5344.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.5455.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.5558.inl">
-      <Filter>HLEDatabase\DSound</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XactEng.1.0.4627.inl">
-      <Filter>HLEDatabase\XactEng</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XactEng.1.0.4928.inl">
-      <Filter>HLEDatabase\XactEng</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XactEng.1.0.5120.inl">
-      <Filter>HLEDatabase\XactEng</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XactEng.1.0.5233.inl">
-      <Filter>HLEDatabase\XactEng</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XactEng.1.0.5344.inl">
-      <Filter>HLEDatabase\XactEng</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XactEng.1.0.5558.inl">
-      <Filter>HLEDatabase\XactEng</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XactEng.OOVPA.inl">
-      <Filter>HLEDatabase\XactEng</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.1.0.3911.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.1.0.3950.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.1.0.4039.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.1.0.4134.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.1.0.4242.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.1.0.4361.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.1.0.4432.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.1.0.4721.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.1.0.4831.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.1.0.5028.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.1.0.5120.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.1.0.5344.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.1.0.5455.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.1.0.5788.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\Xapi.OOVPA.inl">
-      <Filter>HLEDatabase\Xapi</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XG.1.0.3911.inl">
-      <Filter>HLEDatabase\XG</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XG.1.0.4134.inl">
-      <Filter>HLEDatabase\XG</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XG.1.0.4361.inl">
-      <Filter>HLEDatabase\XG</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XG.OOVPA.inl">
-      <Filter>HLEDatabase\XG</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XOnline.1.0.4361.inl">
-      <Filter>HLEDatabase\XOnline</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XOnline.1.0.4627.inl">
-      <Filter>HLEDatabase\XOnline</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XOnline.1.0.4831.inl">
-      <Filter>HLEDatabase\XOnline</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XOnline.1.0.5028.inl">
-      <Filter>HLEDatabase\XOnline</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XOnline.1.0.5455.inl">
-      <Filter>HLEDatabase\XOnline</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XOnline.1.0.5558.inl">
-      <Filter>HLEDatabase\XOnline</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XOnline.1.0.5659.inl">
-      <Filter>HLEDatabase\XOnline</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XOnline.1.0.5788.inl">
-      <Filter>HLEDatabase\XOnline</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XOnline.1.0.5849.inl">
-      <Filter>HLEDatabase\XOnline</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XOnline.OOVPA.inl">
-      <Filter>HLEDatabase\XOnline</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="GUI">
       <UniqueIdentifier>{445ff8dc-8414-41ad-8681-01243121d574}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="EmuD3D8">
-      <UniqueIdentifier>{4ee1fc9a-ee21-4764-b96f-1caf41881bab}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Emulator">
-      <UniqueIdentifier>{a5334d93-a02d-41f6-8c3b-fa6e8e3c3be0}</UniqueIdentifier>
     </Filter>
     <Filter Include="Shared">
       <UniqueIdentifier>{d8ef7ef5-cbb9-4dba-9cab-585519a9756b}</UniqueIdentifier>
