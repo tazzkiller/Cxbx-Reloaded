@@ -1113,7 +1113,7 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
             sizeof(WNDCLASSEX),
             CS_CLASSDC,
             EmuMsgProc,
-            0, 0, GetModuleHandle(NULL),
+            0, 0, hActiveModule, // Was GetModuleHandle(NULL),
 			0, // TODO : LoadIcon(hmodule, ?)
             LoadCursor(NULL, IDC_ARROW),
             (HBRUSH)(g_hBgBrush), NULL,
@@ -1167,7 +1167,8 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
         (
             "CxbxRender", "Cxbx-Reloaded",
             dwStyle, x, y, nWidth, nHeight,
-            hwndParent, NULL, GetModuleHandle(NULL), NULL
+            hwndParent, NULL, hActiveModule, // Was GetModuleHandle(NULL),
+			NULL
         );
     }
 
