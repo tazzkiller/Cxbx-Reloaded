@@ -36,7 +36,6 @@
 
 #include "WndMain.h"
 
-#include "CxbxKrnl/CxbxKrnl.h"
 #include "CxbxKrnl/Emu.h"
 #include "CxbxKrnl/EmuShared.h"
 #include <commctrl.h>

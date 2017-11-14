@@ -33,12 +33,7 @@
 // *  All rights reserved
 // *
 // ******************************************************************
-
 #pragma once
-
-#ifndef xbaddr
-typedef unsigned long xbaddr;
-#endif
 
 #define KB(x) ((x) *    1024 ) // = 0x00000400
 #define MB(x) ((x) * KB(1024)) // = 0x00100000
@@ -61,7 +56,7 @@ typedef enum {
 
 typedef struct { 
 	XboxAddressRangeType Type;
-	xbaddr Start; 
+	unsigned __int32 Start;
 	int Size;
 } XboxAddressRange;
 

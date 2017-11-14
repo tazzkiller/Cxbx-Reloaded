@@ -41,7 +41,9 @@
 #include "CxbxKrnl/EmuShared.h"
 #include "ResCxbx.h"
 #include "CxbxVersion.h"
-#include "Shlwapi.h"
+
+#include <shlobj.h>
+#include <Shlwapi.h>
 
 #include <io.h>
 
@@ -55,9 +57,18 @@
 
 static int gameLogoWidth, gameLogoHeight;
 
+char szFolder_CxbxReloadedData[MAX_PATH] = { 0 };
+
+void CxbxInitFilePaths()
+{
+	char szAppData[MAX_PATH];
+	SHGetSpecialFolderPath(NULL, szAppData, CSIDL_APPDATA, TRUE);
+	snprintf(szFolder_CxbxReloadedData, MAX_PATH, "%s\\Cxbx-Reloaded", szAppData);
+}
+
 void ClearHLECache()
 {
-	std::string cacheDir = std::string(XTL::szFolder_CxbxReloadedData) + "\\HLECache\\";
+	std::string cacheDir = std::string(szFolder_CxbxReloadedData) + "\\HLECache\\";
 	std::string fullpath = cacheDir + "*.ini";
 
 	WIN32_FIND_DATA data;
@@ -1005,7 +1016,7 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
 
 			case ID_CACHE_CLEARHLECACHE_CURRENT:
 			{
-				std::string cacheDir = std::string(XTL::szFolder_CxbxReloadedData) + "\\HLECache\\";
+				std::string cacheDir = std::string(szFolder_CxbxReloadedData) + "\\HLECache\\";
 
 				// Hash the loaded XBE's header, use it as a filename
 				uint32_t uiHash = XXHash32::hash((void*)&m_Xbe->m_Header, sizeof(Xbe::Header), 0);
@@ -1396,19 +1407,19 @@ void WndMain::LoadGameLogo()
 	switch (*(DWORD*)pSection) {
 	case MAKEFOURCC('D', 'D', 'S', ' '): {
 		DDS_HEADER *pDDSHeader = (DDS_HEADER *)(pSection + sizeof(DWORD));
-		XTL::D3DFORMAT Format = XTL::D3DFMT_UNKNOWN;
+		XTL::X_D3DFORMAT X_Format = XTL::X_D3DFMT_UNKNOWN;
 		if (pDDSHeader->ddspf.dwFlags & DDPF_FOURCC) {
 			switch (pDDSHeader->ddspf.dwFourCC) {
-			case MAKEFOURCC('D', 'X', 'T', '1'): Format = XTL::D3DFMT_DXT1; break;
-			case MAKEFOURCC('D', 'X', 'T', '3'): Format = XTL::D3DFMT_DXT3; break;
-			case MAKEFOURCC('D', 'X', 'T', '5'): Format = XTL::D3DFMT_DXT5; break;
+			case MAKEFOURCC('D', 'X', 'T', '1'): X_Format = XTL::X_D3DFMT_DXT1; break;
+			case MAKEFOURCC('D', 'X', 'T', '3'): X_Format = XTL::X_D3DFMT_DXT3; break;
+			case MAKEFOURCC('D', 'X', 'T', '5'): X_Format = XTL::X_D3DFMT_DXT5; break;
 			}
 		}
 		else {
 			// TODO : Determine D3D format based on pDDSHeader->ddspf.dwABitMask, .dwRBitMask, .dwGBitMask and .dwBBitMask
 		}
 
-		if (Format == XTL::D3DFMT_UNKNOWN)
+		if (X_Format == XTL::X_D3DFMT_UNKNOWN)
 			return;
 
 		ImageData = (uint8 *)(pSection + sizeof(DWORD) + pDDSHeader->dwSize);
@@ -1421,7 +1432,7 @@ void WndMain::LoadGameLogo()
 			(XTL::UINT)pDDSHeader->dwWidth,
 			(XTL::UINT)pDDSHeader->dwHeight,
 			1,
-			XTL::EmuPC2XB_D3DFormat(Format),
+			X_Format,
 			2,
 			(XTL::UINT)pDDSHeader->dwPitchOrLinearSize);
 		break;
@@ -1446,7 +1457,7 @@ void WndMain::LoadGameLogo()
 	}
 	}
 
-	void *bitmapData = XTL::ConvertD3DTextureToARGB(pXboxPixelContainer, ImageData, &gameLogoWidth, &gameLogoHeight);
+	void *bitmapData = nullptr; // TODO : Reenable once easy to compile into Cxbx.exe : XTL::ConvertD3DTextureToARGB(pXboxPixelContainer, ImageData, &gameLogoWidth, &gameLogoHeight);
 	if (!bitmapData)
 		return;
 

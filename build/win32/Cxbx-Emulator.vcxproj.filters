@@ -45,9 +45,6 @@
     <ClInclude Include="..\..\src\Cxbx.h">
       <Filter>Shared</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8.h">
-      <Filter>EmuD3D8</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8Logging.h">
       <Filter>EmuD3D8</Filter>
     </ClInclude>
@@ -61,9 +58,6 @@
       <Filter>Emulator</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\CxbxKrnl\device.h">
-      <Filter>Emulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuAlloc.h">
       <Filter>Emulator</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\CxbxKrnl\EmuDInput.h">
@@ -130,9 +124,6 @@
       <Filter>Emulator</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\CxbxKrnl\LibRc4.h">
-      <Filter>Emulator</Filter>
-    </ClInclude>
-    <ClInclude Include="..\..\src\Common\Logging.h">
       <Filter>Emulator</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\CxbxKrnl\MemoryManager.h">
@@ -210,11 +201,11 @@
     <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8\State.h">
       <Filter>EmuD3D8</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\Common\Logging.h">
+      <Filter>Shared</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8.cpp">
-      <Filter>EmuD3D8</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8Logging.cpp">
       <Filter>EmuD3D8</Filter>
     </ClCompile>
@@ -276,9 +267,6 @@
       <Filter>Emulator</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\CxbxKrnl\device.cpp">
-      <Filter>Emulator</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuAlloc.cpp">
       <Filter>Emulator</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\CxbxKrnl\EmuDInput.cpp">
@@ -344,9 +332,6 @@
     <ClCompile Include="..\..\src\CxbxKrnl\LibRc4.cpp">
       <Filter>Emulator</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\Common\Logging.cpp">
-      <Filter>Emulator</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\CxbxKrnl\MemoryManager.cpp">
       <Filter>Emulator</Filter>
     </ClCompile>
@@ -400,6 +385,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8\State.cpp">
       <Filter>EmuD3D8</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\Common\Logging.cpp">
+      <Filter>Shared</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
