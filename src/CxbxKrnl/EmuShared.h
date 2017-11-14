@@ -41,6 +41,8 @@
 
 #include <memory.h>
 
+extern HMODULE hActiveModule;
+
 enum {
 	LLE_APU = 1 << 0,
 	LLE_GPU = 1 << 1,

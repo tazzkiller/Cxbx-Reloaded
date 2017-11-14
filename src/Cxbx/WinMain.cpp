@@ -48,6 +48,8 @@ processorArchitecture = '*' publicKeyToken = '6595b64144ccf1df' language = '*'\"
 /*! program entry point */
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow)
 {
+	hActiveModule = hInstance; // == GetModuleHandle(NULL); // Points to GUI (Cxbx.exe) ImageBase
+
 	/* Initialize Cxbx File Paths */
 	CxbxInitFilePaths();
 
