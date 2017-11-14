@@ -92,6 +92,8 @@ DWORD XboxAddressRangeTypeToVirtualAllocPageProtectionFlags(XboxAddressRangeType
 
 DWORD CALLBACK rawMain()
 {
+	(void)virtual_memory_placeholder; // prevent optimization removing this data
+
 	// Loop over all Xbox address ranges
 	for (int i = 0; i < ARRAY_SIZE(XboxAddressRanges); i++) {
 		// Try to reserve each address range
