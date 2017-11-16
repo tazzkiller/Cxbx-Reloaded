@@ -37,6 +37,9 @@
 #define _CXBXKRNL_INTERNAL
 #define _XBOXKRNL_DEFEXTRN_
 
+#define LOG_PREFIX "INIT" // TODO : Might need to be something else than INIT
+
+
 /* prevent name collisions */
 namespace xboxkrnl
 {
@@ -820,13 +823,13 @@ __declspec(noreturn) void CxbxKrnlInit
 
 	// Write a header to the log
 	{
-		printf("[0x%X] EmuMain: Cxbx-Reloaded Version %s\n", GetCurrentThreadId(), _CXBX_VERSION);
+		printf("[0x%X] INIT: Cxbx-Reloaded Version %s\n", GetCurrentThreadId(), _CXBX_VERSION);
 
 		time_t startTime = time(nullptr);
 		struct tm* tm_info = localtime(&startTime);
 		char timeString[26];
 		strftime(timeString, 26, "%F %T", tm_info);
-		printf("[0x%X] EmuMain: Log started at %s\n", GetCurrentThreadId(), timeString);
+		printf("[0x%X] INIT: Log started at %s\n", GetCurrentThreadId(), timeString);
 	}
 
 	// debug trace
@@ -853,10 +856,10 @@ __declspec(noreturn) void CxbxKrnlInit
 
 	// Make sure the Xbox1 code runs on one core (as the box itself has only 1 CPU,
 	// this will better aproximate the environment with regard to multi-threading) :
-	DbgPrintf("EmuMain : Determining CPU affinity.\n");
+	DbgPrintf("INIT : Determining CPU affinity.\n");
 	{
 		if (!GetProcessAffinityMask(g_CurrentProcessHandle, &g_CPUXbox, &g_CPUOthers))
-			CxbxKrnlCleanup("EmuMain: GetProcessAffinityMask failed.");
+			CxbxKrnlCleanup("INIT: GetProcessAffinityMask failed.");
 
 		// For the other threads, remove one bit from the processor mask:
 		g_CPUOthers = ((g_CPUXbox - 1) & g_CPUXbox);
@@ -1055,10 +1058,13 @@ __declspec(noreturn) void CxbxKrnlInit
 	// Create the interrupt processing thread
 	DWORD dwThreadId;
 	HANDLE hThread = (HANDLE)_beginthreadex(NULL, NULL, CxbxKrnlInterruptThread, NULL, NULL, (uint*)&dwThreadId);
+
     DbgPrintf("INIT: Calling XBE entry point...\n");
 	CxbxLaunchXbe(Entry);
     DbgPrintf("INIT: XBE entry point returned\n");
     fflush(stdout);
+
+
 	//	EmuShared::Cleanup();   FIXME: commenting this line is a bad workaround for issue #617 (https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/issues/617)
     CxbxKrnlTerminateThread();
 }
