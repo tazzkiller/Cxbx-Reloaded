@@ -216,8 +216,6 @@ extern Xbe::Header *CxbxKrnl_XbeHeader;
 
 extern Xbe *CxbxKrnl_Xbe;
 
-extern HMODULE hEmulationModule;
-
 /*! parent window handle */
 extern HWND CxbxKrnl_hEmuParent;
 extern DebugMode CxbxKrnl_DebugMode;

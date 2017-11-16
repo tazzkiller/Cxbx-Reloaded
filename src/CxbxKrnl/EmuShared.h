@@ -41,7 +41,7 @@
 
 #include <memory.h>
 
-extern HMODULE hActiveModule;
+extern HMODULE hActiveModule; // Equals EXE Module handle in Cxbx.exe, equals DLL Module handle in Cxbx-Reloaded.dll
 
 enum {
 	LLE_APU = 1 << 0,

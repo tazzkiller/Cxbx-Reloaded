@@ -50,7 +50,6 @@ BOOL APIENTRY DllMain(HMODULE hModule,
 	{
 	case DLL_PROCESS_ATTACH:
 		hActiveModule = hModule; // For shared code
-		hEmulationModule = hModule; // For emulation code
 		break;
 	case DLL_THREAD_ATTACH:
 	case DLL_THREAD_DETACH:
