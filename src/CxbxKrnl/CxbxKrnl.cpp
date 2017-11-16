@@ -80,11 +80,10 @@ Xbe::TLS *CxbxKrnl_TLS = NULL;
 void *CxbxKrnl_TLSData = NULL;
 /*! xbe header structure */
 Xbe::Header *CxbxKrnl_XbeHeader = NULL;
+
 /*! parent window handle */
-
-HMODULE hEmulationModule;
-
 HWND CxbxKrnl_hEmuParent = NULL;
+
 DebugMode CxbxKrnl_DebugMode = DebugMode::DM_NONE;
 char* CxbxKrnl_DebugFileName = NULL;
 Xbe::Certificate *g_pCertificate = NULL;
