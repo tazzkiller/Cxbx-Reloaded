@@ -31,6 +31,8 @@
 // *  All rights reserved
 // *
 // ******************************************************************
+#pragma once
+
 #ifndef CXBXKRNL_H
 #define CXBXKRNL_H
 
@@ -200,5 +202,7 @@ extern char szFilePath_EEPROM_bin[MAX_PATH];
 #ifdef __cplusplus
 }
 #endif
+
+extern std::string CxbxGetLastErrorString(char * lpszFunction);
 
 #endif
