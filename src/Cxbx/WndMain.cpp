@@ -1962,10 +1962,7 @@ void WndMain::StartEmulation(HWND hwndParent)
 	// shell exe
     {
         GetModuleFileName(NULL, szBuffer, MAX_PATH);
-
-		char *spot = strrchr(szBuffer, '\\');
-		if (spot != NULL)
-			*spot = '\0';
+		PathRemoveFileSpec(szBuffer);
 
 		char szArgsBuffer[4096];
 		snprintf(szArgsBuffer, 4096, "\"%s\" %d %d \"%s\"", m_XbeFilename, (int)hwndParent, (int)m_KrnlDebug, m_KrnlDebugFilename);
