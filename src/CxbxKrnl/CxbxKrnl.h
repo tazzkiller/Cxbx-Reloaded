@@ -224,7 +224,7 @@ extern DebugMode CxbxKrnl_DebugMode;
 extern char* CxbxKrnl_DebugFileName;
 
 /*! file paths */
-extern char szFilePath_CxbxReloaded_Exe[MAX_PATH];
+extern char szFilePath_CxbxLoader_Exe[MAX_PATH];
 extern char szFolder_CxbxReloadedData[MAX_PATH];
 extern char szFilePath_EEPROM_bin[MAX_PATH];
 

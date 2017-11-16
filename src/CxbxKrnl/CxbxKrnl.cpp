@@ -89,7 +89,7 @@ Xbe::Certificate *g_pCertificate = NULL;
 /*! thread handles */
 static HANDLE g_hThreads[MAXIMUM_XBOX_THREADS] = { 0 };
 
-char szFilePath_CxbxReloaded_Exe[MAX_PATH] = { 0 };
+char szFilePath_CxbxLoader_Exe[MAX_PATH] = { 0 };
 char szFolder_CxbxReloadedData[MAX_PATH] = { 0 };
 char szFilePath_EEPROM_bin[MAX_PATH] = { 0 };
 char szFilePath_memory_bin[MAX_PATH] = { 0 };
@@ -1085,7 +1085,7 @@ void CxbxInitFilePaths()
 	snprintf(szFilePath_EEPROM_bin, MAX_PATH, "%s\\EEPROM.bin", szFolder_CxbxReloadedData);
 	snprintf(szFilePath_memory_bin, MAX_PATH, "%s\\memory.bin", szFolder_CxbxReloadedData);
 
-	GetModuleFileName(GetModuleHandle(NULL), szFilePath_CxbxReloaded_Exe, MAX_PATH);
+	GetModuleFileName(GetModuleHandle(NULL), szFilePath_CxbxLoader_Exe, MAX_PATH);
 }
 
 // REMARK: the following is useless, but PatrickvL has asked to keep it for documentation purposes
