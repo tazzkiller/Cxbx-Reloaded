@@ -853,7 +853,7 @@ __declspec(noreturn) void CxbxKrnlInit
 
 		// Test if there are any other cores available :
 		if (g_CPUOthers > 0) {
-			// If so, make sure the Xbox threads run on the core NOT running Xbox code :
+			// If so, make sure Xbox threads run on the one core that's NOT running non-Xbox code :
 			g_CPUXbox = g_CPUXbox & (~g_CPUOthers);
 		}
 		else {
@@ -1006,17 +1006,27 @@ __declspec(noreturn) void CxbxKrnlInit
 	//extern void InitializeSectionStructures(void); 
 	InitializeSectionStructures();
 
+	EmuHLEIntercept(pXbeHeader);
+
+	SetupXboxDeviceTypes();
+
+	// Apply Media Patches to bypass Anti-Piracy checks
+	// Required until we perfect emulation of X2 DVD Authentication
+	// See: https://multimedia.cx/eggs/xbox-sphinx-protocol/
+	ApplyMediaPatches();
+
+	// Setup per-title encryption keys
+	SetupPerTitleKeys();
+
+	EmuInitFS();
+
+	EmuX86_Init();
+
+	InitXboxThread(g_CPUXbox);
+
 	// initialize grapchics
 	DbgPrintf("INIT: Initializing render window.\n");
 	XTL::CxbxInitWindow(pXbeHeader, dwXbeHeaderSize);
-
-    XTL::CxbxInitAudio();
-
-	EmuHLEIntercept(pXbeHeader);
-	SetupXboxDeviceTypes();
-
-	// Always initialise NV2A: We may need it for disabled HLE patches too!
-	EmuNV2A_Init();
 
 	if (bLLE_GPU)
 	{
@@ -1029,19 +1039,11 @@ __declspec(noreturn) void CxbxKrnlInit
 		XTL::EmuD3DInit();
 	}
 
-	// Apply Media Patches to bypass Anti-Piracy checks
-	// Required until we perfect emulation of X2 DVD Authentication
-	// See: https://multimedia.cx/eggs/xbox-sphinx-protocol/
-	ApplyMediaPatches();
+	// Always initialise NV2A: We may need it for disabled HLE patches too!
+	EmuNV2A_Init();
 
-	// Setup per-title encryption keys
-	SetupPerTitleKeys();
+	XTL::CxbxInitAudio();
 
-	EmuInitFS();
-
-	InitXboxThread(g_CPUXbox);
-
-	EmuX86_Init();
 	// Create the interrupt processing thread
 	DWORD dwThreadId;
 	HANDLE hThread = (HANDLE)_beginthreadex(NULL, NULL, CxbxKrnlInterruptThread, NULL, NULL, (uint*)&dwThreadId);
