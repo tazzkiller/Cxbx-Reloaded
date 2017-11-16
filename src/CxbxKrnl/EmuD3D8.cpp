@@ -1111,13 +1111,16 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
         LOGBRUSH logBrush = {BS_SOLID, RGB(0,0,0)};
 
         g_hBgBrush = CreateBrushIndirect(&logBrush);
+		if (g_hBgBrush == NULL) {
+			printf("%s\n", CxbxGetLastErrorString("CreateBrushIndirect").c_str());
+		}
 
         WNDCLASSEX wc =
         {
             sizeof(WNDCLASSEX),
             CS_CLASSDC,
             EmuMsgProc,
-            0, 0, hActiveModule, // Was GetModuleHandle(NULL),
+            0, 0, hActiveModule,
 			0, // TODO : LoadIcon(hmodule, ?)
             LoadCursor(NULL, IDC_ARROW),
             (HBRUSH)(g_hBgBrush), NULL,
@@ -1125,8 +1128,10 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
             NULL
         };
 
-        RegisterClassEx(&wc);
-    }
+        if (0 == RegisterClassEx(&wc)) {
+			printf("%s\n", CxbxGetLastErrorString("RegisterClassEx").c_str());
+		}
+	}
 
 	bool bMultiXbe;
 	g_EmuShared->GetMultiXbeFlag(&bMultiXbe);
@@ -1138,6 +1143,9 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
 	}
 
 	HANDLE hCrashMutex = CreateMutex(NULL, TRUE, "CrashMutex");
+	if (hCrashMutex == NULL) {
+		printf("%s\n", CxbxGetLastErrorString("CreateMutex").c_str());
+	}
 
     // create the window
     {
@@ -1161,6 +1169,9 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
         }
 
         HWND hwndParent = GetDesktopWindow();
+		if (hwndParent == NULL) {
+			printf("%s\n", CxbxGetLastErrorString("GetDesktopWindow").c_str());
+		}
 
         if(!g_XBVideo.GetFullscreen())
         {
@@ -1171,9 +1182,12 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
         (
             "CxbxRender", "Cxbx-Reloaded",
             dwStyle, x, y, nWidth, nHeight,
-            hwndParent, NULL, hActiveModule, // Was GetModuleHandle(NULL),
+            hwndParent, NULL, hActiveModule,
 			NULL
         );
+		if (g_hEmuWindow == NULL) {
+			printf("%s\n", CxbxGetLastErrorString("CreateWindow").c_str());
+		}
     }
 
     ShowWindow(g_hEmuWindow, ((CxbxKrnl_hEmuParent == 0) || g_XBVideo.GetFullscreen()) ? SW_SHOWDEFAULT : SW_SHOWMAXIMIZED);
@@ -1181,16 +1195,21 @@ static DWORD WINAPI EmuRenderWindow(LPVOID lpVoid)
 
     if(!g_XBVideo.GetFullscreen() && (CxbxKrnl_hEmuParent != NULL))
     {
-        SetFocus(CxbxKrnl_hEmuParent);
+		if (NULL == SetFocus(CxbxKrnl_hEmuParent)) {
+			printf("%s\n", CxbxGetLastErrorString("SetFocus").c_str());
+		}
     }
 
     // initialize direct input
-    if(!XTL::EmuDInputInit())
-        CxbxKrnlCleanup("Could not initialize DirectInput!");
+	if (!XTL::EmuDInputInit()) {
+		CxbxKrnlCleanup("Could not initialize DirectInput!");
+	}
 
     DbgPrintf("D3D8: Message-Pump thread is running.\n");
 
-    SetFocus(g_hEmuWindow);
+	if (NULL == SetFocus(g_hEmuWindow)) {
+		printf("%s\n", CxbxGetLastErrorString("SetFocus").c_str());
+	}
 
     DbgConsole *dbgConsole = new DbgConsole();
 
