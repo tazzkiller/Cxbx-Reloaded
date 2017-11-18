@@ -486,6 +486,9 @@
     <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.4721.inl">
       <Filter>HLEDatabase\DSound</Filter>
     </None>
+    <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.4831.inl">
+      <Filter>HLEDatabase\DSound</Filter>
+    </None>
     <None Include="..\..\src\CxbxKrnl\HLEDataBase\DSound.1.0.5028.inl">
       <Filter>HLEDatabase\DSound</Filter>
     </None>
@@ -566,24 +569,6 @@
     </None>
     <None Include="..\..\src\CxbxKrnl\HLEDataBase\XG.OOVPA.inl">
       <Filter>HLEDatabase\XG</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XNet.1.0.3911.inl">
-      <Filter>HLEDatabase\XNet</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XNet.1.0.4361.inl">
-      <Filter>HLEDatabase\XNet</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XNet.1.0.4627.inl">
-      <Filter>HLEDatabase\XNet</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XNet.1.0.5120.inl">
-      <Filter>HLEDatabase\XNet</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XNet.1.0.5455.inl">
-      <Filter>HLEDatabase\XNet</Filter>
-    </None>
-    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XNet.OOVPA.inl">
-      <Filter>HLEDatabase\XNet</Filter>
     </None>
     <None Include="..\..\src\CxbxKrnl\HLEDataBase\XOnline.1.0.4361.inl">
       <Filter>HLEDatabase\XOnline</Filter>
