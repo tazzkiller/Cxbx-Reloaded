@@ -612,6 +612,7 @@ OOVPA_XREF(CDirectSoundBuffer_GetStatus, 4134, 1+10,
 
     XREF_CDirectSoundBuffer_GetStatus,
     XRefOne)
+<<<<<<< HEAD
 
         // CDirectSoundBuffer_GetStatus+0x35 : call [CMcpxBuffer::GetStatus]
         XREF_ENTRY(0x35, XREF_CMcpxBuffer_GetStatus),
@@ -630,6 +631,26 @@ OOVPA_XREF(CDirectSoundBuffer_GetStatus, 4134, 1+10,
         { 0x3D, 0x74 },
         { 0x3E, 0x0B },
 
+=======
+
+        // CDirectSoundBuffer_GetStatus+0x35 : call [CMcpxBuffer::GetStatus]
+        XREF_ENTRY(0x35, XREF_CMcpxBuffer_GetStatus),
+
+        // CDirectSoundBuffer_GetStatus+0x00 : push esi
+        { 0x00, 0x56 },
+
+        // CDirectSoundBuffer_GetStatus+0x21 : mov eax, 0x80004005
+        { 0x21, 0xB8 },
+        { 0x22, 0x05 },
+        { 0x23, 0x40 },
+        { 0x24, 0x00 },
+        { 0x25, 0x80 },
+
+        // CDirectSoundBuffer_GetStatus+0x3D : jz +0x0B
+        { 0x3D, 0x74 },
+        { 0x3E, 0x0B },
+
+>>>>>>> dabaa6b4... Add DSound OOVPAs
         // CDirectSoundBuffer_GetStatus+0x4E : retn 0x08
         { 0x4E, 0xC2 },
         { 0x4F, 0x08 },
@@ -1253,7 +1274,32 @@ OOVPA_XREF(IDirectSoundBuffer_SetDistanceFactor, 4134, 1+9,
         { 0x22, 0x0C },
         { 0x23, 0x00 }
 OOVPA_END;
+// ******************************************************************
+// * DirectSound::CDirectSoundVoice::SetConeAngles
+// ******************************************************************
+// Generic OOVPA as of 4134 and newer
+OOVPA_XREF(CDirectSoundVoice_SetConeAngles, 4134, 12,
 
+    XREF_CDirectSoundVoice_SetConeAngles,
+    XRefZero)
+
+        { 0x00, 0x8B },
+
+        { 0x10, 0x08 },
+        { 0x11, 0x89 },
+        { 0x12, 0x51 },
+        { 0x13, 0x1C }, // SetConeAngles 0x1C vs SetRolloffCurve 0x70
+        { 0x14, 0x8B },
+        { 0x15, 0x48 },
+        { 0x16, 0x10 },
+        { 0x17, 0x8B },
+        { 0x18, 0x89 },
+
+        { 0x23, 0x20 }, // SetConeAngles 0x20 vs SetRolloffCurve 0x74
+        { 0x30, 0x10 }, // SetConeAngles 0x10 vs SetRolloffCurve 0x04
+OOVPA_END;
+
+#if 0 // No longer used, replaced by generic 4134 version
 // ******************************************************************
 // * DirectSound::CDirectSoundVoice::SetConeAngles
 // ******************************************************************
