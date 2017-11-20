@@ -204,7 +204,9 @@
     <ClInclude Include="..\..\src\Common\Logging.h">
       <Filter>Shared</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8.h" />
+    <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8.h">
+      <Filter>EmuD3D8</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8Logging.cpp">
@@ -390,7 +392,9 @@
     <ClCompile Include="..\..\src\Common\Logging.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8.cpp" />
+    <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8.cpp">
+      <Filter>EmuD3D8</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.3911.inl">
@@ -671,6 +675,24 @@
     </None>
     <None Include="..\..\resource\Logo.bmp">
       <Filter>Shared</Filter>
+    </None>
+    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XNet.OOVPA.inl">
+      <Filter>HLEDatabase\XNet</Filter>
+    </None>
+    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XNet.1.0.3911.inl">
+      <Filter>HLEDatabase\XNet</Filter>
+    </None>
+    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XNet.1.0.4361.inl">
+      <Filter>HLEDatabase\XNet</Filter>
+    </None>
+    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XNet.1.0.4627.inl">
+      <Filter>HLEDatabase\XNet</Filter>
+    </None>
+    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XNet.1.0.5120.inl">
+      <Filter>HLEDatabase\XNet</Filter>
+    </None>
+    <None Include="..\..\src\CxbxKrnl\HLEDataBase\XNet.1.0.5455.inl">
+      <Filter>HLEDatabase\XNet</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
