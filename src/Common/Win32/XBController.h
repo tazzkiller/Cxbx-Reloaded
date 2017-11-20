@@ -98,9 +98,9 @@ enum XBCtrlObject
 // ******************************************************************
 struct XBCtrlObjectCfg
 {
-    int dwDevice;   // offset into m_InputDevice
-    int dwInfo;     // extended information, depending on dwFlags
-    int dwFlags;    // flags explaining the data format
+    int32_t dwDevice;   // offset into m_InputDevice
+    int32_t dwInfo;     // extended information, depending on dwFlags
+    int32_t dwFlags;    // flags explaining the data format
 };
 
 // ******************************************************************
@@ -200,7 +200,7 @@ class XBController : public Error
         struct InputDevice
         {
             XTL::LPDIRECTINPUTDEVICE8 m_Device;
-            int                       m_Flags;
+            int32_t                   m_Flags;
         }
         m_InputDevice[XBCTRL_MAX_DEVICES];
 
@@ -218,8 +218,8 @@ class XBController : public Error
         // ******************************************************************
         // * Etc State Variables
         // ******************************************************************
-        int m_dwInputDeviceCount;
-        int m_dwCurObject;
+        int32_t m_dwInputDeviceCount;
+        int32_t m_dwCurObject;
 
 };
 

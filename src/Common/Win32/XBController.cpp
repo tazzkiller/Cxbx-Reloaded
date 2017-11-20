@@ -930,11 +930,16 @@ void XBController::DInputInit(HWND hwnd)
     {
         HRESULT hRet = m_pDirectInput8->EnumDevices
         (
-            DI8DEVCLASS_GAMECTRL,
+            DI8DEVCLASS_GAMECTRL, // All game controllers.
             WrapEnumGameCtrlCallback,
-            this,
-            DIEDFL_ATTACHEDONLY
+            (LPVOID)this,
+            DIEDFL_ATTACHEDONLY // Only attached and installed devices.
         );
+
+		if (DI_OK != hRet) {
+			SetFatalError("Could not EnumDevices");
+			return;
+		}
 
         if(m_CurrentState == XBCTRL_STATE_CONFIG || DeviceIsUsed("SysKeyboard"))
         {
