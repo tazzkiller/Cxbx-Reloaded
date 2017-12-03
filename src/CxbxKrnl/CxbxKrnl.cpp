@@ -385,7 +385,7 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 		CxbxKrnlCleanup("CxbxRestoreContiguousMemory: Couldn't map contiguous memory.bin into tiled memory at 0xF0000000!");
 		return nullptr;
 	}
-	
+
 	printf("[0x%.4X] INIT: Mapped contiguous memory to Xbox tiled memory at 0x%.8X to 0x%.8X\n",
 		GetCurrentThreadId(), TILED_MEMORY_BASE, TILED_MEMORY_BASE + TILED_MEMORY_CHIHIRO_SIZE - 1);
 
