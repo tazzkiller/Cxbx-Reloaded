@@ -293,6 +293,26 @@ void UnreserveMemoryRange(XboxAddressRangeType xart)
 	}
 }
 
+bool AllocateMemoryRange(XboxAddressRangeType xart)
+{
+	const int BLOCK_SIZE = KB(64);
+
+	unsigned __int32 Start = XboxAddressRanges[xart].Start;
+	int Size = XboxAddressRanges[xart].Size;
+
+	while (Size > 0) {
+		int BlockSize = (Size > BLOCK_SIZE) ? BLOCK_SIZE : Size;
+		if (nullptr == VirtualAlloc((void*)Start, BlockSize, MEM_COMMIT, PAGE_READWRITE)) { // MEM_RESERVE already done by Cxbx-Loader.exe
+			return false;
+		}
+
+		Start += BLOCK_SIZE;
+		Size -= BLOCK_SIZE;
+	}
+
+	return true;
+}
+
 void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 {
 	// First, try to open an existing memory.bin file :
@@ -1064,6 +1084,14 @@ __declspec(noreturn) void CxbxKrnlInit
 	{
 		DbgPrintf("INIT: Initializing Direct3D.\n");
 		XTL::EmuD3DInit();
+	}
+
+	// Allocate PRAMIN Region
+	if (!AllocateMemoryRange(MemNV2APRAMIN)) {
+		DbgPrintf("Couldn't allocate NV2A PRAMIN!\n");
+	}
+	else {
+		DbgPrintf("Allocated NV2A PRAMIN\n");
 	}
 
 	// Always initialise NV2A: We may need it for disabled HLE patches too!
