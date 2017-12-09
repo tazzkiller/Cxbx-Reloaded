@@ -278,6 +278,21 @@ std::string CxbxGetLastErrorString(char * lpszFunction)
 	return result;
 }
 
+void UnreserveMemoryRange(XboxAddressRangeType xart)
+{
+	const int BLOCK_SIZE = KB(64);
+
+	unsigned __int32 Start = XboxAddressRanges[xart].Start;
+	int Size = XboxAddressRanges[xart].Size;
+
+	while (Size > 0) {
+		// To release, dwSize must be zero!
+		VirtualFree((LPVOID)Start, (SIZE_T)0, MEM_RELEASE);
+		Start += BLOCK_SIZE;
+		Size -= BLOCK_SIZE;
+	}
+}
+
 void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 {
 	// First, try to open an existing memory.bin file :
@@ -337,7 +352,7 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 	}
 
 	// Right before mapping physical memory, free the address range reserved by the tiny loader
-	VirtualFree((void*)XboxAddressRanges[MemPhysical].Start, 0, MEM_RELEASE);
+	UnreserveMemoryRange(MemPhysical);
 	// TODO : Assert PhysicalSize >= CONTIGUOUS_MEMORY_CHIHIRO_SIZE?
 	// Map memory.bin contents into memory :
 	void *memory = (void *)MapViewOfFileEx(
@@ -368,7 +383,7 @@ void *CxbxRestoreContiguousMemory(char *szFilePath_memory_bin)
 		printf("[0x%.4X] INIT: Loaded contiguous memory.bin\n", GetCurrentThreadId());
 
 	// Map memory.bin contents into tiled memory too :
-	VirtualFree((void*)XboxAddressRanges[MemTiled].Start, 0, MEM_RELEASE);
+	UnreserveMemoryRange(MemTiled);
 	// TODO : Assert XboxAddressRanges[MemTiled].Size == TILED_MEMORY_CHIHIRO_SIZE?
 	void *tiled_memory = (void *)MapViewOfFileEx(
 		hFileMapping,
