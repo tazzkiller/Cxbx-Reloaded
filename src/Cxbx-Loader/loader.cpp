@@ -90,17 +90,87 @@ DWORD XboxAddressRangeTypeToVirtualAllocPageProtectionFlags(XboxAddressRangeType
 // Note : This executable is meant to be as tiny as humanly possible.
 // The C++ runtime library is removed using https://stackoverflow.com/a/39220245/12170
 
+// This array keeps track of which ranges have successfully been reserved.
+// Having this helps debugging, but isn't strictly necessary, as we could
+// retrieve the same information using VirtualQuery.
+XboxAddressRange ReservedRanges[128];
+int ReservedRangeCount = 0;
+
+// Reserve an address range up to the extend of what the host allows.
+bool ReserveMemoryRange(unsigned __int32 Start, int Size, const DWORD Protect)
+{
+	const int BLOCK_SIZE = KB(64);
+
+	// Safeguard against bounds overflow
+	if (ReservedRangeCount >= ARRAY_SIZE(ReservedRanges))
+		return false;
+
+	bool HadAnyFailure = false;
+	if (Start == 0) {
+		// The zero page (the entire first 64 KB block) can't be reserved (if we would
+		// try to reserve VirtualAlloc at address zero, it would hand us another address)
+		Start += BLOCK_SIZE;
+		Size -= BLOCK_SIZE;
+		HadAnyFailure = true;
+	}
+
+	// Initialize the reservation of a new range
+	ReservedRanges[ReservedRangeCount].Start = Start;
+	ReservedRanges[ReservedRangeCount].Size = 0;
+
+	bool HadFailure = HadAnyFailure;
+	// Reserve this range in 64 Kb block increments, so later on our
+	// memory-management code can VirtualFree() each block individually :
+	while (Size > 0) {
+		SIZE_T BlockSize = (SIZE_T)(Size > BLOCK_SIZE) ? BLOCK_SIZE : Size;
+		LPVOID Result = VirtualAlloc((LPVOID)Start, BlockSize, MEM_RESERVE, Protect);
+		if (Result == NULL) {
+			HadFailure = true;
+			HadAnyFailure = true;
+		}
+		else {
+			if (HadFailure) {
+				HadFailure = false;
+				// Starting a new range - did the previous one have any size?
+				if (ReservedRanges[ReservedRangeCount].Size > 0) {
+					// Then start a new range, and copy over the current type
+					ReservedRangeCount++;
+					ReservedRanges[ReservedRangeCount].Type = ReservedRanges[ReservedRangeCount - 1].Type;
+				}
+
+				// Register a new ranges starting address
+				ReservedRanges[ReservedRangeCount].Start = Start;
+			}
+
+			// Accumulate the size of each successfull reservation
+			ReservedRanges[ReservedRangeCount].Size += BlockSize;
+		}
+
+		// Handle the next block
+		Start += BLOCK_SIZE;
+		Size -= BLOCK_SIZE;
+	}
+
+	// Keep the current block only if it contains a successfully reserved range
+	if (ReservedRanges[ReservedRangeCount].Size > 0)
+		ReservedRangeCount++;
+
+	// Only a complete success when the entire request was reserved in a single range
+	// (Otherwise, we have either a complete failure, or reserved it partially over multiple ranges)
+	return !HadAnyFailure;
+}
+
 DWORD CALLBACK rawMain()
 {
 	(void)virtual_memory_placeholder; // prevent optimization removing this data
 
 	// Loop over all Xbox address ranges
 	for (int i = 0; i < ARRAY_SIZE(XboxAddressRanges); i++) {
+		ReservedRanges[ReservedRangeCount].Type = XboxAddressRanges[i].Type;
 		// Try to reserve each address range
-		if (nullptr == VirtualAlloc(
-			(LPVOID)XboxAddressRanges[i].Start,
-			(SIZE_T)XboxAddressRanges[i].Size,
-			MEM_RESERVE,
+		if (!ReserveMemoryRange(
+			XboxAddressRanges[i].Start,
+			XboxAddressRanges[i].Size,
 			XboxAddressRangeTypeToVirtualAllocPageProtectionFlags(XboxAddressRanges[i].Type)
 		)) {
 			// Ranges that fail under Windows 7 Wow64 :
