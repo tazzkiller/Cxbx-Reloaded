@@ -80,10 +80,6 @@ int ReservedRangeCount = 0;
 // Reserve an address range up to the extend of what the host allows.
 bool ReserveMemoryRange(XboxAddressRangeType xart)
 {
-	// TODO : Instead of hard-coding the blocksize, read it from system's allocation granularity.
-	// In practice though, nearly all will be using 64 Kib.
-	const int BLOCK_SIZE = KB(64);
-
 	//	assert(XboxAddressRanges[xart].Type == xart);
 	unsigned __int32 Start = XboxAddressRanges[xart].Start;
 	int Size = XboxAddressRanges[xart].Size;
@@ -157,8 +153,6 @@ bool ReserveMemoryRange(XboxAddressRangeType xart)
 
 void UnreserveMemoryRange(XboxAddressRangeType xart)
 {
-	const int BLOCK_SIZE = KB(64);
-
 	unsigned __int32 Start = XboxAddressRanges[xart].Start;
 	int Size = XboxAddressRanges[xart].Size;
 
@@ -172,8 +166,6 @@ void UnreserveMemoryRange(XboxAddressRangeType xart)
 
 bool AllocateMemoryRange(XboxAddressRangeType xart)
 {
-	const int BLOCK_SIZE = KB(64);
-
 	unsigned __int32 Start = XboxAddressRanges[xart].Start;
 	int Size = XboxAddressRanges[xart].Size;
 
