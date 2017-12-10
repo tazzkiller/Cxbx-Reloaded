@@ -63,37 +63,10 @@ DWORD CALLBACK rawMain()
 {
 	(void)virtual_memory_placeholder; // prevent optimization removing this data
 
-	// Loop over all Xbox address ranges
-	for (int i = 0; i < ARRAY_SIZE(XboxAddressRanges); i++) {
-		XboxAddressRangeType xart = (XboxAddressRangeType)i;
-		// Try to reserve each address range
-		if (!ReserveMemoryRange(xart)) {
-			// Ranges that fail under Windows 7 Wow64 :
-			//
-			// { MemLowVirtual, 0x00000000, MB(128) }, // .. 0x08000000 (Retail Xbox uses 64 MB)
-			// { MemTiled,      0xF0000000, MB( 64) }, // .. 0xF4000000
-			// { DeviceUSB1,    0xFED08000, KB(  4) }, // .. 0xFED09000
-			// { DeviceFlash,   0xFFC00000, MB(  4) }, // .. 0xFFFFFFFF (Flash mirror 4) - Will probably fail reservation
-			// { DeviceMCPX,    0xFFFFFE00,    512  }, // .. 0xFFFFFFFF (not Chihiro, Xbox - if enabled)
-			//
-			// .. none of which are an issue for now.
-			switch (xart) {
-			case MemLowVirtual: // Already reserved via virtual_memory_placeholder
-				continue;
-			case MemTiled: // Even though it can't be reserved, MapViewOfFileEx to this range still works!?
-				continue;
-			case DeviceUSB1: // Won't be emulated for a long while
-				continue;
-			case DeviceMCPX: // Can safely be ignored
-				continue;
-			case DeviceFlash_d: // Losing mirror 4 is acceptable - the 3 others work just fine
-				continue;
-			}
-
-			// If we get here, emulation lacks important address ranges; Don't launch
-			OutputDebugString("Required address range couldn't be reserved!");
-			return ERROR_NOT_ENOUGH_MEMORY;
-		}
+	if (!ReserveAddressRanges()) {
+		// If we get here, emulation lacks important address ranges; Don't launch
+		OutputDebugString("Required address range couldn't be reserved!");
+		return ERROR_NOT_ENOUGH_MEMORY;
 	}
 
 	// Only after the required memory ranges are reserved, load our emulation DLL

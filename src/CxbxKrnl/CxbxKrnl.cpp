@@ -565,14 +565,11 @@ void CxbxKrnlMain(int argc, char* argv[])
 			return; // TODO : Halt(0); 
 		}
 
-/* TODO : Use VirtualQuery
-		// verify virtual_memory_placeholder is located at 0x00011000
-		if ((UINT_PTR)(&(virtual_memory_placeholder[0])) != (XBE_IMAGE_BASE + CXBX_BASE_OF_CODE))
-		{
-			CxbxPopupMessage("virtual_memory_placeholder is not loaded to base address 0x00011000 (which is a requirement for Xbox emulation)");
+		if (!VerifyAddressRanges()) {
+			CxbxPopupMessage("Cxbx-Reloaded hasn't got access to all required address ranges");
 			return; // TODO : Halt(0); 
 		}
-*/
+
 		// Create a safe copy of the complete EXE header:
 		DWORD ExeHeaderSize = ExeOptionalHeader->SizeOfHeaders; // Should end up as 0x400
 		NewDosHeader = (PIMAGE_DOS_HEADER)VirtualAlloc(nullptr, ExeHeaderSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);

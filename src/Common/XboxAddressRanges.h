@@ -94,6 +94,7 @@ const XboxAddressRange XboxAddressRanges[] = {
 	{ DeviceMCPX,    0xFFFFFE00,    512  }, // .. 0xFFFFFFFF (not Chihiro, Xbox - if enabled)
 };
 
-extern bool ReserveMemoryRange(XboxAddressRangeType xart);
+extern bool ReserveAddressRanges();
+extern bool VerifyAddressRanges();
 extern void UnreserveMemoryRange(XboxAddressRangeType xart);
 extern bool AllocateMemoryRange(XboxAddressRangeType xart);
