@@ -18,6 +18,9 @@
     <ClCompile Include="..\..\src\Cxbx-Loader\loader.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\Common\XboxAddressRanges.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\Common\XboxAddressRanges.h">

@@ -395,6 +395,9 @@
     <ClCompile Include="..\..\src\CxbxKrnl\EmuD3D8.cpp">
       <Filter>EmuD3D8</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\Common\XboxAddressRanges.cpp">
+      <Filter>Shared</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\src\CxbxKrnl\HLEDataBase\D3D8.1.0.3911.inl">

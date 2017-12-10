@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\src\Common\XboxAddressRanges.cpp" />
     <ClCompile Include="..\..\src\Cxbx-Loader\loader.cpp" />
   </ItemGroup>
   <ItemGroup>

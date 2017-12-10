@@ -56,109 +56,8 @@
 // (of the initial thread) resides far outside of the reserved range, so that's all right too.
 unsigned char virtual_memory_placeholder[VM_PLACEHOLDER_SIZE] = { 0 }; // = { OPCODE_NOP_90 };
 
-// Maps an XboxAddressRangeType to page protection flags, for use by VirtualAlloc
-DWORD XboxAddressRangeTypeToVirtualAllocPageProtectionFlags(XboxAddressRangeType type)
-{
-	switch (type) {
-	case MemLowVirtual:
-	case MemPhysical: // Note : We'll allow execution in kernel space
-		return PAGE_EXECUTE_READWRITE;
-
-	case MemPageTable:
-	case MemNV2APRAMIN:
-		return PAGE_READWRITE;
-
-	case DeviceNV2A:
-	case DeviceAPU:
-	case DeviceAC97:
-	case DeviceUSB0:
-	case DeviceUSB1:
-	case DeviceNVNet:
-	case DeviceFlash:
-	case DeviceMCPX:
-		return PAGE_NOACCESS;
-
-	default:
-		return 0; // UNHANDLED
-	}
-}
-
-#define ARRAY_SIZE(a)                               \
-  ((sizeof(a) / sizeof(*(a))) /                     \
-  static_cast<size_t>(!(sizeof(a) % sizeof(*(a)))))
-
 // Note : This executable is meant to be as tiny as humanly possible.
 // The C++ runtime library is removed using https://stackoverflow.com/a/39220245/12170
-
-// This array keeps track of which ranges have successfully been reserved.
-// Having this helps debugging, but isn't strictly necessary, as we could
-// retrieve the same information using VirtualQuery.
-XboxAddressRange ReservedRanges[128];
-int ReservedRangeCount = 0;
-
-// Reserve an address range up to the extend of what the host allows.
-bool ReserveMemoryRange(unsigned __int32 Start, int Size, const DWORD Protect)
-{
-	const int BLOCK_SIZE = KB(64);
-
-	// Safeguard against bounds overflow
-	if (ReservedRangeCount >= ARRAY_SIZE(ReservedRanges))
-		return false;
-
-	bool HadAnyFailure = false;
-	if (Start == 0) {
-		// The zero page (the entire first 64 KB block) can't be reserved (if we would
-		// try to reserve VirtualAlloc at address zero, it would hand us another address)
-		Start += BLOCK_SIZE;
-		Size -= BLOCK_SIZE;
-		HadAnyFailure = true;
-	}
-
-	// Initialize the reservation of a new range
-	ReservedRanges[ReservedRangeCount].Start = Start;
-	ReservedRanges[ReservedRangeCount].Size = 0;
-
-	bool HadFailure = HadAnyFailure;
-	// Reserve this range in 64 Kb block increments, so later on our
-	// memory-management code can VirtualFree() each block individually :
-	while (Size > 0) {
-		SIZE_T BlockSize = (SIZE_T)(Size > BLOCK_SIZE) ? BLOCK_SIZE : Size;
-		LPVOID Result = VirtualAlloc((LPVOID)Start, BlockSize, MEM_RESERVE, Protect);
-		if (Result == NULL) {
-			HadFailure = true;
-			HadAnyFailure = true;
-		}
-		else {
-			if (HadFailure) {
-				HadFailure = false;
-				// Starting a new range - did the previous one have any size?
-				if (ReservedRanges[ReservedRangeCount].Size > 0) {
-					// Then start a new range, and copy over the current type
-					ReservedRangeCount++;
-					ReservedRanges[ReservedRangeCount].Type = ReservedRanges[ReservedRangeCount - 1].Type;
-				}
-
-				// Register a new ranges starting address
-				ReservedRanges[ReservedRangeCount].Start = Start;
-			}
-
-			// Accumulate the size of each successfull reservation
-			ReservedRanges[ReservedRangeCount].Size += BlockSize;
-		}
-
-		// Handle the next block
-		Start += BLOCK_SIZE;
-		Size -= BLOCK_SIZE;
-	}
-
-	// Keep the current block only if it contains a successfully reserved range
-	if (ReservedRanges[ReservedRangeCount].Size > 0)
-		ReservedRangeCount++;
-
-	// Only a complete success when the entire request was reserved in a single range
-	// (Otherwise, we have either a complete failure, or reserved it partially over multiple ranges)
-	return !HadAnyFailure;
-}
 
 DWORD CALLBACK rawMain()
 {
@@ -166,13 +65,9 @@ DWORD CALLBACK rawMain()
 
 	// Loop over all Xbox address ranges
 	for (int i = 0; i < ARRAY_SIZE(XboxAddressRanges); i++) {
-		ReservedRanges[ReservedRangeCount].Type = XboxAddressRanges[i].Type;
+		XboxAddressRangeType xart = (XboxAddressRangeType)i;
 		// Try to reserve each address range
-		if (!ReserveMemoryRange(
-			XboxAddressRanges[i].Start,
-			XboxAddressRanges[i].Size,
-			XboxAddressRangeTypeToVirtualAllocPageProtectionFlags(XboxAddressRanges[i].Type)
-		)) {
+		if (!ReserveMemoryRange(xart)) {
 			// Ranges that fail under Windows 7 Wow64 :
 			//
 			// { MemLowVirtual, 0x00000000, MB(128) }, // .. 0x08000000 (Retail Xbox uses 64 MB)
@@ -182,7 +77,7 @@ DWORD CALLBACK rawMain()
 			// { DeviceMCPX,    0xFFFFFE00,    512  }, // .. 0xFFFFFFFF (not Chihiro, Xbox - if enabled)
 			//
 			// .. none of which are an issue for now.
-			switch (XboxAddressRanges[i].Type) {
+			switch (xart) {
 			case MemLowVirtual: // Already reserved via virtual_memory_placeholder
 				continue;
 			case MemTiled: // Even though it can't be reserved, MapViewOfFileEx to this range still works!?
@@ -191,9 +86,8 @@ DWORD CALLBACK rawMain()
 				continue;
 			case DeviceMCPX: // Can safely be ignored
 				continue;
-			case DeviceFlash: // Losing mirror 4 is acceptable - the 3 others work just fine
-				if (XboxAddressRanges[i].Start == 0xFFC00000)
-					continue;
+			case DeviceFlash_d: // Losing mirror 4 is acceptable - the 3 others work just fine
+				continue;
 			}
 
 			// If we get here, emulation lacks important address ranges; Don't launch
@@ -205,6 +99,7 @@ DWORD CALLBACK rawMain()
 	// Only after the required memory ranges are reserved, load our emulation DLL
 	HMODULE hEmulationDLL = LoadLibrary("Cxbx-Emulator.dll");
 	if (!hEmulationDLL) {
+		// TODO : Move the following towards a tooling function
 		DWORD err = GetLastError();
 
 		// Translate ErrorCode to String.

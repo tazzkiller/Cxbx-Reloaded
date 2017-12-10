@@ -226,6 +226,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
+    <ClCompile Include="..\..\src\Common\XboxAddressRanges.cpp" />
     <ClCompile Include="..\..\src\Common\XDVDFS Tools\buffered_io.cpp" />
     <ClCompile Include="..\..\src\Common\XDVDFS Tools\xdvdfs.cpp" />
     <ClCompile Include="..\..\src\CxbxKrnl\CxbxKrnl.cpp">
