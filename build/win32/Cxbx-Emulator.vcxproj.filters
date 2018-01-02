@@ -126,9 +126,6 @@
     <ClInclude Include="..\..\src\CxbxKrnl\LibRc4.h">
       <Filter>Emulator</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\CxbxKrnl\MemoryManager.h">
-      <Filter>Emulator</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\CxbxKrnl\nv2a_int.h">
       <Filter>Emulator</Filter>
     </ClInclude>
@@ -206,6 +203,12 @@
     </ClInclude>
     <ClInclude Include="..\..\src\CxbxKrnl\EmuD3D8.h">
       <Filter>EmuD3D8</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\CxbxKrnl\PhysicalMemory.h">
+      <Filter>Emulator</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\CxbxKrnl\VMManager.h">
+      <Filter>Emulator</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -335,9 +338,6 @@
     <ClCompile Include="..\..\src\CxbxKrnl\LibRc4.cpp">
       <Filter>Emulator</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\CxbxKrnl\MemoryManager.cpp">
-      <Filter>Emulator</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\Common\XDVDFS Tools\buffered_io.cpp">
       <Filter>Shared</Filter>
     </ClCompile>
@@ -397,6 +397,12 @@
     </ClCompile>
     <ClCompile Include="..\..\src\Common\XboxAddressRanges.cpp">
       <Filter>Shared</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\CxbxKrnl\PhysicalMemory.cpp">
+      <Filter>Emulator</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\CxbxKrnl\VMManager.cpp">
+      <Filter>Emulator</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

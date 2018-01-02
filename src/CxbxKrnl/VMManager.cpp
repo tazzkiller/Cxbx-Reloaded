@@ -39,6 +39,7 @@
 // with some changes and adaptions to suit Cxbx-Reloaded and Xbox emulation.
 // Citra website: https://citra-emu.org/
 
+#define LOG_PREFIX "VMEM"
 
 #include "VMManager.h"
 #include "Logging.h"
@@ -85,6 +86,7 @@ void VMManager::Initialize(HANDLE file_view)
 		CxbxKrnlCleanup("VMManager: VirtualAlloc could not find a suitable region to allocate the second physical memory view!");
 	}
 	VirtualFree((void*)start, 0, MEM_RELEASE);
+	// TODO : Instead of the above, use UnreserveMemoryRange(Mem??); // Also, reserve this range in Cxbx-Loader
 	m_Base = (VAddr)MapViewOfFileEx(
 		file_view,
 		FILE_MAP_READ | FILE_MAP_WRITE | FILE_MAP_EXECUTE,
