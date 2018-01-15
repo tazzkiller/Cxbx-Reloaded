@@ -1778,7 +1778,7 @@ typedef struct _RenderStateInfo {
 }
 RenderStateInfo;
 
-#define D3DRS_NONE ((D3DRENDERSTATETYPE)0)
+extern const RenderStateInfo &GetDxbxRenderStateInfo(int State);
 
 extern const RenderStateInfo DxbxRenderStateInfo[];
 

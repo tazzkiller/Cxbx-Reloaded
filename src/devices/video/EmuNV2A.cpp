@@ -358,12 +358,12 @@ void EmuNV2A_Write(xbaddr addr, uint32_t value, int size)
 //
 
 // 
-#define X_D3DTS_STAGECOUNT 4
+#define X_D3DTSS_STAGECOUNT 4
 
 HDC g_EmuWindowsDC = 0;
 GLuint VertexProgramIDs[4] = { 0, 0, 0, 0 };
 uint ActiveVertexProgramID = 0;
-GLuint TextureIDs[X_D3DTS_STAGECOUNT]= { 0, 0, 0, 0 };
+GLuint TextureIDs[X_D3DTSS_STAGECOUNT]= { 0, 0, 0, 0 };
 
 // Vertex shader header, mapping Xbox1 registers to the ARB syntax (original version by KingOfC).
 // Note about the use of 'conventional' attributes in here: Since we prefer to use only one shader

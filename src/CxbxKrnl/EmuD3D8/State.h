@@ -34,10 +34,14 @@
 #ifndef STATE_H
 #define STATE_H
 
+// Xbox version
 #define X_D3DRS_UNSUPPORTED (X_D3DRS_LAST + 1)
 
+// Host version
+#define D3DRS_UNSUPPORTED ((D3DRENDERSTATETYPE)0) // Marks unsupported renderstate on host 
+
 // XDK version independent renderstate table, containing pointers to the original locations.
-extern DWORD *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED]; // 1 extra for the unsupported value
+extern DWORD *EmuMappedD3DRenderState[X_D3DRS_UNSUPPORTED + 1]; // 1 extra for the unsupported value itself
 
 struct X_Stream {
     DWORD Stride;
@@ -45,12 +49,30 @@ struct X_Stream {
     XTL::X_D3DVertexBuffer *pVertexBuffer;
 };
 
-// EmuD3DDeferredRenderState
-extern DWORD *EmuD3DDeferredRenderState;
+// Xbox_D3D__RenderState_Deferred
+extern DWORD *Xbox_D3D__RenderState_Deferred;
 
-// EmuD3DDeferredTextureState
-extern DWORD *EmuD3DDeferredTextureState;
+// Xbox_D3D_TextureState
+extern DWORD *Xbox_D3D_TextureState;
+
+extern void DxbxBuildRenderStateMappingTable();
+
+extern void InitD3DDeferredStates();
 
 extern void EmuUpdateDeferredStates();
+
+extern X_D3DTEXTURESTAGESTATETYPE DxbxFromOldVersion_D3DTSS(const X_D3DTEXTURESTAGESTATETYPE OldValue);
+
+inline void SetXboxRenderState(XTL::X_D3DRENDERSTATETYPE XboxRenderState, DWORD XboxValue)
+{
+	// TODO : assert(XboxRenderState <= X_D3DRS_LAST);
+	*EmuMappedD3DRenderState[XboxRenderState] = XboxValue;
+}
+
+inline DWORD GetXboxRenderState(XTL::X_D3DRENDERSTATETYPE XboxRenderState)
+{
+	// TODO : assert(XboxRenderState <= X_D3DRS_LAST);
+	return *(XTL::EmuMappedD3DRenderState[XboxRenderState]);
+}
 
 #endif

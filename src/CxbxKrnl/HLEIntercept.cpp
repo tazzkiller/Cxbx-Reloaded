@@ -285,33 +285,24 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 
 			// Fix up Render state and Texture States
 			if (g_SymbolAddresses.find("D3DDeferredRenderState") == g_SymbolAddresses.end()) {
-				EmuWarning("EmuD3DDeferredRenderState was not found!");
+				EmuWarning("Xbox_D3D__RenderState_Deferred was not found!");
 			}
 			
 			if (g_SymbolAddresses.find("D3DDeferredTextureState") == g_SymbolAddresses.end()) {
-				EmuWarning("EmuD3DDeferredTextureState was not found!");
+				EmuWarning("Xbox_D3D_TextureState was not found!");
 			}
 
 			if (g_SymbolAddresses.find("D3DDEVICE") == g_SymbolAddresses.end()) {
 				EmuWarning("D3DDEVICE was not found!");
 			}
 
-			XTL::EmuD3DDeferredRenderState = (DWORD*)g_SymbolAddresses["D3DDeferredRenderState"];
-			XTL::EmuD3DDeferredTextureState = (DWORD*)g_SymbolAddresses["D3DDeferredTextureState"];
+			XTL::DxbxBuildRenderStateMappingTable();
+
+			XTL::Xbox_D3D__RenderState_Deferred = (DWORD*)g_SymbolAddresses["D3DDeferredRenderState"];
+			XTL::Xbox_D3D_TextureState = (DWORD*)g_SymbolAddresses["D3DDeferredTextureState"];
 			XRefDataBase[XREF_D3DDEVICE] = g_SymbolAddresses["D3DDEVICE"];
 
-			// TODO: Move this into a function rather than duplicating from HLE scanning code
-			if (XTL::EmuD3DDeferredRenderState != nullptr) {
-				for (int v = 0; v<44; v++) {
-					XTL::EmuD3DDeferredRenderState[v] = XTL::X_D3DRS_UNK;
-				}
-
-				for (int s = 0; s<4; s++) {
-					for (int v = 0; v<32; v++)
-						XTL::EmuD3DDeferredTextureState[v + s * 32] = X_D3DTSS_UNK;
-				}
-			}
-		
+			XTL::InitD3DDeferredStates();
 
 			g_HLECacheUsed = true;
 		}
@@ -439,6 +430,8 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
                         // Save D3D8 build version
                         g_BuildVersion = BuildVersion;
 
+						XTL::DxbxBuildRenderStateMappingTable();
+
                         xbaddr lower = pXbeHeader->dwBaseAddr;
                         xbaddr upper = pXbeHeader->dwBaseAddr + pXbeHeader->dwSizeofImage;
                         xbaddr pFunc = (xbaddr)nullptr;
@@ -506,27 +499,27 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 								}
 							}
 
-							// Derive address of EmuD3DDeferredRenderState from D3DRS_CULLMODE
-							XTL::EmuD3DDeferredRenderState = (DWORD*)(DerivedAddr_D3DRS_CULLMODE - Decrement + Increment);
+							// Derive address of Xbox_D3D__RenderState_Deferred from D3DRS_CULLMODE
+							XTL::Xbox_D3D__RenderState_Deferred = (DWORD*)(DerivedAddr_D3DRS_CULLMODE - Decrement + Increment);
 							patchOffset -= Increment;
 
 							// Derive address of a few other deferred render state slots (to help xref-based function location)
                             XRefDataBase[XREF_D3DRS_MULTISAMPLERENDERTARGETMODE] = (xbaddr)DerivedAddr_D3DRS_CULLMODE + 8*4;
-                            XRefDataBase[XREF_D3DRS_STENCILCULLENABLE]     = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset + 0*4;
-                            XRefDataBase[XREF_D3DRS_ROPZCMPALWAYSREAD]     = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset + 1*4;
-                            XRefDataBase[XREF_D3DRS_ROPZREAD]              = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset + 2*4;
-                            XRefDataBase[XREF_D3DRS_DONOTCULLUNCOMPRESSED] = (xbaddr)XTL::EmuD3DDeferredRenderState + patchOffset + 3*4;
+                            XRefDataBase[XREF_D3DRS_STENCILCULLENABLE]     = (xbaddr)XTL::Xbox_D3D__RenderState_Deferred + patchOffset + 0*4;
+                            XRefDataBase[XREF_D3DRS_ROPZCMPALWAYSREAD]     = (xbaddr)XTL::Xbox_D3D__RenderState_Deferred + patchOffset + 1*4;
+                            XRefDataBase[XREF_D3DRS_ROPZREAD]              = (xbaddr)XTL::Xbox_D3D__RenderState_Deferred + patchOffset + 2*4;
+                            XRefDataBase[XREF_D3DRS_DONOTCULLUNCOMPRESSED] = (xbaddr)XTL::Xbox_D3D__RenderState_Deferred + patchOffset + 3*4;
 
                             for(int v=0;v<44;v++) {
-                                XTL::EmuD3DDeferredRenderState[v] = XTL::X_D3DRS_UNK;
+                                XTL::Xbox_D3D__RenderState_Deferred[v] = XTL::X_D3DRS_UNK;
                             }
 
-							g_SymbolAddresses["D3DDeferredRenderState"] = (DWORD)XTL::EmuD3DDeferredRenderState;
-							printf("HLE: 0x%.08X -> EmuD3DDeferredRenderState\n", XTL::EmuD3DDeferredRenderState);
+							g_SymbolAddresses["D3DDeferredRenderState"] = (DWORD)XTL::Xbox_D3D__RenderState_Deferred;
+							printf("HLE: 0x%.08X -> Xbox_D3D__RenderState_Deferred\n", XTL::Xbox_D3D__RenderState_Deferred);
 							//DbgPrintf("HLE: 0x%.08X -> XREF_D3D_RenderState_RopZCmpAlwaysRead\n", XRefDataBase[XREF_D3D_RenderState_RopZCmpAlwaysRead] );
                         } else {
-                            XTL::EmuD3DDeferredRenderState = nullptr;
-                            CxbxKrnlCleanup("EmuD3DDeferredRenderState was not found!");
+                            XTL::Xbox_D3D__RenderState_Deferred = nullptr;
+                            CxbxKrnlCleanup("Xbox_D3D__RenderState_Deferred was not found!");
                         }
 
                         // locate D3DDeferredTextureState
@@ -565,19 +558,19 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 									}
 								}
 
-								XTL::EmuD3DDeferredTextureState = (DWORD*)(DerivedAddr_D3DTSS_TEXCOORDINDEX - Decrement);
+								XTL::Xbox_D3D_TextureState = (DWORD*)(DerivedAddr_D3DTSS_TEXCOORDINDEX - Decrement);
 
 								for(int s = 0; s < 4; s++) {
                                     for (int v = 0; v < 32; v++) {
-                                        XTL::EmuD3DDeferredTextureState[v + s * 32] = X_D3DTSS_UNK;
+                                        XTL::Xbox_D3D_TextureState[v + s * 32] = X_D3DTSS_UNK;
                                     }
                                 }
 
-								g_SymbolAddresses["D3DDeferredTextureState"] = (DWORD)XTL::EmuD3DDeferredTextureState;
-								printf("HLE: 0x%.08X -> EmuD3DDeferredTextureState\n", XTL::EmuD3DDeferredTextureState);
+								g_SymbolAddresses["D3DDeferredTextureState"] = (DWORD)XTL::Xbox_D3D_TextureState;
+								printf("HLE: 0x%.08X -> Xbox_D3D_TextureState\n", XTL::Xbox_D3D_TextureState);
                             } else {
-                                XTL::EmuD3DDeferredTextureState = nullptr;
-                                CxbxKrnlCleanup("EmuD3DDeferredTextureState was not found!");
+                                XTL::Xbox_D3D_TextureState = nullptr;
+                                CxbxKrnlCleanup("Xbox_D3D_TextureState was not found!");
                             }
                         }
 
@@ -665,6 +658,8 @@ void EmuHLEIntercept(Xbe::Header *pXbeHeader)
 		std::string HLECacheHashString = std::to_string(GetHLEDataBaseHash());
 		WritePrivateProfileString("Info", "HLECacheHash", HLECacheHashString.c_str(), filename.c_str());
 	}
+
+	XTL::InitD3DDeferredStates();
 
 	// Write the Certificate Details to the cache file
 	WritePrivateProfileString("Certificate", "Name", tAsciiTitle, filename.c_str());

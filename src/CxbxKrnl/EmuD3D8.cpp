@@ -129,6 +129,9 @@ typedef uint64_t resource_key_t;
 // resource caching for _Register
 std::vector<resource_key_t> g_RegisteredResources;
 
+// Modifieable, behaviour-changing variable
+int                                 X_D3DSCM_CORRECTION_VersionDependent = 0; // version-dependent correction on shader constant numbers
+
 // current active index buffer
 static DWORD                        g_dwBaseVertexIndex = 0;// current active index buffer base index
 
@@ -3348,8 +3351,10 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetVertexShaderConstant)
 	// some shaders need to add 96 to use ranges 0 to 192.  This fixes 3911 - 4361 games and XDK
 	// samples, but breaks Turok.
 
-	if(g_BuildVersion <= 4361)
-		Register += 96;
+	if (X_D3DSCM_CORRECTION_VersionDependent > 0) {
+		Register += X_D3DSCM_CORRECTION_VersionDependent;
+		DbgPrintf("Corrected constant register : 0x%.08x\n", Register);
+	}
 
     HRESULT hRet = g_pD3DDevice8->SetVertexShaderConstant
     (
@@ -6735,9 +6740,17 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetVertexShaderConstant)
 		LOG_FUNC_ARG(ConstantCount)
 		LOG_FUNC_END;
 
+	// TODO -oDxbx: If we ever find a title that calls this, check if this correction
+	// should indeed be done version-dependantly (like in SetVertexShaderConstant);
+	// It seems logical that these two mirror eachother, but it could well be different:
+	if (X_D3DSCM_CORRECTION_VersionDependent > 0) {
+		Register += X_D3DSCM_CORRECTION_VersionDependent;
+		DbgPrintf("Corrected constant register : 0x%.08x\n", Register);
+	}
+
     HRESULT hRet = g_pD3DDevice8->GetVertexShaderConstant
     (
-        Register + 96,
+        Register,
         pConstantData,
         ConstantCount
     );
@@ -7490,14 +7503,14 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetRenderState_Deferred)
 		LOG_FUNC_END;
 
 	// TODO: HACK: Technically, this function doesn't need to be emulated.
-	// The location of EmuD3DDeferredRenderState for 3911 isn't correct and at
+	// The location of Xbox_D3D__RenderState_Deferred for 3911 isn't correct and at
 	// the time of writing, I don't understand how to fix it.  Until then, 
 	// I'm going to implement this in a reckless manner.  When the offset for
-	// EmuD3DDeferredRenderState is fixed for 3911, this function should be
+	// Xbox_D3D__RenderState_Deferred is fixed for 3911, this function should be
 	// obsolete!
 
 	if( State > 81 && State < 116 )
-		EmuD3DDeferredRenderState[State-82] = Value;
+		Xbox_D3D__RenderState_Deferred[State-82] = Value;
 	else
 		CxbxKrnlCleanup("Unknown Deferred RenderState! (%d)\n", State);
 

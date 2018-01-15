@@ -863,7 +863,7 @@ VOID XTL::EmuFlushIVB()
 
 	DWORD dwPos = dwCurFVF & D3DFVF_POSITION_MASK;
 	DWORD dwTexN = (dwCurFVF & D3DFVF_TEXCOUNT_MASK) >> D3DFVF_TEXCOUNT_SHIFT;
-	size_t TexSize[X_D3DTS_STAGECOUNT]; // Xbox supports up to 4 textures (TEXTURE_STAGES)
+	size_t TexSize[X_D3DTSS_STAGECOUNT]; // Xbox supports up to 4 textures (TEXTURE_STAGES)
 
 	for (uint i = 0; i < dwTexN; i++) {
 		TexSize[i] = DxbxFVF_GetTextureSize(dwCurFVF, i);
