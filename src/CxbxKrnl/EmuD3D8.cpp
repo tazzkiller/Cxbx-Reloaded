@@ -3058,7 +3058,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateImageSurface)
     X_D3DSurface      **ppSurface
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Width)
@@ -3443,7 +3443,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetTile)
     X_D3DTILE      *pTile
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Index)
@@ -3465,7 +3465,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTile)
     CONST X_D3DTILE    *pTile
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Index)
@@ -4065,7 +4065,7 @@ XTL::X_D3DResource * WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture2)
     X_D3DRESOURCETYPE   D3DResource
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
     X_D3DTexture *pTexture = NULL;
 
@@ -4109,7 +4109,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateTexture)
     X_D3DTexture  **ppTexture
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Width)
@@ -4265,7 +4265,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateVolumeTexture)
     X_D3DVolumeTexture **ppVolumeTexture
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Width)
@@ -4357,7 +4357,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreateCubeTexture)
     X_D3DCubeTexture  **ppCubeTexture
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(EdgeLength)
@@ -5277,7 +5277,7 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
     PVOID               pBase
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pThis)
@@ -5292,8 +5292,9 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
 
     DWORD dwCommonType = GetXboxCommonResourceType(pResource);
 
-    // add the offset of the current texture to the base
-    pBase = (PVOID)((DWORD)pBase + pResource->Data);
+    // add the offset of the current resource to the base
+	pBase = (PVOID)((DWORD)pBase + pResource->Data);
+    
 
     // Determine the resource type, and initialize
     switch(dwCommonType)
@@ -5526,7 +5527,11 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
             }
             else
             {
-                CxbxKrnlCleanup("0x%.08X is not a supported format!\n", X_Format);
+				// Unhandled format: Guess reasonable values, show a warning and continue
+                EmuWarning("0x%.08X is not a supported format!\n", X_Format);
+				dwWidth = (pPixelContainer->Size & X_D3DSIZE_WIDTH_MASK) + 1;
+				dwHeight = ((pPixelContainer->Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
+				dwPitch = (((pPixelContainer->Size & X_D3DSIZE_PITCH_MASK) >> X_D3DSIZE_PITCH_SHIFT) + 1) * 64;
             }
 
             if(X_Format == X_D3DFMT_YUY2)
@@ -5570,9 +5575,21 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
 					hRet = g_pD3DDevice8->CreateImageSurface(dwWidth, dwHeight, PCFormat, &pNewHostSurface);
 					DEBUG_D3DRESULT(hRet, "g_pD3DDevice8->CreateImageSurface");
 
-                    if(FAILED(hRet))
-                        CxbxKrnlCleanup("CreateImageSurface Failed!\n\nError: %s\nDesc: %s"/*,
-								DXGetErrorString8A(hRet), DXGetErrorDescription8A(hRet)*/);
+					// First fail, retry with a fallback format
+					// If this succeeds, the texture may not render correctly, but it won't crash
+                    if(FAILED(hRet)) {
+                        EmuWarning("CreateImageSurface Failed\n\nError: %s\nDesc: %s",
+								DXGetErrorString8A(hRet), DXGetErrorDescription8A(hRet));
+
+						EmuWarning("Trying Fallback");
+						hRet = g_pD3DDevice8->CreateImageSurface(dwWidth, dwHeight, D3DFMT_A8R8G8B8, &pNewHostSurface);
+					}
+
+					// If the fallback failed, show an error and exit execution. We cannot safely continue in this state.
+					if (FAILED(hRet)) {
+						CxbxKrnlCleanup("CreateImageSurface Failed!\n\nError: %s\nDesc: %s",
+							DXGetErrorString8A(hRet), DXGetErrorDescription8A(hRet));
+					}
 
 					SetHostSurface(pResource, pNewHostSurface);
 					DbgPrintf("EmuIDirect3DResource8_Register : Successfully Created ImageSurface (0x%.08X, 0x%.08X)\n", pResource, pNewHostSurface);
@@ -6062,7 +6079,7 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_Release)
     X_D3DResource      *pThis
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(pThis);
 
@@ -6165,7 +6182,7 @@ XTL::X_D3DRESOURCETYPE WINAPI XTL::EMUPATCH(D3DResource_GetType)
     X_D3DResource      *pThis
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(pThis);
 
@@ -6312,7 +6329,7 @@ VOID WINAPI XTL::EMUPATCH(D3DSurface_GetDesc)
     X_D3DSURFACE_DESC  *pDesc
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pThis)
@@ -6463,7 +6480,7 @@ DWORD WINAPI XTL::EMUPATCH(D3DBaseTexture_GetLevelCount)
     X_D3DBaseTexture   *pThis
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(pThis);
 
@@ -6491,7 +6508,7 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel2)
     UINT            Level
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(pThis)
@@ -6610,7 +6627,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel)
     X_D3DSurface      **ppSurfaceLevel
 )
 {
-	FUNC_EXPORTS
+	//FUNC_EXPORTS
 
 	LOG_FORWARD("D3DTexture_GetSurfaceLevel2");
 
