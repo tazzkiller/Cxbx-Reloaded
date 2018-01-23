@@ -696,6 +696,8 @@ XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource)
 	if (pXboxResource == NULL)
 		return nullptr;
 
+	EmuVerifyResourceIsRegistered(pXboxResource);
+
 	if (IsSpecialXboxResource(pXboxResource)) // Was X_D3DRESOURCE_DATA_YUV_SURFACE
 		return nullptr;
 
@@ -2965,9 +2967,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_CopyRects)
 		LOG_FUNC_ARG(pDestPointsArray)
 		LOG_FUNC_END;
 
-	EmuVerifyResourceIsRegistered(pSourceSurface);
-	EmuVerifyResourceIsRegistered(pDestinationSurface);
-
 	XTL::IDirect3DSurface8 *pHostSurface = GetHostSurface(pSourceSurface);
 	pHostSurface->UnlockRect(); // remove old lock
 
@@ -4498,7 +4497,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
         }
         else
         {			
-			EmuVerifyResourceIsRegistered(pTexture);
 			pHostBaseTexture = GetHostBaseTexture(pTexture);
 
 			// Remove old locks before setting
@@ -5239,6 +5237,8 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
     // Determine the resource type, and initialize
     switch(dwCommonType)
     {
+		// 
+		case X_D3DCOMMON_TYPE_INDEXBUFFER:	return;
         case X_D3DCOMMON_TYPE_VERTEXBUFFER:
         {
             DbgPrintf("EmuIDirect3DResource8_Register : Creating VertexBuffer...\n");
@@ -5929,7 +5929,7 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
         {
             X_D3DFixup *pFixup = (X_D3DFixup*)pResource;
 
-            CxbxKrnlCleanup("IDirect3DResource8::Register -> X_D3DCOMMON_TYPE_FIXUP is not yet supported\n"
+            EmuWarning("IDirect3DResource8::Register -> X_D3DCOMMON_TYPE_FIXUP is not yet supported\n"
             "0x%.08X (pFixup->Common) \n"
             "0x%.08X (pFixup->Data)   \n"
             "0x%.08X (pFixup->Lock)   \n"
@@ -5939,7 +5939,7 @@ VOID WINAPI XTL::EMUPATCH(D3DResource_Register)
         }
 
         default:
-            CxbxKrnlCleanup("IDirect3DResource8::Register -> Common Type 0x%.08X not yet supported", dwCommonType);
+            EmuWarning("IDirect3DResource8::Register -> Common Type 0x%.08X not yet supported", dwCommonType);
     }
 }
 
@@ -5966,7 +5966,6 @@ ULONG WINAPI XTL::EMUPATCH(D3DResource_AddRef)
 
 	// Index buffers don't have a native resource assigned
 	if (GetXboxCommonResourceType(pThis) != X_D3DCOMMON_TYPE_INDEXBUFFER) {
-		EmuVerifyResourceIsRegistered(pThis);
 
 		// If this is the first reference on a surface
 		if (uRet == 1)
@@ -6064,8 +6063,6 @@ XTL::X_D3DRESOURCETYPE WINAPI XTL::EMUPATCH(D3DResource_GetType)
 
 	D3DRESOURCETYPE rType;
 
-	EmuVerifyResourceIsRegistered(pThis);
-
 	// Check for Xbox specific resources (Azurik may need this)
 	DWORD dwType = GetXboxResourceType(pThis);
 
@@ -6157,8 +6154,6 @@ VOID WINAPI XTL::EMUPATCH(Lock3DSurface)
 		LOG_FUNC_ARG(Flags)
 		LOG_FUNC_END;
 
-    EmuVerifyResourceIsRegistered(pPixelContainer);
-
 	HRESULT hRet;
 	XTL::IDirect3DVolumeTexture8 *pHostVolumeTexture = GetHostVolumeTexture(pPixelContainer);
 
@@ -6224,8 +6219,6 @@ VOID WINAPI XTL::EMUPATCH(D3DSurface_GetDesc)
 		LOG_FUNC_END;
 
     HRESULT hRet;
-
-    EmuVerifyResourceIsRegistered(pThis);
 
     if(pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
     {
@@ -6310,8 +6303,6 @@ VOID WINAPI XTL::EMUPATCH(D3DSurface_LockRect)
 		return;
 	}
 
-	EmuVerifyResourceIsRegistered(pThis);
-
 	DWORD NewFlags = 0;
 	if (Flags & X_D3DLOCK_READONLY)
 		NewFlags |= D3DLOCK_READONLY;
@@ -6379,8 +6370,6 @@ DWORD WINAPI XTL::EMUPATCH(D3DBaseTexture_GetLevelCount)
 
 	if( pThis )
 	{
-		EmuVerifyResourceIsRegistered(pThis);
-
 		IDirect3DBaseTexture8 *pHostBaseTexture = GetHostBaseTexture(pThis);
 
 		if( pHostBaseTexture )
@@ -6412,7 +6401,6 @@ XTL::X_D3DSurface * WINAPI XTL::EMUPATCH(D3DTexture_GetSurfaceLevel2)
 		EmuWarning("pThis not assigned!");
 	else
 	{
-		EmuVerifyResourceIsRegistered(pThis);
 		if (pThis->Data == X_D3DRESOURCE_DATA_YUV_SURFACE)
 		{
 			result = (X_D3DSurface*)pThis;
@@ -6478,8 +6466,6 @@ VOID WINAPI XTL::EMUPATCH(D3DTexture_LockRect)
 		XB_D3DTexture_LockRect(pThis, Level, pLockedRect, pRect, Flags);
 		return;
 	}
-
-    EmuVerifyResourceIsRegistered(pThis);
 
     IDirect3DTexture8 *pHostTexture = GetHostTexture(pThis);
 
@@ -6550,8 +6536,6 @@ VOID WINAPI XTL::EMUPATCH(D3DVolumeTexture_LockBox)
 		LOG_FUNC_ARG(Flags)
 		LOG_FUNC_END;
 
-    EmuVerifyResourceIsRegistered(pThis);
-
     IDirect3DVolumeTexture8 *pHostVolumeTexture = GetHostVolumeTexture(pThis);
 
 	pHostVolumeTexture->UnlockBox(Level); // remove old lock
@@ -6582,8 +6566,6 @@ VOID WINAPI XTL::EMUPATCH(D3DCubeTexture_LockRect)
 		LOG_FUNC_ARG(pRect)
 		LOG_FUNC_ARG(Flags)
 		LOG_FUNC_END;
-
-    EmuVerifyResourceIsRegistered(pThis);
 
     IDirect3DCubeTexture8 *pHostCubeTexture = GetHostCubeTexture(pThis);
 
@@ -7707,8 +7689,6 @@ VOID WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock)
 		LOG_FUNC_ARG(Flags)
 		LOG_FUNC_END;
 
-	EmuVerifyResourceIsRegistered(pVertexBuffer);
-
     IDirect3DVertexBuffer8 *pHostVertexBuffer = GetHostVertexBuffer(pVertexBuffer);
 
 	// Let's verify this VB exists before trying to lock it...
@@ -7738,8 +7718,6 @@ BYTE* WINAPI XTL::EMUPATCH(D3DVertexBuffer_Lock2)
 		LOG_FUNC_ARG(pVertexBuffer)
 		LOG_FUNC_ARG(Flags)
 		LOG_FUNC_END;
-
-	EmuVerifyResourceIsRegistered(pVertexBuffer);
 
     BYTE *pbNativeData = NULL;
 
@@ -7844,8 +7822,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
 
     if(pStreamData != NULL)
     {
-        EmuVerifyResourceIsRegistered(pStreamData);
-
         pHostVertexBuffer = GetHostVertexBuffer(pStreamData);
         pHostVertexBuffer->Unlock();
     }
@@ -8381,7 +8357,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 
     if(pRenderTarget != NULL)
     {
-		EmuVerifyResourceIsRegistered(pRenderTarget);
 		g_pCachedRenderTarget = pRenderTarget;
 
 		if(GetHostSurface(pRenderTarget) != nullptr)
@@ -8396,7 +8371,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetRenderTarget)
 
     if(pNewZStencil != NULL)
     {
-		EmuVerifyResourceIsRegistered(pNewZStencil);
 		g_pCachedDepthStencil = pNewZStencil;
         if(GetHostSurface(pNewZStencil) != nullptr)
         {
@@ -10164,8 +10138,6 @@ HRESULT WINAPI XTL::EMUPATCH(D3DCubeTexture_GetCubeMapSurface)
 		LOG_FUNC_END;
 
 	HRESULT hRet;
-
-	EmuVerifyResourceIsRegistered(pThis);
 
 	// Create a new surface
 	*ppCubeMapSurface = EmuNewD3DSurface();
