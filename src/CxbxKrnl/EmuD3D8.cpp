@@ -8357,7 +8357,7 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette)
     X_D3DPalette      **ppPalette
 )
 {
-	FUNC_EXPORTS
+	// FUNC_EXPORTS
 
 	LOG_FORWARD("D3DDevice_CreatePalette2");
 
@@ -8374,7 +8374,7 @@ XTL::X_D3DPalette * WINAPI XTL::EMUPATCH(D3DDevice_CreatePalette2)
     X_D3DPALETTESIZE    Size
 )
 {
-	FUNC_EXPORTS
+	// FUNC_EXPORTS
 
 	LOG_FUNC_ONE_ARG(Size);
 
