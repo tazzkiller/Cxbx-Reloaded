@@ -456,8 +456,13 @@ XBSYSAPI EXPORTNUM(163) xboxkrnl::VOID FASTCALL xboxkrnl::KiUnlockDispatcherData
 {
 	LOG_FUNC_ONE_ARG_TYPE(KIRQL_TYPE, OldIrql);
 
-	if (!(KeGetCurrentPrcb()->DpcRoutineActive)) // Avoid KeIsExecutingDpc(), as that logs
-		HalRequestSoftwareInterrupt(DISPATCH_LEVEL);
+	KPRCB *prcb = KeGetCurrentPrcb();
+
+	if (OldIrql >= DISPATCH_LEVEL) {
+		if (!(prcb->DpcRoutineActive)) { // Avoid KeIsExecutingDpc(), as that logs
+			HalRequestSoftwareInterrupt(DISPATCH_LEVEL);
+		}
+	}
 
 	LOG_INCOMPLETE(); // TODO : Thread-switch?
 

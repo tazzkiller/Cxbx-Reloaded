@@ -46,7 +46,36 @@
     (Timer)->Header.Inserted = FALSE;          \
     RemoveEntryList(&(Timer)->TimerListEntry)
 
+void KiDeliverApc();
+
+void KiDeliverUserApc();
+
 xboxkrnl::BOOLEAN KiInsertTreeTimer(
 	IN xboxkrnl::PKTIMER Timer,
 	IN xboxkrnl::LARGE_INTEGER Interval
 );
+
+#define KiWaitSatisfyMutant(_Object_, _Thread_) { \
+    (_Object_)->Header.SignalState -= 1; \
+    if ((_Object_)->Header.SignalState == 0) { \
+        (_Object_)->OwnerThread = _Thread_; \
+        if ((_Object_)->Abandoned) { \
+            (_Object_)->Abandoned = FALSE; \
+            (_Thread_)->WaitStatus = STATUS_ABANDONED; \
+        } \
+        InsertHeadList(_Thread_->MutantListHead.Blink, \
+                       &(_Object_)->MutantListEntry); \
+    } \
+}
+
+#define KiWaitSatisfyOther(_Object_) { \
+    if (((_Object_)->Header.Type & DISPATCHER_OBJECT_TYPE_MASK) == KOBJECTS::EventSynchronizationObject) { \
+        (_Object_)->Header.SignalState = 0;\
+    } else if ((_Object_)->Header.Type == KOBJECTS::SemaphoreObject) { \
+        (_Object_)->Header.SignalState -= 1; \
+    } \
+}
+
+void KiWaitSatisfyAny(xboxkrnl::PKMUTANT Object, xboxkrnl::PKTHREAD Thread);
+
+void KiWaitSatisfyAll(xboxkrnl::PKWAIT_BLOCK WaitBlock);

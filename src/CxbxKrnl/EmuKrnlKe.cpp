@@ -88,13 +88,6 @@ xboxkrnl::ULONGLONG LARGE_INTEGER2ULONGLONG(xboxkrnl::LARGE_INTEGER value)
 	return *((PULONGLONG)&value);
 }
 
-/*!
-* Retrieves the next list entry of a LIST_ENTRY as a pointer.
-*/
-inline xboxkrnl::LIST_ENTRY *NextListEntry(xboxkrnl::LIST_ENTRY *pListEntry) {
-	return pListEntry->Flink;
-}
-
 // ******************************************************************
 // * KeGetPcr()
 // * NOTE: This is a macro on the Xbox, however we implement it 
@@ -1022,10 +1015,10 @@ XBSYSAPI EXPORTNUM(122) xboxkrnl::VOID NTAPI xboxkrnl::KeLeaveCriticalRegion
     PKTHREAD thread = KeGetCurrentThread();
     thread->KernelApcDisable++;
     if(thread->KernelApcDisable == 0) {
-		LIST_ENTRY *apcListHead = &thread->ApcState.ApcListHead[0/*=KernelMode*/];
+		LIST_ENTRY *apcListHead = &thread->ApcState.ApcListHead[KernelMode];
         if(apcListHead->Flink != apcListHead) {
-            thread->ApcState.KernelApcPending = 1; // TRUE
-            HalRequestSoftwareInterrupt(1); // APC_LEVEL
+			thread->ApcState.KernelApcPending = TRUE;
+            HalRequestSoftwareInterrupt(APC_LEVEL);
         }
     }
 }
@@ -1858,8 +1851,7 @@ XBSYSAPI EXPORTNUM(158) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForMultipleObje
 		else {
 #ifdef USE_HOST_EVENTS
 			// Take the input and build an array of handles created by our kernel
-			// Handles created by our kernel need to be forwarded to WaitForMultipleObjects while handles
-			// created by Windows need to be forwarded to NtDll::KeWaitForMultipleObjects
+			// Handles created by Windows need to be forwarded to NtDll::KeWaitForMultipleObjects
 			std::vector<HANDLE> ntdllObjects;
 
 #endif // USE_HOST_EVENTS
@@ -1880,7 +1872,7 @@ XBSYSAPI EXPORTNUM(158) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForMultipleObje
 					if (Objectx->Header.Type == MutantObject) {
 						if (Objectx->Header.SignalState > 0 || pThread == Objectx->OwnerThread) {
 							if (Objectx->Header.SignalState != MINLONG) {
-								// TODO : KiWaitSatisfyMutant(Objectx, pThread);
+								KiWaitSatisfyMutant(Objectx, pThread);
 								WaitStatus = i | pThread->WaitStatus;
 								goto NoWait;
 							}
@@ -1891,7 +1883,7 @@ XBSYSAPI EXPORTNUM(158) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForMultipleObje
 						}
 					}
 					else if (Objectx->Header.SignalState > 0) {
-						// TODO : KiWaitSatisfyOther(Objectx);
+						KiWaitSatisfyOther(Objectx);
 						WaitStatus = i;
 						goto NoWait;
 					}
@@ -1939,7 +1931,7 @@ XBSYSAPI EXPORTNUM(158) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForMultipleObje
 
 			if (WaitType == WaitAll && waitSatisfied) {
 				pWaitBlock->NextWaitBlock = &WaitBlockArray[0];
-				// TODO : KiWaitSatisfyAll(pWaitBlock);
+				KiWaitSatisfyAll(pWaitBlock);
 				WaitStatus = pThread->WaitStatus;
 				goto NoWait;
 			}
@@ -1990,7 +1982,7 @@ XBSYSAPI EXPORTNUM(158) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForMultipleObje
 			WaitStatus = KiSwapThread();
 
 			if (WaitStatus == STATUS_USER_APC) {
-				// TODO : KiDeliverUserApc();
+				KiDeliverUserApc();
 			}
 
 			if (WaitStatus != STATUS_KERNEL_APC) {
@@ -2005,7 +1997,7 @@ XBSYSAPI EXPORTNUM(158) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForMultipleObje
 		}
 
 		KiLockDispatcherDatabase(&pThread->WaitIrql);
-	} while (TRUE);
+	} while (FALSE); // TODO : (TRUE);
 
 	goto WaitEnd;
 
@@ -2015,7 +2007,7 @@ NoWait:
 WaitEnd:
 	KiUnlockDispatcherDatabase(pThread->WaitIrql);
 	if (WaitStatus == STATUS_USER_APC) {
-		//TODO : KiDeliverUserApc();
+		KiDeliverUserApc();
 	}
 
 	RETURN(WaitStatus);

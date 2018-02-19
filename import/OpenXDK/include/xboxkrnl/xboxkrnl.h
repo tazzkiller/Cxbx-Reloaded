@@ -149,6 +149,7 @@ typedef long                            NTSTATUS;
 
 #define NT_SUCCESS(Status)              ((NTSTATUS) (Status) >= 0)
 #define STATUS_SUCCESS                   ((DWORD   )0x00000000L)
+#define STATUS_ABANDONED                 ((DWORD   )0x00000080L)
 #ifndef STATUS_PENDING
 #define STATUS_PENDING                   ((DWORD   )0x00000103L)
 #endif
@@ -1635,14 +1636,19 @@ typedef struct _KFLOATING_SAVE
 }
 KFLOATING_SAVE, *PKFLOATING_SAVE;
 
+#define DISPATCHER_OBJECT_TYPE_MASK 0x7
+
 // ******************************************************************
 // * KOBJECTS
 // ******************************************************************
 typedef enum _KOBJECTS
 {
+	EventNotificationObject = 0,
+	EventSynchronizationObject = 1,
 	MutantObject = 2,
 	QueueObject = 4,
 	SemaphoreObject = 5,
+	ThreadObject = 6,
 	TimerNotificationObject = 8,
 	TimerSynchronizationObject = 9,
 	ApcObject = 0x12,
@@ -1654,7 +1660,7 @@ KOBJECTS, *PKOBJECTS;
 // ******************************************************************
 // * PKNORMAL_ROUTINE
 // ******************************************************************
-typedef VOID (*PKNORMAL_ROUTINE)
+typedef VOID (__stdcall *PKNORMAL_ROUTINE)
 (
 	IN PVOID NormalContext,
 	IN PVOID SystemArgument1,
@@ -1664,7 +1670,7 @@ typedef VOID (*PKNORMAL_ROUTINE)
 // ******************************************************************
 // * PKKERNEL_ROUTINE
 // ******************************************************************
-typedef VOID (*PKKERNEL_ROUTINE)
+typedef VOID (__stdcall *PKKERNEL_ROUTINE)
 (
 	IN struct _KAPC *Apc,
 	IN OUT PKNORMAL_ROUTINE *NormalRoutine,
