@@ -75,13 +75,24 @@ typedef struct _DpcData {
 
 DpcData g_DpcData = { 0 }; // Note : g_DpcData is initialized in InitDpcAndTimerThread()
 
+#define USE_HOST_EVENTS
+
+#ifdef USE_HOST_EVENTS
 std::map<xboxkrnl::PRKEVENT, HANDLE> g_KeEventHandles;
+#endif // USE_HOST_EVENTS
 
 xboxkrnl::ULONGLONG LARGE_INTEGER2ULONGLONG(xboxkrnl::LARGE_INTEGER value)
 {
 	// Weird construction because there doesn't seem to exist an implicit
 	// conversion of LARGE_INTEGER to ULONGLONG :
 	return *((PULONGLONG)&value);
+}
+
+/*!
+* Retrieves the next list entry of a LIST_ENTRY as a pointer.
+*/
+inline xboxkrnl::LIST_ENTRY *NextListEntry(xboxkrnl::LIST_ENTRY *pListEntry) {
+	return pListEntry->Flink;
 }
 
 // ******************************************************************
@@ -632,6 +643,8 @@ XBSYSAPI EXPORTNUM(108) xboxkrnl::VOID NTAPI xboxkrnl::KeInitializeEvent
 	Event->Header.SignalState = SignalState;
 	InitializeListHead(&(Event->Header.WaitListHead)); 
 
+	//m_objmgr->RegisterEvent(Event, pEvent, Type);
+#ifdef USE_HOST_EVENTS
 
 	// Create a Windows event, to be used in KeWaitForObject
 	// TODO: This doesn't check for events that are already initialized
@@ -639,6 +652,7 @@ XBSYSAPI EXPORTNUM(108) xboxkrnl::VOID NTAPI xboxkrnl::KeInitializeEvent
 	// ignore it for now
 	HANDLE hostEvent = CreateEvent(NULL, FALSE, SignalState, NULL);
 	g_KeEventHandles[Event] = hostEvent;
+#endif // USE_HOST_EVENTS
 }
 
 // ******************************************************************
@@ -1029,17 +1043,35 @@ XBSYSAPI EXPORTNUM(123) xboxkrnl::LONG NTAPI xboxkrnl::KePulseEvent
 		LOG_FUNC_ARG(Wait)
 		LOG_FUNC_END;
 
-	// Fetch the host event and signal it, if present
-	if (g_KeEventHandles.find(Event) == g_KeEventHandles.end()) {
-		EmuWarning("KePulseEvent called on a non-existant event!");
+	KIRQL oldIRQL;
+	KiLockDispatcherDatabase(&oldIRQL);
+
+	LONG prevState = Event->Header.SignalState;
+	if (prevState == 0 && !IsListEmpty(&Event->Header.WaitListHead)) {
+		Event->Header.SignalState = 1;
+		// TODO : KiWaitTest(Event, Increment);
+	}
+
+	Event->Header.SignalState = 0;
+
+	Wait = FALSE; // TODO : Enable once our kernel handles WaitNext and WaitIrql
+	if (Wait) {
+		KTHREAD *pThread = KeGetCurrentThread();
+		pThread->WaitIrql = oldIRQL;
+		pThread->WaitNext = Wait;
 	}
 	else {
+		KiUnlockDispatcherDatabase(oldIRQL);
+	}
+#ifdef USE_HOST_EVENTS
+
+	// Fetch the host event and signal it, if present
+	if (g_KeEventHandles.find(Event) != g_KeEventHandles.end()) {
 		PulseEvent(g_KeEventHandles[Event]);
 	}
+#endif // USE_HOST_EVENTS
 
-	LOG_UNIMPLEMENTED();
-
-	RETURN(0);
+	RETURN(prevState);
 }
 
 XBSYSAPI EXPORTNUM(124) xboxkrnl::LONG NTAPI xboxkrnl::KeQueryBasePriorityThread
@@ -1360,20 +1392,22 @@ XBSYSAPI EXPORTNUM(138) xboxkrnl::LONG NTAPI xboxkrnl::KeResetEvent
 {
 	LOG_FUNC_ONE_ARG(Event);
 
-	// TODO : Untested & incomplete
-	LONG ret = Event->Header.SignalState;
+	KIRQL oldIRQL;
+	KiLockDispatcherDatabase(&oldIRQL);
+
+	LONG prevState = Event->Header.SignalState;
 	Event->Header.SignalState = 0;
 
+	KiUnlockDispatcherDatabase(oldIRQL);
+#ifdef USE_HOST_EVENTS
+
 	// Fetch the host event and signal it, if present
-	if (g_KeEventHandles.find(Event) == g_KeEventHandles.end()) {
-		EmuWarning("KeResetEvent called on a non-existant event!");
-	}
-	else {
+	if (g_KeEventHandles.find(Event) != g_KeEventHandles.end()) {
 		ResetEvent(g_KeEventHandles[Event]);
 	}
+#endif // USE_HOST_EVENTS
 
-
-	return ret;
+	RETURN(prevState);
 }
 
 // ******************************************************************
@@ -1502,20 +1536,45 @@ XBSYSAPI EXPORTNUM(145) xboxkrnl::LONG NTAPI xboxkrnl::KeSetEvent
 		LOG_FUNC_ARG(Wait)
 		LOG_FUNC_END;
 
-	// TODO : Untested & incomplete
-	LONG ret = Event->Header.SignalState;
-	Event->Header.SignalState = TRUE;
+	KIRQL oldIRQL;
+	KiLockDispatcherDatabase(&oldIRQL);
 
-	// Fetch the host event and signal it, if present
-	if (g_KeEventHandles.find(Event) == g_KeEventHandles.end()) {
-		EmuWarning("KeSetEvent called on a non-existant event. Creating it!");
-		// TODO: Find out why some XDKs do not call KeInitializeEvent first
-		KeInitializeEvent(Event, NotificationEvent, TRUE);
-	} else {
-		SetEvent(g_KeEventHandles[Event]);
+	LONG prevState = Event->Header.SignalState;
+	if (IsListEmpty(&Event->Header.WaitListHead)) {
+		Event->Header.SignalState = 1;
+	}
+	else {
+		KWAIT_BLOCK *pWaitBlock = CONTAINING_RECORD(NextListEntry(&Event->Header.WaitListHead), KWAIT_BLOCK, WaitListEntry);
+
+		if (Event->Header.Type == NotificationEvent || pWaitBlock->WaitType != WaitAny) {
+			if (prevState == 0) {
+				Event->Header.SignalState = 1;
+				// TODO : KiWaitTest(Event, Increment);
+			}
+		}
+		else {
+			// TODO : KiUnwaitThread(pWaitBlock->Thread, pWaitBlock->WaitKey, Increment);
+		}
 	}
 
-	RETURN(ret);
+	Wait = FALSE; // TODO : Remove once our kernel handles WaitNext and WaitIrql
+	if (Wait) {
+		KTHREAD *pThread = KeGetCurrentThread();
+		pThread->WaitNext = Wait;
+		pThread->WaitIrql = oldIRQL;
+	}
+	else {
+		KiUnlockDispatcherDatabase(oldIRQL);
+	}
+#ifdef USE_HOST_EVENTS
+
+	// Fetch the host event and signal it, if present
+	if (g_KeEventHandles.find(Event) != g_KeEventHandles.end()) {
+		SetEvent(g_KeEventHandles[Event]);
+	}
+#endif // USE_HOST_EVENTS
+
+	RETURN(prevState);
 }
 
 XBSYSAPI EXPORTNUM(146) xboxkrnl::VOID NTAPI xboxkrnl::KeSetEventBoostPriority
@@ -1774,52 +1833,192 @@ XBSYSAPI EXPORTNUM(158) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForMultipleObje
 		LOG_FUNC_ARG(WaitBlockArray)
 		LOG_FUNC_END;
 
-	NTSTATUS ret = STATUS_SUCCESS;
+	LARGE_INTEGER DueTime;
+	// TODO : LARGE_INTEGER NewTime;
 
-	// Take the input and build two arrays: One of handles created by our kernel and one for not
-	// Handles created by our kernel need to be forwarded to WaitForMultipleObjects while handles
-	// created by Windows need to be forwarded to NtDll::KeWaitForMultipleObjects
-	std::vector<HANDLE> nativeObjects;
-	std::vector<HANDLE> ntdllObjects;
+	PKTHREAD pThread = KeGetCurrentThread();
+	if (pThread->WaitNext) {
+		pThread->WaitNext = FALSE;
+	}
+	else {
+		KiLockDispatcherDatabase(&pThread->WaitIrql);
+	}
 
-	for (uint i = 0; i < Count; i++) {
-		DbgPrintf("Object: 0x%08X\n", Object[i]);
-		if (g_KeEventHandles.find((PKEVENT)Object[i]) == g_KeEventHandles.end()) {
-			ntdllObjects.push_back(Object[i]);
-		} else {
-			nativeObjects.push_back(g_KeEventHandles[(PRKEVENT)Object[i]]);
+	PLARGE_INTEGER originalTime = Timeout;
+	KWAIT_BLOCK stackWaitBlock;
+	KWAIT_BLOCK *pWaitBlock = &stackWaitBlock;
+	NTSTATUS WaitStatus = STATUS_SUCCESS;
+
+	do {
+		pThread->WaitBlockList = WaitBlockArray;
+
+		if (pThread->ApcState.KernelApcPending && (pThread->WaitIrql < APC_LEVEL)) {
+			KiUnlockDispatcherDatabase(pThread->WaitIrql);
 		}
+		else {
+#ifdef USE_HOST_EVENTS
+			// Take the input and build an array of handles created by our kernel
+			// Handles created by our kernel need to be forwarded to WaitForMultipleObjects while handles
+			// created by Windows need to be forwarded to NtDll::KeWaitForMultipleObjects
+			std::vector<HANDLE> ntdllObjects;
+
+#endif // USE_HOST_EVENTS
+			pThread->WaitStatus = (NTSTATUS)0;
+			BOOLEAN waitSatisfied = TRUE;
+			KMUTANT *Objectx;
+			KWAIT_BLOCK *pWaitBlock;
+			for (ULONG i = 0; i < Count; i += 1) {
+				Objectx = (KMUTANT*)(((DWORD *)Object)[i]);
+#ifdef USE_HOST_EVENTS
+
+				if (g_KeEventHandles.find((PKEVENT)Object[i]) != g_KeEventHandles.end()) {
+					ntdllObjects.push_back(g_KeEventHandles[(PRKEVENT)Object[i]]);
+				}
+#endif // USE_HOST_EVENTS
+
+				if (WaitType == WaitAny) {
+					if (Objectx->Header.Type == MutantObject) {
+						if (Objectx->Header.SignalState > 0 || pThread == Objectx->OwnerThread) {
+							if (Objectx->Header.SignalState != MINLONG) {
+								// TODO : KiWaitSatisfyMutant(Objectx, pThread);
+								WaitStatus = i | pThread->WaitStatus;
+								goto NoWait;
+							}
+							else {
+								KiUnlockDispatcherDatabase(pThread->WaitIrql);
+								// TODO : ExRaiseStatus(STATUS_MUTANT_LIMIT_EXCEEDED);
+							}
+						}
+					}
+					else if (Objectx->Header.SignalState > 0) {
+						// TODO : KiWaitSatisfyOther(Objectx);
+						WaitStatus = i;
+						goto NoWait;
+					}
+				}
+				else {
+					if (Objectx->Header.Type == MutantObject) {
+						if (pThread == Objectx->OwnerThread && Objectx->Header.SignalState == MINLONG) {
+							KiUnlockDispatcherDatabase(pThread->WaitIrql);
+							// ExRaiseStatus(STATUS_MUTANT_LIMIT_EXCEEDED);
+						}
+						else if (Objectx->Header.SignalState <= 0 && pThread != Objectx->OwnerThread) {
+							waitSatisfied = FALSE;
+						}
+					}
+					else if (Objectx->Header.SignalState <= 0) {
+						waitSatisfied = FALSE;
+					}
+				}
+
+				pWaitBlock = &WaitBlockArray[i];
+				pWaitBlock->Object = Objectx;
+				pWaitBlock->WaitKey = (WORD)i;
+				pWaitBlock->WaitType = WaitType;
+				pWaitBlock->Thread = pThread;
+				pWaitBlock->NextWaitBlock = &WaitBlockArray[i + 1];
+			}
+#ifdef USE_HOST_EVENTS
+
+			if (ntdllObjects.size() > 0) {
+				// TODO : What should we do with the (currently ignored)
+				//        WaitReason, WaitMode, WaitBlockArray?
+
+				// Unused arguments : WaitReason, WaitMode, WaitBlockArray
+				WaitStatus = NtDll::NtWaitForMultipleObjects(
+					ntdllObjects.size(),
+					&ntdllObjects[0],
+					(NtDll::OBJECT_WAIT_TYPE)WaitType,
+					Alertable,
+					(NtDll::PLARGE_INTEGER)Timeout);
+
+				if (FAILED(WaitStatus))
+					EmuWarning("KeWaitForMultipleObjects failed! (%s)", NtStatusToString(WaitStatus));
+			}
+#endif // USE_HOST_EVENTS
+
+			if (WaitType == WaitAll && waitSatisfied) {
+				pWaitBlock->NextWaitBlock = &WaitBlockArray[0];
+				// TODO : KiWaitSatisfyAll(pWaitBlock);
+				WaitStatus = pThread->WaitStatus;
+				goto NoWait;
+			}
+
+			// TODO : TestForAlertPending(Alertable);
+
+			if (Timeout != NULL) {
+				if (!(Timeout->u.LowPart | Timeout->u.HighPart)) {
+					WaitStatus = STATUS_TIMEOUT;
+					goto NoWait;
+				}
+
+				KWAIT_BLOCK *pWaitTimer = &pThread->TimerWaitBlock;
+				pWaitBlock->NextWaitBlock = pWaitTimer;
+				pWaitBlock = pWaitTimer;
+				KTIMER *pTimer = &pThread->Timer;
+				InitializeListHead(&pTimer->Header.WaitListHead);
+				if (!KiInsertTreeTimer(pTimer, *Timeout)) {
+					WaitStatus = STATUS_TIMEOUT;
+					goto NoWait;
+				}
+
+				DueTime.QuadPart = pTimer->DueTime.QuadPart;
+			}
+
+			pWaitBlock->NextWaitBlock = &WaitBlockArray[0];
+
+			pWaitBlock = &WaitBlockArray[0];
+			do {
+				Objectx = (KMUTANT*)(pWaitBlock->Object);
+				InsertTailList(&Objectx->Header.WaitListHead, &pWaitBlock->WaitListEntry);
+				pWaitBlock = (KWAIT_BLOCK*)(pWaitBlock->NextWaitBlock);
+			} while (pWaitBlock != &WaitBlockArray[0]);
+
+			PRKQUEUE queue = (PRKQUEUE)(pThread->Queue);
+			if (queue != NULL) {
+				// TODO : KiActivateWaiterQueue(queue);
+			}
+
+			pThread->Alertable = Alertable;
+			pThread->WaitMode = WaitMode;
+			pThread->WaitReason = WaitReason;
+			/* TODO :
+			pThread->WaitTime = m_kvars->KeTickCount;
+			pThread->State = Waiting;
+			KiInsertWaitList(WaitMode, pThread);
+
+			WaitStatus = KiSwapThread();
+
+			if (WaitStatus == STATUS_USER_APC) {
+				// TODO : KiDeliverUserApc();
+			}
+
+			if (WaitStatus != STATUS_KERNEL_APC) {
+				return WaitStatus;
+			}
+
+			if (Timeout != NULL) {
+				LARGE_INTEGER _Timeout = KiComputeWaitInterval(originalTime, &DueTime, &NewTime);
+				*Timeout = _Timeout;
+			}
+			*/
+		}
+
+		KiLockDispatcherDatabase(&pThread->WaitIrql);
+	} while (TRUE);
+
+	goto WaitEnd;
+
+NoWait:
+	// TODO : KiAdjustQuantumThread(pThread);
+
+WaitEnd:
+	KiUnlockDispatcherDatabase(pThread->WaitIrql);
+	if (WaitStatus == STATUS_USER_APC) {
+		//TODO : KiDeliverUserApc();
 	}
 
-	if (ntdllObjects.size() > 0) {
-		// TODO : What should we do with the (currently ignored)
-		//        WaitReason, WaitMode, WaitBlockArray?
-
-		// Unused arguments : WaitReason, WaitMode, WaitBlockArray
-		ret = NtDll::NtWaitForMultipleObjects(
-			ntdllObjects.size(),
-			&ntdllObjects[0],
-			(NtDll::OBJECT_WAIT_TYPE)WaitType,
-			Alertable,
-			(NtDll::PLARGE_INTEGER)Timeout);
-
-		if (FAILED(ret))
-			EmuWarning("KeWaitForMultipleObjects failed! (%s)", NtStatusToString(ret));
-	}
-	
-	if (nativeObjects.size() > 0) {
-		ret = NtDll::NtWaitForMultipleObjects(
-			nativeObjects.size(),
-			&nativeObjects[0],
-			(NtDll::OBJECT_WAIT_TYPE)WaitType,
-			Alertable,
-			(NtDll::PLARGE_INTEGER)Timeout);
-
-		if (FAILED(ret))
-			EmuWarning("KeWaitForMultipleObjects failed! (%s)", NtStatusToString(ret));
-	}
-
-	RETURN(ret);
+	RETURN(WaitStatus);
 }
 
 // ******************************************************************
@@ -1836,6 +2035,8 @@ XBSYSAPI EXPORTNUM(159) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForSingleObject
 {
 	LOG_FORWARD("KeWaitForMultipleObjects");
 
+	KWAIT_BLOCK WaitBlock;
+
 	return xboxkrnl::KeWaitForMultipleObjects(
 		/*Count=*/1,
 		&Object,
@@ -1844,6 +2045,6 @@ XBSYSAPI EXPORTNUM(159) xboxkrnl::NTSTATUS NTAPI xboxkrnl::KeWaitForSingleObject
 		WaitMode,
 		Alertable,
 		Timeout,
-		/*WaitBlockArray*/NULL
+		&WaitBlock
 	);
 }
