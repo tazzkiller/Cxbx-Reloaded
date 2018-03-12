@@ -187,7 +187,7 @@ static void *nv_dma_map(NV2AState *d, xbaddr dma_obj_address, xbaddr *len)
 
 	// assert(dma.address + dma.limit < memory_region_size(d->vram));
 	*len = dma.limit;
-	return (void*)(MM_SYSTEM_PHYSICAL_MAP + dma.address);
+	return (void*)(d->vram_ptr + dma.address);
 }
 
 #include "EmuNV2A_PBUS.cpp"
