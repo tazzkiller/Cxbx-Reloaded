@@ -644,14 +644,6 @@ XTL::X_D3DRESOURCETYPE GetXboxD3DResourceType(const XTL::X_D3DResource *pXboxRes
 	return XTL::X_D3DRTYPE_NONE;
 }
 
-inline boolean IsSpecialXboxResource(const XTL::X_D3DResource *pXboxResource)
-{
-	// Don't pass in unassigned Xbox resources
-	assert(pXboxResource != NULL);
-
-	return ((pXboxResource->Data & X_D3DRESOURCE_DATA_FLAG_SPECIAL) == X_D3DRESOURCE_DATA_FLAG_SPECIAL);
-}
-
 // This can be used to determine if resource Data adddresses
 // need the MM_SYSTEM_PHYSICAL_MAP bit set or cleared
 inline bool IsResourceTypeGPUReadable(const DWORD ResourceType)
@@ -682,7 +674,6 @@ inline bool IsResourceTypeGPUReadable(const DWORD ResourceType)
 
 inline bool IsYuvSurfaceOrTexture(const XTL::X_D3DResource *pXboxResource)
 {
-	// Was : return (pXboxResource->Data == X_D3DRESOURCE_DATA_YUV_SURFACE);
 	if (GetXboxPixelContainerFormat((XTL::X_D3DPixelContainer *)pXboxResource) == XTL::X_D3DFMT_YUY2)
 		return true;
 
@@ -710,22 +701,6 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 	xbaddr pData = pXboxResource->Data;
 	if (pData == NULL)
 		return nullptr;
-
-	if (IsSpecialXboxResource(pXboxResource))
-	{
-		switch (pData) {
-		case X_D3DRESOURCE_DATA_BACK_BUFFER:
-			return nullptr;
-		case X_D3DRESOURCE_DATA_RENDER_TARGET:
-			return nullptr;
-		case X_D3DRESOURCE_DATA_DEPTH_STENCIL:
-			return nullptr;
-		case X_D3DRESOURCE_DATA_SURFACE_LEVEL:
-			return nullptr;
-		default:
-			CxbxKrnlCleanup("Unhandled special resource type");
-		}
-	}
 
 	DWORD dwCommonType = GetXboxCommonResourceType(pXboxResource);
 	if (IsResourceTypeGPUReadable(dwCommonType))
@@ -791,9 +766,6 @@ XTL::IDirect3DResource8 *GetHostResource(XTL::X_D3DResource *pXboxResource, bool
 	if (shouldRegister) {
 		EmuVerifyResourceIsRegistered(pXboxResource, dwSize);
 	}
-
-	if (IsSpecialXboxResource(pXboxResource)) // Was X_D3DRESOURCE_DATA_YUV_SURFACE
-		return nullptr;
 
 	if (pXboxResource->Lock == X_D3DRESOURCE_LOCK_PALETTE)
 		return nullptr;
@@ -2150,10 +2122,6 @@ static void EmuVerifyResourceIsRegistered(XTL::X_D3DResource *pResource, DWORD d
 	// Skip resources without data
 	if (pResource->Data == NULL)
 		return;
-
-    // Already "Registered" implicitly
-    if(IsSpecialXboxResource(pResource))
-        return;
 
 	auto key = GetHostResourceKey(pResource);
 	if (std::find(g_RegisteredResources.begin(), g_RegisteredResources.end(), key) != g_RegisteredResources.end()) {
@@ -4494,105 +4462,87 @@ VOID WINAPI CreateHostResource
 
 						BYTE *pSrc = (BYTE*)GetDataFromXboxResource(pResource); // TODO : Fix (look at Dxbx) this, as it gives cube textures identical sides
 
-                        if(( pResource->Data == X_D3DRESOURCE_DATA_BACK_BUFFER)
-                         ||( (DWORD)pThis->Data == X_D3DRESOURCE_DATA_BACK_BUFFER))
-                        {
-                            EmuWarning("Attempt to registered to another resource's data (eww!)");
+						if((DWORD)pSrc == 0x80000000)
+						{
+							// TODO: Fix or handle this situation..?
+							// This is probably an unallocated resource, mapped into contiguous memory (0x80000000)
+						}
+						else if (pSrc == nullptr)
+						{
+							// TODO: Fix or handle this situation..?
+						}
+						else if (CacheFormat != 0) // Do we need to convert to ARGB?
+						{
+							DbgPrintf("Unsupported texture format, expanding to D3DFMT_A8R8G8B8");
 
-                            // TODO: handle this horrible situation
-                            BYTE *pDest = (BYTE*)LockedRect.pBits;
-                            for(DWORD v=0;v<dwMipHeight;v++)
-                            {
-                                memset(pDest, 0, dwMipWidth*dwBPP);
+							uint8 *pSrc = (BYTE*)GetDataFromXboxResource(pResource);
+							uint8 *pDest = (uint8 *)LockedRect.pBits;
 
-                                pDest += LockedRect.Pitch;
-                                pSrc  += dwMipPitch;
-                            }
-                        }
+							DWORD dwSrcPitch = dwMipWidth * dwBPP;//sizeof(DWORD);
+							DWORD dwDestPitch = dwMipWidth * sizeof(DWORD);
+
+							// Convert a row at a time, using a libyuv-like callback approach :
+							if (!ConvertD3DTextureToARGBBuffer(
+								X_Format,
+								pSrc, dwMipWidth, dwMipHeight, dwSrcPitch,
+								pDest, dwDestPitch,
+								TextureStage)) {
+								CxbxKrnlCleanup("Unhandled conversion!");
+							}
+						}
 						else
 						{
-							if((DWORD)pSrc == 0x80000000)
+							if (bSwizzled)
 							{
-								// TODO: Fix or handle this situation..?
-								// This is probably an unallocated resource, mapped into contiguous memory (0x80000000)
+								RECT  iRect = { 0,0,0,0 };
+								POINT iPoint = { 0,0 };
+
+								// First we need to unswizzle the texture data
+								XTL::EmuUnswizzleRect
+								(
+									pSrc + dwMipOffs, dwMipWidth, dwMipHeight, dwDepth, LockedRect.pBits,
+									LockedRect.Pitch, iRect, iPoint, dwBPP
+								);
 							}
-							else if (pSrc == nullptr)
+							else if (bCompressed)
 							{
-								// TODO: Fix or handle this situation..?
-							}
-							else if (CacheFormat != 0) // Do we need to convert to ARGB?
-							{
-								DbgPrintf("Unsupported texture format, expanding to D3DFMT_A8R8G8B8");
+								// NOTE: compressed size is (dwWidth/2)*(dwHeight/2)/2, so each level divides by 4
 
-								uint8 *pSrc = (BYTE*)GetDataFromXboxResource(pResource);
-								uint8 *pDest = (uint8 *)LockedRect.pBits;
+								memcpy(LockedRect.pBits, pSrc + dwCompressedOffset, dwCompressedSize >> (level * 2));
 
-								DWORD dwSrcPitch = dwMipWidth * dwBPP;//sizeof(DWORD);
-								DWORD dwDestPitch = dwMipWidth * sizeof(DWORD);
-
-								// Convert a row at a time, using a libyuv-like callback approach :
-								if (!ConvertD3DTextureToARGBBuffer(
-									X_Format,
-									pSrc, dwMipWidth, dwMipHeight, dwSrcPitch,
-									pDest, dwDestPitch,
-									TextureStage)) {
-									CxbxKrnlCleanup("Unhandled conversion!");
-								}
+								dwCompressedOffset += (dwCompressedSize >> (level * 2));
 							}
 							else
 							{
-								if (bSwizzled)
+								/* TODO : // Let DirectX convert the surface (including palette formats) :
+								if(g_bSupportsTextureFormat[[X_Format]) {
+									D3DXLoadSurfaceFromMemory(
+										GetHostSurface(pResource),
+										nullptr, // no destination palette
+										&destRect,
+										pSrc, // Source buffer
+										dwMipPitch, // Source pitch
+										g_pCurrentPalette,
+										&SrcRect,
+										D3DX_DEFAULT, // D3DX_FILTER_NONE,
+										0 // No ColorKey?
+										);
+								} else {
+								*/
+								BYTE *pDest = (BYTE*)LockedRect.pBits;
+
+								if ((DWORD)LockedRect.Pitch == dwMipPitch && dwMipPitch == dwMipWidth*dwBPP)
 								{
-									RECT  iRect = { 0,0,0,0 };
-									POINT iPoint = { 0,0 };
-
-									// First we need to unswizzle the texture data
-									XTL::EmuUnswizzleRect
-									(
-										pSrc + dwMipOffs, dwMipWidth, dwMipHeight, dwDepth, LockedRect.pBits,
-										LockedRect.Pitch, iRect, iPoint, dwBPP
-									);
-								}
-								else if (bCompressed)
-								{
-									// NOTE: compressed size is (dwWidth/2)*(dwHeight/2)/2, so each level divides by 4
-
-									memcpy(LockedRect.pBits, pSrc + dwCompressedOffset, dwCompressedSize >> (level * 2));
-
-									dwCompressedOffset += (dwCompressedSize >> (level * 2));
+									memcpy(pDest, pSrc + dwMipOffs, dwMipWidth*dwMipHeight*dwBPP);
 								}
 								else
 								{
-									/* TODO : // Let DirectX convert the surface (including palette formats) :
-									if(!EmuXBFormatRequiresConversionToARGB) {
-										D3DXLoadSurfaceFromMemory(
-											GetHostSurface(pResource),
-											nullptr, // no destination palette
-											&destRect,
-											pSrc, // Source buffer
-											dwMipPitch, // Source pitch
-											g_pCurrentPalette,
-											&SrcRect,
-											D3DX_DEFAULT, // D3DX_FILTER_NONE,
-											0 // No ColorKey?
-											);
-									} else {
-									*/
-									BYTE *pDest = (BYTE*)LockedRect.pBits;
-
-									if ((DWORD)LockedRect.Pitch == dwMipPitch && dwMipPitch == dwMipWidth*dwBPP)
+									for (DWORD v = 0; v < dwMipHeight; v++)
 									{
-										memcpy(pDest, pSrc + dwMipOffs, dwMipWidth*dwMipHeight*dwBPP);
-									}
-									else
-									{
-										for (DWORD v = 0; v < dwMipHeight; v++)
-										{
-											memcpy(pDest, pSrc + dwMipOffs, dwMipWidth*dwBPP);
+										memcpy(pDest, pSrc + dwMipOffs, dwMipWidth*dwBPP);
 
-											pDest += LockedRect.Pitch;
-											pSrc += dwMipPitch;
-										}
+										pDest += LockedRect.Pitch;
+										pSrc += dwMipPitch;
 									}
 								}
 							}
