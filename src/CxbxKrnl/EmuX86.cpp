@@ -808,6 +808,22 @@ bool EmuX86_Opcode_IN(LPEXCEPTION_POINTERS e, _DInst& info)
 	return true;
 }
 
+bool EmuX86_Opcode_FSTP(LPEXCEPTION_POINTERS e, _DInst& info)
+{
+	// TODO : Emulate FSTP
+	uint32_t addr;
+	if (!EmuX86_Operand_Read(e, info, 1, &addr))
+		return false;
+
+	// https://c9x.me/x86/html/file_module_x86_id_117.html
+	// Destination = ST(0); PopRegisterStack();
+
+	// C1 Set to 0 if stack underflow occurred.
+	// Indicates rounding direction of if the floating-point inexact exception (#P) is generated:
+	// 0 = not roundup; 1 = roundup. C0, C2, C3 Undefined.
+	return false;
+}
+
 bool EmuX86_Opcode_INC(LPEXCEPTION_POINTERS e, _DInst& info)
 {
 	// INC reads and writes the same operand :
@@ -1072,6 +1088,9 @@ bool EmuX86_DecodeException(LPEXCEPTION_POINTERS e)
 		break;
 	case I_DEC:
 		if (EmuX86_Opcode_DEC(e, info)) break;
+		goto opcode_error;
+	case I_FSTP: // Hit by "Crazy Taxi 3 - High Roller", after menu's
+		if (EmuX86_Opcode_FSTP(e, info)) break;
 		goto opcode_error;
 	case I_IN:
 		if (EmuX86_Opcode_IN(e, info)) break;
