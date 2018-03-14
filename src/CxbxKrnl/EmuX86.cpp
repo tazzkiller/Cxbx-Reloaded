@@ -271,7 +271,14 @@ void EmuX86_InitContextRecordOffsetByRegisterType()
 	ContextRecordOffsetByRegisterType[R_FS] = offsetof(CONTEXT, SegFs);
 	ContextRecordOffsetByRegisterType[R_GS] = offsetof(CONTEXT, SegGs);
 	// R_RIP, TODO : Does this also mean EIP and is that enum missing in distorm? https://github.com/gdabah/distorm/issues/110
-	// Unsupported by XBox CPU : R_ST0, R_ST1, R_ST2, R_ST3, R_ST4, R_ST5, R_ST6, R_ST7,
+	ContextRecordOffsetByRegisterType[R_ST0] = offsetof(CONTEXT, FloatSave.RegisterArea[0 * 10]);
+	ContextRecordOffsetByRegisterType[R_ST1] = offsetof(CONTEXT, FloatSave.RegisterArea[1 * 10]);
+	ContextRecordOffsetByRegisterType[R_ST2] = offsetof(CONTEXT, FloatSave.RegisterArea[2 * 10]);
+	ContextRecordOffsetByRegisterType[R_ST3] = offsetof(CONTEXT, FloatSave.RegisterArea[3 * 10]);
+	ContextRecordOffsetByRegisterType[R_ST4] = offsetof(CONTEXT, FloatSave.RegisterArea[4 * 10]);
+	ContextRecordOffsetByRegisterType[R_ST5] = offsetof(CONTEXT, FloatSave.RegisterArea[5 * 10]);
+	ContextRecordOffsetByRegisterType[R_ST6] = offsetof(CONTEXT, FloatSave.RegisterArea[6 * 10]);
+	ContextRecordOffsetByRegisterType[R_ST7] = offsetof(CONTEXT, FloatSave.RegisterArea[7 * 10]);
 	ContextRecordOffsetByRegisterType[R_MM0] = offsetof(CONTEXT, ExtendedRegisters[(10 + 0) * 16]);
 	ContextRecordOffsetByRegisterType[R_MM1] = offsetof(CONTEXT, ExtendedRegisters[(10 + 1) * 16]);
 	ContextRecordOffsetByRegisterType[R_MM2] = offsetof(CONTEXT, ExtendedRegisters[(10 + 2) * 16]);
@@ -307,7 +314,7 @@ void EmuX86_InitContextRecordOffsetByRegisterType()
 		DWORD   ErrorSelector;
 		DWORD   DataOffset;
 		DWORD   DataSelector;
-		BYTE    RegisterArea[SIZE_OF_80387_REGISTERS];
+		!BYTE    RegisterArea[SIZE_OF_80387_REGISTERS];
 		DWORD   Spare0;
 		} FLOATING_SAVE_AREA FloatSave;
     !DWORD   SegGs;
@@ -810,10 +817,16 @@ bool EmuX86_Opcode_IN(LPEXCEPTION_POINTERS e, _DInst& info)
 
 bool EmuX86_Opcode_FSTP(LPEXCEPTION_POINTERS e, _DInst& info)
 {
-	// TODO : Emulate FSTP
-	uint32_t addr;
-	if (!EmuX86_Operand_Read(e, info, 1, &addr))
-		return false;
+	// Emulate FSTP
+
+	// Read 10 byte ST0 value
+	uint32_t addr = (xbaddr)EmuX86_GetRegisterPointer(e, R_ST0);
+	uint8_t ST0_value[10]; memcpy(ST0_value, (void*)addr, 10);
+
+	// TODO : Convert value to destination size format (DWORD?)
+	// TODO : Store converted value in destination
+	// TODO : Pop FPU register stack
+	// TODO : Set FPU flags
 
 	// https://c9x.me/x86/html/file_module_x86_id_117.html
 	// Destination = ST(0); PopRegisterStack();
