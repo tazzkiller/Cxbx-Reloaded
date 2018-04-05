@@ -4562,35 +4562,39 @@ void CreateHostResource(XTL::X_D3DResource *pResource, int iTextureStage, DWORD 
 		} // for cube
 
 		// Debug resource dumping
+//#define _DEBUG_DUMP_TEXTURE_REGISTER "D:\\"
 #ifdef _DEBUG_DUMP_TEXTURE_REGISTER
-		if (pNewHostSurface) {
-    	    static int dwDumpSurface = 0;
-        	char szBuffer[255];
-            sprintf(szBuffer, _DEBUG_DUMP_TEXTURE_REGISTER "%.03d-RegSurface%.03d.dds", X_Format, dwDumpSurface++);
-			D3DXSaveSurfaceToFileA(szBuffer, D3DXIFF_DDS, pNewHostSurface, NULL, NULL);
-		}
-		else if (pNewHostVolume) {
-			// TODO
-		}
-		else if (pNewHostTexture) {
-			static int dwDumpTex = 0;
-			char szBuffer[255];
-			sprintf(szBuffer, "%.03d-RegTexture%.03d.dds", X_Format, dwDumpTex++);
-			D3DXSaveTextureToFileA(szBuffer, D3DXIFF_DDS, pNewHostTexture, NULL);
-		}
-		else if (pNewHostVolumeTexture) {
-			// TODO
-		}
-		else if (pNewHostCubeTexture) {
-			static int dwDumpCube = 0;
-			char szBuffer[255];
-			for (int v = 0;v < 6;v++) {
-				IDirect3DSurface8 *pSurface;
-				sprintf(szBuffer, "%.03d-RegCubeTex%.03d-%d.dds", X_Format, dwDumpCube++, v);
-				if (D3D_OK == pNewHostCubeTexture->GetCubeMapSurface((D3DCUBEMAP_FACES)v, 0, &pSurface)) {
-					D3DXSaveSurfaceToFileA(szBuffer, D3DXIFF_DDS, pSurface, NULL, NULL);
-					pSurface->Release();
+		bool bDumpConvertedTextures = true;  // TODO : Make this a runtime changeable setting
+		if (bDumpConvertedTextures) {
+			char szFilePath[MAX_PATH];
+
+			if (pNewHostSurface) {
+				static int dwDumpSurface = 0;
+				sprintf(szFilePath, _DEBUG_DUMP_TEXTURE_REGISTER "%.03d-Surface%.03d.dds", X_Format, dwDumpSurface++);
+				D3DXSaveSurfaceToFileA(szFilePath, D3DXIFF_DDS, pNewHostSurface, NULL, NULL);
+			}
+			else if (pNewHostVolume) {
+				// TODO
+			}
+			else if (pNewHostTexture) {
+				static int dwDumpTexure = 0;
+				sprintf(szFilePath, _DEBUG_DUMP_TEXTURE_REGISTER "%.03d-Texture%.03d.dds", X_Format, dwDumpTexure++);
+				D3DXSaveTextureToFileA(szFilePath, D3DXIFF_DDS, pNewHostTexture, NULL);
+			}
+			else if (pNewHostVolumeTexture) {
+				// TODO
+			}
+			else if (pNewHostCubeTexture) {
+				static int dwDumpCubeTexture = 0;
+				for (uint face = D3DCUBEMAP_FACE_POSITIVE_X; face <= D3DCUBEMAP_FACE_NEGATIVE_Z; face++) {
+					IDirect3DSurface8 *pSurface;
+					if (D3D_OK == pNewHostCubeTexture->GetCubeMapSurface((D3DCUBEMAP_FACES)face, 0, &pSurface)) {
+						sprintf(szFilePath, _DEBUG_DUMP_TEXTURE_REGISTER "%.03d-CubeTexure%.03d-%d.dds", X_Format, dwDumpCubeTexture, face);
+						D3DXSaveSurfaceToFileA(szFilePath, D3DXIFF_DDS, pSurface, NULL, NULL);
+						pSurface->Release();
+					}
 				}
+				dwDumpCubeTexture++;
 			}
 		}
 #endif
