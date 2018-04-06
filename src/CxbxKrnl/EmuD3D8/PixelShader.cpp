@@ -4144,6 +4144,54 @@ static const
 		  extern const char *D3DErrorString(HRESULT hResult);
 
 		  printf(D3DErrorString(hRet));
+		  // Note : Also check contents of d3d8.log (generated next to Cxbx.exe by d3d8to9)
+
+#if 0	// TODO : Await https://github.com/crosire/d3d8to9/issues/70 or fix the following failing minaert XDK sample pixel shader (which works in Dxbx using D3D8) :
+KrnlDebug.txt :
+			New decoding - End result :
+
+			; xps.1.1
+			ps.1.3
+			tex t0 ;
+			texm3x2pad t1, t0_bx2 ;
+			texm3x2tex t2, t0_bx2 ;
+			tex t3 ;
+			; xdm r0.rgb,discard, c0_bx2.rgb,t0_bx2.rgb,0.000000f,0.000000f ; d0=s0 dot s1, d1=s2*s3
+			dp3 r0.rgb, c0_bx2,t0_bx2 ; d0=s0 dot3 s1
+			; xmma r0.rgb,discard,discard, r0.rgb,t2.rgb,0.000000f,0.000000f ; d0=s0*s1, d1=s2*s3, d2={s0*s1}+{s2*s3}
+			mov r0.a, t0.a ; d0=s0 Inserted r0.a default
+			mul r0.rgb, r0,t2 ; d0=s0*s1
+			; xmma r0.rgb,discard,discard, t2.rgb,v0.rgb,0.000000f,0.000000f ; d0=s0*s1, d1=s2*s3, d2={s0*s1}+{s2*s3}
+			mul r0.rgb, t2,v0 ; d0=s0*s1
+			; +xmma r0.a,discard,discard, v0.a,1.000000f,0.000000f,0.000000f ; d0=s0*s1, d1=s2*s3, d2={s0*s1}+{s2*s3}
+			+mov r0.a, v0.a ; d0=s0
+			; xfc 1.000000f,r0.rgb,0.000000f,0.000000f,1.000000f,1.000000f,r0.a ; r0.rgb=s0*s1+{1-s0}*s2+s3, r0.a=s6.a, prod=s4*s5, sum=r0+v1
+
+			D3DXERR_INVALIDDATA: Unknown D3D error.
+d3d8.log :
+			Redirecting 'IDirect3DDevice8::CreatePixelShader(09A0B220, 0DDBDD98, 0E35E44C)' ...
+			> Disassembling shader and translating assembly to Direct3D 9 compatible code ...
+			> Dumping translated shader assembly:
+
+			ps_1_3
+			tex t0
+			texm3x2pad t1, t0_bx2
+			texm3x2tex t2, t0_bx2
+			tex t3
+			mov r0.xyz, c0 /* added line */
+			dp3 r0.xyz, r0.xyz_bx2 /* changed c0 to r0.xyz */, t0_bx2
+			mov r0.w, t0.w
+			mul r0.xyz, r0, t2
+			mul r0.xyz, t2, v0
+			+ mov r0.w, v0.w
+
+			// approximately 8 instruction slots used (4 texture, 4 arithmetic)
+
+			> Failed to reassemble shader :
+
+			error X2004 : invalid swizzle 'xyz_bx2'
+			error X5027 : Invalid src swizzle for first source param.
+#endif
 	  }
 	}
 
