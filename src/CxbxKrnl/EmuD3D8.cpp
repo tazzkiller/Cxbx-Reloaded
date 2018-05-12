@@ -4812,20 +4812,46 @@ void CreateHostResource(XTL::X_D3DResource *pResource, DWORD D3DUsage, int iText
 
 	case XTL::X_D3DRTYPE_SURFACE: {
 		XTL::X_D3DSurface *pXboxSurface = (XTL::X_D3DSurface *)pResource;
-		XTL::X_D3DTexture *pParentXboxTexture = (pXboxSurface) ? (XTL::X_D3DTexture *)pXboxSurface->Parent : xbnullptr;
-		if (pParentXboxTexture) {
-			XTL::IDirect3DBaseTexture *pParentHostBaseTexture = GetHostBaseTexture(pParentXboxTexture, D3DUsage, iTextureStage);
+		XTL::X_D3DBaseTexture *pParentXboxBaseTexture = (pXboxSurface) ? pXboxSurface->Parent : xbnullptr;
+		if (pParentXboxBaseTexture) {
+			XTL::IDirect3DBaseTexture *pParentHostBaseTexture = GetHostBaseTexture(pParentXboxTexture, iTextureStage);
 			switch (pParentHostBaseTexture->GetType()) {
 			case XTL::D3DRTYPE_VOLUMETEXTURE: {
-				// TODO
+				LOG_TEST_CASE("Parent D3DRTYPE_VOLUMETEXTURE");
+				// For surfaces with a parent volume texture, map these to a host volume first
+				XTL::IDirect3DVolumeTexture *pParentHostVolumeTexture = (XTL::IDirect3DVolumeTexture *)pParentHostBaseTexture;
+				UINT Level = 0; // TODO : Derive actual level based on pXboxSurface->Data delta to pParentXboxTexture->Data
+				XTL::IDirect3DVolume *pNewHostVolume;
+				HRESULT hRet = pParentHostVolumeTexture->GetVolumeLevel(Level, &pNewHostVolume);
+				DEBUG_D3DRESULT(hRet, "pParentHostVolumeTexture->GetVolumeLevel");
+				if (hRet == D3D_OK) {
+					SetHostVolume(pXboxSurface, pNewHostVolume);
+					DbgPrintf("CreateHostResource : Successfully created volume level (%u, 0x%.08X, 0x%.08X)\n",
+						Level, pResource, pNewHostVolume);
+					return;
+				}
 				break;
 			}
 			case XTL::D3DRTYPE_CUBETEXTURE: {
-				// TODO
+				LOG_TEST_CASE("Parent D3DRTYPE_CUBETEXTURE");
 				// test-case : Burnout
+				// For surfaces with a parent cube texture, map these to a host cubemap surface first
+				XTL::IDirect3DCubeTexture *pParentHostCubeTexture = (XTL::IDirect3DCubeTexture *)pParentHostBaseTexture;
+				XTL::D3DCUBEMAP_FACES FaceType = XTL::D3DCUBEMAP_FACE_POSITIVE_X; // TODO : Derive actual face based on pXboxSurface->Data delta to pParentXboxTexture->Data
+				UINT Level = 0; // TODO : Derive actual level based on pXboxSurface->Data delta to pParentXboxTexture->Data
+				XTL::IDirect3DSurface *pNewHostSurface;
+				HRESULT hRet = pParentHostCubeTexture->GetCubeMapSurface(FaceType, Level, &pNewHostSurface);
+				DEBUG_D3DRESULT(hRet, "pParentHostCubeTexture->GetCubeMapSurface");
+				if (hRet == D3D_OK) {
+					SetHostSurface(pXboxSurface, pNewHostSurface);
+					DbgPrintf("CreateHostResource : Successfully created cubemap surface face-level (%u, %u, 0x%.08X, 0x%.08X)\n",
+						FaceType, Level, pResource, pNewHostSurface);
+					return;
+				}
 				break;
 			}
 			case XTL::D3DRTYPE_TEXTURE: {
+				LOG_TEST_CASE("Parent D3DRTYPE_TEXTURE");
 				// For surfaces with a parent texture, map these to a host texture first
 				XTL::IDirect3DTexture *pParentHostTexture = (XTL::IDirect3DTexture *)pParentHostBaseTexture;
 				UINT SurfaceLevel = 0; // TODO : Derive actual level based on pXboxSurface->Data delta to pParentXboxTexture->Data
@@ -7687,6 +7713,11 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 		LOG_FUNC_ARG(VertexCount)
 		LOG_FUNC_ARG(pIndexData)
 		LOG_FUNC_END;
+
+	if (!pIndexData) {
+		LOG_TEST_CASE("Missing pIndexData");
+		return;
+	}
 
 	if (!EmuD3DValidVertexCount(PrimitiveType, VertexCount)) {
 		LOG_TEST_CASE("Invalid VertexCount");
