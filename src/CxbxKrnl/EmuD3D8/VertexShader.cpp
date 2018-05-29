@@ -1793,7 +1793,7 @@ static inline DWORD VshGetVertexRegisterIn(DWORD Token)
     return (Token & X_D3DVSD_VERTEXREGINMASK) >> X_D3DVSD_VERTEXREGINSHIFT;
 }
 
-static inline DWORD VshGetVertexStream(DWORD Token)
+static inline WORD VshGetVertexStream(DWORD Token)
 {
     return (Token & X_D3DVSD_STREAMNUMBERMASK) >> X_D3DVSD_STREAMNUMBERSHIFT;
 }
@@ -1935,10 +1935,11 @@ static void VshConvertToken_STREAM(
     {
 		VshEndPreviousStreamPatch(pPatchData);
 
-        XTL::DWORD StreamNumber = VshGetVertexStream(*pToken);
+        XTL::WORD StreamNumber = VshGetVertexStream(*pToken);
 
         // new stream
 		pPatchData->pCurrentVertexShaderStreamInfo = &(pPatchData->pVertexShaderInfoToSet->VertexStreams[StreamNumber]);
+		pPatchData->pCurrentVertexShaderStreamInfo->StreamNumber = StreamNumber;
 		pPatchData->pCurrentVertexShaderStreamInfo->NeedPatch = FALSE;
 		pPatchData->pCurrentVertexShaderStreamInfo->HostVertexStride = 0;
 		pPatchData->pCurrentVertexShaderStreamInfo->NumberOfVertexElements = 0;
@@ -1960,7 +1961,8 @@ static void VshConvertToken_STREAM(
 
 static void VshConvertToken_STREAMDATA_SKIP(
 	DWORD *pToken,
-	XTL::D3DVERTEXELEMENT *pRecompiled
+	XTL::D3DVERTEXELEMENT *pRecompiled,
+	CxbxVertexShaderPatch *pPatchData
 )
 {
     using namespace XTL;
@@ -1968,7 +1970,7 @@ static void VshConvertToken_STREAMDATA_SKIP(
     XTL::DWORD SkipCount = (*pToken & X_D3DVSD_SKIPCOUNTMASK) >> X_D3DVSD_SKIPCOUNTSHIFT;
     DbgVshPrintf("\tD3DVSD_SKIP(%d),\n", SkipCount);
 #ifdef CXBX_USE_D3D9
-	// TODO : Expand on the setting of this TESSNORMAL output register element :
+	pPatchData->pCurrentVertexShaderStreamInfo->HostVertexStride += SkipCount * sizeof(DWORD);
 #else
 	// D3DVSD_SKIP is encoded identically on host Direct3D8.
 	*pRecompiled = D3DVSD_SKIP(SkipCount);
@@ -1977,7 +1979,8 @@ static void VshConvertToken_STREAMDATA_SKIP(
 
 static void VshConvertToken_STREAMDATA_SKIPBYTES(
 	DWORD *pToken,
-	XTL::D3DVERTEXELEMENT *pRecompiled
+	XTL::D3DVERTEXELEMENT *pRecompiled,
+	CxbxVertexShaderPatch *pPatchData
 )
 {
     using namespace XTL;
@@ -1985,13 +1988,14 @@ static void VshConvertToken_STREAMDATA_SKIPBYTES(
     XTL::DWORD SkipBytesCount = (*pToken & X_D3DVSD_SKIPCOUNTMASK) >> X_D3DVSD_SKIPCOUNTSHIFT;
 
     DbgVshPrintf("\tD3DVSD_SKIPBYTES(%d), /* xbox ext. */\n", SkipBytesCount);
+
+#ifdef CXBX_USE_D3D9
+	pPatchData->pCurrentVertexShaderStreamInfo->HostVertexStride += SkipBytesCount;
+#else
     if (SkipBytesCount % sizeof(XTL::DWORD)) {
         EmuWarning("D3DVSD_SKIPBYTES can't be converted to D3DVSD_SKIP, not divisble by 4.");
     }
 
-#ifdef CXBX_USE_D3D9
-	// TODO
-#else
 	*pRecompiled = D3DVSD_SKIP(SkipBytesCount / sizeof(XTL::DWORD));
 #endif
 }
@@ -2007,9 +2011,26 @@ static void VshConvertToken_STREAMDATA_REG(
 
 #if CXBX_USE_D3D9
 	extern XTL::D3DCAPS g_D3DCaps;
-#endif
 
-#if !CXBX_USE_D3D9 // For simpler support for both Direct3D 8 and 9, use these '9' constants in below '8' code paths too:
+	static const BYTE DeclAddressUsages[][2] =
+	{
+		{ D3DDECLUSAGE_POSITION, 0 }, // X_D3DVSDE_POSITION = 0; // Corresponds to D3DFVF_XYZ
+		{ D3DDECLUSAGE_BLENDWEIGHT, 0 }, // X_D3DVSDE_BLENDWEIGHT = 1; // Corresponds to D3DFVF_XYZRHW
+		{ D3DDECLUSAGE_NORMAL, 0 }, // X_D3DVSDE_NORMAL = 2; // Corresponds to D3DFVF_NORMAL
+		{ D3DDECLUSAGE_COLOR, 0 }, // X_D3DVSDE_DIFFUSE = 3; // Corresponds to D3DFVF_DIFFUSE
+		{ D3DDECLUSAGE_COLOR, 1 }, // X_D3DVSDE_SPECULAR = 4; // Corresponds to D3DFVF_SPECULAR
+		{ D3DDECLUSAGE_FOG, 0 }, // X_D3DVSDE_FOG = 5; // Xbox extension
+		{ D3DDECLUSAGE_PSIZE, 0 }, // X_D3DVSDE_POINTSIZE = 6; // Dxbx addition
+		{ D3DDECLUSAGE_COLOR, 2 }, // X_D3DVSDE_BACKDIFFUSE = 7; // Xbox extension
+		{ D3DDECLUSAGE_COLOR, 3 }, // X_D3DVSDE_BACKSPECULAR = 8; // Xbox extension
+		{ D3DDECLUSAGE_TEXCOORD, 0 }, // X_D3DVSDE_TEXCOORD0 = 9; // Corresponds to D3DFVF_TEX1 (not D3DFVF_TEX0, which means no textures are present)
+		{ D3DDECLUSAGE_TEXCOORD, 1 }, // X_D3DVSDE_TEXCOORD1 = 10; // Corresponds to D3DFVF_TEX2
+		{ D3DDECLUSAGE_TEXCOORD, 2 }, // X_D3DVSDE_TEXCOORD2 = 11; // Corresponds to D3DFVF_TEX3
+		{ D3DDECLUSAGE_TEXCOORD, 3 }, // X_D3DVSDE_TEXCOORD3 = 12; // Corresponds to D3DFVF_TEX4
+		//const int X_D3DVSDE_VERTEX = 0xFFFFFFFF; // Xbox extension for Begin/End drawing (data is a D3DVSDT_FLOAT4)
+	};
+#else // For simpler support for both Direct3D 8 and 9, use these '9' constants in below '8' code paths too:
+#define	D3DDECLTYPE DWORD
 #define	D3DDECLTYPE_FLOAT1 D3DVSDT_FLOAT1
 #define	D3DDECLTYPE_FLOAT2 D3DVSDT_FLOAT2
 #define	D3DDECLTYPE_FLOAT3 D3DVSDT_FLOAT3
@@ -2028,9 +2049,14 @@ static void VshConvertToken_STREAMDATA_REG(
     HostVertexRegister = Xb2PCRegisterType(VertexRegister, IsFixedFunction);
     DbgVshPrintf(", ");
 
+#if CXBX_USE_D3D9
+	XTL::DWORD XboxVertexElementAddress = (*pToken & X_D3DVSD_VERTEXREGMASK) >> X_D3DVSD_VERTEXREGSHIFT;
+	XTL::D3DDECLUSAGE HostVertexElementUsage = (XTL::D3DDECLUSAGE)DeclAddressUsages[XboxVertexElementAddress][0];
+	XTL::BYTE HostVertexElementUsageIndex = (XTL::D3DDECLUSAGE)DeclAddressUsages[XboxVertexElementAddress][1];
+#endif
     XTL::DWORD XboxVertexElementDataType = (*pToken & X_D3DVSD_DATATYPEMASK) >> X_D3DVSD_DATATYPESHIFT;
-    XTL::DWORD HostVertexElementDataType = 0;
-	XTL::DWORD HostVertexElementByteSize = 0;
+    XTL::D3DDECLTYPE HostVertexElementDataType = D3DDECLTYPE_UNUSED;
+	XTL::WORD HostVertexElementByteSize = 0;
 
 	switch (XboxVertexElementDataType)
 	{
@@ -2238,7 +2264,15 @@ static void VshConvertToken_STREAMDATA_REG(
 	pPatchData->pCurrentVertexShaderStreamInfo->NeedPatch |= NeedPatching;
 
 #ifdef CXBX_USE_D3D9
-	// TODO
+	pRecompiled->Stream = pPatchData->pCurrentVertexShaderStreamInfo->StreamNumber;
+	pRecompiled->Offset = pPatchData->pCurrentVertexShaderStreamInfo->HostVertexStride;
+	pRecompiled->Type = HostVertexElementDataType;
+	pRecompiled->Method = D3DDECLMETHOD_DEFAULT;
+	pRecompiled->Usage = HostVertexElementUsage;
+	pRecompiled->UsageIndex = HostVertexElementUsageIndex;
+
+	// Step to next element
+	pRecompiled++;
 #else
 	*pRecompiled = D3DVSD_REG(HostVertexRegister, HostVertexElementDataType);
 #endif
@@ -2247,8 +2281,7 @@ static void VshConvertToken_STREAMDATA_REG(
 
     DbgVshPrintf("),\n");
 
-    if(HostVertexElementDataType == D3DDECLTYPE_UNUSED)
-    {
+    if (HostVertexElementDataType == D3DDECLTYPE_UNUSED) {
         EmuWarning("/* WARNING: Fatal type mismatch, no fitting type! */");
     }
 }
@@ -2265,9 +2298,9 @@ static void VshConvertToken_STREAMDATA(
 	{
 		// For D3D9, use D3DDECLTYPE_UNUSED ?
 		if (*pToken & X_D3DVSD_MASK_SKIPBYTES) {
-			VshConvertToken_STREAMDATA_SKIPBYTES(pToken, pRecompiled);
+			VshConvertToken_STREAMDATA_SKIPBYTES(pToken, pRecompiled, pPatchData);
 		} else {
-			VshConvertToken_STREAMDATA_SKIP(pToken, pRecompiled);
+			VshConvertToken_STREAMDATA_SKIP(pToken, pRecompiled, pPatchData);
 		}
 	}
 	else // D3DVSD_REG

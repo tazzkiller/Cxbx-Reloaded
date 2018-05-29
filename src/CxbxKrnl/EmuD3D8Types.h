@@ -535,8 +535,9 @@ CxbxVertexShaderStreamElement;
 
 typedef struct _CxbxVertexShaderStreamInfo
 {
+	WORD StreamNumber;
     BOOL  NeedPatch;       // This is to know whether it's data which must be patched
-    DWORD HostVertexStride;
+    WORD HostVertexStride;
     DWORD NumberOfVertexElements;        // Number of the stream data types
 	CxbxVertexShaderStreamElement VertexElements[32];
 }
