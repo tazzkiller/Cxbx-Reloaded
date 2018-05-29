@@ -7544,7 +7544,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 			g_dwPrimPerFrame += DrawContext.dwHostPrimitiveCount;
 			if (DrawContext.XboxPrimitiveType == X_D3DPT_LINELOOP) {
 				// Close line-loops using a final single line, drawn from the end to the start vertex
-				LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Text-cases needed
+				LOG_TEST_CASE("X_D3DPT_LINELOOP"); // TODO : Test-cases needed
 				INDEX16 LowIndex = (INDEX16)DrawContext.dwStartVertex;
 				INDEX16 HighIndex = (INDEX16)(DrawContext.dwStartVertex + DrawContext.dwHostPrimitiveCount);
 				// Draw the closing line using a helper function (which will SetIndices)

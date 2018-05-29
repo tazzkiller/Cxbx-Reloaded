@@ -481,7 +481,7 @@ XBSYSAPI EXPORTNUM(100) xboxkrnl::VOID NTAPI xboxkrnl::KeDisconnectInterrupt
 	KiLockDispatcherDatabase(&OldIrql);
 
 	// Do the reverse of KeConnectInterrupt
-	if (InterruptObject->Connected) { // Text case : d3dbvt.xbe
+	if (InterruptObject->Connected) { // Test-case : d3dbvt.xbe
 		// Mark InterruptObject as not connected anymore
 		HalDisableSystemInterrupt(InterruptObject->BusInterruptLevel);
 		EmuInterruptList[InterruptObject->BusInterruptLevel] = NULL;
