@@ -4251,9 +4251,17 @@ VOID XTL::DxbxUpdateActivePixelShader() // NOPATCH
     RecompiledPixelShader = RecompiledShaders_Head;
     while (RecompiledPixelShader)
 	{
-      // Only compare parts that form a unique shader (ignore the constants and Direct3D8 run-time fields) :
-      if ((memcmp(&(RecompiledPixelShader->PSDef.PSAlphaInputs[0]), &(pPSDef->PSAlphaInputs[0]), (8+2)*sizeof(DWORD)) == 0)
-      && (memcmp(&(RecompiledPixelShader->PSDef.PSAlphaOutputs[0]), &(pPSDef->PSAlphaOutputs[0]), (8+8+3+8+4)* sizeof(DWORD)) == 0))
+	  // A shader is uniquely identified by PSAlphaInputs up to PSConstant0 (excluding)
+	  size_t unique_part_1_start = offsetof(XTL::X_D3DPIXELSHADERDEF, PSAlphaInputs[0]);
+	  size_t unique_part_1_end = offsetof(XTL::X_D3DPIXELSHADERDEF, PSConstant0);
+	  size_t unique_part_1_size = unique_part_1_end - unique_part_1_start;
+	  // and PSAlphaOutputs up to PSC0Mapping (excluding) :
+	  size_t unique_part_2_start = offsetof(XTL::X_D3DPIXELSHADERDEF, PSAlphaOutputs[0]);
+	  size_t unique_part_2_end = offsetof(XTL::X_D3DPIXELSHADERDEF, PSC0Mapping);
+	  size_t unique_part_2_size = unique_part_2_end - unique_part_2_start;
+	  // Only compare parts that form a unique shader (ignore the constants and Direct3D8 run-time fields) :
+      if ((memcmp(((uint8_t*)&(RecompiledPixelShader->PSDef)) + unique_part_1_start, ((uint8_t*)pPSDef) + unique_part_1_start, unique_part_1_size) == 0)
+       && (memcmp(((uint8_t*)&(RecompiledPixelShader->PSDef)) + unique_part_2_start, ((uint8_t*)pPSDef) + unique_part_2_start, unique_part_2_size) == 0))
         break;
 
       RecompiledPixelShader = RecompiledPixelShader->Next;
