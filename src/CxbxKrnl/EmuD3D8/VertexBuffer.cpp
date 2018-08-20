@@ -83,63 +83,42 @@ std::unordered_map<DWORD, cached_vertex_buffer_object> g_HostVertexBuffers;
 // This caches Vertex Buffer Objects, but not the containing data
 // This prevents unnecessary allocation and releasing of Vertex Buffers when
 // we can use an existing just fine. This gives a (slight) performance boost
-// Returns true if the existing vertex buffer was trashed/made invalid
-bool GetCachedVertexBufferObject(DWORD pXboxDataPtr, DWORD size, XTL::IDirect3DVertexBuffer** pVertexBuffer)
+void GetCachedVertexBufferObject(DWORD pXboxDataPtr, DWORD size, XTL::IDirect3DVertexBuffer** pVertexBuffer)
 {
 	// TODO: If the vertex buffer object cache becomes too large, 
 	// free the least recently used vertex buffers
+	cached_vertex_buffer_object buffer = {};
 
 	auto it = g_HostVertexBuffers.find(pXboxDataPtr);
-	if (it == g_HostVertexBuffers.end()) {
-		// Create new vertex buffer and return
-		cached_vertex_buffer_object newBuffer;
-		newBuffer.uiSize = size;
-		newBuffer.lastUsed = std::chrono::high_resolution_clock::now();
+	if (it != g_HostVertexBuffers.end()) {
+		buffer = it->second;
+		if (size > buffer.uiSize) {
+			// If execution reached here, we need to release and re-create the vertex buffer..
+			buffer.pHostVertexBuffer->Release();
+			buffer.pHostVertexBuffer = nullptr;
+		}
+	}
 
+	buffer.lastUsed = std::chrono::high_resolution_clock::now();
+	if (buffer.pHostVertexBuffer == nullptr) {
+		// Create new vertex buffer
 		HRESULT hRet = g_pD3DDevice->CreateVertexBuffer(
 			size,
 			D3DUSAGE_WRITEONLY | D3DUSAGE_DYNAMIC,
 			0,
 			XTL::D3DPOOL_DEFAULT,
-			&newBuffer.pHostVertexBuffer,
+			&buffer.pHostVertexBuffer,
 			nullptr
 		);
 		if (FAILED(hRet)) {
 			CxbxKrnlCleanup(LOG_PREFIX, "Failed to create vertex buffer");
 		}
-		
-		g_HostVertexBuffers[pXboxDataPtr] = newBuffer;
 
-		*pVertexBuffer = newBuffer.pHostVertexBuffer;
-		return false;
+		buffer.uiSize = size;
+		g_HostVertexBuffers[pXboxDataPtr] = buffer;
 	}
 
-	auto buffer = &it->second;
-	buffer->lastUsed = std::chrono::high_resolution_clock::now();
-
-	// Return the existing vertex buffer, if possible
-	if (size <= buffer->uiSize) {
-		*pVertexBuffer = buffer->pHostVertexBuffer;
-		return false;
-	}
-
-	// If execution reached here, we need to release and re-create the vertex buffer..
-	buffer->pHostVertexBuffer->Release();
-	buffer->uiSize = size;
-	HRESULT hRet = g_pD3DDevice->CreateVertexBuffer(
-		size,
-		D3DUSAGE_WRITEONLY | D3DUSAGE_DYNAMIC,
-		0,
-		XTL::D3DPOOL_DEFAULT,
-		&buffer->pHostVertexBuffer,
-		nullptr
-	);
-	if (FAILED(hRet)) {
-		CxbxKrnlCleanup(LOG_PREFIX, "Failed to create vertex buffer");
-	}
-
-	*pVertexBuffer = buffer->pHostVertexBuffer;
-	return true;
+	*pVertexBuffer = buffer.pHostVertexBuffer;
 }
 
 void ActivatePatchedStream
