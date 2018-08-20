@@ -80,19 +80,25 @@ typedef struct {
 
 std::unordered_map<DWORD, cached_vertex_buffer_object> g_HostVertexBuffers;
 
+const static int MAX_CACHED_VERTEX_BUFFERS = 1000;
+
 // This caches Vertex Buffer Objects, but not the containing data
 // This prevents unnecessary allocation and releasing of Vertex Buffers when
 // we can use an existing just fine. This gives a (slight) performance boost
 void GetCachedVertexBufferObject(DWORD pXboxDataPtr, DWORD size, XTL::IDirect3DVertexBuffer** pVertexBuffer)
 {
-	// TODO: If the vertex buffer object cache becomes too large, 
-	// free the least recently used vertex buffers
 	cached_vertex_buffer_object buffer = {};
+	// If the vertex buffer object cache becomes too large, 
+	// free the least recently used vertex buffers
+	while (g_HostVertexBuffers.size() > MAX_CACHED_VERTEX_BUFFERS) {
+		buffer = g_HostVertexBuffers.erase(g_HostVertexBuffers.cbegin())->second;
+		buffer.pHostVertexBuffer->Release();
+	}
 
 	auto it = g_HostVertexBuffers.find(pXboxDataPtr);
 	if (it != g_HostVertexBuffers.end()) {
 		buffer = it->second;
-		if (size > buffer.uiSize) {
+		if (buffer.uiSize < size) {
 			// If execution reached here, we need to release and re-create the vertex buffer..
 			buffer.pHostVertexBuffer->Release();
 			buffer.pHostVertexBuffer = nullptr;
@@ -115,9 +121,9 @@ void GetCachedVertexBufferObject(DWORD pXboxDataPtr, DWORD size, XTL::IDirect3DV
 		}
 
 		buffer.uiSize = size;
-		g_HostVertexBuffers[pXboxDataPtr] = buffer;
 	}
 
+	g_HostVertexBuffers[pXboxDataPtr] = buffer;
 	*pVertexBuffer = buffer.pHostVertexBuffer;
 }
 
