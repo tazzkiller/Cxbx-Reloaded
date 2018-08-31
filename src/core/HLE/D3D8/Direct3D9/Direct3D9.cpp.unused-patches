@@ -1,4 +1,8 @@
-﻿// ensure a given width/height are powers of 2
+﻿// cached active texture
+XTL::X_D3DBaseTexture *XTL::EmuD3DActiveTexture[TEXTURE_STAGES] = {0,0,0,0};
+XTL::X_D3DBaseTexture CxbxActiveTextureCopies[TEXTURE_STAGES] = {};
+
+// ensure a given width/height are powers of 2
 static void EmuAdjustPower2(UINT *dwWidth, UINT *dwHeight)
 {
     UINT NewWidth=0, NewHeight=0;
@@ -3001,4 +3005,125 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_GetBackMaterial)
 		EmuWarning("We're lying about getting a back material!");
 		hRet = D3D_OK;
 	}
+}
+
+// LTCG specific D3DDevice_SetTexture function...
+// This uses a custom calling convention where parameter is passed in EAX
+// TODO: XB_trampoline plus Log function is not working due lost parameter in EAX.
+// Test-case: Metal Wolf Chaos
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture_4)
+(
+	X_D3DBaseTexture  *pTexture
+)
+{
+	DWORD           Stage;
+	__asm mov Stage, eax;
+
+	//LOG_FUNC_BEGIN
+	//	LOG_FUNC_ARG(Stage)
+	//	LOG_FUNC_ARG(pTexture)
+	//	LOG_FUNC_END;
+	DbgPrintf(LOG_PREFIX, "D3DDevice_SetTexture_4(Stage : %d pTexture : %08x);\n", Stage, pTexture);
+
+	// Call the Xbox implementation of this function, to properly handle reference counting for us
+	//XB_trampoline(VOID, WINAPI, D3DDevice_SetTexture_4, (X_D3DBaseTexture*));
+	//XB_D3DDevice_SetTexture_4(pTexture);
+
+	EmuD3DActiveTexture[Stage] = pTexture;
+}
+
+// ******************************************************************
+// * patch: D3DDevice_SetTexture
+// ******************************************************************
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
+(
+    DWORD           Stage,
+	X_D3DBaseTexture  *pTexture
+)
+{
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(Stage)
+		LOG_FUNC_ARG(pTexture)
+		LOG_FUNC_END;
+
+	// Call the Xbox implementation of this function, to properly handle reference counting for us
+	XB_trampoline(VOID, WINAPI, D3DDevice_SetTexture, (DWORD, X_D3DBaseTexture*));
+	XB_D3DDevice_SetTexture(Stage, pTexture);
+
+	EmuD3DActiveTexture[Stage] = pTexture;
+}
+
+// ******************************************************************
+// * patch: D3DDevice_SwitchTexture
+// ******************************************************************
+VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
+(
+    DWORD           Method,
+    DWORD           Data,
+    DWORD           Format
+)
+{
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(Method)
+		LOG_FUNC_ARG(Data)
+		LOG_FUNC_ARG(Format)
+		LOG_FUNC_END;
+
+    DWORD StageLookup[TEXTURE_STAGES] = { 0x00081b00, 0x00081b40, 0x00081b80, 0x00081bc0 };
+	// This array contains D3DPUSH_ENCODE(NV2A_TX_OFFSET(v), 2) = 2 DWORD's, shifted left PUSH_COUNT_SHIFT (18) left
+    DWORD Stage = -1;
+
+    for (int v = 0; v < TEXTURE_STAGES; v++) {
+        if (StageLookup[v] == Method) {
+            Stage = v;
+			break;
+        }
+    }
+
+    if (Stage == -1) {
+		LOG_TEST_CASE("D3DDevice_SwitchTexture Unknown Method");
+        EmuLog(LOG_PREFIX, LOG_LEVEL::WARNING, "Unknown Method (0x%.08X)", Method);
+    }
+    else {
+		// Switch Texture updates the data pointer of an active texture using pushbuffer commands
+		if (EmuD3DActiveTexture[Stage] == xbnullptr) {
+			LOG_TEST_CASE("D3DDevice_SwitchTexture without an active texture");
+		}
+		else {
+			//LOG_TEST_CASE("Using CxbxActiveTextureCopies");
+			// See https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/issues/1159
+			// Test-case : Arena Football
+			// Test-case : Call of Duty 2: Big Red One
+			// Test-case : Crimson Skies
+			// Test-case : Freedom Fighters - see https://www.youtube.com/watch?v=_NDCoLY8V3I
+			// Test-case : Freestyle MetalX
+			// Test-case : GENMA ONIMUSHA
+			// Test-case : Gun
+			// Test-case : Harry Potter : Quidditch World Cup
+			// Test-case : King Arthur
+			// Test-case : Madden NFL 2002
+			// Test-case : Madden NFL 2005
+			// Test-case : Madden NFL 07
+			// Test-case : Need For Speed Most Wanted
+			// Test-case : Need For Speed Underground
+			// Test-case : PocketBike Racer
+			// Test-case : Project Gotham Racing 2
+			// Test-case : Richard Burns Rally
+			// Test-case : Spider - Man 2
+
+			// Update data and format separately, instead of via GetDataFromXboxResource()
+			CxbxActiveTextureCopies[Stage].Common = EmuD3DActiveTexture[Stage]->Common;
+			CxbxActiveTextureCopies[Stage].Data = Data;
+			CxbxActiveTextureCopies[Stage].Format = Format;
+			CxbxActiveTextureCopies[Stage].Lock = 0;
+			CxbxActiveTextureCopies[Stage].Size = EmuD3DActiveTexture[Stage]->Size;
+
+			// Use the above modified copy, instead of altering the active Xbox texture
+			EmuD3DActiveTexture[Stage] = &CxbxActiveTextureCopies[Stage];
+			// Note : Since EmuD3DActiveTexture and CxbxActiveTextureCopies are host-managed,
+			// Xbox code should never alter these members (so : no reference counting, etc).
+			// As long as that's guaranteed, this is a safe way to emulate SwitchTexture.
+			// (GetHostResourceKey also avoids using any Xbox texture resource memory address.)
+		}
+    }
 }

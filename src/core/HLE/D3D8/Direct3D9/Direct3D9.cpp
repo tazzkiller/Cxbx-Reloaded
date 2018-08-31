@@ -59,6 +59,7 @@ namespace xboxkrnl
 #include "../XbD3D8Logging.h"
 #include "core/HLE/Intercept.hpp" // for bLLE_GPU
 #include "Cxbx/ResCxbx.h"
+#include "devices/video/nv2a.h" // for g_NV2A, NV_PGRAPH_TEXOFFSET0, etc
 
 #include <assert.h>
 #include <process.h>
@@ -189,9 +190,9 @@ static XTL::X_VERTEXSHADERCONSTANTMODE g_VertexShaderConstantMode = X_D3DSCM_192
 // cached Direct3D tiles
 XTL::X_D3DTILE XTL::EmuD3DTileCache[0x08] = {0};
 
-// cached active texture
-XTL::X_D3DBaseTexture *XTL::EmuD3DActiveTexture[TEXTURE_STAGES] = {0,0,0,0};
-XTL::X_D3DBaseTexture CxbxActiveTextureCopies[TEXTURE_STAGES] = {};
+// LLE NV2A
+extern NV2ADevice* g_NV2A;
+
 
 // information passed to the create device proxy thread
 struct EmuD3D8CreateDeviceProxyData
@@ -724,6 +725,7 @@ void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource)
 typedef struct {
 	XTL::IDirect3DResource* pHostResource = nullptr;
 	XTL::X_D3DResource* pXboxResource = nullptr;
+	XTL::X_D3DBaseTexture BaseTextureCopy = {}; // used instead of pXboxResource for BaseTextures
 	DWORD dwXboxResourceType = 0;
 	void* pXboxData = nullptr;
 	size_t szXboxDataSize = 0;
@@ -913,6 +915,13 @@ void SetHostResource(XTL::X_D3DResource* pXboxResource, XTL::IDirect3DResource* 
 
 	resourceInfo.pHostResource = pHostResource;
 	resourceInfo.pXboxResource = pXboxResource;
+	// Textures can't be compared by address, so store a copy which can be compared by it's fields:
+	if (IsResourceAPixelContainer(pXboxResource)) {
+		resourceInfo.BaseTextureCopy = *(XTL::X_D3DBaseTexture*)pXboxResource; // used instead of pXboxResource for BaseTextures
+	}
+	else {
+		resourceInfo.BaseTextureCopy = {};
+	}
 	resourceInfo.dwXboxResourceType = GetXboxCommonResourceType(pXboxResource);
 	resourceInfo.pXboxData = GetDataFromXboxResource(pXboxResource);
 	resourceInfo.szXboxDataSize = dwSize > 0 ? dwSize : GetXboxResourceSize(pXboxResource);
@@ -2355,11 +2364,26 @@ static void EmuVerifyResourceIsRegistered(XTL::X_D3DResource *pResource, DWORD D
 		}
 
         //check if the same key existed in the HostResource map already. if there is a old pXboxResource in the map with the same key but different resource address, it must be freed first.
-        
-        if (it->second.pXboxResource != pResource) {
+		bool NeedsHostUpdate;
+		if (IsResourceAPixelContainer(pResource)) {
+			// Textures can't be compared by address, so compare by their fields:
+			XTL::X_D3DBaseTexture* pBaseTexture = (XTL::X_D3DBaseTexture*)pResource;
+			// Common bits that won't change per BaseTexture :
+			static const DWORD X_D3DCOMMON_STATIC_MASK = X_D3DCOMMON_TYPE_MASK | X_D3DCOMMON_D3DCREATED;
+			// Compare all BaseTexture fields :
+			NeedsHostUpdate = (it->second.BaseTextureCopy.Data != pBaseTexture->Data)
+				|| ((it->second.BaseTextureCopy.Common & X_D3DCOMMON_STATIC_MASK) != (pBaseTexture->Common & X_D3DCOMMON_STATIC_MASK))
+				|| (it->second.BaseTextureCopy.Format != pBaseTexture->Format)
+				|| (it->second.BaseTextureCopy.Size != pBaseTexture->Size);
+		}
+		else {
+			NeedsHostUpdate = it->second.pXboxResource != pResource;
+		}
+
+        if (NeedsHostUpdate) {
             //printf("EmuVerifyResourceIsRegistered passed in XboxResource collides HostResource map!! key : %llX , map pXboxResource : %08X , passed in pResource : %08X \n", key, it->second.pXboxResource, pResource);
         }
-        else {
+		else {
 			if (!HostResourceRequiresUpdate(key, dwSize)) {
 				return;
 			}
@@ -3779,127 +3803,6 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetVertexShaderConstantNotInlineFast)
 	// Redirect to the standard version.
 
 	EMUPATCH(D3DDevice_SetVertexShaderConstant)(Register, pConstantData, ConstantCount / 4);
-}
-
-// LTCG specific D3DDevice_SetTexture function...
-// This uses a custom calling convention where parameter is passed in EAX
-// TODO: XB_trampoline plus Log function is not working due lost parameter in EAX.
-// Test-case: Metal Wolf Chaos
-VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture_4)
-(
-	X_D3DBaseTexture  *pTexture
-)
-{
-	DWORD           Stage;
-	__asm mov Stage, eax;
-
-	//LOG_FUNC_BEGIN
-	//	LOG_FUNC_ARG(Stage)
-	//	LOG_FUNC_ARG(pTexture)
-	//	LOG_FUNC_END;
-	DbgPrintf(LOG_PREFIX, "D3DDevice_SetTexture_4(Stage : %d pTexture : %08x);\n", Stage, pTexture);
-
-	// Call the Xbox implementation of this function, to properly handle reference counting for us
-	//XB_trampoline(VOID, WINAPI, D3DDevice_SetTexture_4, (X_D3DBaseTexture*));
-	//XB_D3DDevice_SetTexture_4(pTexture);
-
-	EmuD3DActiveTexture[Stage] = pTexture;
-}
-
-// ******************************************************************
-// * patch: D3DDevice_SetTexture
-// ******************************************************************
-VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
-(
-    DWORD           Stage,
-	X_D3DBaseTexture  *pTexture
-)
-{
-	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(Stage)
-		LOG_FUNC_ARG(pTexture)
-		LOG_FUNC_END;
-
-	// Call the Xbox implementation of this function, to properly handle reference counting for us
-	XB_trampoline(VOID, WINAPI, D3DDevice_SetTexture, (DWORD, X_D3DBaseTexture*));
-	XB_D3DDevice_SetTexture(Stage, pTexture);
-
-	EmuD3DActiveTexture[Stage] = pTexture;
-}
-
-// ******************************************************************
-// * patch: D3DDevice_SwitchTexture
-// ******************************************************************
-VOID __fastcall XTL::EMUPATCH(D3DDevice_SwitchTexture)
-(
-    DWORD           Method,
-    DWORD           Data,
-    DWORD           Format
-)
-{
-	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(Method)
-		LOG_FUNC_ARG(Data)
-		LOG_FUNC_ARG(Format)
-		LOG_FUNC_END;
-
-    DWORD StageLookup[TEXTURE_STAGES] = { 0x00081b00, 0x00081b40, 0x00081b80, 0x00081bc0 };
-	// This array contains D3DPUSH_ENCODE(NV2A_TX_OFFSET(v), 2) = 2 DWORD's, shifted left PUSH_COUNT_SHIFT (18) left
-    DWORD Stage = -1;
-
-    for (int v = 0; v < TEXTURE_STAGES; v++) {
-        if (StageLookup[v] == Method) {
-            Stage = v;
-			break;
-        }
-    }
-
-    if (Stage == -1) {
-		LOG_TEST_CASE("D3DDevice_SwitchTexture Unknown Method");
-        EmuLog(LOG_PREFIX, LOG_LEVEL::WARNING, "Unknown Method (0x%.08X)", Method);
-    }
-    else {
-		// Switch Texture updates the data pointer of an active texture using pushbuffer commands
-		if (EmuD3DActiveTexture[Stage] == xbnullptr) {
-			LOG_TEST_CASE("D3DDevice_SwitchTexture without an active texture");
-		}
-		else {
-			//LOG_TEST_CASE("Using CxbxActiveTextureCopies");
-			// See https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/issues/1159
-			// Test-case : Arena Football
-			// Test-case : Call of Duty 2: Big Red One
-			// Test-case : Crimson Skies
-			// Test-case : Freedom Fighters - see https://www.youtube.com/watch?v=_NDCoLY8V3I
-			// Test-case : Freestyle MetalX
-			// Test-case : GENMA ONIMUSHA
-			// Test-case : Gun
-			// Test-case : Harry Potter : Quidditch World Cup
-			// Test-case : King Arthur
-			// Test-case : Madden NFL 2002
-			// Test-case : Madden NFL 2005
-			// Test-case : Madden NFL 07
-			// Test-case : Need For Speed Most Wanted
-			// Test-case : Need For Speed Underground
-			// Test-case : PocketBike Racer
-			// Test-case : Project Gotham Racing 2
-			// Test-case : Richard Burns Rally
-			// Test-case : Spider - Man 2
-
-			// Update data and format separately, instead of via GetDataFromXboxResource()
-			CxbxActiveTextureCopies[Stage].Common = EmuD3DActiveTexture[Stage]->Common;
-			CxbxActiveTextureCopies[Stage].Data = Data;
-			CxbxActiveTextureCopies[Stage].Format = Format;
-			CxbxActiveTextureCopies[Stage].Lock = 0;
-			CxbxActiveTextureCopies[Stage].Size = EmuD3DActiveTexture[Stage]->Size;
-
-			// Use the above modified copy, instead of altering the active Xbox texture
-			EmuD3DActiveTexture[Stage] = &CxbxActiveTextureCopies[Stage];
-			// Note : Since EmuD3DActiveTexture and CxbxActiveTextureCopies are host-managed,
-			// Xbox code should never alter these members (so : no reference counting, etc).
-			// As long as that's guaranteed, this is a safe way to emulate SwitchTexture.
-			// (GetHostResourceKey also avoids using any Xbox texture resource memory address.)
-		}
-    }
 }
 
 // ******************************************************************
@@ -7164,20 +7067,86 @@ void XTL::CxbxDrawPrimitiveUP(CxbxDrawContext &DrawContext)
 	}
 }
 
+uint32_t NV_PGRAPH_TEXFMT_to_D3DFormat(uint32_t reg)
+{
+	uint32_t D3DFormat = 0;
+
+	bool dma_select =
+	GET_MASK(reg, NV_PGRAPH_TEXFMT0_CONTEXT_DMA);
+	bool cubemap =
+	GET_MASK(reg, NV_PGRAPH_TEXFMT0_CUBEMAPENABLE);
+	bool border_source =
+	GET_MASK(reg, NV_PGRAPH_TEXFMT0_BORDER_SOURCE);
+	bool dimensionality =
+	GET_MASK(reg, NV_PGRAPH_TEXFMT0_DIMENSIONALITY);
+	unsigned int color_format =
+	GET_MASK(reg, NV_PGRAPH_TEXFMT0_COLOR);
+	unsigned int levels =
+	GET_MASK(reg, NV_PGRAPH_TEXFMT0_MIPMAP_LEVELS);
+	unsigned int log_width =
+	GET_MASK(reg, NV_PGRAPH_TEXFMT0_BASE_SIZE_U);
+	unsigned int log_height =
+	GET_MASK(reg, NV_PGRAPH_TEXFMT0_BASE_SIZE_V);
+	unsigned int log_depth =
+	GET_MASK(reg, NV_PGRAPH_TEXFMT0_BASE_SIZE_P);
+
+	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_CONTEXT_DMA, dma_select ? 2 : 0);
+	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_CUBEMAP_ENABLE, cubemap);
+	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_BORDER_SOURCE, border_source);
+	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_DIMENSIONALITY, dimensionality);
+	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_COLOR, color_format);
+	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_MIPMAP_LEVELS, levels);
+	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U, log_width);
+	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_BASE_SIZE_V, log_height);
+	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_BASE_SIZE_P, log_depth);
+
+	return D3DFormat;
+}
+
+XTL::X_D3DBaseTexture GetXboxBaseTexture(int iStage) // Was EmuD3DActiveTexture
+{ 
+	XTL::X_D3DBaseTexture Result = {};
+
+	// Prevent a crash during shutdown when g_NV2A gets deleted
+	if (g_NV2A) {
+		static auto pNV2AState = g_NV2A->GetDeviceState();
+		static auto pPGRAPH = &pNV2AState->pgraph;
+
+		// Derive these texture field values from PGRAPH :
+		Result.Common = X_D3DCOMMON_TYPE_TEXTURE; // TODO : Expand
+		// Note : Cxbx Data as a validity field: not assigned means no texture active
+		Result.Data = pPGRAPH->regs[NV_PGRAPH_TEXOFFSET0 + iStage * 4];
+		Result.Format = NV_PGRAPH_TEXFMT_to_D3DFormat(pPGRAPH->regs[NV_PGRAPH_TEXFMT0 + iStage * 4]);
+		// Result.Lock is never accessed by Cxbx
+		Result.Size = 0;
+	}
+
+	return Result;
+}
+
+void ResetConvertedTextureStage(int iStage)
+{
+	XTL::X_D3DBaseTexture BaseTexture = GetXboxBaseTexture(iStage);
+	if (BaseTexture.Data) {
+		auto key = GetHostResourceKey(&BaseTexture);
+		FreeHostResource(key);
+	}
+}
+
 void EmuUpdateActiveTextureStages()
 {
 	LOG_INIT;
 
 	for (int i = 0; i < TEXTURE_STAGES; i++)
 	{
-		XTL::X_D3DBaseTexture *pBaseTexture = XTL::EmuD3DActiveTexture[i];
-		if (pBaseTexture == nullptr) {
+		XTL::X_D3DBaseTexture BaseTexture = GetXboxBaseTexture(i);
+		if (!BaseTexture.Data) {
 			HRESULT hRet = g_pD3DDevice->SetTexture(i, NULL);
 			DEBUG_D3DRESULT(hRet, "g_pD3DDevice->SetTexture");
 			continue;
 		}
 
-		XTL::IDirect3DTexture *pHostTexture = GetHostTexture(pBaseTexture, i);
+		XTL::IDirect3DTexture *pHostTexture = GetHostTexture(&BaseTexture, i);
 
 		if (pHostTexture != nullptr) {
 			HRESULT hRet = g_pD3DDevice->SetTexture(i, pHostTexture);
@@ -7872,16 +7841,15 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPalette)
 	//    g_pD3DDevice9->SetCurrentTexturePalette(Stage, Stage);
 
 	if (Stage < TEXTURE_STAGES) {
-		if (g_pCurrentPalette[Stage] != GetDataFromXboxResource(pPalette) && XTL::EmuD3DActiveTexture[Stage] != nullptr) {
+		if (g_pCurrentPalette[Stage] != GetDataFromXboxResource(pPalette)) {
 			// If the palette for a texture has changed, we need to re-convert the texture
-			FreeHostResource(GetHostResourceKey(XTL::EmuD3DActiveTexture[Stage]));
+			ResetConvertedTextureStage(Stage);
 		}
 
 		// Cache palette data and size
 		g_pCurrentPalette[Stage] = GetDataFromXboxResource(pPalette);
 	}
 }
-
 
 // ******************************************************************
 // * patch: IDirect3DPalette8_Lock
@@ -7904,8 +7872,8 @@ VOID WINAPI XTL::EMUPATCH(D3DPalette_Lock)
 
 	// Check if this palette is in use by a texture stage, and force it to be re-converted if yes
 	for (int i = 0; i < TEXTURE_STAGES; i++) {
-		if (EmuD3DActiveTexture[i] != nullptr && g_pCurrentPalette[i] == GetDataFromXboxResource(pThis)) {
-			FreeHostResource(GetHostResourceKey(EmuD3DActiveTexture[i]));
+		if (g_pCurrentPalette[i] == GetDataFromXboxResource(pThis)) {
+			ResetConvertedTextureStage(i);
 		}
 	}
 }
@@ -7929,8 +7897,8 @@ XTL::D3DCOLOR * WINAPI XTL::EMUPATCH(D3DPalette_Lock2)
 
 	// Check if this palette is in use by a texture stage, and force it to be re-converted if yes
 	for (int i = 0; i < TEXTURE_STAGES; i++) {
-		if (EmuD3DActiveTexture[i] != nullptr && g_pCurrentPalette[i] == GetDataFromXboxResource(pThis)) {
-			FreeHostResource(GetHostResourceKey(EmuD3DActiveTexture[i]));
+		if (g_pCurrentPalette[i] == GetDataFromXboxResource(pThis)) {
+			ResetConvertedTextureStage(i);
 		}
 	}
 

@@ -410,6 +410,8 @@ extern void XTL::EmuExecutePushBufferRaw
 	HLE_init_pgraph_plugins(); // TODO : Move to more approriate spot
 
 	// Test-case : Azurik (see https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/issues/360)
+	// Test-case : Colin McRae Rally 2004 [CM-016] [1.02] (see https://github.com/Cxbx-Reloaded/game-compatibility/issues/793)
+	// Test-case : Colin McRae Rally 2005 [CM-043] [1.01] (see https://github.com/Cxbx-Reloaded/game-compatibility/issues/74)
 	// Test-case : Crash 'n' Burn [45530014]
 	// Test-case : CrimsonSea [4B4F0002]
 	// Test-case : Freedom Fighters

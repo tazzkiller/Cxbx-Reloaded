@@ -280,6 +280,8 @@ inline FLOAT ByteToFloat(const BYTE value)
 	return ((FLOAT)value) / 255.0f;
 }
 
+extern XTL::X_D3DBaseTexture GetXboxBaseTexture(int iStage);
+
 void XTL::CxbxVertexBufferConverter::ConvertStream
 (
 	CxbxDrawContext *pDrawContext,
@@ -307,19 +309,18 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
 			// Only normalize coordinates used by the FVF shader :
 			if (i + 1 <= dwTexN) {
 				pActivePixelContainer[i].NrTexCoords = DxbxFVF_GetNumberOfTextureCoordinates(XboxFVF, i);
-				// TODO : Use GetXboxBaseTexture()
-				X_D3DBaseTexture *pXboxBaseTexture = EmuD3DActiveTexture[i];
-				if (pXboxBaseTexture != xbnullptr) {
+				X_D3DBaseTexture XboxBaseTexture = GetXboxBaseTexture(i);
+				if (XboxBaseTexture.Data) {
 					// TODO : Use GetXboxPixelContainerFormat
-					XTL::X_D3DFORMAT XBFormat = (XTL::X_D3DFORMAT)((pXboxBaseTexture->Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT);
+					XTL::X_D3DFORMAT XBFormat = (XTL::X_D3DFORMAT)((XboxBaseTexture.Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT);
 					if (EmuXBFormatIsLinear(XBFormat)) {
 						// This is often hit by the help screen in XDK samples.
 						bNeedTextureNormalization = true;
 						// Remember linearity, width and height :
 						pActivePixelContainer[i].bTexIsLinear = true;
 						// TODO : Use DecodeD3DSize or GetPixelContainerWidth + GetPixelContainerHeight
-						pActivePixelContainer[i].Width = (pXboxBaseTexture->Size & X_D3DSIZE_WIDTH_MASK) + 1;
-						pActivePixelContainer[i].Height = ((pXboxBaseTexture->Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
+						pActivePixelContainer[i].Width = (XboxBaseTexture.Size & X_D3DSIZE_WIDTH_MASK) + 1;
+						pActivePixelContainer[i].Height = ((XboxBaseTexture.Size & X_D3DSIZE_HEIGHT_MASK) >> X_D3DSIZE_HEIGHT_SHIFT) + 1;
 						// TODO : Support 3D textures
 					}
 				}
