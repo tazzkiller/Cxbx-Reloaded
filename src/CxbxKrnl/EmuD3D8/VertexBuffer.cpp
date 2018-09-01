@@ -72,29 +72,47 @@ extern XTL::X_D3DVertexBuffer*g_D3DStreams[16];
 extern UINT g_D3DStreamStrides[16];
 void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource);
 
+typedef std::chrono::time_point<std::chrono::high_resolution_clock> hr_time_t;
+
 typedef struct {
 	XTL::IDirect3DVertexBuffer* pHostVertexBuffer;
 	size_t uiSize;
-	std::chrono::time_point<std::chrono::high_resolution_clock> lastUsed;
+	hr_time_t lastUsed;
 } cached_vertex_buffer_object;
 
 std::unordered_map<DWORD, cached_vertex_buffer_object> g_HostVertexBuffers;
 
-const static int MAX_CACHED_VERTEX_BUFFERS = 1000;
+const static size_t MAX_CACHED_VERTEX_BUFFERS = 0; // TODO : Enable by assigning for example 1000;
+static size_t g_MaxCachedVertexBuffers = MAX_CACHED_VERTEX_BUFFERS;
 
 // This caches Vertex Buffer Objects, but not the containing data
 // This prevents unnecessary allocation and releasing of Vertex Buffers when
 // we can use an existing just fine. This gives a (slight) performance boost
 void GetCachedVertexBufferObject(DWORD pXboxDataPtr, DWORD size, XTL::IDirect3DVertexBuffer** pVertexBuffer)
 {
-	cached_vertex_buffer_object buffer = {};
-	// If the vertex buffer object cache becomes too large, 
-	// free the least recently used vertex buffers
-	while (g_HostVertexBuffers.size() > MAX_CACHED_VERTEX_BUFFERS) {
-		buffer = g_HostVertexBuffers.erase(g_HostVertexBuffers.cbegin())->second;
-		buffer.pHostVertexBuffer->Release();
+	cached_vertex_buffer_object buffer;
+
+	// Is there a limit set on the size of the vertex buffer cache?
+	if (g_MaxCachedVertexBuffers > 0) {
+		// If the vertex buffer object cache becomes too large, 
+		// free the least recently used vertex buffers
+		while (g_HostVertexBuffers.size() > g_MaxCachedVertexBuffers) {
+#if 0 // TODO : Get this oldest-entry-selection working :
+			hr_time_t oldest = std::chrono::high_resolution_clock::now();
+			buffer = g_HostVertexBuffers.erase(
+				std::min_element(g_HostVertexBuffers.begin(), g_HostVertexBuffers.end(),
+					[&oldest](const cached_vertex_buffer_object &item) {
+						return (item.lastUsed < oldest);
+					})
+				)->second;
+#else
+			buffer = g_HostVertexBuffers.erase(g_HostVertexBuffers.cbegin())->second;
+#endif
+			buffer.pHostVertexBuffer->Release();
+		}
 	}
 
+	buffer = {};
 	auto it = g_HostVertexBuffers.find(pXboxDataPtr);
 	if (it != g_HostVertexBuffers.end()) {
 		buffer = it->second;
