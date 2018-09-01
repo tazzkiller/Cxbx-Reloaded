@@ -288,6 +288,21 @@ void HLE_draw_inline_elements(NV2AState *d)
 	}
 }
 
+// Import pgraph_draw_* variables, declared in EmuNV2A_PGRAPH.cpp :
+extern void(*pgraph_draw_arrays)(NV2AState *d, PGRAPHState* pg);
+extern void(*pgraph_draw_inline_buffer)(NV2AState *d, PGRAPHState* pg);
+extern void(*pgraph_draw_inline_array)(NV2AState *d, PGRAPHState* pg);
+extern void(*pgraph_draw_inline_elements)(NV2AState *d, PGRAPHState* pg);
+
+void HLE_init_pgraph_plugins()
+{
+	/* attach HLE Direct3D render plugins */
+	pgraph_draw_arrays = HLE_draw_arrays;
+	pgraph_draw_inline_buffer = HLE_draw_inline_buffer;
+	pgraph_draw_inline_array = HLE_draw_inline_array;
+	pgraph_draw_inline_elements = HLE_draw_inline_elements;
+}
+
 void HLE_draw_state_update(NV2AState *d)
 {
 	// PGRAPHState *pg = &d->pgraph;

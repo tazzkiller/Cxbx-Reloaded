@@ -624,8 +624,10 @@ void OpenGL_draw_inline_buffer(NV2AState *d)
 		}
 		else {
 			glDisableVertexAttribArray(i);
+
 			glVertexAttrib4fv(i, vertex_attribute->inline_value);
 		}
+
 	}
 
 	glDrawArrays(pg->shader_binding->gl_primitive_mode,
