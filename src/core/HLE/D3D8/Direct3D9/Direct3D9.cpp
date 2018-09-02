@@ -1217,6 +1217,44 @@ VOID CxbxGetPixelContainerMeasures
 	}
 }
 
+// Used to flush all push-buffer commands, so that amongst other
+// things, PGRAPH registers are as up-to-date as they'll get,
+// so that anything read from PGRAPH registers (like texture
+// control registers, etc) are all up-to-date. So :
+// call CxbxHLEFlushNV2APushBuffer before EmuFlushIVB calls ReadXboxBaseTextureFromNV2A,
+// call CxbxHLEFlushNV2APushBuffer before CxbxUpdateNativeD3DResources calls ReadXboxBaseTextureFromNV2A,
+// call CxbxHLEFlushNV2APushBuffer before ResetConvertedTextureStage calls ReadXboxBaseTextureFromNV2A.
+// BEWARE : *ONLY* call from HLE patches, *NOT* from within the
+// pushbuffer-handler (to avoid a dead-lock)!
+void CxbxHLEFlushNV2APushBuffer()
+{
+	// Prevent a crash during shutdown when g_NV2A gets deleted
+	while (g_NV2A) {
+		// This is implemented to follow the same logic as in pfifo_puller_thread()
+		static NV2AState* d = g_NV2A->GetDeviceState();
+		static Cache1State *state = &(d->pfifo.cache1);
+
+		/* TODO : Also watch the incoming queue
+				bool cache_empty;
+				qemu_mutex_lock(&state->cache_lock);
+				cache_empty = state->cache.empty() || !state->pull_enabled) {
+				qemu_mutex_unlock(&state->cache_lock);
+		*/
+
+		// We're finished flushing once the pgraph working cache has been emptied:
+		bool working_cache_empty;
+		qemu_mutex_lock(&d->pgraph.lock);
+		working_cache_empty = state->working_cache.empty();
+		qemu_mutex_unlock(&d->pgraph.lock);
+		if (working_cache_empty) {
+			break;
+		}
+
+		// Wait a little when repeating
+		Sleep(0);
+	}
+}
+
 bool ConvertD3DTextureToARGBBuffer(
 	XTL::X_D3DFORMAT X_Format,
 	uint8_t *pSrc,
@@ -4235,6 +4273,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_End)()
 {
 	LOG_FUNC();
 
+	CxbxHLEFlushNV2APushBuffer(); // before EmuFlushIVB below calls ReadXboxBaseTextureFromNV2A
+
     if(g_InlineVertexBuffer_TableOffset > 0)
         EmuFlushIVB();
 
@@ -7067,17 +7107,20 @@ void XTL::CxbxDrawPrimitiveUP(CxbxDrawContext &DrawContext)
 	}
 }
 
-uint32_t NV_PGRAPH_TEXFMT_to_D3DFormat(uint32_t reg)
+inline uint32_t NV_PGRAPH_TEXFMT_to_D3DFormat(uint32_t reg)
 {
-	uint32_t D3DFormat = 0;
-
+	uint32_t D3DFormat;
+#if 1
+	// NV_PGRAPH_TEXFMT0_* bitfields map 1-to-1 to NV097_SET_TEXTURE_FORMAT_*
+	D3DFormat = reg;
+#else
 	bool dma_select =
 	GET_MASK(reg, NV_PGRAPH_TEXFMT0_CONTEXT_DMA);
 	bool cubemap =
 	GET_MASK(reg, NV_PGRAPH_TEXFMT0_CUBEMAPENABLE);
 	bool border_source =
 	GET_MASK(reg, NV_PGRAPH_TEXFMT0_BORDER_SOURCE);
-	bool dimensionality =
+	unsigned int dimensionality =
 	GET_MASK(reg, NV_PGRAPH_TEXFMT0_DIMENSIONALITY);
 	unsigned int color_format =
 	GET_MASK(reg, NV_PGRAPH_TEXFMT0_COLOR);
@@ -7090,6 +7133,7 @@ uint32_t NV_PGRAPH_TEXFMT_to_D3DFormat(uint32_t reg)
 	unsigned int log_depth =
 	GET_MASK(reg, NV_PGRAPH_TEXFMT0_BASE_SIZE_P);
 
+	uint32_t D3DFormat = 0;
 	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_CONTEXT_DMA, dma_select ? 2 : 0);
 	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_CUBEMAP_ENABLE, cubemap);
 	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_BORDER_SOURCE, border_source);
@@ -7099,26 +7143,52 @@ uint32_t NV_PGRAPH_TEXFMT_to_D3DFormat(uint32_t reg)
 	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_BASE_SIZE_U, log_width);
 	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_BASE_SIZE_V, log_height);
 	SET_MASK(D3DFormat, NV097_SET_TEXTURE_FORMAT_BASE_SIZE_P, log_depth);
-
+#endif
 	return D3DFormat;
 }
 
-XTL::X_D3DBaseTexture GetXboxBaseTexture(int iStage) // Was EmuD3DActiveTexture
-{ 
+// Reconstruct an Xbox D3DBaseTexture by reading NV2A PGRAPH register contents
+// Note : Make sure HLE patches calling this, call CxbxHLEFlushNV2APushBuffer() first!
+XTL::X_D3DBaseTexture ReadXboxBaseTextureFromNV2A(int i) // Was EmuD3DActiveTexture
+{
 	XTL::X_D3DBaseTexture Result = {};
 
 	// Prevent a crash during shutdown when g_NV2A gets deleted
 	if (g_NV2A) {
 		static auto pNV2AState = g_NV2A->GetDeviceState();
-		static auto pPGRAPH = &pNV2AState->pgraph;
+		static auto pg = &pNV2AState->pgraph;
+		uint32_t ctl_0 = pg->regs[NV_PGRAPH_TEXCTL0_0 + i * 4];
+		bool enabled = ctl_0 & NV_PGRAPH_TEXCTL0_0_ENABLE;
+		enabled = true; // TODO : arrange for HLE to set NV097_SET_TEXTURE_CONTROL0>NV_PGRAPH_TEXCTL0_0 too
 
 		// Derive these texture field values from PGRAPH :
 		Result.Common = X_D3DCOMMON_TYPE_TEXTURE; // TODO : Expand
-		// Note : Cxbx Data as a validity field: not assigned means no texture active
-		Result.Data = pPGRAPH->regs[NV_PGRAPH_TEXOFFSET0 + iStage * 4];
-		Result.Format = NV_PGRAPH_TEXFMT_to_D3DFormat(pPGRAPH->regs[NV_PGRAPH_TEXFMT0 + iStage * 4]);
-		// Result.Lock is never accessed by Cxbx
-		Result.Size = 0;
+		// Note : Cxbx uses Data as a validity field: not assigned means no texture active
+		if (enabled) {
+			Result.Data = pg->regs[NV_PGRAPH_TEXOFFSET0 + i * 4];
+			Result.Format = NV_PGRAPH_TEXFMT_to_D3DFormat(pg->regs[NV_PGRAPH_TEXFMT0 + i * 4]);
+			// Result.Lock is never accessed by Cxbx
+			XTL::X_D3DFORMAT XBFormat = (XTL::X_D3DFORMAT)((Result.Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT);
+			if (EmuXBFormatIsLinear(XBFormat)) {
+				uint32_t ctl_1 = pg->regs[NV_PGRAPH_TEXCTL1_0 + i * 4];
+				unsigned int pitch =
+					GET_MASK(ctl_1, NV_PGRAPH_TEXCTL1_0_IMAGE_PITCH);
+
+				uint32_t img_rect = pg->regs[NV_PGRAPH_TEXIMAGERECT0 + i * 4];
+				unsigned int rect_width =
+					GET_MASK(img_rect,
+						NV_PGRAPH_TEXIMAGERECT0_WIDTH);
+				unsigned int rect_height =
+					GET_MASK(img_rect,
+						NV_PGRAPH_TEXIMAGERECT0_HEIGHT);
+
+				Result.Size = 0
+					| (((rect_width - 1) /*X_D3DSIZE_WIDTH_SHIFT*/) & X_D3DSIZE_WIDTH_MASK)
+					| (((rect_height - 1) << X_D3DSIZE_HEIGHT_SHIFT) & X_D3DSIZE_HEIGHT_MASK)
+					| (((pitch - 1) << X_D3DSIZE_PITCH_SHIFT) & X_D3DSIZE_PITCH_MASK)
+					;
+			}
+		}
 	}
 
 	return Result;
@@ -7126,7 +7196,7 @@ XTL::X_D3DBaseTexture GetXboxBaseTexture(int iStage) // Was EmuD3DActiveTexture
 
 void ResetConvertedTextureStage(int iStage)
 {
-	XTL::X_D3DBaseTexture BaseTexture = GetXboxBaseTexture(iStage);
+	XTL::X_D3DBaseTexture BaseTexture = ReadXboxBaseTextureFromNV2A(iStage);
 	if (BaseTexture.Data) {
 		auto key = GetHostResourceKey(&BaseTexture);
 		FreeHostResource(key);
@@ -7139,7 +7209,7 @@ void EmuUpdateActiveTextureStages()
 
 	for (int i = 0; i < TEXTURE_STAGES; i++)
 	{
-		XTL::X_D3DBaseTexture BaseTexture = GetXboxBaseTexture(i);
+		XTL::X_D3DBaseTexture BaseTexture = ReadXboxBaseTextureFromNV2A(i);
 		if (!BaseTexture.Data) {
 			HRESULT hRet = g_pD3DDevice->SetTexture(i, NULL);
 			DEBUG_D3DRESULT(hRet, "g_pD3DDevice->SetTexture");
@@ -7155,6 +7225,7 @@ void EmuUpdateActiveTextureStages()
 	}
 }
 
+// Call CxbxHLEFlushNV2APushBuffer before CxbxUpdateNativeD3DResources calls ReadXboxBaseTextureFromNV2A
 void XTL::CxbxUpdateNativeD3DResources()
 {
     EmuUpdateActiveTextureStages();
@@ -7253,9 +7324,11 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVertices)
 	}
 
 	// TODO : Call unpatched D3DDevice_SetStateVB(0);
+	CxbxHLEFlushNV2APushBuffer(); // before CxbxUpdateNativeD3DResources below calls ReadXboxBaseTextureFromNV2A
 
 	CxbxUpdateNativeD3DResources();
-    if (IsValidCurrentShader()) {
+
+	if (IsValidCurrentShader()) {
 		CxbxDrawContext DrawContext = {};
 
 		DrawContext.XboxPrimitiveType = PrimitiveType;
@@ -7353,6 +7426,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawVerticesUP)
 
 	// TODO : Call unpatched D3DDevice_SetStateUP();
 
+	CxbxHLEFlushNV2APushBuffer(); // before CxbxUpdateNativeD3DResources below calls ReadXboxBaseTextureFromNV2A
+
 	CxbxUpdateNativeD3DResources();
 
     if (IsValidCurrentShader()) {
@@ -7402,6 +7477,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVertices)
 	}
 
 	// TODO : Call unpatched D3DDevice_SetStateVB(0);
+
+	CxbxHLEFlushNV2APushBuffer(); // before CxbxUpdateNativeD3DResources below calls ReadXboxBaseTextureFromNV2A
 
 	CxbxUpdateNativeD3DResources();
 
@@ -7458,6 +7535,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_DrawIndexedVerticesUP)
 	}
 
 	// TODO : Call unpatched D3DDevice_SetStateUP();
+
+	CxbxHLEFlushNV2APushBuffer(); // before CxbxUpdateNativeD3DResources below calls ReadXboxBaseTextureFromNV2A
 
 	CxbxUpdateNativeD3DResources();
 
@@ -7840,6 +7919,8 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetPalette)
 	//    g_pD3DDevice9->SetPaletteEntries(Stage?, (PALETTEENTRY*)pPalette->Data);
 	//    g_pD3DDevice9->SetCurrentTexturePalette(Stage, Stage);
 
+	CxbxHLEFlushNV2APushBuffer(); // Since ResetConvertedTextureStage below calls ReadXboxBaseTextureFromNV2A!
+
 	if (Stage < TEXTURE_STAGES) {
 		if (g_pCurrentPalette[Stage] != GetDataFromXboxResource(pPalette)) {
 			// If the palette for a texture has changed, we need to re-convert the texture
@@ -7870,6 +7951,8 @@ VOID WINAPI XTL::EMUPATCH(D3DPalette_Lock)
 	XB_trampoline(VOID, WINAPI, D3DPalette_Lock, (X_D3DPalette*, D3DCOLOR**, DWORD));
 	XB_D3DPalette_Lock(pThis, ppColors, Flags);
 
+	CxbxHLEFlushNV2APushBuffer(); // Since ResetConvertedTextureStage below calls ReadXboxBaseTextureFromNV2A!
+
 	// Check if this palette is in use by a texture stage, and force it to be re-converted if yes
 	for (int i = 0; i < TEXTURE_STAGES; i++) {
 		if (g_pCurrentPalette[i] == GetDataFromXboxResource(pThis)) {
@@ -7894,6 +7977,8 @@ XTL::D3DCOLOR * WINAPI XTL::EMUPATCH(D3DPalette_Lock2)
 
 	XB_trampoline(XTL::D3DCOLOR*, WINAPI, D3DPalette_Lock2, (X_D3DPalette*, DWORD));
 	XTL::D3DCOLOR* pData = XB_D3DPalette_Lock2(pThis, Flags);
+
+	CxbxHLEFlushNV2APushBuffer(); // Since ResetConvertedTextureStage below calls ReadXboxBaseTextureFromNV2A!
 
 	// Check if this palette is in use by a texture stage, and force it to be re-converted if yes
 	for (int i = 0; i < TEXTURE_STAGES; i++) {
@@ -8558,6 +8643,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawRectPatch)
 		LOG_FUNC_ARG(pRectPatchInfo)
 		LOG_FUNC_END;
 
+	CxbxHLEFlushNV2APushBuffer(); // before CxbxUpdateNativeD3DResources below calls ReadXboxBaseTextureFromNV2A
+
 	CxbxUpdateNativeD3DResources();
 
 	HRESULT hRet = g_pD3DDevice->DrawRectPatch( Handle, pNumSegs, pRectPatchInfo );
@@ -8581,6 +8668,8 @@ HRESULT WINAPI XTL::EMUPATCH(D3DDevice_DrawTriPatch)
 		LOG_FUNC_ARG(pNumSegs)
 		LOG_FUNC_ARG(pTriPatchInfo)
 		LOG_FUNC_END;
+
+	CxbxHLEFlushNV2APushBuffer(); // before CxbxUpdateNativeD3DResources below calls ReadXboxBaseTextureFromNV2A
 
 	CxbxUpdateNativeD3DResources();
 

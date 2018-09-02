@@ -280,7 +280,7 @@ inline FLOAT ByteToFloat(const BYTE value)
 	return ((FLOAT)value) / 255.0f;
 }
 
-extern XTL::X_D3DBaseTexture GetXboxBaseTexture(int iStage);
+extern XTL::X_D3DBaseTexture ReadXboxBaseTextureFromNV2A(int iStage);
 
 void XTL::CxbxVertexBufferConverter::ConvertStream
 (
@@ -309,7 +309,7 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
 			// Only normalize coordinates used by the FVF shader :
 			if (i + 1 <= dwTexN) {
 				pActivePixelContainer[i].NrTexCoords = DxbxFVF_GetNumberOfTextureCoordinates(XboxFVF, i);
-				X_D3DBaseTexture XboxBaseTexture = GetXboxBaseTexture(i);
+				X_D3DBaseTexture XboxBaseTexture = ReadXboxBaseTextureFromNV2A(i);
 				if (XboxBaseTexture.Data) {
 					// TODO : Use GetXboxPixelContainerFormat
 					XTL::X_D3DFORMAT XBFormat = (XTL::X_D3DFORMAT)((XboxBaseTexture.Format & X_D3DFORMAT_FORMAT_MASK) >> X_D3DFORMAT_FORMAT_SHIFT);
