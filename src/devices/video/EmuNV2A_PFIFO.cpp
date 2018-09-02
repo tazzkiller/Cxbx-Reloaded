@@ -441,7 +441,7 @@ int pfifo_puller_thread(NV2AState *d)
 
 		while (!state->working_cache.empty()) {
 			if (d->exiting) {
-				qemu_mutex_lock(&d->pgraph.lock);
+				qemu_mutex_unlock(&d->pgraph.lock); // Note : This was wrongly qemu_mutex_lock() ?!?!
 				glo_set_current(NULL);
 				return 0;
 			}
