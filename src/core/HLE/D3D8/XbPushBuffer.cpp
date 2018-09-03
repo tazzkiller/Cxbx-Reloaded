@@ -288,10 +288,10 @@ void HLE_draw_inline_elements(NV2AState *d)
 }
 
 // Import pgraph_draw_* variables, declared in EmuNV2A_PGRAPH.cpp :
-extern void(*pgraph_draw_arrays)(NV2AState *d, PGRAPHState* pg);
-extern void(*pgraph_draw_inline_buffer)(NV2AState *d, PGRAPHState* pg);
-extern void(*pgraph_draw_inline_array)(NV2AState *d, PGRAPHState* pg);
-extern void(*pgraph_draw_inline_elements)(NV2AState *d, PGRAPHState* pg);
+extern void(*pgraph_draw_arrays)(NV2AState *d);
+extern void(*pgraph_draw_inline_buffer)(NV2AState *d);
+extern void(*pgraph_draw_inline_array)(NV2AState *d);
+extern void(*pgraph_draw_inline_elements)(NV2AState *d);
 
 void HLE_init_pgraph_plugins()
 {
