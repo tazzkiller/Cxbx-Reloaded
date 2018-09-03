@@ -184,6 +184,7 @@ std::map<const std::string, const xbox_patch_t> g_PatchTable = {
 	PATCH_ENTRY("D3DDevice_SetStreamSource_4", XTL::EMUPATCH(D3DDevice_SetStreamSource_4), PATCH_HLE_D3D),
 	PATCH_ENTRY("D3DDevice_SetStreamSource_8", XTL::EMUPATCH(D3DDevice_SetStreamSource_8), PATCH_HLE_D3D),
 	PATCH_ENTRY("D3DDevice_SetSwapCallback", XTL::EMUPATCH(D3DDevice_SetSwapCallback), PATCH_HLE_D3D),
+	PATCH_ENTRY("D3DDevice_SetTexture", XTL::EMUPATCH(D3DDevice_SetTexture), PATCH_HLE_D3D),		
 	PATCH_ENTRY("D3DDevice_SetTextureState_BorderColor", XTL::EMUPATCH(D3DDevice_SetTextureState_BorderColor), PATCH_HLE_D3D),
 	PATCH_ENTRY("D3DDevice_SetTextureState_BorderColor_0", XTL::EMUPATCH(D3DDevice_SetTextureState_BorderColor_0), PATCH_HLE_D3D),
 	PATCH_ENTRY("D3DDevice_SetTextureState_BorderColor_4", XTL::EMUPATCH(D3DDevice_SetTextureState_BorderColor_4), PATCH_HLE_D3D),

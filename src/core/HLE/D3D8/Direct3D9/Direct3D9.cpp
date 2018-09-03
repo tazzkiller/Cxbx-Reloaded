@@ -3844,6 +3844,25 @@ VOID __fastcall XTL::EMUPATCH(D3DDevice_SetVertexShaderConstantNotInlineFast)
 }
 
 // ******************************************************************
+// * patch: D3DDevice_SetTexture
+// ******************************************************************
+VOID WINAPI XTL::EMUPATCH(D3DDevice_SetTexture)
+(
+	DWORD           Stage,
+	X_D3DBaseTexture  *pTexture
+)
+{
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(Stage)
+		LOG_FUNC_ARG(pTexture)
+		LOG_FUNC_END;
+
+	// Call the Xbox implementation of this function, to properly handle reference counting for us
+	XB_trampoline(VOID, WINAPI, D3DDevice_SetTexture, (DWORD, X_D3DBaseTexture*));
+	XB_D3DDevice_SetTexture(Stage, pTexture);
+}
+
+// ******************************************************************
 // * patch: D3DDevice_Begin
 // ******************************************************************
 VOID WINAPI XTL::EMUPATCH(D3DDevice_Begin)
