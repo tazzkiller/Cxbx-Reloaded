@@ -239,7 +239,7 @@ void HLE_draw_inline_array(NV2AState *d)
 
 	using namespace XTL;
 
-	CxbxUpdateNativeD3DResources();
+	CxbxUpdateNativeD3DResources();	// Don't call CxbxHLEFlushNV2APushBuffer here since we're called from pgraph_handle_method
 
 	//DWORD vertex data array, 
 	//To be used as a replacement for DrawVerticesUP, the caller needs to set the vertex format using IDirect3DDevice8::SetVertexShader before calling BeginPush. All attributes in the vertex format must be padded DWORD multiples, and the vertex attributes must be specified in the canonical FVF ordering (position followed by weight, normal, diffuse, and so on).
@@ -385,7 +385,7 @@ typedef union {
 	010 CCCCCCCCCCC 00 SSS MMMMMMMMMMM 00	non-increasing methods [NV10+]
 	JJJ JJJJJJJJJJJ JJ JJJ JJJJJJJJJJJ 01	jump [NV1A+, NV4-style only]
 	JJJ JJJJJJJJJJJ JJ JJJ JJJJJJJJJJJ 10	call [NV1A+, NV4-style only]
-
+	en
 	C = method Count, S = Subchannel, M = first Method, J = Jump address
 */
 	// Entire 32 bit command word, and an overlay for the above use-cases :
