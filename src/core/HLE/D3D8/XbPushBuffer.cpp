@@ -287,21 +287,6 @@ void HLE_draw_inline_elements(NV2AState *d)
 	}
 }
 
-// Import pgraph_draw_* variables, declared in EmuNV2A_PGRAPH.cpp :
-extern void(*pgraph_draw_arrays)(NV2AState *d);
-extern void(*pgraph_draw_inline_buffer)(NV2AState *d);
-extern void(*pgraph_draw_inline_array)(NV2AState *d);
-extern void(*pgraph_draw_inline_elements)(NV2AState *d);
-
-void HLE_init_pgraph_plugins()
-{
-	/* attach HLE Direct3D render plugins */
-	pgraph_draw_arrays = HLE_draw_arrays;
-	pgraph_draw_inline_buffer = HLE_draw_inline_buffer;
-	pgraph_draw_inline_array = HLE_draw_inline_array;
-	pgraph_draw_inline_elements = HLE_draw_inline_elements;
-}
-
 void HLE_draw_state_update(NV2AState *d)
 {
 	// PGRAPHState *pg = &d->pgraph;
@@ -338,6 +323,7 @@ extern void pgraph_handle_method(
 
 // LLE NV2A
 extern NV2ADevice* g_NV2A;
+
 void HLE_write_NV2A_vertex_attribute_slot(unsigned slot, uint32_t parameter)
 {
 	// Write value to LLE NV2A device
@@ -385,7 +371,7 @@ typedef union {
 	010 CCCCCCCCCCC 00 SSS MMMMMMMMMMM 00	non-increasing methods [NV10+]
 	JJJ JJJJJJJJJJJ JJ JJJ JJJJJJJJJJJ 01	jump [NV1A+, NV4-style only]
 	JJJ JJJJJJJJJJJ JJ JJJ JJJJJJJJJJJ 10	call [NV1A+, NV4-style only]
-	en
+
 	C = method Count, S = Subchannel, M = first Method, J = Jump address
 */
 	// Entire 32 bit command word, and an overlay for the above use-cases :
