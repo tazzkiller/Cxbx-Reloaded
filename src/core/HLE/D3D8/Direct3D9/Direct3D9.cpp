@@ -1721,15 +1721,35 @@ static LRESULT WINAPI EmuMsgProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lPar
     return S_OK; // = Is not part of D3D8 handling.
 }
 
+double get_frame_time_in_ms()
+{
+	// Read display frequency from Xbox Display Adapter
+	static DWORD AvInfo = 0;
+	if (!AvInfo) {
+		// For now, read capability (which isn't necessarily the same as active mode)
+		xboxkrnl::AvSendTVEncoderOption(NULL, AV_QUERY_AV_CAPABILITIES, 0, &AvInfo);
+		// TODO: Read the frame rate target from the Xbox display mode
+		// This is accessed by calling CMiniport::GetRefreshRate(); 
+		// This reads from the structure located at CMiniPort::m_CurrentAvInfo
+		// This will require at least Direct3D_CreateDevice being unpatched
+		// otherwise, m_CurrentAvInfo will never be initialised!
+	}
+
+	if (AvInfo & AV_FLAGS_60Hz)
+		return 1000.0f / 60; // = 16.6666666667 ms
+
+	// 20ms should be used in the case of 50hz
+	return 1000.0f / 50; // = 20 ms
+}
+
+std::chrono::duration<double, std::nano> get_frame_duration()
+{
+	return std::chrono::duration<double, std::nano>(get_frame_time_in_ms() * 1000.0f);
+}
+
 std::chrono::time_point<std::chrono::steady_clock, std::chrono::duration<double, std::nano>> GetNextVBlankTime()
 {
-	// TODO: Read display frequency from Xbox Display Adapter
-	// This is accessed by calling CMiniport::GetRefreshRate(); 
-	// This reads from the structure located at CMinpPort::m_CurrentAvInfo
-	// This will require at least Direct3D_CreateDevice being unpatched
-	// otherwise, m_CurrentAvInfo will never be initialised!
-	// 20ms should be used in the case of 50hz
-	return std::chrono::steady_clock::now() + 16.6666666667ms;
+	return std::chrono::steady_clock::now() + get_frame_duration();
 }
 
 
@@ -4432,7 +4452,7 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_Present)
 	EMUPATCH(D3DDevice_Swap)(CXBX_SWAP_PRESENT_FORWARD); // Xbox present ignores
 }
 
-std::chrono::time_point<std::chrono::high_resolution_clock> frameStartTime;
+std::chrono::time_point<std::chrono::high_resolution_clock> current_frame_start_time;
 
 // LTCG specific swap function...
 // Massive hack, but could coax some more LTCG titles into booting with HLE
@@ -4608,16 +4628,33 @@ DWORD WINAPI XTL::EMUPATCH(D3DDevice_Swap)
 
 	if (!g_UncapFramerate) {
 		// If the last frame completed faster than the Xbox VBlank period, wait for it
-		// TODO: Read the frame rate target from the Xbox display mode
-		// See comments in GetNextVblankTime();
-		auto targetDuration = 16.6666666667ms;
-		while (std::chrono::high_resolution_clock::now() - frameStartTime < targetDuration) {
-			// We use an empty while loop because actually sleeping is too unstable
-			// Sleeping causes the frame duration to jitter...
-			;
+		auto frame_duration = get_frame_duration();
+		std::chrono::time_point<std::chrono::high_resolution_clock> now;
+
+		while (true) {
+			now = std::chrono::high_resolution_clock::now();
+			auto time_passed_since_last_frame_start = now - current_frame_start_time;
+			if (time_passed_since_last_frame_start >= frame_duration)
+				break;
+
+			// Because sleeping causes the frame duration to jitter,
+			// we only sleep when we've got plenty of time to wait left.
+			// Otherwise, the while-loop repeats without any wait.
+			auto duration_to_wait = frame_duration - time_passed_since_last_frame_start;
+			// Avoid overshooting the wait time, by taking the average system jitter into account.
+			// On Windows, this about 15ms 
+			if (duration_to_wait >= 15ms) {
+				duration_to_wait -= 15ms;
+				std::this_thread::sleep_for(duration_to_wait);
+			}
+
+			// TODO : Wait for shorter times with low jitter and CPU cycles, and high accuracy.
+			// Also see "Perfectly Accurate Game Timing" http://blog.nuclex-games.com/2012/04/perfectly-accurate-game-timing/
+			// "Acquiring high-resolution time stamps" https://docs.microsoft.com/en-us/windows/desktop/SysInfo/acquiring-high-resolution-time-stamps
+			// And https://blogs.msdn.microsoft.com/oldnewthing/20170921-00/?p=97057
 		}
 
-		frameStartTime = std::chrono::high_resolution_clock::now();
+		current_frame_start_time = now; // re-use above read now-variable (instead of determining it again)
 	}
 
 	UpdateFPSCounter();
