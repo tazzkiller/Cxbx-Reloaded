@@ -96,11 +96,23 @@ DWORD WINAPI EMUPATCH(JvsNodeSendPacket)
 	DWORD a3
 );
 
+typedef struct {
+	UCHAR second;
+	UCHAR minute;
+	UCHAR hour;
+	UCHAR unused_2;
+
+	UCHAR day;
+	UCHAR month;
+	UCHAR year;
+	UCHAR unused_1;
+} JvsRTCTime;
+
 DWORD WINAPI EMUPATCH(JvsRTC_Read)
 (
 	DWORD a1,
 	DWORD a2,
-	DWORD a3,
+	JvsRTCTime* time,
 	DWORD a4
 );
 

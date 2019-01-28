@@ -61,17 +61,9 @@ DWORD WINAPI XTL::EMUPATCH(JvsBACKUP_Read)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-		XB_trampoline(DWORD, WINAPI, JvsBACKUP_Read, (DWORD, DWORD, DWORD, DWORD));
+	LOG_UNIMPLEMENTED();
 
-	// If we didn't find the unpatched function, try the other variant
-	if (XB_JvsBACKUP_Read == nullptr) {
-		XB_trampoline(DWORD, WINAPI, JvsBACKUP_Read2, (DWORD, DWORD, DWORD, DWORD));
-		XB_JvsBACKUP_Read = XB_JvsBACKUP_Read2;
-	}
-
-	DWORD result = XB_JvsBACKUP_Read(a1, a2, a3, a4);
-
-	RETURN(result);
+	RETURN(0);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsBACKUP_Write)
@@ -89,10 +81,9 @@ DWORD WINAPI XTL::EMUPATCH(JvsBACKUP_Write)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	XB_trampoline(DWORD, WINAPI, JvsBACKUP_Write, (DWORD, DWORD, DWORD, DWORD));
-	DWORD result = XB_JvsBACKUP_Write(a1, a2, a3, a4);
+	LOG_UNIMPLEMENTED();
 
-	RETURN(result);
+	RETURN(0);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsEEPROM_Read)
@@ -110,17 +101,9 @@ DWORD WINAPI XTL::EMUPATCH(JvsEEPROM_Read)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	XB_trampoline(DWORD, WINAPI, JvsEEPROM_Read, (DWORD, DWORD, DWORD, DWORD));
+	LOG_UNIMPLEMENTED();
 
-	// If we didn't find the unpatched function, try the other variant
-	if (XB_JvsEEPROM_Read == nullptr) {
-		XB_trampoline(DWORD, WINAPI, JvsEEPROM_Read2, (DWORD, DWORD, DWORD, DWORD));
-		XB_JvsEEPROM_Read = XB_JvsEEPROM_Read2;
-	}
-
-	DWORD result = XB_JvsEEPROM_Read(a1, a2, a3, a4);
-
-	RETURN(result);
+	RETURN(0);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsEEPROM_Write)
@@ -138,17 +121,9 @@ DWORD WINAPI XTL::EMUPATCH(JvsEEPROM_Write)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	XB_trampoline(DWORD, WINAPI, JvsEEPROM_Write, (DWORD, DWORD, DWORD, DWORD));
+	LOG_UNIMPLEMENTED();
 
-	// If we didn't find the unpatched function, try the other variant
-	if (XB_JvsEEPROM_Write == nullptr) {
-		XB_trampoline(DWORD, WINAPI, JvsEEPROM_Write2, (DWORD, DWORD, DWORD, DWORD));
-		XB_JvsEEPROM_Write = XB_JvsEEPROM_Write2;
-	}
-
-	DWORD result = XB_JvsEEPROM_Write(a1, a2, a3, a4);
-
-	RETURN(result);
+	RETURN(0);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsFirmwareDownload)
@@ -166,10 +141,9 @@ DWORD WINAPI XTL::EMUPATCH(JvsFirmwareDownload)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	XB_trampoline(DWORD, WINAPI, JvsFirmwareDownload, (DWORD, DWORD, DWORD, DWORD));
-	DWORD result = XB_JvsFirmwareDownload(a1, a2, a3, a4);
+	LOG_UNIMPLEMENTED();
 
-	RETURN(result);
+	RETURN(0);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsFirmwareUpload)
@@ -187,10 +161,9 @@ DWORD WINAPI XTL::EMUPATCH(JvsFirmwareUpload)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	XB_trampoline(DWORD, WINAPI, JvsFirmwareUpload, (DWORD, DWORD, DWORD, DWORD));
-	DWORD result = XB_JvsFirmwareUpload(a1, a2, a3, a4);
+	LOG_UNIMPLEMENTED();
 
-	RETURN(result);
+	RETURN(0);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsNodeReceivePacket)
@@ -206,10 +179,9 @@ DWORD WINAPI XTL::EMUPATCH(JvsNodeReceivePacket)
 		LOG_FUNC_ARG(a3)
 		LOG_FUNC_END
 
-	XB_trampoline(DWORD, WINAPI, JvsNodeReceivePacket, (DWORD, DWORD, DWORD));
-	DWORD result = XB_JvsNodeReceivePacket(a1, a2, a3);
+	LOG_UNIMPLEMENTED();
 
-	RETURN(result);
+	RETURN(0);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsNodeSendPacket)
@@ -225,31 +197,54 @@ DWORD WINAPI XTL::EMUPATCH(JvsNodeSendPacket)
 		LOG_FUNC_ARG(a3)
 		LOG_FUNC_END
 
-	XB_trampoline(DWORD, WINAPI, JvsNodeSendPacket, (DWORD, DWORD, DWORD));
-	DWORD result = XB_JvsNodeSendPacket(a1, a2, a3);
+	LOG_UNIMPLEMENTED();
 
-	RETURN(result);
+	RETURN(0);
+}
+
+
+// Binary Coded Decimal to Decimal conversion
+uint8_t BcdToUint8(uint8_t value)
+{
+	return value - 6 * (value >> 4);
+}
+
+uint8_t Uint8ToBcd(uint8_t value)
+{
+	return value + 6 * (value / 10);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsRTC_Read)
 (
 	DWORD a1,
 	DWORD a2,
-	DWORD a3,
+	JvsRTCTime* pTime,
 	DWORD a4
 )
 {
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(a1)
 		LOG_FUNC_ARG(a2)
-		LOG_FUNC_ARG(a3)
+		LOG_FUNC_ARG_OUT(time)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	XB_trampoline(DWORD, WINAPI, JvsRTC_Read, (DWORD, DWORD, DWORD, DWORD));
-	DWORD result = XB_JvsRTC_Read(a1, a2, a3, a4);
+	time_t hostTime;
+	struct tm* hostTimeInfo;
+	time(&hostTime);
+	hostTimeInfo = localtime(&hostTime);
 
-	RETURN(result);
+	memset(pTime, 0, sizeof(JvsRTCTime));
+
+	pTime->day = Uint8ToBcd(hostTimeInfo->tm_mday);
+	pTime->month = Uint8ToBcd(hostTimeInfo->tm_mon + 1);
+	pTime->year = Uint8ToBcd(hostTimeInfo->tm_year - 100);
+
+	pTime->hour = Uint8ToBcd(hostTimeInfo->tm_hour);
+	pTime->minute = Uint8ToBcd(hostTimeInfo->tm_min);
+	pTime->second = Uint8ToBcd(hostTimeInfo->tm_sec);
+
+	RETURN(0);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsScFirmwareDownload)
@@ -267,10 +262,9 @@ DWORD WINAPI XTL::EMUPATCH(JvsScFirmwareDownload)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	XB_trampoline(DWORD, WINAPI, JvsScFirmwareDownload, (DWORD, DWORD, DWORD, DWORD));
-	DWORD result = XB_JvsScFirmwareDownload(a1, a2, a3, a4);
-	
-	RETURN(result);
+	LOG_UNIMPLEMENTED();
+
+	RETURN(0);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsScFirmwareUpload)
@@ -288,10 +282,9 @@ DWORD WINAPI XTL::EMUPATCH(JvsScFirmwareUpload)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	XB_trampoline(DWORD, WINAPI, JvsScFirmwareUpload, (DWORD, DWORD, DWORD, DWORD));
-	DWORD result = XB_JvsScFirmwareUpload(a1, a2, a3, a4);
+	LOG_UNIMPLEMENTED();
 
-	RETURN(result);
+	RETURN(0);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsScReceiveMidi)
@@ -307,10 +300,9 @@ DWORD WINAPI XTL::EMUPATCH(JvsScReceiveMidi)
 		LOG_FUNC_ARG(a3)
 		LOG_FUNC_END
 
-	XB_trampoline(DWORD, WINAPI, JvsScReceiveMidi, (DWORD, DWORD, DWORD));
-	DWORD result = XB_JvsScReceiveMidi(a1, a2, a3);
+	LOG_UNIMPLEMENTED();
 
-	RETURN(result);
+	RETURN(0);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsScSendMidi)
@@ -326,10 +318,9 @@ DWORD WINAPI XTL::EMUPATCH(JvsScSendMidi)
 		LOG_FUNC_ARG(a3)
 		LOG_FUNC_END
 
-	XB_trampoline(DWORD, WINAPI, JvsScSendMidi, (DWORD, DWORD, DWORD));
-	DWORD result = XB_JvsScSendMidi(a1, a2, a3);
+	LOG_UNIMPLEMENTED();
 
-	RETURN(result);
+	RETURN(0);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsScReceiveRs323c)
@@ -345,10 +336,9 @@ DWORD WINAPI XTL::EMUPATCH(JvsScReceiveRs323c)
 		LOG_FUNC_ARG(a3)
 		LOG_FUNC_END
 
-	XB_trampoline(DWORD, WINAPI, JvsScReceiveRs323c, (DWORD, DWORD, DWORD));
-	DWORD result = XB_JvsScReceiveRs323c(a1, a2, a3);
+	LOG_UNIMPLEMENTED();
 
-	RETURN(result);
+	RETURN(0);
 }
 
 
@@ -365,8 +355,7 @@ DWORD WINAPI XTL::EMUPATCH(JvsScSendRs323c)
 		LOG_FUNC_ARG(a3)
 		LOG_FUNC_END
 
-	XB_trampoline(DWORD, WINAPI, JvsScSendRs323c, (DWORD, DWORD, DWORD));
-	DWORD result = XB_JvsScSendRs323c(a1, a2, a3);
+	LOG_UNIMPLEMENTED();
 
-	RETURN(result);
+	RETURN(0);
 }
