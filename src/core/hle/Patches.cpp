@@ -395,6 +395,26 @@ std::map<const std::string, const xbox_patch_t> g_PatchTable = {
 	PATCH_ENTRY("XSetProcessQuantumLength", XTL::EMUPATCH(XSetProcessQuantumLength), PATCH_ALWAYS),
 	PATCH_ENTRY("timeKillEvent", XTL::EMUPATCH(timeKillEvent), PATCH_ALWAYS),
 	PATCH_ENTRY("timeSetEvent", XTL::EMUPATCH(timeSetEvent), PATCH_ALWAYS),
+
+	// JVS Functions
+	PATCH_ENTRY("JvsBACKUP_Read", XTL::EMUPATCH(JvsBACKUP_Read), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsBACKUP_Read2", XTL::EMUPATCH(JvsBACKUP_Read), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsBACKUP_Write", XTL::EMUPATCH(JvsBACKUP_Write), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsEEPROM_Read", XTL::EMUPATCH(JvsEEPROM_Read), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsEEPROM_Read2", XTL::EMUPATCH(JvsEEPROM_Read), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsEEPROM_Write", XTL::EMUPATCH(JvsEEPROM_Write), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsEEPROM_Write2", XTL::EMUPATCH(JvsEEPROM_Write), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsFirmwareDownload", XTL::EMUPATCH(JvsFirmwareDownload), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsFirmwareUpload", XTL::EMUPATCH(JvsFirmwareUpload), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsNodeReceivePacket", XTL::EMUPATCH(JvsNodeReceivePacket), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsNodeSendPacket", XTL::EMUPATCH(JvsNodeSendPacket), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsRTC_Read", XTL::EMUPATCH(JvsRTC_Read), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsScFirmwareDownload", XTL::EMUPATCH(JvsScFirmwareDownload), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsScFirmwareUpload", XTL::EMUPATCH(JvsScFirmwareUpload), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsScReceiveMidi", XTL::EMUPATCH(JvsScReceiveMidi), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsScReceiveRs323c", XTL::EMUPATCH(JvsScReceiveRs323c), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsScSendMidi", XTL::EMUPATCH(JvsScSendMidi), PATCH_ALWAYS),
+	PATCH_ENTRY("JvsScSendRs323c", XTL::EMUPATCH(JvsScSendRs323c), PATCH_ALWAYS),
 };
 
 std::unordered_map<std::string, subhook::Hook> g_FunctionHooks;

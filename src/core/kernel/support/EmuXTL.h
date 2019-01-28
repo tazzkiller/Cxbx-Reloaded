@@ -52,6 +52,7 @@ namespace XTL
     #include "core\hle\XGRAPHIC\XGraphic.h"
 	#include "core\hle\XACTENG\XactEng.h"
 	#include "core\hle\XAPI\OHCI\XInput\XInput.h"
+	#include "core\hle\JVS\JVS.h"
 }
 
 extern XTL::IDirect3DDevice    *g_pD3DDevice;

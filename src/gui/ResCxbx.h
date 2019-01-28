@@ -1,6 +1,6 @@
 ﻿//{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by C:\Users\anonymous\Documents\xbox\Cxbx-Reloaded\resource\Cxbx.rc
+// Used by C:\Users\lukeu\Desktop\Projects\cxbx-reloaded\resource\Cxbx.rc
 //
 #define IDI_CXBX                        101
 #define IDB_SPLASH                      102
@@ -85,6 +85,8 @@
 #define IDC_LOG_RTL                     954
 #define IDC_LOG_XC                      955
 #define IDC_LOG_XE                      956
+#define IDC_LOG_ADM2                    958
+#define IDC_LOG_JVS                     958
 #define IDC_SET_X                       1000
 #define IDC_SET_Y                       1001
 #define IDC_SET_A                       1002
@@ -351,7 +353,7 @@
 #define ID_HACKS_SPEEDHACKS             40103
 #define ID_SETTINGS_CONFIG_DLOCCUSTOM   40104
 #define ID_SETTINGS_CONFIG_DLOCAPPDATA  40105
-#define ID_SETTINGS_CONFIG_DLOCEXECDIR   40106
+#define ID_SETTINGS_CONFIG_DLOCEXECDIR  40106
 #define ID_SETTINGS_ALLOWADMINPRIVILEGE 40107
 #define ID_SETTINGS_CONFIG_LOGGING      40108
 #define ID_SYNC_CONFIG_LOGGING          40109
