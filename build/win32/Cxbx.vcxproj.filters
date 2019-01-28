@@ -635,6 +635,9 @@
     <ClCompile Include="..\..\src\common\Timer.cpp">
       <Filter>Emulator</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\hle\JVS\JVS.cpp">
+      <Filter>core\HLE\JVS</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\resource\Splash.jpg">
@@ -801,6 +804,9 @@
     <Filter Include="core\HLE\D3D8\Direct3D9">
       <UniqueIdentifier>{c56dc02e-4531-4cd2-aac2-a3c97eec11c1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="core\HLE\JVS">
+      <UniqueIdentifier>{91d7791e-639e-4000-94a6-57c28122c7b1}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\resource\Cxbx.rc">
@@ -818,6 +824,10 @@
     <ClInclude Include="..\..\src\common\util\CPUID.h">
       <Filter>Cross Platform</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\hle\JVS\JVS.h">
+      <Filter>core\HLE\JVS</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\Cxbx\ResCxbx.h" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\devices\video\nv2a_regs.h">

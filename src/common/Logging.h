@@ -90,6 +90,7 @@ typedef enum class _CXBXR_MODULE: unsigned int {
 	HUB,
 	XIDCTRL,
 	ADM,
+	JVS,
 	// kernel
 	KRNL,
 	LOG,
