@@ -237,8 +237,8 @@ DWORD WINAPI XTL::EMUPATCH(JvsRTC_Read)
 	memset(pTime, 0, sizeof(JvsRTCTime));
 
 	pTime->day = Uint8ToBcd(hostTimeInfo->tm_mday);
-	pTime->month = Uint8ToBcd(hostTimeInfo->tm_mon + 1);
-	pTime->year = Uint8ToBcd(hostTimeInfo->tm_year - 100);
+	pTime->month = Uint8ToBcd(hostTimeInfo->tm_mon + 1);	// Chihiro month counter stats at 1
+	pTime->year = Uint8ToBcd(hostTimeInfo->tm_year - 100);	// Chihiro starts counting from year 2000
 
 	pTime->hour = Uint8ToBcd(hostTimeInfo->tm_hour);
 	pTime->minute = Uint8ToBcd(hostTimeInfo->tm_min);
