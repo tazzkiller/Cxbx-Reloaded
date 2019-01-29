@@ -47,6 +47,7 @@ NVNetDevice* g_NVNet;
 NV2ADevice* g_NV2A;
 ADM1032Device* g_ADM1032;
 USBDevice* g_USB0;
+MediaBoard* g_MediaBoard;
 
 MCPXRevision MCPXRevisionFromHardwareModel(HardwareModel hardwareModel)
 {
@@ -136,6 +137,10 @@ void InitXboxHardware(HardwareModel hardwareModel)
 	g_ADM1032 = new ADM1032Device();
 	if (bLLE_USB) {
 		g_USB0 = new USBDevice();
+	}
+
+	if (g_bIsChihiro) {
+		g_MediaBoard = new MediaBoard();
 	}
 
 	// Connect devices to SM bus
