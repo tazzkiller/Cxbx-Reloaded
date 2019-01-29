@@ -83,6 +83,7 @@ extern const std::string DriveY;
 extern const std::string DriveZ;
 extern const std::string DevicePrefix;
 extern const std::string DeviceCdrom0;
+extern const std::string DeviceMbfs;
 extern const std::string DeviceHarddisk0;
 extern const std::string DeviceHarddisk0PartitionPrefix;
 extern const std::string DeviceHarddisk0Partition0;

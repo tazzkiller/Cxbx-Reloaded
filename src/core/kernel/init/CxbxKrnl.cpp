@@ -1195,24 +1195,38 @@ void CxbxKrnlMain(int argc, char* argv[])
 		g_bIsChihiro = (g_XbeType == xtChihiro);
 		g_bIsDebug = (g_XbeType == xtDebug);
 		g_bIsRetail = (g_XbeType == xtRetail);
-
-		// Disabled: The media board rom fails to run because it REQUIRES LLE USB, which is not yet enabled.
-		// Chihiro games can be ran directly for now. 
-		// This just means that you cannot access the Chihiro test menus and related stuff, games should still be okay
-#if 0   
+	
 		// If the Xbe is Chihiro, and we were not launched by SEGABOOT, we need to load SEGABOOT from the Chihiro Media Board rom instead!
-		// TODO: We also need to store the path of the loaded game, and mount it as the mediaboard filesystem
-		// TODO: How to we detect who launched us, to prevent a reboot-loop
-		if (g_bIsChihiro) {
+		char MediaBoardMountPath[MAX_PATH];
+		g_EmuShared->GetMediaBoardMountPath(MediaBoardMountPath);
+
+		// If the XBE path contains a boot.id, it must be a Chihiro title
+		// So we force g_bIsChihiro to true!
+		// This is necessary as some Chihiro games use the Debug xor instead of the Chihiro ones
+		// which means we cannot rely on that alone.
+		std::string xbeDirectory = szFilePath_Xbe;
+		xbeDirectory = xbeDirectory.substr(0, xbeDirectory.find_last_of("\\/"));
+		
+		if (std::experimental::filesystem::exists(xbeDirectory + "/boot.id")) {
+			g_bIsDebug = false;
+			g_bIsRetail = false;
+			g_bIsChihiro = true;
+		}
+
+		if (g_bIsChihiro && strlen(MediaBoardMountPath) == 0) {
 			std::string chihiroMediaBoardRom = std::string(szFolder_CxbxReloadedData) + std::string("/EmuDisk/") + MediaBoardRomFile;
 			if (!std::experimental::filesystem::exists(chihiroMediaBoardRom)) {
 				CxbxKrnlCleanup("Chihiro Media Board ROM (fpr21042_m29w160et.bin) could not be found");
 			}
 
+			strcpy(MediaBoardMountPath, xbeDirectory.c_str());
+			g_EmuShared->SetMediaBoardMountPath(MediaBoardMountPath);
+
 			delete CxbxKrnl_Xbe;
 			CxbxKrnl_Xbe = new Xbe(chihiroMediaBoardRom.c_str(), false);
+			g_XbeType = xtChihiro;
 		}
-#endif
+
 		// Initialize the virtual manager
 		g_VMManager.Initialize(hMemoryBin, hPageTables, BootFlags);
 
@@ -1220,7 +1234,6 @@ void CxbxKrnlMain(int argc, char* argv[])
 		size_t HeaderSize = CxbxKrnl_Xbe->m_Header.dwSizeofHeaders;
 		VAddr XbeBase = XBE_IMAGE_BASE;
 		g_VMManager.XbAllocateVirtualMemory(&XbeBase, 0, &HeaderSize, XBOX_MEM_COMMIT, XBOX_PAGE_READWRITE);
-
 
 		// Copy over loaded Xbe Headers to specified base address
 		memcpy((void*)CxbxKrnl_Xbe->m_Header.dwBaseAddr, &CxbxKrnl_Xbe->m_Header, sizeof(Xbe::Header));
