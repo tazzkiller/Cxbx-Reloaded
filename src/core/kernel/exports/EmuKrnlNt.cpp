@@ -1666,6 +1666,10 @@ XBSYSAPI EXPORTNUM(219) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtReadFile
 	// If we are emulating the Chihiro, we need to hook mbcom
 	if (g_bIsChihiro && FileHandle == CHIHIRO_MBCOM_HANDLE) {
 		g_MediaBoard->ComRead(ByteOffset->QuadPart, Buffer, Length);
+
+		// Update the Status Block
+		IoStatusBlock->Status = STATUS_SUCCESS;
+		IoStatusBlock->Information = Length;
 		return STATUS_SUCCESS;
 	}
 
@@ -2192,6 +2196,10 @@ XBSYSAPI EXPORTNUM(236) xboxkrnl::NTSTATUS NTAPI xboxkrnl::NtWriteFile
 	// If we are emulating the Chihiro, we need to hook mbcom
 	if (g_bIsChihiro && FileHandle == CHIHIRO_MBCOM_HANDLE) {
 		g_MediaBoard->ComWrite(ByteOffset->QuadPart, Buffer, Length);
+
+		// Update the Status Block
+		IoStatusBlock->Status = STATUS_SUCCESS;
+		IoStatusBlock->Information = Length;
 		return STATUS_SUCCESS;
 	}
 
