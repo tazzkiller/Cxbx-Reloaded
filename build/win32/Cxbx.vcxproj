@@ -225,6 +225,7 @@
     <ClInclude Include="..\..\src\Cxbx.h" />
     <ClInclude Include="..\..\src\core\kernel\init\CxbxKrnl.h" />
     <ClInclude Include="..\..\src\Cxbx\ResCxbx.h" />
+    <ClInclude Include="..\..\src\devices\chihiro\MediaBoard.h" />
     <ClInclude Include="..\..\src\gui\DbgConsole.h" />
     <ClInclude Include="..\..\src\core\hle\D3D8\Direct3D9\Direct3D9.h" />
     <ClInclude Include="..\..\src\core\hle\D3D8\XbD3D8Types.h" />
@@ -381,6 +382,7 @@
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</WholeProgramOptimization>
     </ClCompile>
+    <ClCompile Include="..\..\src\devices\chihiro\MediaBoard.cpp" />
     <ClCompile Include="..\..\src\gui\DbgConsole.cpp">
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

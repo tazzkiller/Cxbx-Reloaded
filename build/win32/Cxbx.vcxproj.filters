@@ -638,6 +638,9 @@
     <ClCompile Include="..\..\src\core\hle\JVS\JVS.cpp">
       <Filter>core\HLE\JVS</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\devices\chihiro\MediaBoard.cpp">
+      <Filter>Hardware\Chihiro</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\resource\Splash.jpg">
@@ -807,6 +810,9 @@
     <Filter Include="core\HLE\JVS">
       <UniqueIdentifier>{91d7791e-639e-4000-94a6-57c28122c7b1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Hardware\Chihiro">
+      <UniqueIdentifier>{fa489b20-cd9e-4e9b-a352-11c19ba9eb69}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="..\..\resource\Cxbx.rc">
@@ -828,6 +834,9 @@
       <Filter>core\HLE\JVS</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\Cxbx\ResCxbx.h" />
+    <ClInclude Include="..\..\src\devices\chihiro\MediaBoard.h">
+      <Filter>Hardware\Chihiro</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\devices\video\nv2a_regs.h">
