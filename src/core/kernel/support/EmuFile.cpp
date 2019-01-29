@@ -50,6 +50,7 @@
 #include "core\kernel\init\CxbxKrnl.h"
 #include "core\kernel\memory-manager\VMManager.h"
 #include "Logging.h"
+#include "EmuShared.h"
 
 #include <experimental/filesystem>
 
@@ -368,8 +369,13 @@ NTSTATUS CxbxConvertFilePath(
 			*RootDirectory = CxbxBasePathHandle;
 			HostPath = CxbxBasePath;
 			RelativePath = MediaBoardRomFile;
-		}
-		else if (!partitionHeader) {
+		} else if (RelativePath.substr(0, DriveMbfs.length()).compare(DriveMbfs) == 0) {
+			char MediaBoardMountPoint[MAX_PATH];
+			g_EmuShared->GetMediaBoardMountPath(MediaBoardMountPoint);
+			RelativeHostPath = string_to_wstring(DrivePrefix + std::string(MediaBoardMountPoint) + RelativePath.substr(DriveMbfs.length()));
+			*RootDirectory = 0;
+			return STATUS_SUCCESS;
+		} else if (!partitionHeader) {
 			// Check if the path starts with a volume indicator :
 			if ((RelativePath.length() >= 2) && (RelativePath[1] == ':')) {
 				// Look up the symbolic link information using the drive letter :

@@ -111,6 +111,10 @@ void MediaBoard::ComWrite(uint32_t offset, void* buffer, uint32_t length)
 			case 0x0001: // DIMM board size register
 				readBuffer32[1] = 1; // TODO: Figure out encoding, this value gives an invalid size (4GB)
 				break;
+			case 0x0100: // Loading Info
+				readBuffer32[1] = 5; // TODO: Why 5?
+				readBuffer32[2] = 0; // TODO: Why 0?
+				break;
 			case 0x0101: // Firmware Version
 				readBuffer32[1] = 0x0100;
 				break;
