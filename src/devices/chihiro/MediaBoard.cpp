@@ -119,7 +119,7 @@ void MediaBoard::ComWrite(uint32_t offset, void* buffer, uint32_t length)
 				readBuffer32[1] = 0x0100;
 				break;
 			case 0x0103: // Serial Number
-				memcpy(&readBuffer32[1], "-000-000-000-000", 16);
+				memcpy(&readBuffer32[1], "A89E-25A47354512", 16);
 				break;
 			default: printf("Unhandled MediaBoard Command: %04X\n", command);
 		}
