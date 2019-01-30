@@ -48,6 +48,7 @@
 
 // Global variables used to store JVS related firmware/eeproms
 std::vector<uint8_t> g_MainBoardFirmware;
+std::vector<uint8_t> g_MainBoardEeprom;
 
 bool JVS_LoadFile(std::string path, std::vector<uint8_t>& data)
 {
@@ -81,11 +82,15 @@ void JVS_Init()
 {
 	std::string romPath = std::string(szFolder_CxbxReloadedData) + std::string("\\EmuDisk\\Chihiro");
 	std::string mainBoardFirmwarePath = "ic10_g24lc64.bin";
+	std::string mainBoardEepromPath = "ic11_24lc024.bin";
 
 	if (!JVS_LoadFile((romPath + "\\" + mainBoardFirmwarePath).c_str(), g_MainBoardFirmware)) {
 		CxbxKrnlCleanup("Failed to load mainboard firmware: %s", mainBoardFirmwarePath.c_str());
 	}
 
+	if (!JVS_LoadFile((romPath + "\\" + mainBoardEepromPath).c_str(), g_MainBoardEeprom)) {
+		CxbxKrnlCleanup("Failed to load mainboard EEPROM: %s", mainBoardEepromPath.c_str());
+	}
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsBACKUP_Read)
@@ -130,20 +135,20 @@ DWORD WINAPI XTL::EMUPATCH(JvsBACKUP_Write)
 
 DWORD WINAPI XTL::EMUPATCH(JvsEEPROM_Read)
 (
-	DWORD a1,
-	DWORD a2,
-	DWORD a3,
+	DWORD Offset,
+	DWORD Length,
+	PUCHAR Buffer,
 	DWORD a4
 )
 {
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(a1)
-		LOG_FUNC_ARG(a2)
-		LOG_FUNC_ARG(a3)
+		LOG_FUNC_ARG(Offset)
+		LOG_FUNC_ARG(Length)
+		LOG_FUNC_ARG_OUT(Buffer)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	LOG_UNIMPLEMENTED();
+	memcpy((void*)Buffer, &g_MainBoardEeprom[Offset], Length);
 
 	RETURN(0);
 }
