@@ -34,6 +34,9 @@
 #ifndef JVS_H
 #define JVS_H
 
+// Used by CxbxKrnl to setup JVS roms
+void JVS_Init();
+
 DWORD WINAPI EMUPATCH(JvsBACKUP_Read)
 (
 	DWORD a1,
@@ -68,9 +71,9 @@ DWORD WINAPI EMUPATCH(JvsEEPROM_Write)
 
 DWORD WINAPI EMUPATCH(JvsFirmwareDownload)
 (
-	DWORD a1,
-	DWORD a2,
-	DWORD a3,
+	DWORD Offset,
+	DWORD Length,
+	PUCHAR Buffer,
 	DWORD a4
 );
 
