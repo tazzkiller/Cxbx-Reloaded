@@ -75,6 +75,7 @@ namespace xboxkrnl
 #include "Timer.h" // For Timer_Init
 #include "..\Common\Input\InputConfig.h" // For the InputDeviceManager
 
+
 /*! thread local storage */
 Xbe::TLS *CxbxKrnl_TLS = NULL;
 /*! thread local storage data */
@@ -1227,6 +1228,12 @@ void CxbxKrnlMain(int argc, char* argv[])
 			g_XbeType = xtChihiro;
 		}
 
+		// If this is a Chihiro title, we need to patch the init flags to disable HDD setup
+		// The Chihiro kernel does this, so we should too!
+		if (g_bIsChihiro) {
+			CxbxKrnl_Xbe->m_Header.dwInitFlags.bDontSetupHarddisk = true;
+		}
+
 		// Initialize the virtual manager
 		g_VMManager.Initialize(hMemoryBin, hPageTables, BootFlags);
 
@@ -1641,6 +1648,12 @@ __declspec(noreturn) void CxbxKrnlInit
 	InitXboxThread(g_CPUXbox);
 	xboxkrnl::ObInitSystem();
 	xboxkrnl::KiInitSystem();
+
+	// If this title is Chihiro, Setup JVS
+	if (g_bIsChihiro) {
+		extern void JVS_Init(); // TODO: Why doesn't including JVS.h work?
+		JVS_Init();
+	}
 
 	EmuX86_Init();
 	// Create the interrupt processing thread
