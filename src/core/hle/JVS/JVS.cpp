@@ -148,6 +148,11 @@ DWORD WINAPI XTL::EMUPATCH(JvsEEPROM_Read)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
+	if (a4 != 0) {
+		LOG_INCOMPLETE();
+		return -1;
+	}
+
 	memcpy((void*)Buffer, &g_MainBoardEeprom[Offset], Length);
 
 	RETURN(0);
@@ -167,6 +172,11 @@ DWORD WINAPI XTL::EMUPATCH(JvsEEPROM_Write)
 		LOG_FUNC_ARG(a3)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
+
+	if (a4 != 0) {
+		LOG_INCOMPLETE();
+		return -1;
+	}
 
 	LOG_UNIMPLEMENTED();
 
