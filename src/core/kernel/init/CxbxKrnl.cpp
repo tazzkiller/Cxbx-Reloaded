@@ -1206,6 +1206,7 @@ void CxbxKrnlMain(int argc, char* argv[])
 		// This is necessary as some Chihiro games use the Debug xor instead of the Chihiro ones
 		// which means we cannot rely on that alone.
 		std::string xbeDirectory = szFilePath_Xbe;
+		std::replace(xbeDirectory.begin(), xbeDirectory.end(), ';', '/');
 		xbeDirectory = xbeDirectory.substr(0, xbeDirectory.find_last_of("\\/"));
 		
 		if (std::experimental::filesystem::exists(xbeDirectory + "/boot.id")) {
