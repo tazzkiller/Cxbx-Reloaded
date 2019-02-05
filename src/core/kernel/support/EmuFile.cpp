@@ -205,6 +205,8 @@ void CxbxFormatPartitionByHandle(HANDLE hFile)
 }
 
 const std::string MediaBoardRomFile = "Chihiro\\fpr21042_m29w160et.bin";
+const std::string MediaBoardSegaBoot0 = "Chihiro\\SEGABOOT_OLD.XBE";
+const std::string MediaBoardSegaBoot1 = "Chihiro\\SEGABOOT.XBE";
 const std::string DrivePrefix = "\\??\\";
 const std::string DriveSerial = DrivePrefix + "serial:";
 const std::string DriveCdRom0 = DrivePrefix + "CdRom0:"; // CD-ROM device
