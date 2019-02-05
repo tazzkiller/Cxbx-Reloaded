@@ -47,6 +47,7 @@ void EmuHLEIntercept(Xbe::Header *XbeHeader);
 
 std::string GetDetectedSymbolName(xbaddr address, int *symbolOffset);
 void* GetXboxFunctionPointer(std::string functionName);
+void* GetXboxSymbolPointer(std::string functionName);
 
 // Declares an unpatched Xbox function trampoline, callable by name (with a 'XB_' prefix attached)
 #define XB_trampoline(ret, conv, name, arguments) \

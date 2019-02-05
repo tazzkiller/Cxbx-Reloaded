@@ -91,6 +91,65 @@ void JVS_Init()
 	if (!JVS_LoadFile((romPath + "\\" + mainBoardEepromPath).c_str(), g_MainBoardEeprom)) {
 		CxbxKrnlCleanup("Failed to load mainboard EEPROM: %s", mainBoardEepromPath.c_str());
 	}
+
+	// HACK: Set unknown variable to 0, VC3 and Ghost Squad refuse to boot otherwise
+	// Normally, this would be set by JVS_SendCommand internally, but since we intercept JVS functions
+	// This doesn't happen naturally.
+
+	// Deterime which version of JVS_SendCommand this title is using and derive the offset
+	static int JvsSendCommandVersion = -1;
+	DWORD* JvsSendCommandVarOffset = nullptr;
+
+	auto JvsSendCommandOffset1 = (uintptr_t)GetXboxSymbolPointer("JVS_SendCommand");
+	auto JvsSendCommandOffset2 = (uintptr_t)GetXboxSymbolPointer("JVS_SendCommand2");
+	// TODO: 3rd Variant if we find a title that requires it
+
+	if (JvsSendCommandOffset1) {
+		JvsSendCommandVersion = 1;
+		JvsSendCommandVarOffset = *(DWORD**)(JvsSendCommandOffset1 + 0x2A0);
+	}
+
+	if (JvsSendCommandOffset2) {
+		JvsSendCommandVersion = 2;
+		JvsSendCommandVarOffset = *(DWORD**)(JvsSendCommandOffset2 + 0x312);
+	}
+
+	// Finally, set the variable
+	// The title reads this into eax, then does not eax; sar eax, 1; and eax 0bh
+	// If the result is nonzero, it attempts to use an invalid display mode
+	// Using -1 forces a default behavior, so we use -2 to satisfy this critera
+	// TODO: What is this variable for, exactly?
+	if (JvsSendCommandVarOffset) {
+		*JvsSendCommandVarOffset = -2;
+	}
+}
+
+DWORD WINAPI XTL::EMUPATCH(JVS_SendCommand)
+(
+	DWORD a1,
+	DWORD a2,
+	DWORD a3,
+	DWORD a4,
+	DWORD a5,
+	DWORD a6,
+	DWORD a7,
+	DWORD a8
+)
+{
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(a1)
+		LOG_FUNC_ARG(a2)
+		LOG_FUNC_ARG(a3)
+		LOG_FUNC_ARG(a4)
+		LOG_FUNC_ARG(a5)
+		LOG_FUNC_ARG(a6)
+		LOG_FUNC_ARG(a7)
+		LOG_FUNC_ARG(a8)
+		LOG_FUNC_END;
+
+	LOG_UNIMPLEMENTED();
+
+	RETURN(0);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsBACKUP_Read)
