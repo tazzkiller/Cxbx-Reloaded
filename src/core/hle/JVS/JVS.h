@@ -129,9 +129,9 @@ DWORD WINAPI EMUPATCH(JvsRTC_Write)
 
 DWORD WINAPI EMUPATCH(JvsScFirmwareDownload)
 (
-	DWORD a1,
-	DWORD a2,
-	DWORD a3,
+	DWORD Offset,
+	DWORD Length,
+	PUCHAR Buffer,
 	DWORD a4
 );
 
