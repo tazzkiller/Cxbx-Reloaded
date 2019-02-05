@@ -1221,11 +1221,57 @@ void CxbxKrnlMain(int argc, char* argv[])
 				CxbxKrnlCleanup("Chihiro Media Board ROM (fpr21042_m29w160et.bin) could not be found");
 			}
 
+			// Open a handle to the mediaboard rom
+			FILE* fpRom = fopen(chihiroMediaBoardRom.c_str(), "rb");
+			if (fpRom == nullptr) {
+				CxbxKrnlCleanup("Chihiro Media Board ROM (fpr21042_m29w160et.bin) could not opened for read");
+			}
+
+			// Verify the size of media board rom
+			fseek(fpRom, 0, SEEK_END);
+			auto length = ftell(fpRom);
+			if (length != 2 * ONE_MB) {
+				CxbxKrnlCleanup("Chihiro Media Board ROM (fpr21042_m29w160et.bin) has an invalid size");
+			}
+			fseek(fpRom, 0, SEEK_SET);
+
+			// Extract SEGABOOT_OLD.XBE and SEGABOOT.XBE from Media Rom
+			// We do this every-time, just in case the user updated their media board rom/a Chihiro firmware update was previously run
+			std::string chihiroSegaBootOld = std::string(szFolder_CxbxReloadedData) + std::string("/EmuDisk/") + MediaBoardSegaBoot0;
+			std::string chihiroSegaBootNew = std::string(szFolder_CxbxReloadedData) + std::string("/EmuDisk/") + MediaBoardSegaBoot1;
+
+			FILE* fpSegaBootOld = fopen(chihiroSegaBootOld.c_str(), "wb");
+			FILE* fpSegaBootNew = fopen(chihiroSegaBootNew.c_str(), "wb");
+			if (fpSegaBootNew == nullptr || fpSegaBootOld == nullptr) {
+				CxbxKrnlCleanup("Could not open SEGABOOT for writing");
+			}
+
+			// Extract SEGABOOT (Old)
+			void* buffer = malloc(ONE_MB);
+			if (buffer == nullptr) {
+				CxbxKrnlCleanup("Could not allocate buffer for SEGABOOT");
+			}
+
+			fread(buffer, 1, ONE_MB, fpRom);
+			fwrite(buffer, 1, ONE_MB, fpSegaBootOld);
+
+			// Extract SEGABOOT (New)
+			fread(buffer, 1, ONE_MB, fpRom);
+			fwrite(buffer, 1, ONE_MB, fpSegaBootNew);
+
+			free(buffer);
+
+			fclose(fpSegaBootOld);
+			fclose(fpSegaBootNew);
+			fclose(fpRom);
+
+			// Prepare to mount Media Board rom to mbrom:
 			strcpy(MediaBoardMountPath, xbeDirectory.c_str());
 			g_EmuShared->SetMediaBoardMountPath(MediaBoardMountPath);
 
+			// Launch Segaboot
 			delete CxbxKrnl_Xbe;
-			CxbxKrnl_Xbe = new Xbe(chihiroMediaBoardRom.c_str(), false);
+			CxbxKrnl_Xbe = new Xbe(chihiroSegaBootNew.c_str(), false);
 			g_XbeType = xtChihiro;
 		}
 
