@@ -397,10 +397,9 @@ std::map<const std::string, const xbox_patch_t> g_PatchTable = {
 	PATCH_ENTRY("timeSetEvent", XTL::EMUPATCH(timeSetEvent), PATCH_ALWAYS),
 
 	// JVS Functions
-	// TODO:
-	// PATCH_ENTRY("JVS_SendCommand", XTL::EMUPATCH(JVS_SendCommand), PATCH_ALWAYS),
-	// PATCH_ENTRY("JVS_SendCommand2", XTL::EMUPATCH(JVS_SendCommand), PATCH_ALWAYS),
-	// PATCH_ENTRY("JVS_SendCommand3", XTL::EMUPATCH(JVS_SendCommand), PATCH_ALWAYS),
+	PATCH_ENTRY("JVS_SendCommand", XTL::EMUPATCH(JVS_SendCommand), PATCH_ALWAYS),
+	PATCH_ENTRY("JVS_SendCommand2", XTL::EMUPATCH(JVS_SendCommand), PATCH_ALWAYS),
+	PATCH_ENTRY("JVS_SendCommand3", XTL::EMUPATCH(JVS_SendCommand), PATCH_ALWAYS),
 	PATCH_ENTRY("JvsBACKUP_Read", XTL::EMUPATCH(JvsBACKUP_Read), PATCH_ALWAYS),
 	PATCH_ENTRY("JvsBACKUP_Read2", XTL::EMUPATCH(JvsBACKUP_Read), PATCH_ALWAYS),
 	PATCH_ENTRY("JvsBACKUP_Read3", XTL::EMUPATCH(JvsBACKUP_Read), PATCH_ALWAYS),

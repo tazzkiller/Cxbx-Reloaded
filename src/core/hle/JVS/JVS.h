@@ -37,6 +37,18 @@
 // Used by CxbxKrnl to setup JVS roms
 void JVS_Init();
 
+DWORD WINAPI EMUPATCH(JVS_SendCommand)
+(
+	DWORD a1,
+	DWORD a2,
+	DWORD a3,
+	DWORD a4,
+	DWORD a5,
+	DWORD a6,
+	DWORD a7,
+	DWORD a8
+);
+
 DWORD WINAPI EMUPATCH(JvsBACKUP_Read)
 (
 	DWORD a1,
