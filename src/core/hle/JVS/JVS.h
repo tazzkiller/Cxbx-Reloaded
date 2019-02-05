@@ -119,6 +119,14 @@ DWORD WINAPI EMUPATCH(JvsRTC_Read)
 	DWORD a4
 );
 
+DWORD WINAPI EMUPATCH(JvsRTC_Write)
+(
+	DWORD a1,
+	DWORD a2,
+	JvsRTCTime* time,
+	DWORD a4
+);
+
 DWORD WINAPI EMUPATCH(JvsScFirmwareDownload)
 (
 	DWORD a1,

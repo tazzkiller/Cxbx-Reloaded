@@ -203,6 +203,7 @@ DWORD WINAPI XTL::EMUPATCH(JvsFirmwareDownload)
 	RETURN(0);
 }
 
+
 DWORD WINAPI XTL::EMUPATCH(JvsFirmwareUpload)
 (
 	DWORD a1,
@@ -259,7 +260,6 @@ DWORD WINAPI XTL::EMUPATCH(JvsNodeSendPacket)
 	RETURN(0);
 }
 
-
 // Binary Coded Decimal to Decimal conversion
 uint8_t BcdToUint8(uint8_t value)
 {
@@ -300,6 +300,26 @@ DWORD WINAPI XTL::EMUPATCH(JvsRTC_Read)
 	pTime->hour = Uint8ToBcd(hostTimeInfo->tm_hour);
 	pTime->minute = Uint8ToBcd(hostTimeInfo->tm_min);
 	pTime->second = Uint8ToBcd(hostTimeInfo->tm_sec);
+
+	RETURN(0);
+}
+
+DWORD WINAPI XTL::EMUPATCH(JvsRTC_Write)
+(
+	DWORD a1,
+	DWORD a2,
+	JvsRTCTime* pTime,
+	DWORD a4
+	)
+{
+	LOG_FUNC_BEGIN
+		LOG_FUNC_ARG(a1)
+		LOG_FUNC_ARG(a2)
+		LOG_FUNC_ARG_OUT(time)
+		LOG_FUNC_ARG(a4)
+		LOG_FUNC_END
+
+	LOG_UNIMPLEMENTED();
 
 	RETURN(0);
 }

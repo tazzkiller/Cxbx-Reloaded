@@ -127,8 +127,10 @@ void InitXboxHardware(HardwareModel hardwareModel)
 
 	// Create devices
 	g_MCPX = new MCPXDevice(mcpx_revision);
-															
-	g_SMC = new SMCDevice(smc_revision, g_bIsChihiro ? 0 : 1); // 6 = AV_PACK_SCART, 1 = AV_PACK_HDTV. Chihiro doesn't support HDTV!
+
+	// TODO: For Chihiro, different games modes require different DIP switch settings
+	// Chihiro FilterBoard dip-switches 6,7,8 change this value!
+	g_SMC = new SMCDevice(smc_revision, g_bIsChihiro ? 0 : 1); // 0 = AV_PACK_SCART, 1 = AV_PACK_HDTV. Chihiro doesn't support HDTV!
 															   // SMC uses different AV_PACK values than the Kernel
 															   // See http://xboxdevwiki.net/PIC#The_AV_Pack
 	g_EEPROM = new EEPROMDevice();
