@@ -87,15 +87,15 @@ DWORD WINAPI EMUPATCH(JvsFirmwareUpload)
 
 DWORD WINAPI EMUPATCH(JvsNodeReceivePacket)
 (
-	DWORD a1,
-	DWORD a2,
+	PUCHAR Buffer,
+	DWORD Length,
 	DWORD a3
 );
 
 DWORD WINAPI EMUPATCH(JvsNodeSendPacket)
 (
-	DWORD a1,
-	DWORD a2,
+	PUCHAR Buffer,
+	DWORD Length,
 	DWORD a3
 );
 
