@@ -223,14 +223,14 @@ DWORD WINAPI XTL::EMUPATCH(JvsFirmwareUpload)
 
 DWORD WINAPI XTL::EMUPATCH(JvsNodeReceivePacket)
 (
-	DWORD a1,
-	DWORD a2,
+	PUCHAR Buffer,
+	DWORD Length,
 	DWORD a3
 )
 {
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(a1)
-		LOG_FUNC_ARG(a2)
+		LOG_FUNC_ARG(Buffer)
+		LOG_FUNC_ARG(Length)
 		LOG_FUNC_ARG(a3)
 		LOG_FUNC_END
 
@@ -241,16 +241,23 @@ DWORD WINAPI XTL::EMUPATCH(JvsNodeReceivePacket)
 
 DWORD WINAPI XTL::EMUPATCH(JvsNodeSendPacket)
 (
-	DWORD a1,
-	DWORD a2,
+	PUCHAR Buffer,
+	DWORD Length,
 	DWORD a3
 )
 {
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(a1)
-		LOG_FUNC_ARG(a2)
+		LOG_FUNC_ARG(Buffer)
+		LOG_FUNC_ARG(Length)
 		LOG_FUNC_ARG(a3)
 		LOG_FUNC_END
+
+	printf("JvsNodeSendPacket ");
+	for (unsigned i = 0; i < Length; i++) {
+		printf("[%02X]", Buffer[i]);
+	}
+
+	printf("\n");
 
 	LOG_UNIMPLEMENTED();
 
