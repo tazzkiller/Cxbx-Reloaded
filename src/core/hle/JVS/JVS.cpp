@@ -46,12 +46,16 @@
 #include "core\kernel\support\EmuXTL.h"
 #include "core\hle\Intercept.hpp"
 
-// Global variables used to store JVS related firmware/eeproms
-std::vector<uint8_t> g_MainBoardFirmware;
-std::vector<uint8_t> g_MainBoardScFirmware;
-std::vector<uint8_t> g_MainBoardEeprom;
+#pragma warning(disable:4244) // Silence mio compiler warnings
+#include "mio\mmap.hpp"
+#pragma warning(default:4244)
 
-bool JVS_LoadFile(std::string path, std::vector<uint8_t>& data)
+// Global variables used to store JVS related firmware/eeproms
+mio::mmap_sink g_MainBoardFirmware;
+mio::mmap_sink g_MainBoardScFirmware;
+mio::mmap_sink g_MainBoardEeprom;
+
+bool JVS_LoadFile(std::string path, mio::mmap_sink& data)
 {
 	FILE* fp = fopen(path.c_str(), "rb");
 
@@ -59,22 +63,12 @@ bool JVS_LoadFile(std::string path, std::vector<uint8_t>& data)
 		return false;
 	}
 
-	fseek(fp, 0, SEEK_END);
-	size_t size = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	uint8_t* buffer = (uint8_t*)malloc(size);
+	std::error_code error;
+	data = mio::make_mmap_sink(path, error);
 
-	if (buffer == nullptr) {
+	if (error) {
 		return false;
 	}
-
-	fread(buffer, size, 1, fp);
-
-	for (unsigned i = 0; i < size; i++) {
-		data.push_back(buffer[i]);
-	}
-
-	free(buffer);
 
 	return true;
 }
@@ -154,11 +148,6 @@ DWORD WINAPI XTL::EMUPATCH(JvsEEPROM_Read)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	if (a4 != 0) {
-		LOG_INCOMPLETE();
-		return -1;
-	}
-
 	memcpy((void*)Buffer, &g_MainBoardEeprom[Offset], Length);
 
 	RETURN(0);
@@ -166,25 +155,27 @@ DWORD WINAPI XTL::EMUPATCH(JvsEEPROM_Read)
 
 DWORD WINAPI XTL::EMUPATCH(JvsEEPROM_Write)
 (
-	DWORD a1,
-	DWORD a2,
-	DWORD a3,
+	DWORD Offset,
+	DWORD Length,
+	PUCHAR Buffer,
 	DWORD a4
 )
 {
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(a1)
-		LOG_FUNC_ARG(a2)
-		LOG_FUNC_ARG(a3)
+		LOG_FUNC_ARG(Offset)
+		LOG_FUNC_ARG(Length)
+		LOG_FUNC_ARG_OUT(Buffer)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	if (a4 != 0) {
-		LOG_INCOMPLETE();
-		return -1;
-	}
+	memcpy(&g_MainBoardEeprom[Offset], (void*)Buffer, Length);
 
-	LOG_UNIMPLEMENTED();
+	std::error_code error;
+	g_MainBoardEeprom.sync(error);
+
+	if (error) {
+		EmuLog(LOG_LEVEL::WARNING, "Couldn't sync EEPROM to disk");
+	}
 
 	RETURN(0);
 }
