@@ -40,9 +40,9 @@ void JVS_Init();
 DWORD WINAPI EMUPATCH(JVS_SendCommand)
 (
 	DWORD a1,
-	DWORD a2,
+	DWORD Command,
 	DWORD a3,
-	DWORD a4,
+	DWORD Length,
 	DWORD a5,
 	DWORD a6,
 	DWORD a7,
@@ -97,10 +97,16 @@ DWORD WINAPI EMUPATCH(JvsFirmwareUpload)
 	DWORD a4
 );
 
+typedef struct {
+	uint8_t sync;
+	uint8_t mode;
+	uint8_t count;
+} jvs_packet_header_t;
+
 DWORD WINAPI EMUPATCH(JvsNodeReceivePacket)
 (
 	PUCHAR Buffer,
-	DWORD Length,
+	PDWORD a2,
 	DWORD a3
 );
 
