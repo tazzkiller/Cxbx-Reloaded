@@ -55,6 +55,9 @@ mio::mmap_sink g_MainBoardFirmware;
 mio::mmap_sink g_MainBoardScFirmware;
 mio::mmap_sink g_MainBoardEeprom;
 
+// Points to the Main/Filter Board State variables (including dipsw, test/service buttons)
+DWORD* g_pJvsFilterBoardState = nullptr;
+
 bool JVS_LoadFile(std::string path, mio::mmap_sink& data)
 {
 	FILE* fp = fopen(path.c_str(), "rb");
@@ -92,35 +95,33 @@ void JVS_Init()
 		CxbxKrnlCleanup("Failed to load mainboard EEPROM: %s", mainBoardEepromPath.c_str());
 	}
 
-	// HACK: Set unknown variable to 0, VC3 and Ghost Squad refuse to boot otherwise
-	// Normally, this would be set by JVS_SendCommand internally, but since we intercept JVS functions
-	// This doesn't happen naturally.
-
-	// Deterime which version of JVS_SendCommand this title is using and derive the offset
+	// Determine which version of JVS_SendCommand this title is using and derive the offset
 	static int JvsSendCommandVersion = -1;
-	DWORD* JvsSendCommandVarOffset = nullptr;
+	g_pJvsFilterBoardState = nullptr;
 
 	auto JvsSendCommandOffset1 = (uintptr_t)GetXboxSymbolPointer("JVS_SendCommand");
 	auto JvsSendCommandOffset2 = (uintptr_t)GetXboxSymbolPointer("JVS_SendCommand2");
-	// TODO: 3rd Variant if we find a title that requires it
+	auto JvsSendCommandOffset3 = (uintptr_t)GetXboxSymbolPointer("JVS_SendCommand3");
 
 	if (JvsSendCommandOffset1) {
 		JvsSendCommandVersion = 1;
-		JvsSendCommandVarOffset = *(DWORD**)(JvsSendCommandOffset1 + 0x2A0);
+		g_pJvsFilterBoardState = *(DWORD**)(JvsSendCommandOffset1 + 0x2A0);
 	}
 
 	if (JvsSendCommandOffset2) {
 		JvsSendCommandVersion = 2;
-		JvsSendCommandVarOffset = *(DWORD**)(JvsSendCommandOffset2 + 0x312);
+		g_pJvsFilterBoardState = *(DWORD**)(JvsSendCommandOffset2 + 0x312);
 	}
 
-	// Finally, set the variable
-	// The title reads this into eax, then does not eax; sar eax, 1; and eax 0bh
-	// If the result is nonzero, it attempts to use an invalid display mode
-	// Using -1 forces a default behavior, so we use -2 to satisfy this critera
-	// TODO: What is this variable for, exactly?
-	if (JvsSendCommandVarOffset) {
-		*JvsSendCommandVarOffset = -2;
+	if (JvsSendCommandOffset3) {
+		JvsSendCommandVersion = 3;
+		g_pJvsFilterBoardState = *(DWORD**)(JvsSendCommandOffset3 + 0x307);
+	}
+
+	// Set a sane initial state
+	if (g_pJvsFilterBoardState) {
+		// TODO: Choose a good starting value
+		*g_pJvsFilterBoardState = -2;
 	}
 }
 
