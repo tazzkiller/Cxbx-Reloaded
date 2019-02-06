@@ -116,12 +116,24 @@ void JVS_Init()
 	if (JvsSendCommandOffset3) {
 		JvsSendCommandVersion = 3;
 		g_pJvsFilterBoardState = *(DWORD**)(JvsSendCommandOffset3 + 0x307);
+
+		if ((DWORD)g_pJvsFilterBoardState > XBE_MAX_VA) { 
+			// This was invalid, we must have the other varient of SendCommand3 (SEGABOOT)
+			g_pJvsFilterBoardState = *(DWORD**)(JvsSendCommandOffset3 + 0x302);
+		}
 	}
 
 	// Set a sane initial state
 	if (g_pJvsFilterBoardState) {
-		// TODO: Choose a good starting value
-		*g_pJvsFilterBoardState = -2;
+		// TODO: Choose a good set of defaults
+		// Bit 0:		1 = Horizontal Display, 0 = Vertical Display
+		// Bits 1-2:    Sets D3D Resolution: 0 = 1024x768, 1 = 640x480, 2 = 800x600, 3 = 640x480. CreateDevice fails when != 3
+		// Bit 3:		Unknown
+		// Bit 4:		Unknown, Nothing boots if 0, read simultaniously with bits 1-2 by games/segaboot
+		// Bit 5:		Unknown
+		// Bit 6:		Test Switch (0 = Pressed, 1 = Released)
+		// Bit 7:		Service Switch (0 = Pressed, 1 = Released)
+		*g_pJvsFilterBoardState = 0b11010111;
 	}
 }
 
