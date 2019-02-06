@@ -2549,6 +2549,12 @@ HRESULT WINAPI XTL::EMUPATCH(Direct3D_CreateDevice)
 
 	Direct3D_CreateDevice_Start(pPresentationParameters);
 
+	// HACK: Disable Software VertexProcessing (Fixes CreateDevice failure in Chihiro titles)
+	if (BehaviorFlags & D3DCREATE_SOFTWARE_VERTEXPROCESSING) {
+		BehaviorFlags &= ~D3DCREATE_SOFTWARE_VERTEXPROCESSING;
+		BehaviorFlags |= D3DCREATE_HARDWARE_VERTEXPROCESSING;
+	}
+
 	// Only then call Xbox CreateDevice function
 	XB_trampoline(HRESULT, WINAPI, Direct3D_CreateDevice, (UINT, D3DDEVTYPE, HWND, DWORD, X_D3DPRESENT_PARAMETERS*, IDirect3DDevice**));
 	HRESULT hRet = XB_Direct3D_CreateDevice(Adapter, DeviceType, hFocusWindow, BehaviorFlags, pPresentationParameters, ppReturnedDeviceInterface);
