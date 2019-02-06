@@ -45,18 +45,48 @@
 #include "core\kernel\support\Emu.h"
 #include "core\kernel\support\EmuXTL.h"
 #include "core\hle\Intercept.hpp"
+#include <thread>
 
 #pragma warning(disable:4244) // Silence mio compiler warnings
 #include "mio\mmap.hpp"
 #pragma warning(default:4244)
 
 // Global variables used to store JVS related firmware/eeproms
-mio::mmap_sink g_MainBoardFirmware;
-mio::mmap_sink g_MainBoardScFirmware;
-mio::mmap_sink g_MainBoardEeprom;
+mio::mmap_sink g_MainBoardFirmware;		// QC Microcontroller firmware
+mio::mmap_sink g_MainBoardScFirmware;	// SC Microcontroller firmware
+mio::mmap_sink g_MainBoardEeprom;		// Config EEPROM
+mio::mmap_sink g_MainBoardBackup;		// Backup Memory (high-scores, etc)
 
 // Points to the Main/Filter Board State variables (including dipsw, test/service buttons)
 DWORD* g_pJvsFilterBoardState = nullptr;
+
+void JVS_SetTestButtonState(bool state)
+{
+	if (g_pJvsFilterBoardState == nullptr) {
+		return;
+	}
+
+	uint32_t mask = 1 << 6;
+	if (state) {
+		*g_pJvsFilterBoardState &= ~mask;
+	} else {
+		*g_pJvsFilterBoardState |= mask;
+	}
+}
+
+void JVS_SetServiceButtonState(bool state)
+{
+	if (g_pJvsFilterBoardState == nullptr) {
+		return;
+	}
+
+	uint32_t mask = 1 << 7;
+	if (state) {
+		*g_pJvsFilterBoardState &= ~mask;
+	} else {
+		*g_pJvsFilterBoardState |= mask;
+	}
+}
 
 bool JVS_LoadFile(std::string path, mio::mmap_sink& data)
 {
@@ -76,12 +106,25 @@ bool JVS_LoadFile(std::string path, mio::mmap_sink& data)
 	return true;
 }
 
-void JVS_Init()
+void JvsInputThread()
+{
+	SetThreadAffinityMask(GetCurrentThread(), g_CPUOthers);
+
+	while (true) {
+		JVS_SetTestButtonState(GetAsyncKeyState(VK_F1));
+		JVS_SetServiceButtonState(GetAsyncKeyState(VK_F2));
+		Sleep(10);
+	}
+}
+
+
+void XTL::JVS_Init()
 {
 	std::string romPath = std::string(szFolder_CxbxReloadedData) + std::string("\\EmuDisk\\Chihiro");
 	std::string mainBoardFirmwarePath = "ic10_g24lc64.bin";
 	std::string mainBoardScFirmwarePath = "pc20_g24lc64.bin";
 	std::string mainBoardEepromPath = "ic11_24lc024.bin";
+	std::string mainBoardBackupPath = "backup_ram.bin";
 
 	if (!JVS_LoadFile((romPath + "\\" + mainBoardFirmwarePath).c_str(), g_MainBoardFirmware)) {
 		CxbxKrnlCleanup("Failed to load mainboard firmware: %s", mainBoardFirmwarePath.c_str());
@@ -93,6 +136,23 @@ void JVS_Init()
 
 	if (!JVS_LoadFile((romPath + "\\" + mainBoardEepromPath).c_str(), g_MainBoardEeprom)) {
 		CxbxKrnlCleanup("Failed to load mainboard EEPROM: %s", mainBoardEepromPath.c_str());
+	}
+
+	// backup ram is a special case, we can create it automatically if it doesn't exist
+	if (!std::experimental::filesystem::exists(romPath + "\\" + mainBoardBackupPath)) {
+		FILE* fp = fopen((romPath + "\\" + mainBoardBackupPath).c_str(), "w");
+		if (fp == nullptr) {
+			CxbxKrnlCleanup("Could not create Backup File: %s", mainBoardBackupPath.c_str());
+		}
+
+		// Create 128kb empty file for backup ram
+		fseek(fp, (128 * 1024) - 1, SEEK_SET);
+		fputc('\0', fp);
+		fclose(fp);
+	}
+
+	if (!JVS_LoadFile((romPath + "\\" + mainBoardBackupPath).c_str(), g_MainBoardBackup)) {
+		CxbxKrnlCleanup("Failed to load mainboard BACKUP RAM: %s", mainBoardBackupPath.c_str());
 	}
 
 	// Determine which version of JVS_SendCommand this title is using and derive the offset
@@ -129,12 +189,16 @@ void JVS_Init()
 		// Bit 0:		1 = Horizontal Display, 0 = Vertical Display
 		// Bits 1-2:    Sets D3D Resolution: 0 = 1024x768, 1 = 640x480, 2 = 800x600, 3 = 640x480. CreateDevice fails when != 3
 		// Bit 3:		Unknown
-		// Bit 4:		Unknown, Nothing boots if 0, read simultaniously with bits 1-2 by games/segaboot
+		// Bit 4:		0 = Hardware Vertex Processing, 1 = Software Vertex processing (Causes D3D to fail).. Why does this exist?
 		// Bit 5:		Unknown
 		// Bit 6:		Test Switch (0 = Pressed, 1 = Released)
 		// Bit 7:		Service Switch (0 = Pressed, 1 = Released)
 		*g_pJvsFilterBoardState = 0b11010111;
 	}
+
+	// Spawn the Chihiro/JVS Input Thread
+	std::thread(JvsInputThread).detach();
+
 }
 
 DWORD WINAPI XTL::EMUPATCH(JVS_SendCommand)
@@ -167,40 +231,40 @@ DWORD WINAPI XTL::EMUPATCH(JVS_SendCommand)
 
 DWORD WINAPI XTL::EMUPATCH(JvsBACKUP_Read)
 (
-	DWORD a1,
-	DWORD a2,
-	DWORD a3,
+	DWORD Offset,
+	DWORD Length,
+	PUCHAR Buffer,
 	DWORD a4
 )
 {
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(a1)
-		LOG_FUNC_ARG(a2)
-		LOG_FUNC_ARG(a3)
+		LOG_FUNC_ARG(Offset)
+		LOG_FUNC_ARG(Length)
+		LOG_FUNC_ARG(Buffer)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	LOG_UNIMPLEMENTED();
+	memcpy((void*)Buffer, &g_MainBoardBackup[Offset], Length);
 
 	RETURN(0);
 }
 
 DWORD WINAPI XTL::EMUPATCH(JvsBACKUP_Write)
 (
-	DWORD a1,
-	DWORD a2,
-	DWORD a3,
+	DWORD Offset,
+	DWORD Length,
+	PUCHAR Buffer,
 	DWORD a4
 )
 {
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(a1)
-		LOG_FUNC_ARG(a2)
-		LOG_FUNC_ARG(a3)
+		LOG_FUNC_ARG(Offset)
+		LOG_FUNC_ARG(Length)
+		LOG_FUNC_ARG(Buffer)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	LOG_UNIMPLEMENTED();
+	memcpy(&g_MainBoardBackup[Offset], (void*)Buffer, Length);
 
 	RETURN(0);
 }
@@ -275,20 +339,20 @@ DWORD WINAPI XTL::EMUPATCH(JvsFirmwareDownload)
 
 DWORD WINAPI XTL::EMUPATCH(JvsFirmwareUpload)
 (
-	DWORD a1,
-	DWORD a2,
-	DWORD a3,
+	DWORD Offset,
+	DWORD Length,
+	PUCHAR Buffer,
 	DWORD a4
 )
 {
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(a1)
-		LOG_FUNC_ARG(a2)
-		LOG_FUNC_ARG(a3)
+		LOG_FUNC_ARG(Offset)
+		LOG_FUNC_ARG(Length)
+		LOG_FUNC_ARG(Buffer)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	LOG_UNIMPLEMENTED();
+	memcpy(&g_MainBoardFirmware[Offset], (void*)Buffer, Length);
 
 	RETURN(0);
 }
@@ -443,20 +507,20 @@ DWORD WINAPI XTL::EMUPATCH(JvsScFirmwareDownload)
 
 DWORD WINAPI XTL::EMUPATCH(JvsScFirmwareUpload)
 (
-	DWORD a1,
-	DWORD a2,
-	DWORD a3,
+	DWORD Offset,
+	DWORD Length,
+	PUCHAR Buffer,
 	DWORD a4
 )
 {
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(a1)
-		LOG_FUNC_ARG(a2)
-		LOG_FUNC_ARG(a3)
+		LOG_FUNC_ARG(Offset)
+		LOG_FUNC_ARG(Length)
+		LOG_FUNC_ARG(Buffer)
 		LOG_FUNC_ARG(a4)
 		LOG_FUNC_END
 
-	LOG_UNIMPLEMENTED();
+	memcpy(&g_MainBoardScFirmware[Offset], (void*)Buffer, Length);
 
 	RETURN(0);
 }
