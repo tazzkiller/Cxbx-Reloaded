@@ -127,9 +127,9 @@ void JVS_Init()
 DWORD WINAPI XTL::EMUPATCH(JVS_SendCommand)
 (
 	DWORD a1,
-	DWORD a2,
+	DWORD Command,
 	DWORD a3,
-	DWORD a4,
+	DWORD Length,
 	DWORD a5,
 	DWORD a6,
 	DWORD a7,
@@ -138,9 +138,9 @@ DWORD WINAPI XTL::EMUPATCH(JVS_SendCommand)
 {
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(a1)
-		LOG_FUNC_ARG(a2)
+		LOG_FUNC_ARG(Command)
 		LOG_FUNC_ARG(a3)
-		LOG_FUNC_ARG(a4)
+		LOG_FUNC_ARG(Length)
 		LOG_FUNC_ARG(a5)
 		LOG_FUNC_ARG(a6)
 		LOG_FUNC_ARG(a7)
@@ -283,13 +283,13 @@ DWORD WINAPI XTL::EMUPATCH(JvsFirmwareUpload)
 DWORD WINAPI XTL::EMUPATCH(JvsNodeReceivePacket)
 (
 	PUCHAR Buffer,
-	DWORD Length,
+	PDWORD a2,
 	DWORD a3
 )
 {
 	LOG_FUNC_BEGIN
 		LOG_FUNC_ARG(Buffer)
-		LOG_FUNC_ARG(Length)
+		LOG_FUNC_ARG(a2)
 		LOG_FUNC_ARG(a3)
 		LOG_FUNC_END
 
@@ -311,12 +311,33 @@ DWORD WINAPI XTL::EMUPATCH(JvsNodeSendPacket)
 		LOG_FUNC_ARG(a3)
 		LOG_FUNC_END
 
-	printf("JvsNodeSendPacket ");
-	for (unsigned i = 0; i < Length; i++) {
-		printf("[%02X]", Buffer[i]);
-	}
+	// Buffer contains opening two bytes 00 XX where XX is the number of JVS packets to send
+	// Each JVS packet is prependec with 00, the rest of the packet is as-per the JVS I/O standard.
 
-	printf("\n");
+	unsigned packetCount = Buffer[1];
+	uint8_t* packetPtr = &Buffer[2]; // First JVS packet starts at offset 2;
+
+	printf("JvsNodeSendPacket: Sending %d Packets\n", packetCount);
+
+	for (unsigned i = 0; i < packetCount; i++) {
+		// Skip the 0 seperator between packets
+		packetPtr++;
+
+		printf("Packet %d: ", i);
+		jvs_packet_header_t* header = (jvs_packet_header_t*)packetPtr;
+		for (unsigned j = 0; j <= header->count; j++) {
+			printf("[%02X]", *packetPtr);
+			packetPtr++;
+		}
+		
+		// Finally, print the checksum byte
+		printf("[%02X]", *packetPtr);
+
+		// Increment the pointer to start at the next JVS Packet
+		packetPtr++;
+
+		printf("\n");
+	}
 
 	LOG_UNIMPLEMENTED();
 
