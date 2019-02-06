@@ -51,17 +51,17 @@ DWORD WINAPI EMUPATCH(JVS_SendCommand)
 
 DWORD WINAPI EMUPATCH(JvsBACKUP_Read)
 (
-	DWORD a1,
-	DWORD a2,
-	DWORD a3,
+	DWORD Offset,
+	DWORD Length,
+	PUCHAR Buffer,
 	DWORD a4
 );
 
 DWORD WINAPI EMUPATCH(JvsBACKUP_Write)
 (
-	DWORD a1,
-	DWORD a2,
-	DWORD a3,
+	DWORD Offset,
+	DWORD Length,
+	PUCHAR Buffer,
 	DWORD a4
 );
 
@@ -91,9 +91,9 @@ DWORD WINAPI EMUPATCH(JvsFirmwareDownload)
 
 DWORD WINAPI EMUPATCH(JvsFirmwareUpload)
 (
-	DWORD a1,
-	DWORD a2,
-	DWORD a3,
+	DWORD Offset,
+	DWORD Length,
+	PUCHAR Buffer,
 	DWORD a4
 );
 
@@ -155,9 +155,9 @@ DWORD WINAPI EMUPATCH(JvsScFirmwareDownload)
 
 DWORD WINAPI EMUPATCH(JvsScFirmwareUpload)
 (
-	DWORD a1,
-	DWORD a2,
-	DWORD a3,
+	DWORD Offset,
+	DWORD Length,
+	PUCHAR Buffer,
 	DWORD a4
 );
 

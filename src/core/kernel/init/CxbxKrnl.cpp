@@ -1698,8 +1698,7 @@ __declspec(noreturn) void CxbxKrnlInit
 
 	// If this title is Chihiro, Setup JVS
 	if (g_bIsChihiro) {
-		extern void JVS_Init(); // TODO: Why doesn't including JVS.h work?
-		JVS_Init();
+		XTL::JVS_Init();
 	}
 
 	EmuX86_Init();
