@@ -118,6 +118,9 @@ void MediaBoard::ComWrite(uint32_t offset, void* buffer, uint32_t length)
 			case 0x0101: // Firmware Version
 				readBuffer32[1] = 0x0100;
 				break;
+			case 0x0102: // Bit 16 is Develop Mode, what is the rest?
+				readBuffer32[1] = 0x8000;
+				break;
 			case 0x0103: // Serial Number
 				memcpy(&readBuffer32[1], "A89E-25A47354512", 16);
 				break;
