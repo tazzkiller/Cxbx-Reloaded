@@ -158,7 +158,10 @@ void JvsInputThread()
 		ChihiroBaseBoardState.TestButton = GetAsyncKeyState(VK_F1);
 		ChihiroBaseBoardState.ServiceButton = GetAsyncKeyState(VK_F2);
 
-		*g_pPINSA = ChihiroBaseBoardState.GetPINSA();
+		if (g_pPINSA != nullptr) {
+			*g_pPINSA = ChihiroBaseBoardState.GetPINSA();
+		}
+
 		// TODO: *g_pPINSB = ChihiroBaseBoardState.GetPINSB();
 		Sleep(10);
 	}
