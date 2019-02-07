@@ -73,10 +73,10 @@ typedef struct {
 		// TODO: Make this configurable
 		DipSwitch[0] = false;
 		DipSwitch[1] = false;
-		DipSwitch[2] = false;
-		DipSwitch[3] = false;
-		DipSwitch[4] = true;
-		DipSwitch[5] = false;
+		DipSwitch[2] = true;
+		DipSwitch[3] = true;
+		DipSwitch[4] = false;
+		DipSwitch[5] = true;
 		DipSwitch[6] = true;
 		DipSwitch[7] = true;
 		TestButton = false;
