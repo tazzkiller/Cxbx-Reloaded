@@ -57,36 +57,78 @@ mio::mmap_sink g_MainBoardScFirmware;	// SC Microcontroller firmware
 mio::mmap_sink g_MainBoardEeprom;		// Config EEPROM
 mio::mmap_sink g_MainBoardBackup;		// Backup Memory (high-scores, etc)
 
-// Points to the Main/Filter Board State variables (including dipsw, test/service buttons)
-DWORD* g_pJvsFilterBoardState = nullptr;
+typedef struct {
+	// Switch 1:	Horizontal Display, On = Vertical Display
+	// Switch 2-3:	Sets D3D Resolution: 0 = 1024x768, 1 = 640x480, 2 = 800x600, 3 = 640x480. CreateDevice fails when != 3
+	// Switch 4:	0 = Hardware Vertex Processing, 1 = Software Vertex processing (Causes D3D to fail).. Why does this exist?
+	// Switch 5:	Unknown
+	// Switch 6-8:	Connected AV Pack flag
+	bool DipSwitch[8];
+	bool TestButton;
+	bool ServiceButton;
+	bool JvsSense;
 
-void JVS_SetTestButtonState(bool state)
-{
-	if (g_pJvsFilterBoardState == nullptr) {
-		return;
+	void Reset()
+	{
+		// TODO: Make this configurable
+		DipSwitch[0] = false;
+		DipSwitch[1] = false;
+		DipSwitch[2] = false;
+		DipSwitch[3] = false;
+		DipSwitch[4] = true;
+		DipSwitch[5] = false;
+		DipSwitch[6] = true;
+		DipSwitch[7] = true;
+		TestButton = false;
+		ServiceButton = false;
+		JvsSense = false;
 	}
 
-	uint32_t mask = 1 << 6;
-	if (state) {
-		*g_pJvsFilterBoardState &= ~mask;
-	} else {
-		*g_pJvsFilterBoardState |= mask;
-	}
-}
+	uint8_t GetAvPack()
+	{
+		uint8_t avpack = 0;
 
-void JVS_SetServiceButtonState(bool state)
-{
-	if (g_pJvsFilterBoardState == nullptr) {
-		return;
+		// Dip Switches 6,7,8 combine to form the Av Pack ID
+		// TODO: Verify the order, these might need to be reversed
+		avpack &= ~((DipSwitch[5] ? 1 : 0) << 2);
+		avpack &= ~((DipSwitch[6] ? 1 : 0) << 1);
+		avpack &= ~ (DipSwitch[7] ? 1 : 0);
+
+		return avpack;
 	}
 
-	uint32_t mask = 1 << 7;
-	if (state) {
-		*g_pJvsFilterBoardState &= ~mask;
-	} else {
-		*g_pJvsFilterBoardState |= mask;
+	uint8_t GetPINSA()
+	{
+		uint8_t PINSA = 0b11101111; // 1 = Off, 0 = On
+
+		// Dip Switches 1-3 are set on PINSA bits 0-2
+		PINSA &= ~ (DipSwitch[0] ? 1 : 0);
+		PINSA &= ~((DipSwitch[1] ? 1 : 0) << 1);
+		PINSA &= ~((DipSwitch[2] ? 1 : 0) << 2);
+		
+		// Bit 3 is currently unknown, so we don't modify that bit
+
+		// Dip Switches 4,5 are set on bits 4,5
+		PINSA &= ~((DipSwitch[3] ? 1 : 0) << 4);
+		PINSA &= ~((DipSwitch[4] ? 1 : 0) << 5);
+
+		// Bit 6 = Test, Bit 7 = Service
+		PINSA &= ~((TestButton ? 1 : 0) << 6);
+		PINSA &= ~((ServiceButton ? 1 : 0) << 7);
+
+		return PINSA;
 	}
-}
+
+	uint8_t GetPINSB()
+	{
+		return 0; // TODO
+	}
+
+} baseboard_state_t;
+
+baseboard_state_t ChihiroBaseBoardState = {};
+DWORD* g_pPINSA = nullptr; // Qc PINSA Register: Contains Filter Board DIP Switches + Test/Service buttons
+DWORD* g_pPINSB = nullptr; // Qc PINSB Register: Contains JVS Sense Pin state 
 
 bool JVS_LoadFile(std::string path, mio::mmap_sink& data)
 {
@@ -111,8 +153,13 @@ void JvsInputThread()
 	SetThreadAffinityMask(GetCurrentThread(), g_CPUOthers);
 
 	while (true) {
-		JVS_SetTestButtonState(GetAsyncKeyState(VK_F1));
-		JVS_SetServiceButtonState(GetAsyncKeyState(VK_F2));
+		// This thread is responsible for reading the emulated Baseboard state
+		// and setting the correct internal variables
+		ChihiroBaseBoardState.TestButton = GetAsyncKeyState(VK_F1);
+		ChihiroBaseBoardState.ServiceButton = GetAsyncKeyState(VK_F2);
+
+		*g_pPINSA = ChihiroBaseBoardState.GetPINSA();
+		// TODO: *g_pPINSB = ChihiroBaseBoardState.GetPINSB();
 		Sleep(10);
 	}
 }
@@ -156,8 +203,10 @@ void XTL::JVS_Init()
 	}
 
 	// Determine which version of JVS_SendCommand this title is using and derive the offset
+	// TODO: Extract this into a function and also locate PINSB
 	static int JvsSendCommandVersion = -1;
-	g_pJvsFilterBoardState = nullptr;
+	g_pPINSA = nullptr;
+	g_pPINSB = nullptr;
 
 	auto JvsSendCommandOffset1 = (uintptr_t)GetXboxSymbolPointer("JVS_SendCommand");
 	auto JvsSendCommandOffset2 = (uintptr_t)GetXboxSymbolPointer("JVS_SendCommand2");
@@ -165,40 +214,29 @@ void XTL::JVS_Init()
 
 	if (JvsSendCommandOffset1) {
 		JvsSendCommandVersion = 1;
-		g_pJvsFilterBoardState = *(DWORD**)(JvsSendCommandOffset1 + 0x2A0);
+		g_pPINSA = *(DWORD**)(JvsSendCommandOffset1 + 0x2A0);
 	}
 
 	if (JvsSendCommandOffset2) {
 		JvsSendCommandVersion = 2;
-		g_pJvsFilterBoardState = *(DWORD**)(JvsSendCommandOffset2 + 0x312);
+		g_pPINSA = *(DWORD**)(JvsSendCommandOffset2 + 0x312);
 	}
 
 	if (JvsSendCommandOffset3) {
 		JvsSendCommandVersion = 3;
-		g_pJvsFilterBoardState = *(DWORD**)(JvsSendCommandOffset3 + 0x307);
+		g_pPINSA = *(DWORD**)(JvsSendCommandOffset3 + 0x307);
 
-		if ((DWORD)g_pJvsFilterBoardState > XBE_MAX_VA) { 
+		if ((DWORD)g_pPINSA > XBE_MAX_VA) { 
 			// This was invalid, we must have the other varient of SendCommand3 (SEGABOOT)
-			g_pJvsFilterBoardState = *(DWORD**)(JvsSendCommandOffset3 + 0x302);
+			g_pPINSA = *(DWORD**)(JvsSendCommandOffset3 + 0x302);
 		}
 	}
 
-	// Set a sane initial state
-	if (g_pJvsFilterBoardState) {
-		// TODO: Choose a good set of defaults
-		// Bit 0:		1 = Horizontal Display, 0 = Vertical Display
-		// Bits 1-2:    Sets D3D Resolution: 0 = 1024x768, 1 = 640x480, 2 = 800x600, 3 = 640x480. CreateDevice fails when != 3
-		// Bit 3:		Unknown
-		// Bit 4:		0 = Hardware Vertex Processing, 1 = Software Vertex processing (Causes D3D to fail).. Why does this exist?
-		// Bit 5:		Unknown
-		// Bit 6:		Test Switch (0 = Pressed, 1 = Released)
-		// Bit 7:		Service Switch (0 = Pressed, 1 = Released)
-		*g_pJvsFilterBoardState = 0b11010111;
-	}
+	// Set state to a sane initial default
+	ChihiroBaseBoardState.Reset();
 
 	// Spawn the Chihiro/JVS Input Thread
 	std::thread(JvsInputThread).detach();
-
 }
 
 DWORD WINAPI XTL::EMUPATCH(JVS_SendCommand)
