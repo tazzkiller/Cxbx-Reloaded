@@ -47,20 +47,16 @@ namespace xboxkrnl
 
 #include "core\kernel\exports\EmuKrnl.h" // for HalSystemInterrupts
 
-#pragma optimize("", off)
-
 uint32_t MediaBoard::LpcRead(uint32_t addr, int size)
 {
 	switch (addr) {
-		// 0x1E-0x24 = XBAM string/version info?
-		// SEGABOOT assumes Media Board is not present if these values change
-		case 0x401E: return 0x1000;
-		case 0x4020: return 0x00A0;
-		case 0x4022: return 0x4258;  
-		case 0x4024: return 0x4D41;
+		case 0x401E: return 0x1000;		// Firmware Version Number
+		case 0x4020: return 0x00A0;		// XBAM String (SEGABOOT reports Media Board is not present if these values change)
+		case 0x4022: return 0x4258;		// Continued
+		case 0x4024: return 0x4D41;		// Continued 
 
-		case 0x40F0: return 0x00;	// Media Board Type (Type-1 vs Type-3), 0x00 = Type 1
-		case 0x40F4: return 0x02;	// 512MB
+		case 0x40F0: return 0x0000;		// Media Board Type (Type-1 vs Type-3), 0x0000 = Type 1
+		case 0x40F4: return 0x02;		// 512MB
 	}
 	
 	printf("MediaBoard::LpcRead: Unknown Addr %08X\n", addr);
@@ -73,6 +69,7 @@ void MediaBoard::LpcWrite(uint32_t addr, uint32_t value, int size)
 		case 0x40E1: HalSystemInterrupts[10].Assert(false); break;
 		default:
 			printf("MediaBoard::LpcWrite: Unknown Addr %08X\n", addr);
+			break;
 	}	
 }
 
