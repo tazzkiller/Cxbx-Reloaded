@@ -7,7 +7,7 @@
 // *  `88bo,__,o,    oP"``"Yo,  _88o,,od8P   oP"``"Yo,
 // *    "YUMMMMMP",m"       "Mm,""YUMMMP" ,m"       "Mm,
 // *
-// *   src->devices->chihiro->MediaBoard.h
+// *   src->devices->chihiro->JvsIo.h
 // *
 // *  This file is part of the Cxbx project.
 // *
@@ -36,20 +36,33 @@
 #define MEDIABOARD_H
 
 #include <cstdint>
+#include <vector>
 
-class MediaBoard
+typedef struct {
+	uint8_t sync;
+	uint8_t target;
+	uint8_t count;
+} jvs_packet_header_t;
+
+class JvsIo
 {
 public:
-	// LPC IO handlers
-	uint32_t LpcRead(uint32_t addr, int size);
-	void LpcWrite(uint32_t addr, uint32_t value, int size);
-
-	// Mbcom partition handlers
-	void ComRead(uint32_t offset, void* buffer, uint32_t length);
-	void ComWrite(uint32_t offset, void* buffer, uint32_t length);
+	JvsIo(uint8_t* sense);
+	void HandlePacket(jvs_packet_header_t* header, uint8_t* payload);
+	size_t SendPacket(jvs_packet_header_t* packet);
+	size_t ReceivePacket(void* packet);
 private:
-	uint8_t readBuffer[512];
-	uint8_t writeBuffer[512];
+	uint8_t* pSense = nullptr;				// Pointer to Sense line
+	uint8_t DeviceId = 0;					// Device ID assigned by running title
+	std::vector<uint8_t> ResponseBuffer;	// Command Response
+
+	// Device info
+	uint8_t CommandFormatRevision;
+	uint8_t JvsVersion;
+	uint8_t CommunicationVersion;
+	std::string BoardID;
 };
+
+extern JvsIo* g_pJvsIo;
 
 #endif
