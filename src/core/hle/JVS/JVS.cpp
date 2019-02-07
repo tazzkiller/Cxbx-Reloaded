@@ -59,7 +59,7 @@ mio::mmap_sink g_MainBoardBackup;		// Backup Memory (high-scores, etc)
 
 typedef struct {
 	// Switch 1:	Horizontal Display, On = Vertical Display
-	// Switch 2-3:	Sets D3D Resolution: 0 = 1024x768, 1 = 640x480, 2 = 800x600, 3 = 640x480. CreateDevice fails when != 3
+	// Switch 2-3:	D3D Resolution Configuraton
 	// Switch 4:	0 = Hardware Vertex Processing, 1 = Software Vertex processing (Causes D3D to fail).. Why does this exist?
 	// Switch 5:	Unknown
 	// Switch 6-8:	Connected AV Pack flag
