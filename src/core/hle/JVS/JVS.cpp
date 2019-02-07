@@ -45,6 +45,7 @@
 #include "core\kernel\support\Emu.h"
 #include "core\kernel\support\EmuXTL.h"
 #include "core\hle\Intercept.hpp"
+#include "devices\chihiro\JvsIo.h"
 #include <thread>
 
 #pragma warning(disable:4244) // Silence mio compiler warnings
@@ -66,7 +67,7 @@ typedef struct {
 	bool DipSwitch[8];
 	bool TestButton;
 	bool ServiceButton;
-	bool JvsSense;
+	uint8_t JvsSense;
 
 	void Reset()
 	{
@@ -81,7 +82,7 @@ typedef struct {
 		DipSwitch[7] = true;
 		TestButton = false;
 		ServiceButton = false;
-		JvsSense = false;
+		JvsSense = 0;
 	}
 
 	uint8_t GetAvPack()
@@ -121,7 +122,8 @@ typedef struct {
 
 	uint8_t GetPINSB()
 	{
-		return 0; // TODO
+		// PINSB bits 0-1 represent the JVS Sense line
+		return JvsSense;
 	}
 
 } baseboard_state_t;
@@ -162,7 +164,10 @@ void JvsInputThread()
 			*g_pPINSA = ChihiroBaseBoardState.GetPINSA();
 		}
 
-		// TODO: *g_pPINSB = ChihiroBaseBoardState.GetPINSB();
+		if (g_pPINSB != nullptr) {
+			*g_pPINSB = ChihiroBaseBoardState.GetPINSB();
+		}
+
 		Sleep(10);
 	}
 }
@@ -170,6 +175,9 @@ void JvsInputThread()
 
 void XTL::JVS_Init()
 {
+	// Init Jvs IO board
+	g_pJvsIo = new JvsIo(&ChihiroBaseBoardState.JvsSense);
+
 	std::string romPath = std::string(szFolder_CxbxReloadedData) + std::string("\\EmuDisk\\Chihiro");
 	std::string mainBoardFirmwarePath = "ic10_g24lc64.bin";
 	std::string mainBoardScFirmwarePath = "pc20_g24lc64.bin";
@@ -218,20 +226,24 @@ void XTL::JVS_Init()
 	if (JvsSendCommandOffset1) {
 		JvsSendCommandVersion = 1;
 		g_pPINSA = *(DWORD**)(JvsSendCommandOffset1 + 0x2A0);
+		g_pPINSB = (DWORD*)((DWORD)g_pPINSA - 8);
 	}
 
 	if (JvsSendCommandOffset2) {
 		JvsSendCommandVersion = 2;
 		g_pPINSA = *(DWORD**)(JvsSendCommandOffset2 + 0x312);
+		g_pPINSB = (DWORD*)((DWORD)g_pPINSA - 8);
 	}
 
 	if (JvsSendCommandOffset3) {
 		JvsSendCommandVersion = 3;
 		g_pPINSA = *(DWORD**)(JvsSendCommandOffset3 + 0x307);
+		g_pPINSB = (DWORD*)((DWORD)g_pPINSA - 8);
 
 		if ((DWORD)g_pPINSA > XBE_MAX_VA) { 
 			// This was invalid, we must have the other varient of SendCommand3 (SEGABOOT)
 			g_pPINSA = *(DWORD**)(JvsSendCommandOffset3 + 0x302);
+			g_pPINSB = (DWORD*)((DWORD)g_pPINSA - 8);
 		}
 	}
 
@@ -401,18 +413,30 @@ DWORD WINAPI XTL::EMUPATCH(JvsFirmwareUpload)
 DWORD WINAPI XTL::EMUPATCH(JvsNodeReceivePacket)
 (
 	PUCHAR Buffer,
-	PDWORD a2,
+	PDWORD Length,
 	DWORD a3
 )
 {
 	LOG_FUNC_BEGIN
-		LOG_FUNC_ARG(Buffer)
-		LOG_FUNC_ARG(a2)
+		LOG_FUNC_ARG_OUT(Buffer)
+		LOG_FUNC_ARG_OUT(Length)
 		LOG_FUNC_ARG(a3)
 		LOG_FUNC_END
 
-	LOG_UNIMPLEMENTED();
+	// Receive the packet from the connected IO board
+	uint16_t payloadSize = g_pJvsIo->ReceivePacket(&Buffer[6]);
+	if (payloadSize > 0) {
+		Buffer[0] = 0; // Empty header byte, ignored
+		Buffer[1] = 1; // Number of packets received
+		Buffer[2] = 0; // JVS Sender Node ID: We only emulate one board, so we can hard-code this
+		Buffer[3] = 0; // Unused
 
+		*Length = payloadSize + 6;
+
+		// Write the payload size header field
+		*((uint16_t*)&Buffer[4]) = payloadSize; // Packet Length (bytes 4-5)
+	}
+		
 	RETURN(0);
 }
 
@@ -435,29 +459,16 @@ DWORD WINAPI XTL::EMUPATCH(JvsNodeSendPacket)
 	unsigned packetCount = Buffer[1];
 	uint8_t* packetPtr = &Buffer[2]; // First JVS packet starts at offset 2;
 
-	printf("JvsNodeSendPacket: Sending %d Packets\n", packetCount);
-
 	for (unsigned i = 0; i < packetCount; i++) {
-		// Skip the 0 seperator between packets
+		// Skip the seperator byte
 		packetPtr++;
 
-		printf("Packet %d: ", i);
-		jvs_packet_header_t* header = (jvs_packet_header_t*)packetPtr;
-		for (unsigned j = 0; j <= header->count; j++) {
-			printf("[%02X]", *packetPtr);
-			packetPtr++;
-		}
-		
-		// Finally, print the checksum byte
-		printf("[%02X]", *packetPtr);
+		// Send the packet to the connected I/O board
+		size_t bytes = g_pJvsIo->SendPacket((jvs_packet_header_t*)packetPtr);
 
-		// Increment the pointer to start at the next JVS Packet
-		packetPtr++;
-
-		printf("\n");
+		// Set packetPtr to the next packet
+		packetPtr += bytes;
 	}
-
-	LOG_UNIMPLEMENTED();
 
 	RETURN(0);
 }

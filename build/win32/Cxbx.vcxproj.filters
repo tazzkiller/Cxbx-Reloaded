@@ -641,6 +641,9 @@
     <ClCompile Include="..\..\src\devices\chihiro\MediaBoard.cpp">
       <Filter>Hardware\Chihiro</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\devices\chihiro\JvsIo.cpp">
+      <Filter>Hardware\Chihiro</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\resource\Splash.jpg">
@@ -835,6 +838,9 @@
     </ClInclude>
     <ClInclude Include="..\..\src\Cxbx\ResCxbx.h" />
     <ClInclude Include="..\..\src\devices\chihiro\MediaBoard.h">
+      <Filter>Hardware\Chihiro</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\devices\chihiro\JvsIo.h">
       <Filter>Hardware\Chihiro</Filter>
     </ClInclude>
   </ItemGroup>

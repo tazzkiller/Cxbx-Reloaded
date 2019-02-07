@@ -97,16 +97,10 @@ DWORD WINAPI EMUPATCH(JvsFirmwareUpload)
 	DWORD a4
 );
 
-typedef struct {
-	uint8_t sync;
-	uint8_t mode;
-	uint8_t count;
-} jvs_packet_header_t;
-
 DWORD WINAPI EMUPATCH(JvsNodeReceivePacket)
 (
 	PUCHAR Buffer,
-	PDWORD a2,
+	PDWORD Length,
 	DWORD a3
 );
 
