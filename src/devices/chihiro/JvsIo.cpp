@@ -51,13 +51,17 @@ JvsIo::JvsIo(uint8_t* sense)
 {
 	pSense = sense;
 
-
 	// Version info BCD Format: X.X
 	CommandFormatRevision = 0x11;
 	JvsVersion = 0x20;
 	CommunicationVersion = 0x10;
 
 	BoardID = "SEGA ENTERPRISES,LTD.;I/O BD JVS;837-13551";
+}
+
+uint8_t JvsIo::GetDeviceId()
+{
+	return BroadcastPacket ? 0x00 : DeviceId;
 }
 
 void JvsIo::HandlePacket(jvs_packet_header_t* header, uint8_t* payload)
@@ -83,6 +87,8 @@ void JvsIo::HandlePacket(jvs_packet_header_t* header, uint8_t* payload)
 	// It's possible for a JVS packet to contain multiple commands, so we must iterate through it
 	// -1 is to skip the checksum byte
 	for (int i = 0; i < packet.size() - 1; i++) {
+		BroadcastPacket = packet[i] >= 0xF0; // Set a flag when broadcast packet
+
 		switch (packet[i]) {
 			// Broadcast Commands
 			case 0xF0: // Bus Reset
@@ -90,6 +96,7 @@ void JvsIo::HandlePacket(jvs_packet_header_t* header, uint8_t* payload)
 				*pSense = 3;
 				i++;
 				ResponseBuffer.push_back(0x01);
+				DeviceId = 0;
 				break;
 			case 0xF1: // Set Address
 				DeviceId = packet[1];
@@ -213,7 +220,6 @@ size_t JvsIo::ReceivePacket(void* packet)
 
 	printf("\n");
 #endif
-
 
 	// Return the total packet size including header
 	return header->count + 3;
