@@ -424,11 +424,13 @@ DWORD WINAPI XTL::EMUPATCH(JvsNodeReceivePacket)
 		LOG_FUNC_END
 
 	// Receive the packet from the connected IO board
+	uint8_t DeviceId = g_pJvsIo->GetDeviceId();
+
 	uint16_t payloadSize = g_pJvsIo->ReceivePacket(&Buffer[6]);
 	if (payloadSize > 0) {
 		Buffer[0] = 0; // Empty header byte, ignored
 		Buffer[1] = 1; // Number of packets received
-		Buffer[2] = 0; // JVS Sender Node ID: We only emulate one board, so we can hard-code this
+		Buffer[2] = DeviceId;
 		Buffer[3] = 0; // Unused
 
 		*Length = payloadSize + 6;
