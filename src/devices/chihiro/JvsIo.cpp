@@ -40,11 +40,8 @@
 
 JvsIo* g_pJvsIo;
 
-#define DEBUG_JVS_PACKETS
-
+//#define DEBUG_JVS_PACKETS
 #include <vector>
-
-#pragma optimize("", off)
 
 // We will emulate SEGA 837-13551 IO Board
 JvsIo::JvsIo(uint8_t* sense)
@@ -62,6 +59,149 @@ JvsIo::JvsIo(uint8_t* sense)
 uint8_t JvsIo::GetDeviceId()
 {
 	return BroadcastPacket ? 0x00 : DeviceId;
+}
+
+int JvsIo::Jvs_Command_Reset()
+{
+	// Set sense to 3 (2.5v) to instruct the baseboard we're ready.
+	*pSense = 3;
+	ResponseBuffer.push_back(0x01);
+	DeviceId = 0;
+
+	return 1;
+}
+
+int JvsIo::Jvs_Command_SetDeviceId(uint8_t* data)
+{
+	// Set Address
+	DeviceId = data[1];
+	*pSense = 0; // Set sense to 0v
+	ResponseBuffer.push_back(0x01);
+	return 1;
+}
+
+int JvsIo::Jvs_Command_GetBoardId()
+{
+	// Get Board ID
+	ResponseBuffer.push_back(0x01);
+
+	for (char& c : BoardID) {
+		ResponseBuffer.push_back(c);
+	}
+
+	return 0;
+}
+
+int JvsIo::Jvs_Command_GetCommandFormat()
+{
+	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(CommandFormatRevision);
+
+	return 0;
+}
+
+int JvsIo::Jvs_Command_GetJvsRevision()
+{
+	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(JvsVersion);
+
+	return 0;
+}
+
+int JvsIo::Jvs_Command_GetCommunicationVersion()
+{
+	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(CommunicationVersion);
+
+	return 0;
+}
+
+int JvsIo::Jvs_Command_GetCapabilities()
+{
+	ResponseBuffer.push_back(0x01);
+
+	// 2 players, 13 switches per player
+	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(2);
+	ResponseBuffer.push_back(13);
+	ResponseBuffer.push_back(0);
+
+	// Two Coin Slots
+	ResponseBuffer.push_back(0x02);
+	ResponseBuffer.push_back(2);
+	ResponseBuffer.push_back(0);
+	ResponseBuffer.push_back(0);
+
+	// Analog Input, 8 channels, 16 bits per channel
+	ResponseBuffer.push_back(0x03);
+	ResponseBuffer.push_back(8);
+	ResponseBuffer.push_back(16);
+	ResponseBuffer.push_back(0);
+
+	// 6 Outputs
+	ResponseBuffer.push_back(0x12);
+	ResponseBuffer.push_back(6);
+	ResponseBuffer.push_back(0);
+	ResponseBuffer.push_back(0);
+
+	return 0;
+}
+
+int JvsIo::Jvs_Command_ReadSwitchInputs(uint8_t* data)
+{
+	uint8_t players = data[1];
+	uint8_t bytesPerPlayer = data[2];
+
+	ResponseBuffer.push_back(0x01);
+
+	ResponseBuffer.push_back(0x00); // TODO: test/tilt switches
+
+	for (int i = 0; i < (bytesPerPlayer * 2); i++) {
+		ResponseBuffer.push_back(0); // TODO: Actually read inputs, for now just report nothing pressed
+	}
+		
+	return 2;
+}
+
+int JvsIo::Jvs_Command_ReadCoinInputs(uint8_t* data)
+{
+	uint8_t slots = data[1];
+	
+	ResponseBuffer.push_back(0x01);
+
+	for (int i = 0; i < (slots); i++) {
+		ResponseBuffer.push_back(0); // Coin slot status OK
+		ResponseBuffer.push_back(0); // 0 coins counted
+	}
+
+	return 1;
+}
+
+int JvsIo::Jvs_Command_ReadAnalogInputs(uint8_t* data)
+{
+	uint8_t inputs = data[1];
+
+	ResponseBuffer.push_back(0x01);
+
+	for (int i = 0; i < (inputs); i++) {
+		// Each analog input returns a 2-byte response, 0x8000 is center position
+		ResponseBuffer.push_back(0x80);
+		ResponseBuffer.push_back(0x00);
+	}
+
+	return 1;
+}
+
+int JvsIo::Jvs_Command_GeneralPurposeOutput(uint8_t* data)
+{
+	uint8_t banks = data[1];
+
+	ResponseBuffer.push_back(0x01);
+
+	// TODO: Handle output
+
+	// Data size is n.banks followed by one byte per bank
+	return 1 + banks;
 }
 
 void JvsIo::HandlePacket(jvs_packet_header_t* header, uint8_t* payload)
@@ -91,67 +231,18 @@ void JvsIo::HandlePacket(jvs_packet_header_t* header, uint8_t* payload)
 
 		switch (packet[i]) {
 			// Broadcast Commands
-			case 0xF0: // Bus Reset
-				// Set sense to 3 (2.5v) to instruct the baseboard we're ready.
-				*pSense = 3;
-				i++;
-				ResponseBuffer.push_back(0x01);
-				DeviceId = 0;
-				break;
-			case 0xF1: // Set Address
-				DeviceId = packet[1];
-				*pSense = 0; // Set sense to 0v
-				i++;
-				ResponseBuffer.push_back(0x01);
-				break;
+			case 0xF0: i += Jvs_Command_Reset(); break;
+			case 0xF1: i += Jvs_Command_SetDeviceId(&packet[i]); break;
 			// Init Commands
-			case 0x10: // Get Board ID
-				ResponseBuffer.push_back(0x01);
-
-				for (char& c : BoardID) {
-					ResponseBuffer.push_back(c);
-				}
-
-				break;
-			case 0x11: // Get Command Format
-				ResponseBuffer.push_back(0x01);
-				ResponseBuffer.push_back(CommandFormatRevision);
-				break;
-			case 0x12: // Get JVS Revision
-				ResponseBuffer.push_back(0x01);
-				ResponseBuffer.push_back(JvsVersion);
-				break;
-			case 0x13: // Get Communication Version
-				ResponseBuffer.push_back(0x01);
-				ResponseBuffer.push_back(CommunicationVersion);
-				break;
-			case 0x14: // Get Capabilities
-				ResponseBuffer.push_back(0x01);
-
-				// 2 players, 13 switches per player
-				ResponseBuffer.push_back(0x01);
-				ResponseBuffer.push_back(2);
-				ResponseBuffer.push_back(13);
-				ResponseBuffer.push_back(0);
-
-				// Two Coin Slots
-				ResponseBuffer.push_back(0x02);
-				ResponseBuffer.push_back(2);
-				ResponseBuffer.push_back(0);
-				ResponseBuffer.push_back(0);
-
-				// Analog Input, 8 channels, 16 bits per channel
-				ResponseBuffer.push_back(0x03);
-				ResponseBuffer.push_back(8);
-				ResponseBuffer.push_back(16);
-				ResponseBuffer.push_back(0);
-				
-				// 6 Outputs
-				ResponseBuffer.push_back(0x12);
-				ResponseBuffer.push_back(6);
-				ResponseBuffer.push_back(0);
-				ResponseBuffer.push_back(0);
-				break;
+			case 0x10: i += Jvs_Command_GetBoardId(); break;
+			case 0x11: i += Jvs_Command_GetCommandFormat();	break;
+			case 0x12: i += Jvs_Command_GetJvsRevision(); break;
+			case 0x13: i += Jvs_Command_GetCommunicationVersion(); break;
+			case 0x14: i += Jvs_Command_GetCapabilities(); break;
+			case 0x20: i += Jvs_Command_ReadSwitchInputs(&packet[i]); break;
+			case 0x21: i += Jvs_Command_ReadCoinInputs(&packet[i]); break;
+			case 0x22: i += Jvs_Command_ReadAnalogInputs(&packet[i]); break;
+			case 0x32: i += Jvs_Command_GeneralPurposeOutput(&packet[i]); break;
 			default:
 				printf("JvsIo::HandlePacket: Unhandled Command %02X\n", packet[i]);
 				break;
