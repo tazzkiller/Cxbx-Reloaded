@@ -32,8 +32,8 @@
 // *
 // ******************************************************************
 
-#ifndef MEDIABOARD_H
-#define MEDIABOARD_H
+#ifndef JVSIO_H
+#define JVSIO_H
 
 #include <cstdint>
 #include <vector>
