@@ -52,6 +52,20 @@ public:
 	size_t SendPacket(jvs_packet_header_t* packet);
 	size_t ReceivePacket(void* packet);
 	uint8_t GetDeviceId();
+
+	// Commands
+	// These return the additional param bytes used
+	int Jvs_Command_Reset();
+	int Jvs_Command_SetDeviceId(uint8_t* data);
+	int Jvs_Command_GetBoardId();
+	int Jvs_Command_GetCommandFormat();
+	int Jvs_Command_GetJvsRevision();
+	int Jvs_Command_GetCommunicationVersion();
+	int Jvs_Command_GetCapabilities();
+	int Jvs_Command_ReadSwitchInputs(uint8_t* data);
+	int Jvs_Command_ReadCoinInputs(uint8_t* data);
+	int Jvs_Command_ReadAnalogInputs(uint8_t* data);
+	int Jvs_Command_GeneralPurposeOutput(uint8_t* data);
 private:
 	bool BroadcastPacket;					// Set when the last command was a broadcast
 	uint8_t* pSense = nullptr;				// Pointer to Sense line
