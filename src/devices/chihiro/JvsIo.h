@@ -126,6 +126,7 @@ public:
 	uint8_t GetDeviceId();
 	void Update();
 
+private:
 	// Commands
 	// These return the additional param bytes used
 	int Jvs_Command_Reset();
@@ -139,7 +140,7 @@ public:
 	int Jvs_Command_ReadCoinInputs(uint8_t* data);
 	int Jvs_Command_ReadAnalogInputs(uint8_t* data);
 	int Jvs_Command_GeneralPurposeOutput(uint8_t* data);
-private:
+
 	bool BroadcastPacket;					// Set when the last command was a broadcast
 	uint8_t* pSense = nullptr;				// Pointer to Sense line
 	uint8_t DeviceId = 0;					// Device ID assigned by running title
