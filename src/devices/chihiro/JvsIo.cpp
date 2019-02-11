@@ -56,6 +56,11 @@ JvsIo::JvsIo(uint8_t* sense)
 	BoardID = "SEGA ENTERPRISES,LTD.;I/O BD JVS;837-13551";
 }
 
+void JvsIo::Update()
+{
+	// TODO: Update Jvs inputs based on user configuration
+}
+
 uint8_t JvsIo::GetDeviceId()
 {
 	return BroadcastPacket ? 0x00 : DeviceId;
@@ -154,10 +159,30 @@ int JvsIo::Jvs_Command_ReadSwitchInputs(uint8_t* data)
 
 	ResponseBuffer.push_back(0x01);
 
-	ResponseBuffer.push_back(0x00); // TODO: test/tilt switches
+	ResponseBuffer.push_back(Inputs.switches.system);
 
-	for (int i = 0; i < (bytesPerPlayer * 2); i++) {
-		ResponseBuffer.push_back(0); // TODO: Actually read inputs, for now just report nothing pressed
+	for (int i = 0; i < players; i++) {
+		// We only support two players, so we pad any extras with null bytes
+		if (i >= 2) {
+			for (int j = 0; j < bytesPerPlayer; j++) {
+				ResponseBuffer.push_back(0);
+			}
+		}	
+
+		if (bytesPerPlayer >= 1) {
+			ResponseBuffer.push_back(Inputs.switches.player[i].GetByte0());
+		}
+
+		if (bytesPerPlayer >= 2) {
+			ResponseBuffer.push_back(Inputs.switches.player[i].GetByte1());
+		}
+
+		// Pad any remaining bytes with 0, as we don't have that many inputs available
+		if (bytesPerPlayer > 2) {
+			for (int j = 0; i < bytesPerPlayer - 2; j++) {
+				ResponseBuffer.push_back(0);
+			}
+		}
 	}
 		
 	return 2;
@@ -170,8 +195,15 @@ int JvsIo::Jvs_Command_ReadCoinInputs(uint8_t* data)
 	ResponseBuffer.push_back(0x01);
 
 	for (int i = 0; i < (slots); i++) {
-		ResponseBuffer.push_back(0); // Coin slot status OK
-		ResponseBuffer.push_back(0); // 0 coins counted
+		// We only have two coin slots, if a title should ask for more, pad with dummy data
+		if (i >= 2) {
+			ResponseBuffer.push_back(0);
+			ResponseBuffer.push_back(0);
+			continue;
+		}
+
+		ResponseBuffer.push_back(Inputs.coins[i].GetByte0());
+		ResponseBuffer.push_back(Inputs.coins[i].GetByte1());
 	}
 
 	return 1;
@@ -184,9 +216,15 @@ int JvsIo::Jvs_Command_ReadAnalogInputs(uint8_t* data)
 	ResponseBuffer.push_back(0x01);
 
 	for (int i = 0; i < (inputs); i++) {
-		// Each analog input returns a 2-byte response, 0x8000 is center position
-		ResponseBuffer.push_back(0x80);
-		ResponseBuffer.push_back(0x00);
+		if (inputs >= 8) {
+			// We only have 8 analog inputs, if a title should ask for more, pad with dummy data
+			ResponseBuffer.push_back(0x80);
+			ResponseBuffer.push_back(0x00);
+			continue;
+		}
+
+		ResponseBuffer.push_back(Inputs.analog->GetByte0());
+		ResponseBuffer.push_back(Inputs.analog->GetByte1());
 	}
 
 	return 1;

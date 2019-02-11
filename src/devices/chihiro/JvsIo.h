@@ -44,6 +44,78 @@ typedef struct {
 	uint8_t count;
 } jvs_packet_header_t;
 
+typedef struct {
+	bool start = false;
+	bool service = false;
+	bool up = false;
+	bool down = false;
+	bool left = false;
+	bool right = false;
+	bool button[7] = { false };
+
+	uint8_t GetByte0() {
+		uint8_t value = 0;
+		value |= start     ? 1 << 7 : 0;
+		value |= service   ? 1 << 6 : 0;
+		value |= up        ? 1 << 5 : 0;
+		value |= down      ? 1 << 4 : 0;
+		value |= left      ? 1 << 3 : 0;
+		value |= right     ? 1 << 2 : 0;
+		value |= button[0] ? 1 << 1 : 0;
+		value |= button[1] ? 1 << 0 : 0;
+		return value;
+	}
+
+	uint8_t GetByte1() {
+		uint8_t value = 0;
+		value |= button[2] ? 1 << 7 : 0;
+		value |= button[3] ? 1 << 6 : 0;
+		value |= button[4] ? 1 << 5 : 0;
+		value |= button[5] ? 1 << 4 : 0;
+		value |= button[6] ? 1 << 3 : 0;
+		return value;
+	}
+} jvs_switch_player_inputs_t;
+
+typedef struct {
+	uint8_t system = false;
+	jvs_switch_player_inputs_t player[2];
+} jvs_switch_inputs_t;
+
+typedef struct {
+	uint16_t value = 0x8000;
+
+	uint8_t GetByte0() {
+		return (value >> 8) & 0xFF;
+	}
+
+	uint8_t GetByte1() {
+		return value & 0xFF;
+	}
+} jvs_analog_input_t;
+
+typedef struct {
+	uint16_t coins = 0;
+	uint8_t status = 0;
+
+	uint8_t GetByte0() {
+		uint8_t value = 0;
+		value |= (status << 7) & 0x3;
+		value |= (coins & 0x3F00) >> 8;
+		return value;
+	}
+
+	uint8_t GetByte1() {
+		return coins & 0xFF;
+	}
+} jvs_coin_slots_t;
+
+typedef struct {
+	jvs_switch_inputs_t switches;
+	jvs_analog_input_t analog[8];
+	jvs_coin_slots_t coins[2];
+} jvs_input_states_t;
+
 class JvsIo
 {
 public:
@@ -52,6 +124,7 @@ public:
 	size_t SendPacket(jvs_packet_header_t* packet);
 	size_t ReceivePacket(void* packet);
 	uint8_t GetDeviceId();
+	void Update();
 
 	// Commands
 	// These return the additional param bytes used
@@ -77,6 +150,7 @@ private:
 	uint8_t JvsVersion;
 	uint8_t CommunicationVersion;
 	std::string BoardID;
+	jvs_input_states_t Inputs;
 };
 
 extern JvsIo* g_pJvsIo;

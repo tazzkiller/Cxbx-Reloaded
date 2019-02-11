@@ -160,6 +160,9 @@ void JvsInputThread()
 		ChihiroBaseBoardState.TestButton = GetAsyncKeyState(VK_F1);
 		ChihiroBaseBoardState.ServiceButton = GetAsyncKeyState(VK_F2);
 
+		// Call into the Jvs I/O board update function
+		g_pJvsIo->Update();
+
 		if (g_pPINSA != nullptr) {
 			*g_pPINSA = ChihiroBaseBoardState.GetPINSA();
 		}
