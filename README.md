@@ -21,7 +21,6 @@ Cxbx-Reloaded is not yet ready for general release, but the latest development b
 Grab these if you just want to use the emulator to play games.
 * [Latest Stable Build](https://ci.appveyor.com/api/projects/SoullessSentinel/cxbx-reloaded/artifacts/export/Release.zip?branch=master&job=Configuration:%20Release&pr=false)
 
-
 ### Development Builds
 Grab these builds if you want to test the latest and greatest features. These builds are likely to be more unstable than release builds, and are not recommended for just playing games.
 * [Latest Development Build](https://ci.appveyor.com/api/projects/SoullessSentinel/cxbx-reloaded/artifacts/export/Release.zip?branch=develop&job=Configuration:%20Release&pr=false)
@@ -55,6 +54,8 @@ We welcome contributions, large and small.
 
 If you want to do some coding, be sure to read the [Developer notes](https://github.com/Cxbx-Reloaded/Cxbx-Reloaded/wiki/Developer-notes).
 
+**IMPORTANT: Pull-Requests containing code derived from XQEMU will _not_ be approved until an agreement is reached to make work mutually beneficial. this includes updates to existing xqemu derived code. We should not/will not become a hostile fork.**
+
 Please contact us before you start working on something, so we can make sure your work is going to be accepted once finished.
 
 ### Prerequisites 
@@ -83,4 +84,6 @@ Please note that Debug builds are significantly slower, but include much more de
 You can support [Luke Usher](https://github.com/LukeUsher), initiator of Cxbx-Reloaded, on [Patreon](https://www.patreon.com/LukeUsher).
 
 ## Special Thanks
-All contributors to the original Cxbx and Dxbx projects. Without them Cxbx-Reloaded would not exist at all.
+* All contributors to the original Cxbx and Dxbx projects. Without them Cxbx-Reloaded would not exist at all.
+* [XQEMU](https://github.com/xqemu/xqemu) - While the majority of Cxbx-R is our own work (Kernel, HLE, etc), the NV2A LLE implementation is primarily the work of the XQEMU developers.
+* [XboxDev](https://github.com/xboxdev/) - Providing Xbox Hardware Research & Useful Tooling

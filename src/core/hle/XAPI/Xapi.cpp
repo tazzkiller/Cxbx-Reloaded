@@ -130,25 +130,32 @@ void InitXboxControllerHostBridge(void)
     
     int port;
     for (port = 0; port < 4; port++) {
-        g_XboxControllerHostBridge[port].dwHostType = GetXboxPortMapHostType(port);
-        g_XboxControllerHostBridge[port].dwHostPort = GetXboxPortMapHostPort(port);
-        g_XboxControllerHostBridge[port].XboxDeviceInfo.ucType = X_XINPUT_DEVTYPE_GAMEPAD;
-        switch (GetXboxPortMapHostType(port)) {
-        case X_XONTROLLER_HOST_BRIDGE_HOSTTYPE_XINPUT:
-            //disconnect to host if the host port of xinput exceeds the total xinput controller connected to host.
-            if (g_XboxControllerHostBridge[port].dwHostPort >= total_xinput_gamepad) {
-                g_XboxControllerHostBridge[port].dwHostType = X_XONTROLLER_HOST_BRIDGE_HOSTTYPE_NOTCONNECT;
-                printf("InitXboxControllerHostBridge: Host XInput port greater then total xinput controller connected. disconnect xbox port from host!\n");
-            }
-            break;
-        case X_XONTROLLER_HOST_BRIDGE_HOSTTYPE_DINPUT:
-            break;
-        case X_XONTROLLER_HOST_BRIDGE_HOSTTYPE_VIRTUAL_SBC:
-            g_XboxControllerHostBridge[port].XboxDeviceInfo.ucType = X_XINPUT_DEVTYPE_STEELBATALION;
-            break;
-        default:
-            break;
-        }
+		if (g_bIsChihiro) {
+			// For chihiro, don't connect any devices via XInput: We want JVS emulation to handle input instead
+			g_XboxControllerHostBridge[port].dwHostType = X_XONTROLLER_HOST_BRIDGE_HOSTTYPE_NOTCONNECT;
+		} else {
+			g_XboxControllerHostBridge[port].dwHostType = GetXboxPortMapHostType(port);
+			g_XboxControllerHostBridge[port].dwHostPort = GetXboxPortMapHostPort(port);
+			g_XboxControllerHostBridge[port].XboxDeviceInfo.ucType = X_XINPUT_DEVTYPE_GAMEPAD;
+			switch (GetXboxPortMapHostType(port)) {
+			case X_XONTROLLER_HOST_BRIDGE_HOSTTYPE_XINPUT:
+				//disconnect to host if the host port of xinput exceeds the total xinput controller connected to host.
+				if (g_XboxControllerHostBridge[port].dwHostPort >= total_xinput_gamepad) {
+					g_XboxControllerHostBridge[port].dwHostType = X_XONTROLLER_HOST_BRIDGE_HOSTTYPE_NOTCONNECT;
+					printf("InitXboxControllerHostBridge: Host XInput port greater then total xinput controller connected. disconnect xbox port from host!\n");
+				}
+				break;
+			case X_XONTROLLER_HOST_BRIDGE_HOSTTYPE_DINPUT:
+				break;
+			case X_XONTROLLER_HOST_BRIDGE_HOSTTYPE_VIRTUAL_SBC:
+				g_XboxControllerHostBridge[port].XboxDeviceInfo.ucType = X_XINPUT_DEVTYPE_STEELBATALION;
+				break;
+			default:
+				break;
+			}
+		}
+
+
         g_XboxControllerHostBridge[port].dwXboxPort = port;
         //xbox device handle set to 0 before being open.
         g_XboxControllerHostBridge[port].hXboxDevice = 0;
