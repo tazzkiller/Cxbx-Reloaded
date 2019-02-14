@@ -162,26 +162,13 @@ int JvsIo::Jvs_Command_ReadSwitchInputs(uint8_t* data)
 	ResponseBuffer.push_back(Inputs.switches.system);
 
 	for (int i = 0; i < players; i++) {
-		// We only support two players, so we pad any extras with null bytes
-		if (i >= 2) {
-			for (int j = 0; j < bytesPerPlayer; j++) {
-				ResponseBuffer.push_back(0);
-			}
-		}	
-
-		if (bytesPerPlayer >= 1) {
-			ResponseBuffer.push_back(Inputs.switches.player[i].GetByte0());
-		}
-
-		if (bytesPerPlayer >= 2) {
-			ResponseBuffer.push_back(Inputs.switches.player[i].GetByte1());
-		}
-
-		// Pad any remaining bytes with 0, as we don't have that many inputs available
-		if (bytesPerPlayer > 2) {
-			for (int j = 0; i < bytesPerPlayer - 2; j++) {
-				ResponseBuffer.push_back(0);
-			}
+		for (int j = 0; j < bytesPerPlayer; j++) {
+			uint8_t value
+				= (i >= 2) ? 0 // We only support two players, so we pad any extras with null bytes
+				: (j == 0) ? Inputs.switches.player[i].GetByte0()
+				: (j == 1) ? Inputs.switches.player[i].GetByte1()
+				: 0; // Pad any remaining bytes with 0, as we don't have that many inputs available
+			ResponseBuffer.push_back(value);
 		}
 	}
 		
@@ -194,16 +181,16 @@ int JvsIo::Jvs_Command_ReadCoinInputs(uint8_t* data)
 	
 	ResponseBuffer.push_back(0x01);
 
-	for (int i = 0; i < (slots); i++) {
-		// We only have two coin slots, if a title should ask for more, pad with dummy data
-		if (i >= 2) {
-			ResponseBuffer.push_back(0);
-			ResponseBuffer.push_back(0);
-			continue;
+	for (int i = 0; i < slots; i++) {
+		const uint8_t bytesPerSlot = 2;
+		for (int j = 0; j < bytesPerSlot; j++) {
+			uint8_t value
+				= (i >= 2) ? 0 // We only have two coin slots, if a title should ask for more, pad with dummy data
+				: (j == 0) ? Inputs.coins[i].GetByte0()
+				: (j == 1) ? Inputs.coins[i].GetByte1()
+				: 0;
+			ResponseBuffer.push_back(value);
 		}
-
-		ResponseBuffer.push_back(Inputs.coins[i].GetByte0());
-		ResponseBuffer.push_back(Inputs.coins[i].GetByte1());
 	}
 
 	return 1;
@@ -215,16 +202,16 @@ int JvsIo::Jvs_Command_ReadAnalogInputs(uint8_t* data)
 
 	ResponseBuffer.push_back(0x01);
 
-	for (int i = 0; i < (inputs); i++) {
-		if (inputs >= 8) {
-			// We only have 8 analog inputs, if a title should ask for more, pad with dummy data
-			ResponseBuffer.push_back(0x80);
-			ResponseBuffer.push_back(0x00);
-			continue;
+	for (int i = 0; i < inputs; i++) {
+		const uint8_t bytesPerInput = 2;
+		for (int j = 0; j < bytesPerInput; j++) {
+			uint8_t value
+				= (i >= 8) ? ((j == 0) ? 0x80 : 0x00) // We only have 8 analog inputs, if a title should ask for more, pad with dummy data
+				: (j == 0) ? Inputs.analog[i].GetByte0()
+				: (j == 1) ? Inputs.analog[i].GetByte1()
+				: 0;
+			ResponseBuffer.push_back(value);
 		}
-
-		ResponseBuffer.push_back(Inputs.analog->GetByte0());
-		ResponseBuffer.push_back(Inputs.analog->GetByte1());
 	}
 
 	return 1;
