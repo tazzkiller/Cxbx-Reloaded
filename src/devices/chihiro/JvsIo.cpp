@@ -66,29 +66,50 @@ uint8_t JvsIo::GetDeviceId()
 	return BroadcastPacket ? 0x00 : DeviceId;
 }
 
-int JvsIo::Jvs_Command_Reset()
+int JvsIo::Jvs_Command_F0_Reset(uint8_t* data)
 {
-	// Set sense to 3 (2.5v) to instruct the baseboard we're ready.
-	*pSense = 3;
-	ResponseBuffer.push_back(0x01);
-	DeviceId = 0;
+	uint8_t ensure_reset = data[1];
+
+	if (ensure_reset == 0xD9) {
+		// Set sense to 3 (2.5v) to instruct the baseboard we're ready.
+		*pSense = 3;
+		ResponseBuffer.push_back(ReportCode::Handled); // Note : Without this, Chihiro software stops sending packets (but JVS V3 doesn't send this?)
+		DeviceId = 0;
+	}
+#if 0 // TODO : Is the following required?
+	else {
+		ResponseBuffer.push_back(ReportCode::InvalidParameter);
+	}
+#endif
+
+#if 0 // TODO : Is the following required?
+	// Detect a consecutive reset
+	if (data[2] == 0xF0) {
+		// TODO : Probably ensure the second reset too : if (data[3] == 0xD9) {
+		// TODO : Handle two consecutive reset's here?
+
+		return 3;
+	}
+#endif
 
 	return 1;
 }
 
-int JvsIo::Jvs_Command_SetDeviceId(uint8_t* data)
+int JvsIo::Jvs_Command_F1_SetDeviceId(uint8_t* data)
 {
 	// Set Address
 	DeviceId = data[1];
+
 	*pSense = 0; // Set sense to 0v
-	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(ReportCode::Handled);
+
 	return 1;
 }
 
-int JvsIo::Jvs_Command_GetBoardId()
+int JvsIo::Jvs_Command_10_GetBoardId()
 {
 	// Get Board ID
-	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(ReportCode::Handled);
 
 	for (char& c : BoardID) {
 		ResponseBuffer.push_back(c);
@@ -97,98 +118,124 @@ int JvsIo::Jvs_Command_GetBoardId()
 	return 0;
 }
 
-int JvsIo::Jvs_Command_GetCommandFormat()
+int JvsIo::Jvs_Command_11_GetCommandFormat()
 {
-	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(ReportCode::Handled);
 	ResponseBuffer.push_back(CommandFormatRevision);
 
 	return 0;
 }
 
-int JvsIo::Jvs_Command_GetJvsRevision()
+int JvsIo::Jvs_Command_12_GetJvsRevision()
 {
-	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(ReportCode::Handled);
 	ResponseBuffer.push_back(JvsVersion);
 
 	return 0;
 }
 
-int JvsIo::Jvs_Command_GetCommunicationVersion()
+int JvsIo::Jvs_Command_13_GetCommunicationVersion()
 {
-	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(ReportCode::Handled);
 	ResponseBuffer.push_back(CommunicationVersion);
 
 	return 0;
 }
 
-int JvsIo::Jvs_Command_GetCapabilities()
+int JvsIo::Jvs_Command_14_GetCapabilities()
 {
-	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(ReportCode::Handled);
 
-	// 2 players, 13 switches per player
-	ResponseBuffer.push_back(0x01);
-	ResponseBuffer.push_back(2);
-	ResponseBuffer.push_back(13);
-	ResponseBuffer.push_back(0);
+	// Capabilities list (4 bytes each)
 
-	// Two Coin Slots
-	ResponseBuffer.push_back(0x02);
-	ResponseBuffer.push_back(2);
-	ResponseBuffer.push_back(0);
-	ResponseBuffer.push_back(0);
+	{ // Input capabilities
+		ResponseBuffer.push_back(0x01); // Player button-sets
+		ResponseBuffer.push_back(JVS_MAX_PLAYERS); // number of players
+		ResponseBuffer.push_back(13); // 13 button switches per player
+		ResponseBuffer.push_back(0);
 
-	// Analog Input, 8 channels, 16 bits per channel
-	ResponseBuffer.push_back(0x03);
-	ResponseBuffer.push_back(8);
-	ResponseBuffer.push_back(16);
-	ResponseBuffer.push_back(0);
+		ResponseBuffer.push_back(0x02); // Coin slots
+		ResponseBuffer.push_back(JVS_MAX_COINS); // number of coin slots
+		ResponseBuffer.push_back(0);
+		ResponseBuffer.push_back(0);
 
-	// 6 Outputs
-	ResponseBuffer.push_back(0x12);
-	ResponseBuffer.push_back(6);
-	ResponseBuffer.push_back(0);
-	ResponseBuffer.push_back(0);
+		ResponseBuffer.push_back(0x03); // Analog inputs
+		ResponseBuffer.push_back(JVS_MAX_ANALOG); // number of analog input channels
+		ResponseBuffer.push_back(16); // 16 bits per analog input channel
+		ResponseBuffer.push_back(0);
+
+		// TODO : Rotary input (0x04), JVS_MAX_ROTARY, 0, 0
+
+		// TODO : Keycode input (0x05), 0, 0, 0
+
+		// TODO : Screen pointer input (0x06), Xbits, Ybits, JVS_MAX_POINTERS
+
+		// TODO : Switch input (0x07), 0, 0, 0
+	}
+
+	{ // Output capabilities
+		// TODO : Card system (0x10), JVS_MAX_CARDS, 0, 0
+
+		// TODO : Medal hopper (0x11), max?, 0, 0
+
+		ResponseBuffer.push_back(0x12); // General-purpose outputs
+		ResponseBuffer.push_back(6); // number of outputs
+		ResponseBuffer.push_back(0);
+		ResponseBuffer.push_back(0);
+
+		// TODO : Analog output (0x13), channels, 0, 0
+
+		// TODO : Character output (0x14), width, height, type
+
+		// TODO : Backup data (0x15), 0, 0, 0
+	}
+
+	ResponseBuffer.push_back(0x00); // End of capabilities
 
 	return 0;
 }
 
-int JvsIo::Jvs_Command_ReadSwitchInputs(uint8_t* data)
+int JvsIo::Jvs_Command_20_ReadSwitchInputs(uint8_t* data)
 {
-	uint8_t players = data[1];
-	uint8_t bytesPerPlayer = data[2];
+	static jvs_switch_player_inputs_t default_switch_player_input;
+	uint8_t nr_switch_players = data[1];
+	uint8_t bytesPerSwitchPlayerInput = data[2];
 
-	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(ReportCode::Handled);
 
 	ResponseBuffer.push_back(Inputs.switches.system);
 
-	for (int i = 0; i < players; i++) {
-		for (int j = 0; j < bytesPerPlayer; j++) {
+	for (int i = 0; i < nr_switch_players; i++) {
+		for (int j = 0; j < bytesPerSwitchPlayerInput; j++) {
+			// If a title asks for more switch player inputs than we support, pad with dummy data
+			jvs_switch_player_inputs_t &switch_player_input = (i >= JVS_MAX_COINS) ? default_switch_player_input : Inputs.switches.player[i];
 			uint8_t value
-				= (i >= 2) ? 0 // We only support two players, so we pad any extras with null bytes
-				: (j == 0) ? Inputs.switches.player[i].GetByte0()
-				: (j == 1) ? Inputs.switches.player[i].GetByte1()
+				= (j == 0) ? switch_player_input.GetByte0()
+				: (j == 1) ? switch_player_input.GetByte1()
 				: 0; // Pad any remaining bytes with 0, as we don't have that many inputs available
 			ResponseBuffer.push_back(value);
 		}
 	}
-		
+
 	return 2;
 }
 
-int JvsIo::Jvs_Command_ReadCoinInputs(uint8_t* data)
+int JvsIo::Jvs_Command_21_ReadCoinInputs(uint8_t* data)
 {
-	uint8_t slots = data[1];
+	static jvs_coin_slots_t default_coin_slot;
+	uint8_t nr_coin_slots = data[1];
 	
-	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(ReportCode::Handled);
 
-	for (int i = 0; i < slots; i++) {
-		const uint8_t bytesPerSlot = 2;
-		for (int j = 0; j < bytesPerSlot; j++) {
+	for (int i = 0; i < nr_coin_slots; i++) {
+		const uint8_t bytesPerCoinSlot = 2;
+		for (int j = 0; j < bytesPerCoinSlot; j++) {
+			// If a title asks for more coin slots than we support, pad with dummy data
+			jvs_coin_slots_t &coin_slot = (i >= JVS_MAX_COINS) ? default_coin_slot : Inputs.coins[i];
 			uint8_t value
-				= (i >= 2) ? 0 // We only have two coin slots, if a title should ask for more, pad with dummy data
-				: (j == 0) ? Inputs.coins[i].GetByte0()
-				: (j == 1) ? Inputs.coins[i].GetByte1()
-				: 0;
+				= (j == 0) ? coin_slot.GetByte0()
+				: (j == 1) ? coin_slot.GetByte1()
+				: 0; // Pad any remaining bytes with 0, as we don't have that many inputs available
 			ResponseBuffer.push_back(value);
 		}
 	}
@@ -196,20 +243,22 @@ int JvsIo::Jvs_Command_ReadCoinInputs(uint8_t* data)
 	return 1;
 }
 
-int JvsIo::Jvs_Command_ReadAnalogInputs(uint8_t* data)
+int JvsIo::Jvs_Command_22_ReadAnalogInputs(uint8_t* data)
 {
-	uint8_t inputs = data[1];
+	static jvs_analog_input_t default_analog;
+	uint8_t nr_analog_inputs = data[1];
 
-	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(ReportCode::Handled);
 
-	for (int i = 0; i < inputs; i++) {
-		const uint8_t bytesPerInput = 2;
-		for (int j = 0; j < bytesPerInput; j++) {
+	for (int i = 0; i < nr_analog_inputs; i++) {
+		const uint8_t bytesPerAnalogInput = 2;
+		for (int j = 0; j < bytesPerAnalogInput; j++) {
+			// If a title asks for more analog input than we support, pad with dummy data
+			jvs_analog_input_t &analog_input = (i >= JVS_MAX_ANALOG) ? default_analog : Inputs.analog[i];
 			uint8_t value
-				= (i >= 8) ? ((j == 0) ? 0x80 : 0x00) // We only have 8 analog inputs, if a title should ask for more, pad with dummy data
-				: (j == 0) ? Inputs.analog[i].GetByte0()
-				: (j == 1) ? Inputs.analog[i].GetByte1()
-				: 0;
+				= (j == 0) ? analog_input.GetByte0()
+				: (j == 1) ? analog_input.GetByte1()
+				: 0; // Pad any remaining bytes with 0, as we don't have that many inputs available
 			ResponseBuffer.push_back(value);
 		}
 	}
@@ -217,83 +266,98 @@ int JvsIo::Jvs_Command_ReadAnalogInputs(uint8_t* data)
 	return 1;
 }
 
-int JvsIo::Jvs_Command_GeneralPurposeOutput(uint8_t* data)
+int JvsIo::Jvs_Command_32_GeneralPurposeOutput(uint8_t* data)
 {
 	uint8_t banks = data[1];
 
-	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(ReportCode::Handled);
 
 	// TODO: Handle output
 
-	// Data size is n.banks followed by one byte per bank
+	// Data size is 1 byte indicating the number of banks, followed by one byte per bank
 	return 1 + banks;
 }
 
-void JvsIo::HandlePacket(jvs_packet_header_t* header, uint8_t* payload)
+uint8_t JvsIo::GetEscapedByte(uint8_t* &payload)
 {
-	// Decode the payload data
-	std::vector<uint8_t> packet;
-	for (unsigned i = 0; i < header->count; i++) {
-		uint8_t value = payload[i];
+	uint8_t value = *payload++;
 
-		// Special case: 0xD0 is an exception byte that actually returns the next byte + 1
-		if (value == 0xD0) {
-			value = payload[i++] + 1;
-		}
-
-		packet.push_back(value);
+	// Special case: 0xD0 is an exception byte that actually returns the next byte + 1
+	if (value = EscapeByte) {
+		value = *payload++ + 1;
 	}
 
+	return value;
+}
+
+void JvsIo::HandlePacket(jvs_packet_header_t* header, std::vector<uint8_t>& packet)
+{
 	// Clear the response buffer
 	ResponseBuffer.clear();
 
 	ResponseBuffer.push_back(0x01);
 	
 	// It's possible for a JVS packet to contain multiple commands, so we must iterate through it
-	// -1 is to skip the checksum byte
-	for (int i = 0; i < packet.size() - 1; i++) {
+	for (size_t i = 0; i < packet.size(); i++) {
 		BroadcastPacket = packet[i] >= 0xF0; // Set a flag when broadcast packet
 
+		uint8_t* command_data = &packet[i];
 		switch (packet[i]) {
 			// Broadcast Commands
-			case 0xF0: i += Jvs_Command_Reset(); break;
-			case 0xF1: i += Jvs_Command_SetDeviceId(&packet[i]); break;
+			case 0xF0: i += Jvs_Command_F0_Reset(command_data); break;
+			case 0xF1: i += Jvs_Command_F1_SetDeviceId(command_data); break;
 			// Init Commands
-			case 0x10: i += Jvs_Command_GetBoardId(); break;
-			case 0x11: i += Jvs_Command_GetCommandFormat();	break;
-			case 0x12: i += Jvs_Command_GetJvsRevision(); break;
-			case 0x13: i += Jvs_Command_GetCommunicationVersion(); break;
-			case 0x14: i += Jvs_Command_GetCapabilities(); break;
-			case 0x20: i += Jvs_Command_ReadSwitchInputs(&packet[i]); break;
-			case 0x21: i += Jvs_Command_ReadCoinInputs(&packet[i]); break;
-			case 0x22: i += Jvs_Command_ReadAnalogInputs(&packet[i]); break;
-			case 0x32: i += Jvs_Command_GeneralPurposeOutput(&packet[i]); break;
+			case 0x10: i += Jvs_Command_10_GetBoardId(); break;
+			case 0x11: i += Jvs_Command_11_GetCommandFormat();	break;
+			case 0x12: i += Jvs_Command_12_GetJvsRevision(); break;
+			case 0x13: i += Jvs_Command_13_GetCommunicationVersion(); break;
+			case 0x14: i += Jvs_Command_14_GetCapabilities(); break;
+			case 0x20: i += Jvs_Command_20_ReadSwitchInputs(command_data); break;
+			case 0x21: i += Jvs_Command_21_ReadCoinInputs(command_data); break;
+			case 0x22: i += Jvs_Command_22_ReadAnalogInputs(command_data); break;
+			case 0x32: i += Jvs_Command_32_GeneralPurposeOutput(command_data); break;
 			default:
 				printf("JvsIo::HandlePacket: Unhandled Command %02X\n", packet[i]);
 				break;
-
 		}
 	}
 }
 
-size_t JvsIo::SendPacket(jvs_packet_header_t* packet)
+size_t JvsIo::SendPacket(uint8_t* buffer)
 {
-	// Total Size = Packet Count + Sync, Mode, Checksum
-	size_t totalPacketSize = packet->count + 3;
-	uint8_t* payload = (uint8_t*)packet + 3;
+	// Remember where the buffer started (so we can calculate the number of bytes we've handled)
+	uint8_t* buffer_start = buffer;
 
-#ifdef DEBUG_JVS_PACKETS
-	printf("JvsIo::SendPacket: ");
-	for (unsigned i = 0; i < totalPacketSize; i++) {
-		printf("[%02X]", ((uint8_t*)packet)[i]);
+	// Scan the packet header
+	jvs_packet_header_t header;
+
+	// First, read the sync byte
+	header.sync = *buffer++;
+	if (header.sync != SyncByte) {
+		// If it's wrong, return we've processed (actually, skipped) one byte
+		return 1;
 	}
 
-	printf("\n");
-#endif
+	// Decode the target and count fields
+	header.target = GetEscapedByte(buffer);
+	header.count = GetEscapedByte(buffer);
+
+	// Decode the payload data
+	std::vector<uint8_t> packet;
+	for (int i = 0; i < header.count; i++) {
+		packet.push_back(GetEscapedByte(buffer));
+	}
+
+	// The last byte is the checksum
+	uint8_t checksum = packet.back(); packet.pop_back();
+	// TODO : verify checksum - skip packet if invalid?
+
+	// Total Size = Packet Count + Sync, Mode, Checksum
+	size_t totalPacketSize = buffer - buffer_start;
 
 	// If the packet was intended for us, we need to handle it
-	if (packet->target == 0xFF || packet->target == DeviceId) {
-		HandlePacket(packet, payload);
+	if (header.target == 0xFF || header.target == DeviceId) {
+		HandlePacket(&header, packet);
 	}
 
 	return totalPacketSize;
@@ -307,9 +371,9 @@ size_t JvsIo::ReceivePacket(void* packet)
 
 	// Build a JVS Response Packet containing the payload
 	jvs_packet_header_t* header = (jvs_packet_header_t*)packet;
-	header->sync = 0xE0;
+	header->sync = SyncByte;
 	header->target = 0x00; // Target Master Device
-	header->count = ResponseBuffer.size() + 1; // Set data size to payload + checksum
+	header->count = uint8_t(ResponseBuffer.size()) + 1; // Set data size to payload + checksum
 
 	// Get a pointer to the payload (skip the header bytes)
 	uint8_t* payload = ((uint8_t*)packet) + 3;
@@ -319,7 +383,7 @@ size_t JvsIo::ReceivePacket(void* packet)
 
 	// Calculate the checksum
 	uint8_t checksum = 0;
-	for (int i = 2; i < ResponseBuffer.size() + 3; i++) {
+	for (size_t i = 2; i < ResponseBuffer.size() + 3; i++) {
 		checksum += ((uint8_t*)packet)[i];
 	}
 

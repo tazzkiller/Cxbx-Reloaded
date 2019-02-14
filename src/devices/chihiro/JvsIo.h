@@ -44,6 +44,10 @@ typedef struct {
 	uint8_t count;
 } jvs_packet_header_t;
 
+#define JVS_MAX_PLAYERS (2)
+#define JVS_MAX_ANALOG (8)
+#define JVS_MAX_COINS (JVS_MAX_PLAYERS)
+
 typedef struct {
 	bool start = false;
 	bool service = false;
@@ -79,7 +83,7 @@ typedef struct {
 
 typedef struct {
 	uint8_t system = false;
-	jvs_switch_player_inputs_t player[2];
+	jvs_switch_player_inputs_t player[JVS_MAX_PLAYERS];
 } jvs_switch_inputs_t;
 
 typedef struct {
@@ -100,8 +104,8 @@ typedef struct {
 
 	uint8_t GetByte0() {
 		uint8_t value = 0;
-		value |= (status << 7) & 0x3;
-		value |= (coins & 0x3F00) >> 8;
+		value |= (status << 6) & 0xC0;
+		value |= (coins >> 8) & 0x3F;
 		return value;
 	}
 
@@ -112,34 +116,53 @@ typedef struct {
 
 typedef struct {
 	jvs_switch_inputs_t switches;
-	jvs_analog_input_t analog[8];
-	jvs_coin_slots_t coins[2];
+	jvs_analog_input_t analog[JVS_MAX_ANALOG];
+	jvs_coin_slots_t coins[JVS_MAX_COINS];
 } jvs_input_states_t;
 
 class JvsIo
 {
 public:
 	JvsIo(uint8_t* sense);
-	void HandlePacket(jvs_packet_header_t* header, uint8_t* payload);
-	size_t SendPacket(jvs_packet_header_t* packet);
+	size_t JvsIo::SendPacket(uint8_t* buffer);
 	size_t ReceivePacket(void* packet);
 	uint8_t GetDeviceId();
 	void Update();
 
 private:
+	const uint8_t SyncByte = 0xE0;
+	const uint8_t EscapeByte = 0xD0;
+
+	uint8_t GetEscapedByte(uint8_t* &payload);
+	void HandlePacket(jvs_packet_header_t* header, std::vector<uint8_t>& packet);
+
+	enum StatusCode {
+		StatusOkay = 1,
+		UnsupportedCommand = 2,
+		ChecksumError = 3,
+		AcknowledgeOverflow = 4,
+	};
+
+	enum ReportCode {
+		Handled = 1,
+		NotEnoughParameters = 2,
+		InvalidParameter = 3,				
+		Busy = 4,
+	};
+
 	// Commands
 	// These return the additional param bytes used
-	int Jvs_Command_Reset();
-	int Jvs_Command_SetDeviceId(uint8_t* data);
-	int Jvs_Command_GetBoardId();
-	int Jvs_Command_GetCommandFormat();
-	int Jvs_Command_GetJvsRevision();
-	int Jvs_Command_GetCommunicationVersion();
-	int Jvs_Command_GetCapabilities();
-	int Jvs_Command_ReadSwitchInputs(uint8_t* data);
-	int Jvs_Command_ReadCoinInputs(uint8_t* data);
-	int Jvs_Command_ReadAnalogInputs(uint8_t* data);
-	int Jvs_Command_GeneralPurposeOutput(uint8_t* data);
+	int Jvs_Command_F0_Reset(uint8_t* data);
+	int Jvs_Command_F1_SetDeviceId(uint8_t* data);
+	int Jvs_Command_10_GetBoardId();
+	int Jvs_Command_11_GetCommandFormat();
+	int Jvs_Command_12_GetJvsRevision();
+	int Jvs_Command_13_GetCommunicationVersion();
+	int Jvs_Command_14_GetCapabilities();
+	int Jvs_Command_20_ReadSwitchInputs(uint8_t* data);
+	int Jvs_Command_21_ReadCoinInputs(uint8_t* data);
+	int Jvs_Command_22_ReadAnalogInputs(uint8_t* data);
+	int Jvs_Command_32_GeneralPurposeOutput(uint8_t* data);
 
 	bool BroadcastPacket;					// Set when the last command was a broadcast
 	uint8_t* pSense = nullptr;				// Pointer to Sense line
