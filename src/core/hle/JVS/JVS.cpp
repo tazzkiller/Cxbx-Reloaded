@@ -429,7 +429,7 @@ DWORD WINAPI XTL::EMUPATCH(JvsNodeReceivePacket)
 	// Receive the packet from the connected IO board
 	uint8_t DeviceId = g_pJvsIo->GetDeviceId();
 
-	uint16_t payloadSize = uint16_t(g_pJvsIo->ReceivePacket(&Buffer[6]));
+	uint16_t payloadSize = (uint16_t)g_pJvsIo->ReceivePacket(&Buffer[6]);
 	if (payloadSize > 0) {
 		Buffer[0] = 0; // Empty header byte, ignored
 		Buffer[1] = 1; // Number of packets received

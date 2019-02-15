@@ -148,49 +148,29 @@ int JvsIo::Jvs_Command_14_GetCapabilities()
 
 	// Capabilities list (4 bytes each)
 
-	{ // Input capabilities
-		ResponseBuffer.push_back(0x01); // Player button-sets
-		ResponseBuffer.push_back(JVS_MAX_PLAYERS); // number of players
-		ResponseBuffer.push_back(13); // 13 button switches per player
-		ResponseBuffer.push_back(0);
+	// Input capabilities
+	ResponseBuffer.push_back(CapabilityCode::PlayerSwitchButtonSets);
+	ResponseBuffer.push_back(JVS_MAX_PLAYERS); // number of players
+	ResponseBuffer.push_back(13); // 13 button switches per player
+	ResponseBuffer.push_back(0);
 
-		ResponseBuffer.push_back(0x02); // Coin slots
-		ResponseBuffer.push_back(JVS_MAX_COINS); // number of coin slots
-		ResponseBuffer.push_back(0);
-		ResponseBuffer.push_back(0);
+	ResponseBuffer.push_back(CapabilityCode::CoinSlots);
+	ResponseBuffer.push_back(JVS_MAX_COINS); // number of coin slots
+	ResponseBuffer.push_back(0);
+	ResponseBuffer.push_back(0);
 
-		ResponseBuffer.push_back(0x03); // Analog inputs
-		ResponseBuffer.push_back(JVS_MAX_ANALOG); // number of analog input channels
-		ResponseBuffer.push_back(16); // 16 bits per analog input channel
-		ResponseBuffer.push_back(0);
+	ResponseBuffer.push_back(CapabilityCode::AnalogInputs);
+	ResponseBuffer.push_back(JVS_MAX_ANALOG); // number of analog input channels
+	ResponseBuffer.push_back(16); // 16 bits per analog input channel
+	ResponseBuffer.push_back(0);
 
-		// TODO : Rotary input (0x04), JVS_MAX_ROTARY, 0, 0
+	// Output capabilities
+	ResponseBuffer.push_back(CapabilityCode::GeneralPurposeOutputs);
+	ResponseBuffer.push_back(6); // number of outputs
+	ResponseBuffer.push_back(0);
+	ResponseBuffer.push_back(0);
 
-		// TODO : Keycode input (0x05), 0, 0, 0
-
-		// TODO : Screen pointer input (0x06), Xbits, Ybits, JVS_MAX_POINTERS
-
-		// TODO : Switch input (0x07), 0, 0, 0
-	}
-
-	{ // Output capabilities
-		// TODO : Card system (0x10), JVS_MAX_CARDS, 0, 0
-
-		// TODO : Medal hopper (0x11), max?, 0, 0
-
-		ResponseBuffer.push_back(0x12); // General-purpose outputs
-		ResponseBuffer.push_back(6); // number of outputs
-		ResponseBuffer.push_back(0);
-		ResponseBuffer.push_back(0);
-
-		// TODO : Analog output (0x13), channels, 0, 0
-
-		// TODO : Character output (0x14), width, height, type
-
-		// TODO : Backup data (0x15), 0, 0, 0
-	}
-
-	ResponseBuffer.push_back(0x00); // End of capabilities
+	ResponseBuffer.push_back(CapabilityCode::EndOfCapabilities);
 
 	return 0;
 }
@@ -208,7 +188,7 @@ int JvsIo::Jvs_Command_20_ReadSwitchInputs(uint8_t* data)
 	for (int i = 0; i < nr_switch_players; i++) {
 		for (int j = 0; j < bytesPerSwitchPlayerInput; j++) {
 			// If a title asks for more switch player inputs than we support, pad with dummy data
-			jvs_switch_player_inputs_t &switch_player_input = (i >= JVS_MAX_COINS) ? default_switch_player_input : Inputs.switches.player[i];
+			jvs_switch_player_inputs_t &switch_player_input = (i >= JVS_MAX_PLAYERS) ? default_switch_player_input : Inputs.switches.player[i];
 			uint8_t value
 				= (j == 0) ? switch_player_input.GetByte0()
 				: (j == 1) ? switch_player_input.GetByte1()
@@ -278,13 +258,22 @@ int JvsIo::Jvs_Command_32_GeneralPurposeOutput(uint8_t* data)
 	return 1 + banks;
 }
 
-uint8_t JvsIo::GetEscapedByte(uint8_t* &payload)
+uint8_t JvsIo::GetByte(uint8_t* &payload)
 {
 	uint8_t value = *payload++;
+#ifdef DEBUG_JVS_PACKETS
+	printf(" %02X", value);
+#endif
+	return value;
+}
+
+uint8_t JvsIo::GetEscapedByte(uint8_t* &payload)
+{
+	uint8_t value = GetByte(payload);
 
 	// Special case: 0xD0 is an exception byte that actually returns the next byte + 1
-	if (value = EscapeByte) {
-		value = *payload++ + 1;
+	if (value == ESCAPE_BYTE) {
+		value = GetByte(payload) + 1;
 	}
 
 	return value;
@@ -295,7 +284,7 @@ void JvsIo::HandlePacket(jvs_packet_header_t* header, std::vector<uint8_t>& pack
 	// Clear the response buffer
 	ResponseBuffer.clear();
 
-	ResponseBuffer.push_back(0x01);
+	ResponseBuffer.push_back(StatusCode::StatusOkay);
 	
 	// It's possible for a JVS packet to contain multiple commands, so we must iterate through it
 	for (size_t i = 0; i < packet.size(); i++) {
@@ -332,8 +321,11 @@ size_t JvsIo::SendPacket(uint8_t* buffer)
 	jvs_packet_header_t header;
 
 	// First, read the sync byte
+#ifdef DEBUG_JVS_PACKETS
+	printf("JvsIo::SendPacket: ");
+#endif
 	header.sync = *buffer++;
-	if (header.sync != SyncByte) {
+	if (header.sync != SYNC_BYTE) {
 		// If it's wrong, return we've processed (actually, skipped) one byte
 		return 1;
 	}
@@ -347,6 +339,9 @@ size_t JvsIo::SendPacket(uint8_t* buffer)
 	for (int i = 0; i < header.count; i++) {
 		packet.push_back(GetEscapedByte(buffer));
 	}
+#ifdef DEBUG_JVS_PACKETS
+	printf("\n");
+#endif
 
 	// The last byte is the checksum
 	uint8_t checksum = packet.back(); packet.pop_back();
@@ -371,7 +366,7 @@ size_t JvsIo::ReceivePacket(void* packet)
 
 	// Build a JVS Response Packet containing the payload
 	jvs_packet_header_t* header = (jvs_packet_header_t*)packet;
-	header->sync = SyncByte;
+	header->sync = SYNC_BYTE;
 	header->target = 0x00; // Target Master Device
 	header->count = uint8_t(ResponseBuffer.size()) + 1; // Set data size to payload + checksum
 

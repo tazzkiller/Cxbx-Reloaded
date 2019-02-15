@@ -124,15 +124,16 @@ class JvsIo
 {
 public:
 	JvsIo(uint8_t* sense);
-	size_t JvsIo::SendPacket(uint8_t* buffer);
+	size_t SendPacket(uint8_t* buffer);
 	size_t ReceivePacket(void* packet);
 	uint8_t GetDeviceId();
 	void Update();
 
 private:
-	const uint8_t SyncByte = 0xE0;
-	const uint8_t EscapeByte = 0xD0;
+	const uint8_t SYNC_BYTE = 0xE0;
+	const uint8_t ESCAPE_BYTE = 0xD0;
 
+	uint8_t GetByte(uint8_t* &payload);
 	uint8_t GetEscapedByte(uint8_t* &payload);
 	void HandlePacket(jvs_packet_header_t* header, std::vector<uint8_t>& packet);
 
@@ -146,8 +147,27 @@ private:
 	enum ReportCode {
 		Handled = 1,
 		NotEnoughParameters = 2,
-		InvalidParameter = 3,				
+		InvalidParameter = 3,
 		Busy = 4,
+	};
+
+	enum CapabilityCode {
+		EndOfCapabilities = 0x00,
+		// Input capabilities :
+		PlayerSwitchButtonSets = 0x01,
+		CoinSlots = 0x02,
+		AnalogInputs = 0x03,
+		RotaryInputs = 0x04, // Params : JVS_MAX_ROTARY, 0, 0
+		KeycodeInputs = 0x05,
+		ScreenPointerInputs = 0x06, // Params : Xbits, Ybits, JVS_MAX_POINTERS
+		SwitchInputs = 0x07,
+		// Output capabilities :
+		CardSystem = 0x10, // Params : JVS_MAX_CARDS, 0, 0
+		MedalHopper = 0x11, // Params : max?, 0, 0
+		GeneralPurposeOutputs = 0x12, // Params : number of outputs, 0, 0
+		AnalogOutput = 0x13, // Params : channels, 0, 0
+		CharacterOutput = 0x14, // Params : width, height, type
+		BackupData = 0x15,
 	};
 
 	// Commands
