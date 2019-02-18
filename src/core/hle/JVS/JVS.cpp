@@ -429,7 +429,7 @@ DWORD WINAPI XTL::EMUPATCH(JvsNodeReceivePacket)
 	// Receive the packet from the connected IO board
 	uint8_t DeviceId = g_pJvsIo->GetDeviceId();
 
-	uint16_t payloadSize = g_pJvsIo->ReceivePacket(&Buffer[6]);
+	uint16_t payloadSize = (uint16_t)g_pJvsIo->ReceivePacket(&Buffer[6]);
 	if (payloadSize > 0) {
 		Buffer[0] = 0; // Empty header byte, ignored
 		Buffer[1] = 1; // Number of packets received
@@ -458,18 +458,19 @@ DWORD WINAPI XTL::EMUPATCH(JvsNodeSendPacket)
 		LOG_FUNC_ARG(a3)
 		LOG_FUNC_END
 
-	// Buffer contains opening two bytes 00 XX where XX is the number of JVS packets to send
-	// Each JVS packet is prependec with 00, the rest of the packet is as-per the JVS I/O standard.
+	// Buffer contains two opening bytes, '00' and 'XX', where XX is the number of JVS packets to send
+	// Each JVS packet is prepended with a '00' byte, the rest of the packet is as-per the JVS I/O standard.
 
+	// Ignore Buffer[0] (should be 0x00)
 	unsigned packetCount = Buffer[1];
 	uint8_t* packetPtr = &Buffer[2]; // First JVS packet starts at offset 2;
 
 	for (unsigned i = 0; i < packetCount; i++) {
-		// Skip the seperator byte
+		// Skip the separator byte (should be 0x00)
 		packetPtr++;
 
 		// Send the packet to the connected I/O board
-		size_t bytes = g_pJvsIo->SendPacket((jvs_packet_header_t*)packetPtr);
+		size_t bytes = g_pJvsIo->SendPacket(packetPtr);
 
 		// Set packetPtr to the next packet
 		packetPtr += bytes;
