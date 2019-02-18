@@ -125,7 +125,7 @@ class JvsIo
 public:
 	JvsIo(uint8_t* sense);
 	size_t SendPacket(uint8_t* buffer);
-	size_t ReceivePacket(void* packet);
+	size_t ReceivePacket(uint8_t* buffer);
 	uint8_t GetDeviceId();
 	void Update();
 
@@ -133,9 +133,15 @@ private:
 	const uint8_t SYNC_BYTE = 0xE0;
 	const uint8_t ESCAPE_BYTE = 0xD0;
 
-	uint8_t GetByte(uint8_t* &payload);
-	uint8_t GetEscapedByte(uint8_t* &payload);
+	const uint8_t TARGET_MASTER_DEVICE = 0x00;
+	const uint8_t TARGET_BROADCAST = 0xFF;	
+
+	uint8_t GetByte(uint8_t* &buffer);
+	uint8_t GetEscapedByte(uint8_t* &buffer);
 	void HandlePacket(jvs_packet_header_t* header, std::vector<uint8_t>& packet);
+
+	void SendByte(uint8_t* &buffer, uint8_t value);
+	void SendEscapedByte(uint8_t* &buffer, uint8_t value);
 
 	enum StatusCode {
 		StatusOkay = 1,
