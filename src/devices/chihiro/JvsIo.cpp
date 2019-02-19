@@ -377,8 +377,10 @@ void JvsIo::SendByte(uint8_t* &buffer, uint8_t value)
 
 void JvsIo::SendEscapedByte(uint8_t* &buffer, uint8_t value)
 {
+	// Special case: Send an exception byte followed by value - 1
 	if (value == SYNC_BYTE || value == ESCAPE_BYTE) {
 		SendByte(buffer, ESCAPE_BYTE);
+		value--;
 	}
 
 	SendByte(buffer, value);
