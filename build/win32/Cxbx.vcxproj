@@ -326,6 +326,7 @@
     <None Include="..\..\src\devices\video\EmuNV2A_PFB.cpp" />
     <None Include="..\..\src\devices\video\EmuNV2A_PFIFO.cpp" />
     <None Include="..\..\src\devices\video\EmuNV2A_PGRAPH.cpp" />
+    <None Include="..\..\src\devices\video\EmuNV2A_PGRAPH_OpenGL.cpp" />
     <None Include="..\..\src\devices\video\EmuNV2A_PMC.cpp" />
     <None Include="..\..\src\devices\video\EmuNV2A_PRAMDAC.cpp" />
     <None Include="..\..\src\devices\video\EmuNV2A_PRAMIN.cpp" />

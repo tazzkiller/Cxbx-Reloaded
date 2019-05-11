@@ -647,6 +647,9 @@
     <ClCompile Include="..\..\src\gui\DlgNetworkConfig.cpp">
       <Filter>GUI</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\devices\video\EmuNV2A_PGRAPH_OpenGL.cpp">
+      <Filter>Hardware\Video</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\..\resource\Splash.jpg">
