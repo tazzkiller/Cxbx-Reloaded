@@ -7526,9 +7526,17 @@ void XTL::CxbxUpdateNativeD3DResources()
 {
     EmuUpdateActiveTextureStages();
 
-	// If Pixel Shaders are not disabled, process them
-	if (!g_DisablePixelShaders) {
-		XTL::DxbxUpdateActivePixelShader();
+	switch (g_PixelShaderMode) {
+		case psmDisabled:
+			break;
+		case psmLegacy:
+			XTL::DxbxUpdateActivePixelShader(/*TargetHLSL=*/false);
+			break;
+		case psmHLSL:
+			XTL::DxbxUpdateActivePixelShader(/*TargetHLSL=*/true);
+			break;
+		default:
+			assert(false);
 	}
 
 	// Some titles set Vertex Shader constants directly via pushbuffers rather than through D3D
