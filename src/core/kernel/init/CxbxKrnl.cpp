@@ -605,8 +605,9 @@ void PrintCurrentConfigurationLog()
 
 	// Print Enabled Hacks
 	{
+		const char* PixelShaderModeStrings[3] = {/*psmDisabled=*/"Disabled", /*psmHLSL=*/"HLSL", /*psmLegacy=*/"Legacy (default)"};
 		printf("--------------------------- HACKS CONFIG ---------------------------\n");
-		printf("Disable Pixel Shaders: %s\n", g_DisablePixelShaders == 1 ? "On" : "Off (Default)");
+		printf("Pixel Shader mode: %s\n", PixelShaderModeStrings[g_PixelShaderMode]);
 		printf("Run Xbox threads on all cores: %s\n", g_UseAllCores == 1 ? "On" : "Off (Default)");
 		printf("Skip RDTSC Patching: %s\n", g_SkipRdtscPatching == 1 ? "On" : "Off (Default)");
 	}
@@ -1408,7 +1409,7 @@ __declspec(noreturn) void CxbxKrnlInit
 	{
 		int HackEnabled = 0;
 		g_EmuShared->GetDisablePixelShaders(&HackEnabled);
-		g_DisablePixelShaders = !!HackEnabled;
+		g_PixelShaderMode = (HackEnabled == 0) ? psmDisabled : (HackEnabled == 2) ? psmHLSL : psmLegacy;
 		g_EmuShared->GetUseAllCores(&HackEnabled);
 		g_UseAllCores = !!HackEnabled;
 		g_EmuShared->GetSkipRdtscPatching(&HackEnabled);
