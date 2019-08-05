@@ -6013,9 +6013,14 @@ VOID XTL::DxbxUpdateActivePixelShader(const bool bTargetHLSL) // NOPATCH
   // All other fields are the same. We cast TemporaryPixelShaderRenderStates to a pPSDef for these fields, but
   // manually read from TemporaryPixelShaderRenderStates[X_D3DRS_PSTEXTUREMODES) for that one field.
   pPSDef = g_D3DActivePixelShader != nullptr ? (XTL::X_D3DPIXELSHADERDEF*)(&TemporaryPixelShaderRenderStates[0]) : nullptr;
- 
-  if (pPSDef != nullptr)
+
+  if (pPSDef == nullptr)
   {
+	ConvertedPixelShaderHandle = 0;
+	g_pD3DDevice->SetPixelShader((IDirect3DPixelShader9*)ConvertedPixelShaderHandle);
+	return;
+  }
+
 	if (bTargetHLSL) {
 		if (RecompiledPixelShader_HLSL.ConstInUse[0] == false) {
 			// Initialize static RecompiledPixelShader_HLSL once :
@@ -6068,7 +6073,40 @@ VOID XTL::DxbxUpdateActivePixelShader(const bool bTargetHLSL) // NOPATCH
 		}
 
 		g_pD3DDevice->SetPixelShader(pHLSLPixelShader);
-	} else {
+
+		// Transfer all current render state values to the HLSL pixel shader through host pixel shader constants
+		for (int rs = XTL::X_D3DRS_PSALPHAINPUTS0; i <= XTL::X_D3DRS_PSCOMBINERCOUNT; i++) {
+			DWORD dwRenderState = TemporaryPixelShaderRenderStates[i];
+
+			float ConstantData[4];
+/*
+			bool is_color_constant = (rs >= XTL::X_D3DRS_PSCONSTANT0_0 && rs <= XTL::X_D3DRS_PSCONSTANT1_7)
+				|| (rs == X_D3DRS_PSFINALCOMBINERCONSTANT0)
+				|| (rs == X_D3DRS_PSFINALCOMBINERCONSTANT1);
+
+			if (is_color_constant)
+			{
+				ConstantData[0] = 0.0f;
+				ConstantData[1] = 0.0f;
+				ConstantData[2] = 0.0f;
+				ConstantData[3] = 0.0f;
+			}
+			else
+*/
+			{
+				ConstantData[0] = (float)(dwRenderState & 0xFF);
+				ConstantData[1] = (float)((dwRenderState >> 8) & 0xFF);
+				ConstantData[2] = (float)((dwRenderState >> 16) & 0xFF);
+				ConstantData[3] = (float)((dwRenderState >> 24)& 0xFF);
+			}
+
+			g_pD3DDevice->SetPixelShaderConstantF(i, ConstantData, 1);
+		}
+
+		return;
+	}
+
+	// Non-HLSL pixel shader path :
 	RecompiledPixelShader = nullptr;
 
     // Now, see if we already have a shader compiled for this declaration :
@@ -6095,7 +6133,7 @@ VOID XTL::DxbxUpdateActivePixelShader(const bool bTargetHLSL) // NOPATCH
     g_pD3DDevice->GetPixelShader(/*out*/(IDirect3DPixelShader9**)(&CurrentPixelShader));
     if (CurrentPixelShader != ConvertedPixelShaderHandle)
 		g_pD3DDevice->SetPixelShader((IDirect3DPixelShader9*)ConvertedPixelShaderHandle);
-	}
+
     // Note : We set the constants /after/ setting the shader, so that any
     // constants in the shader declaration can be overwritten (this will be
     // needed for the final combiner constants at least)!
@@ -6204,12 +6242,7 @@ VOID XTL::DxbxUpdateActivePixelShader(const bool bTargetHLSL) // NOPATCH
 		);
       }
     }
-  }
-  else
-  {
-    ConvertedPixelShaderHandle = 0;
-	g_pD3DDevice->SetPixelShader((IDirect3DPixelShader9*)ConvertedPixelShaderHandle);
-  }
+
 }
 
 // End of Dxbx code
