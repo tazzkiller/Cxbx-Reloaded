@@ -7530,10 +7530,10 @@ void XTL::CxbxUpdateNativeD3DResources()
 		case psmDisabled:
 			break;
 		case psmLegacy:
-			XTL::DxbxUpdateActivePixelShader(/*TargetHLSL=*/false);
+			XTL::CxbxUpdateActivePixelShader(/*TargetHLSL=*/false);
 			break;
 		case psmHLSL:
-			XTL::DxbxUpdateActivePixelShader(/*TargetHLSL=*/true);
+			XTL::CxbxUpdateActivePixelShader(/*TargetHLSL=*/true);
 			break;
 		default:
 			assert(false);
