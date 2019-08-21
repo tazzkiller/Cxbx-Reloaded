@@ -538,120 +538,125 @@ IDR_JPEG_SPLASH         BITMAP                  "Logo-License-CC4.bmp"
 // Menu
 //
 
-IDR_MAINMENU MENUEX
+IDR_MAINMENU MENU
 BEGIN
-    POPUP "&File",                          65535,MFT_STRING,MFS_ENABLED
+    POPUP "&File"
     BEGIN
-        MENUITEM "&Open Xbe...",                ID_FILE_OPEN_XBE,MFT_STRING,MFS_ENABLED
-        MENUITEM "Open D&ashboard...\tF7",      ID_FILE_OPEN_DASHBOARD,MFT_STRING,MFS_ENABLED
-        MENUITEM "&Close Xbe",                  ID_FILE_CLOSE_XBE,MFT_STRING,MFS_ENABLED
-        MENUITEM MFT_SEPARATOR
-        MENUITEM "&Save Xbe",                   ID_FILE_SAVEXBEFILE,MFT_STRING,MFS_ENABLED
-        MENUITEM "Save Xbe &As...",             ID_FILE_SAVEXBEFILEAS,MFT_STRING,MFS_ENABLED
-        MENUITEM MFT_SEPARATOR
-        POPUP "&Recent Xbe Files",              65535,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Open Xbe...",                ID_FILE_OPEN_XBE
+        MENUITEM "Open D&ashboard...\tF7",      ID_FILE_OPEN_DASHBOARD
+        MENUITEM "&Close Xbe",                  ID_FILE_CLOSE_XBE
+        MENUITEM SEPARATOR
+        MENUITEM "&Save Xbe",                   ID_FILE_SAVEXBEFILE
+        MENUITEM "Save Xbe &As...",             ID_FILE_SAVEXBEFILEAS
+        MENUITEM SEPARATOR
+        POPUP "&Recent Xbe Files"
         BEGIN
-            MENUITEM "&0 : Recent Placeholder",     ID_FILE_RXBE_0,MFT_STRING,MFS_ENABLED
-            MENUITEM "&1 : Recent Placeholder",     ID_FILE_RXBE_1,MFT_STRING,MFS_ENABLED
-            MENUITEM "&2 : Recent Placeholder",     ID_FILE_RXBE_2,MFT_STRING,MFS_ENABLED
-            MENUITEM "&3 : Recent Placeholder",     ID_FILE_RXBE_3,MFT_STRING,MFS_ENABLED
-            MENUITEM "&4 : Recent Placeholder",     ID_FILE_RXBE_4,MFT_STRING,MFS_ENABLED
-            MENUITEM "&5 : Recent Placeholder",     ID_FILE_RXBE_5,MFT_STRING,MFS_ENABLED
-            MENUITEM "&6 : Recent Placeholder",     ID_FILE_RXBE_6,MFT_STRING,MFS_ENABLED
-            MENUITEM "&7 : Recent Placeholder",     ID_FILE_RXBE_7,MFT_STRING,MFS_ENABLED
-            MENUITEM "&8 : Recent Placeholder",     ID_FILE_RXBE_8,MFT_STRING,MFS_ENABLED
-            MENUITEM "&9 : Recent Placeholder",     ID_FILE_RXBE_9,MFT_STRING,MFS_ENABLED
+            MENUITEM "&0 : Recent Placeholder",     ID_FILE_RXBE_0
+            MENUITEM "&1 : Recent Placeholder",     ID_FILE_RXBE_1
+            MENUITEM "&2 : Recent Placeholder",     ID_FILE_RXBE_2
+            MENUITEM "&3 : Recent Placeholder",     ID_FILE_RXBE_3
+            MENUITEM "&4 : Recent Placeholder",     ID_FILE_RXBE_4
+            MENUITEM "&5 : Recent Placeholder",     ID_FILE_RXBE_5
+            MENUITEM "&6 : Recent Placeholder",     ID_FILE_RXBE_6
+            MENUITEM "&7 : Recent Placeholder",     ID_FILE_RXBE_7
+            MENUITEM "&8 : Recent Placeholder",     ID_FILE_RXBE_8
+            MENUITEM "&9 : Recent Placeholder",     ID_FILE_RXBE_9
         END
-        MENUITEM MFT_SEPARATOR
-        MENUITEM "E&xit",                       ID_FILE_EXIT,MFT_STRING,MFS_ENABLED
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       ID_FILE_EXIT
     END
-    POPUP "&Edit",                          65535,MFT_STRING,MFS_ENABLED
+    POPUP "&Edit"
     BEGIN
-        POPUP "Logo &Bitmap",                   65535,MFT_STRING,MFS_ENABLED
+        POPUP "Logo &Bitmap"
         BEGIN
-            MENUITEM "&Import...",                  ID_EDIT_LOGOBITMAP_IMPORT,MFT_STRING,MFS_ENABLED
-            MENUITEM "&Export...",                  ID_EDIT_LOGOBITMAP_EXPORT,MFT_STRING,MFS_ENABLED
+            MENUITEM "&Import...",                  ID_EDIT_LOGOBITMAP_IMPORT
+            MENUITEM "&Export...",                  ID_EDIT_LOGOBITMAP_EXPORT
         END
-        POPUP "&Patch",                         65535,MFT_STRING,MFS_ENABLED
+        POPUP "&Patch"
         BEGIN
-            MENUITEM "&Allow >64 MB",               ID_EDIT_PATCH_ALLOW64MB,MFT_STRING,MFS_ENABLED
-            MENUITEM "&Debug Mode",                 ID_EDIT_PATCH_DEBUGMODE,MFT_STRING,MFS_ENABLED
+            MENUITEM "&Allow >64 MB",               ID_EDIT_PATCH_ALLOW64MB
+            MENUITEM "&Debug Mode",                 ID_EDIT_PATCH_DEBUGMODE
         END
-        MENUITEM MFT_SEPARATOR
-        POPUP "Dump &Xbe Info To...",           65535,MFT_STRING,MFS_ENABLED
+        MENUITEM SEPARATOR
+        POPUP "Dump &Xbe Info To..."
         BEGIN
-            MENUITEM "&File...",                    ID_EDIT_DUMPXBEINFOTO_FILE,MFT_STRING,MFS_ENABLED
-            MENUITEM "&Debug Console",              ID_EDIT_DUMPXBEINFOTO_DEBUGCONSOLE,MFT_STRING,MFS_ENABLED
-        END
-    END
-    POPUP "&View",                          65535,MFT_STRING,MFS_ENABLED
-    BEGIN
-        POPUP "&Debug Output (GUI)",            65535,MFT_STRING,MFS_ENABLED
-        BEGIN
-            MENUITEM "&Console",                    ID_EMULATION_DEBUGOUTPUTGUI_CONSOLE,MFT_STRING,MFS_ENABLED
-            MENUITEM "&File...",                    ID_EMULATION_DEBUGOUTPUTGUI_FILE,MFT_STRING,MFS_ENABLED
-        END
-        POPUP "Debug Output (&Kernel)",         65535,MFT_STRING,MFS_ENABLED
-        BEGIN
-            MENUITEM "&Console",                    ID_EMULATION_DEBUGOUTPUTKERNEL_CONSOLE,MFT_STRING,MFS_ENABLED
-            MENUITEM "&File...",                    ID_EMULATION_DEBUGOUTPUTKERNEL_FILE,MFT_STRING,MFS_ENABLED
+            MENUITEM "&File...",                    ID_EDIT_DUMPXBEINFOTO_FILE
+            MENUITEM "&Debug Console",              ID_EDIT_DUMPXBEINFOTO_DEBUGCONSOLE
         END
     END
-    POPUP "&Settings",                      65535,MFT_STRING,MFS_ENABLED
+    POPUP "&View"
     BEGIN
-        MENUITEM "Config Xbox Controller &Mapping", ID_SETTINGS_CONFIG_XBOX_CONTROLLER_MAPPING,MFT_STRING,MFS_ENABLED
-        MENUITEM "Config DirectInput &Controller...", ID_SETTINGS_CONFIG_CONTROLLER,MFT_STRING,MFS_ENABLED
-        MENUITEM MFT_SEPARATOR
-        MENUITEM "Config &Video...",            ID_SETTINGS_CONFIG_VIDEO,MFT_STRING,MFS_ENABLED
-        MENUITEM "Config &Audio...",            ID_SETTINGS_CONFIG_AUDIO,MFT_STRING,MFS_ENABLED
-        MENUITEM "Config &Network...",          ID_SETTINGS_CONFIG_NETWORK,MFT_STRING,MFS_ENABLED
-        MENUITEM "Config &Eeprom...",           ID_SETTINGS_CONFIG_EEPROM,MFT_STRING,MFS_ENABLED
-        MENUITEM "Config &Logging...",          ID_SETTINGS_CONFIG_LOGGING,MFT_STRING,MFS_ENABLED
-        POPUP "Config &Data Location...",       65535,MFT_STRING,MFS_ENABLED
+        POPUP "&Debug Output (GUI)"
         BEGIN
-            MENUITEM "Store in AppData",            ID_SETTINGS_CONFIG_DLOCAPPDATA,MFT_STRING,MFS_ENABLED
-            MENUITEM "Store with Executable",       ID_SETTINGS_CONFIG_DLOCEXECDIR,MFT_STRING,MFS_ENABLED
-            MENUITEM "Custom",                      ID_SETTINGS_CONFIG_DLOCCUSTOM,MFT_STRING,MFS_ENABLED
+            MENUITEM "&Console",                    ID_EMULATION_DEBUGOUTPUTGUI_CONSOLE
+            MENUITEM "&File...",                    ID_EMULATION_DEBUGOUTPUTGUI_FILE
         END
-        POPUP "&Symbol Cache",                  65535,MFT_STRING,MFS_ENABLED
+        POPUP "Debug Output (&Kernel)"
         BEGIN
-            MENUITEM "&Clear entire Symbol Cache",  ID_CACHE_CLEARHLECACHE_ALL,MFT_STRING,MFS_ENABLED
-            MENUITEM "&Rescan title Symbol Cache",  ID_CACHE_CLEARHLECACHE_CURRENT,MFT_STRING,MFS_ENABLED
+            MENUITEM "&Console",                    ID_EMULATION_DEBUGOUTPUTKERNEL_CONSOLE
+            MENUITEM "&File...",                    ID_EMULATION_DEBUGOUTPUTKERNEL_FILE
         END
-        MENUITEM MFT_SEPARATOR
-        POPUP "&LLE (Experimental)",            65535,MFT_STRING,MFS_ENABLED
+    END
+    POPUP "&Settings"
+    BEGIN
+        MENUITEM "Config Xbox Controller &Mapping", ID_SETTINGS_CONFIG_XBOX_CONTROLLER_MAPPING
+        MENUITEM "Config DirectInput &Controller...", ID_SETTINGS_CONFIG_CONTROLLER
+        MENUITEM SEPARATOR
+        MENUITEM "Config &Video...",            ID_SETTINGS_CONFIG_VIDEO
+        MENUITEM "Config &Audio...",            ID_SETTINGS_CONFIG_AUDIO
+        MENUITEM "Config &Network...",          ID_SETTINGS_CONFIG_NETWORK
+        MENUITEM "Config &Eeprom...",           ID_SETTINGS_CONFIG_EEPROM
+        MENUITEM "Config &Logging...",          ID_SETTINGS_CONFIG_LOGGING
+        POPUP "Config &Data Location..."
         BEGIN
-            MENUITEM "LLE &GPU",                    ID_EMULATION_LLE_GPU,MFT_STRING,MFS_ENABLED
+            MENUITEM "Store in AppData",            ID_SETTINGS_CONFIG_DLOCAPPDATA
+            MENUITEM "Store with Executable",       ID_SETTINGS_CONFIG_DLOCEXECDIR
+            MENUITEM "Custom",                      ID_SETTINGS_CONFIG_DLOCCUSTOM
         END
-        POPUP "Hacks",                          65535,MFT_STRING,MFS_ENABLED
+        POPUP "&Symbol Cache"
         BEGIN
-            POPUP "Speed Hacks",                    65535,MFT_STRING,MFS_ENABLED
+            MENUITEM "&Clear entire Symbol Cache",  ID_CACHE_CLEARHLECACHE_ALL
+            MENUITEM "&Rescan title Symbol Cache",  ID_CACHE_CLEARHLECACHE_CURRENT
+        END
+        MENUITEM SEPARATOR
+        POPUP "&LLE (Experimental)"
+        BEGIN
+            MENUITEM "LLE &GPU",                    ID_EMULATION_LLE_GPU
+        END
+        POPUP "Hacks"
+        BEGIN
+            POPUP "Speed Hacks"
             BEGIN
-                MENUITEM "Run Xbox threads on all cores", ID_HACKS_RUNXBOXTHREADSONALLCORES,MFT_STRING,MFS_ENABLED
+                MENUITEM "Run Xbox threads on all cores", ID_HACKS_RUNXBOXTHREADSONALLCORES
             END
-            MENUITEM "Disable Pixel Shaders",       ID_HACKS_DISABLEPIXELSHADERS,MFT_STRING,MFS_ENABLED
-            MENUITEM "Skip rdtsc patching",         ID_HACKS_SKIPRDTSCPATCHING,MFT_STRING,MFS_ENABLED
+            POPUP "Pixel Shaders"
+            BEGIN
+                MENUITEM "Recompile",                   ID_HACKS_PIXELSHADERS_RECOMPILE, CHECKED
+                MENUITEM "Interpret",                   ID_HACKS_PIXELSHADERS_INTERPRET
+                MENUITEM "Disable",                     ID_HACKS_PIXELSHADERS_DISABLE
+            END
+            MENUITEM "Skip rdtsc patching",         ID_HACKS_SKIPRDTSCPATCHING
         END
-        MENUITEM "Allow Admin Privilege",       ID_SETTINGS_ALLOWADMINPRIVILEGE,MFT_STRING,MFS_ENABLED
-        MENUITEM MFT_SEPARATOR
-        MENUITEM "Reset To Defaults",           ID_SETTINGS_INITIALIZE,MFT_STRING,MFS_ENABLED
+        MENUITEM "Allow Admin Privilege",       ID_SETTINGS_ALLOWADMINPRIVILEGE
+        MENUITEM SEPARATOR
+        MENUITEM "Reset To Defaults",           ID_SETTINGS_INITIALIZE
     END
-    POPUP "E&mulation",                     65535,MFT_STRING,MFS_ENABLED
+    POPUP "E&mulation"
     BEGIN
-        MENUITEM "&Start\tF5",                  ID_EMULATION_START,MFT_STRING,MFS_ENABLED
-        MENUITEM "Start &Debugger...\tF9",      ID_EMULATION_STARTDEBUGGER,MFT_STRING,MFS_ENABLED
-        MENUITEM MFT_SEPARATOR
-        MENUITEM "S&top\tF6",                   ID_EMULATION_STOP,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Start\tF5",                  ID_EMULATION_START
+        MENUITEM "Start &Debugger...\tF9",      ID_EMULATION_STARTDEBUGGER
+        MENUITEM SEPARATOR
+        MENUITEM "S&top\tF6",                   ID_EMULATION_STOP
     END
-    POPUP "&Help",                          65535,MFT_STRING,MFS_ENABLED
+    POPUP "&Help"
     BEGIN
-        MENUITEM "&Go To The Official Cxbx Web Site...", ID_HELP_HOMEPAGE,MFT_STRING,MFS_ENABLED
-        MENUITEM MFT_SEPARATOR
-        MENUITEM "&About",                      ID_HELP_ABOUT,MFT_STRING,MFS_ENABLED
+        MENUITEM "&Go To The Official Cxbx Web Site...", ID_HELP_HOMEPAGE
+        MENUITEM SEPARATOR
+        MENUITEM "&About",                      ID_HELP_ABOUT
     END
-    MENUITEM " ",                           ID_FPS,MFT_STRING | MFT_RIGHTJUSTIFY,MFS_ENABLED
-    MENUITEM " ",                           ID_LED,MFT_STRING,MFS_ENABLED
-    MENUITEM " ",                           ID_LOG,MFT_STRING,MFS_ENABLED
+    MENUITEM " ",                           ID_FPS
+    MENUITEM " ",                           ID_LED
+    MENUITEM " ",                           ID_LOG
 END
 
 #endif    // English (United States) resources
