@@ -214,7 +214,7 @@ public:
 	// The size and order of this structure should *not* be allowed to change
 	// TODO: Fix IPC/Shared Memory so this isn't necessary
 	struct s_hack {
-		bool DisablePixelShaders;
+		bool Reserved1;
 		bool Reserved2;
 		bool UseAllCores;
 		bool SkipRdtscPatching;
@@ -222,7 +222,8 @@ public:
 		bool Reserved4;
 		bool Reserved7 = 0;
 		bool Reserved8 = 0;
-		int  Reserved99[8] = { 0 };
+		int PixelShaderMode;
+		int  Reserved99[7] = { 0 };
 	} m_hacks;
 
 private:

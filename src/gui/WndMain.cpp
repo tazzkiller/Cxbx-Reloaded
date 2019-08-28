@@ -470,47 +470,59 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
             {
                 case VK_F5:
                 {
-					// Try to open the most recent Xbe if none is opened yet :
-					if (m_Xbe == nullptr)
-						OpenMRU(0);
+					// Start emulation normally
+					if (!m_bIsStarted) {
+						// Try to open the most recent Xbe if none is opened yet :
+						if (m_Xbe == nullptr)
+							OpenMRU(0);
 
-					if (m_Xbe != nullptr)
-						if (!m_bIsStarted)
+						if (m_Xbe != nullptr)
 							StartEmulation(hwnd);
+
+						break;
+					}
+					// fall through
                 }
-                break;
 
                 case VK_F6:
                 {
-					if(m_bIsStarted)
-                        StopEmulation();
+					// Stop emulation
+					if (m_bIsStarted)
+					{
+						StopEmulation();
+						break;
+					}
+					// fall through
                 }
-                break;
 
 				case VK_F7:
 				{
-					// Try to open the dashboard xbe if none is opened yet :
+					// Open the dashboard xbe
 					if (!m_bIsStarted)
 					{
 						if (m_Xbe != nullptr) { CloseXbe(); }
 
 						OpenDashboard();
+						break;
 					}
+					// fall through
 				}
-				break;
 
 				case VK_F9:
 				{
-					// Try to open the most recent Xbe if none is opened yet :
+					// Start emulation with the debugger
 					if (!m_bIsStarted) {
+						// Try to open the most recent Xbe if none is opened yet
 						if (m_Xbe == nullptr)
 							OpenMRU(0);
 
 						if (m_Xbe != nullptr)
 							StartEmulation(hwnd, debuggerOn);
+
+						break;
 					}
+					// fall through
 				}
-				break;
 
                 default:
                 {
@@ -1251,8 +1263,17 @@ LRESULT CALLBACK WndMain::WndProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lP
                 StopEmulation();
                 break;
 
-			case ID_HACKS_DISABLEPIXELSHADERS:
-				g_Settings->m_hacks.DisablePixelShaders = !g_Settings->m_hacks.DisablePixelShaders;
+			case ID_HACKS_PIXELSHADERS_RECOMPILE:
+				g_Settings->m_hacks.PixelShaderMode = 0;
+				RefreshMenus();
+				break;
+
+			case ID_HACKS_PIXELSHADERS_INTERPRET:
+				g_Settings->m_hacks.PixelShaderMode = 1;
+				RefreshMenus();
+				break;
+			case ID_HACKS_PIXELSHADERS_DISABLE:
+				g_Settings->m_hacks.PixelShaderMode = 2;
 				RefreshMenus();
 				break;
 
@@ -1702,8 +1723,14 @@ void WndMain::RefreshMenus()
 			//chk_flag = (g_Settings->m_core.FlagsLLE & LLE_USB) ? MF_CHECKED : MF_UNCHECKED; // Reenable this when LLE USB actually works
 			//CheckMenuItem(settings_menu, ID_EMULATION_LLE_USB, chk_flag);
 
-			chk_flag = (g_Settings->m_hacks.DisablePixelShaders) ? MF_CHECKED : MF_UNCHECKED;
-			CheckMenuItem(settings_menu, ID_HACKS_DISABLEPIXELSHADERS, chk_flag);
+			chk_flag = (g_Settings->m_hacks.PixelShaderMode == 0) ? MF_CHECKED : MF_UNCHECKED;
+			CheckMenuItem(settings_menu, ID_HACKS_PIXELSHADERS_RECOMPILE, chk_flag);
+
+			chk_flag = (g_Settings->m_hacks.PixelShaderMode == 1) ? MF_CHECKED : MF_UNCHECKED;
+			CheckMenuItem(settings_menu, ID_HACKS_PIXELSHADERS_INTERPRET, chk_flag);
+
+			chk_flag = (g_Settings->m_hacks.PixelShaderMode == 2) ? MF_CHECKED : MF_UNCHECKED;
+			CheckMenuItem(settings_menu, ID_HACKS_PIXELSHADERS_DISABLE, chk_flag);
 
 			chk_flag = (g_Settings->m_hacks.UseAllCores) ? MF_CHECKED : MF_UNCHECKED;
 			CheckMenuItem(settings_menu, ID_HACKS_RUNXBOXTHREADSONALLCORES, chk_flag);
