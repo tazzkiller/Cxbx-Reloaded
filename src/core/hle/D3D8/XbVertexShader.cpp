@@ -1835,6 +1835,7 @@ private:
 			DbgVshPrintf("),\n");
 
 			// TODO : Expand on the setting of this TESSUV register element :
+			pRecompiled->Method = D3DDECLMETHOD_UV; // TODO : Is this correct?
 			pRecompiled->Usage = D3DDECLUSAGE(NewVertexRegister);
 			pRecompiled->UsageIndex = Index;
 		}
@@ -1849,6 +1850,7 @@ private:
 			DbgVshPrintf("\tD3DVSD_TESSNORMAL(");
 			NewVertexRegisterIn = Xb2PCRegisterType(VertexRegisterIn, Index);
 			// TODO : Expand on the setting of this TESSNORMAL input register element :
+			pRecompiled->Method = 0; // TODO ?
 			pRecompiled->Usage = D3DDECLUSAGE(NewVertexRegisterIn);
 			pRecompiled->UsageIndex = Index;
 			DbgVshPrintf(", ");
@@ -1856,6 +1858,7 @@ private:
 			NewVertexRegisterOut = Xb2PCRegisterType(VertexRegisterOut, Index);
 			// TODO : Expand on the setting of this TESSNORMAL output register element :
 			pRecompiled++;
+			pRecompiled->Method = D3DDECLMETHOD_CROSSUV; // TODO : Is this correct?
 			pRecompiled->Usage = D3DDECLUSAGE(NewVertexRegisterOut);
 			pRecompiled->UsageIndex = Index;
 			DbgVshPrintf("),\n");

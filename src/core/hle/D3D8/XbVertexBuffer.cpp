@@ -53,8 +53,7 @@ UINT   g_InlineVertexBuffer_DataSize = 0;
 extern XTL::X_D3DVertexBuffer      *g_pVertexBuffer = NULL;
 
 extern DWORD				XTL::g_dwPrimPerFrame = 0;
-extern XTL::X_D3DVertexBuffer*g_D3DStreams[16];
-extern UINT g_D3DStreamStrides[16];
+extern XTL::X_STREAMINPUT g_SetStreamSources[16];
 extern XTL::X_D3DSurface* g_pXboxRenderTarget;
 extern XTL::X_D3DSurface* g_XboxBackBufferSurface;
 void *GetDataFromXboxResource(XTL::X_D3DResource *pXboxResource);
@@ -137,7 +136,7 @@ int CountActiveD3DStreams()
 {
 	int lastStreamIndex = 0;
 	for (int i = 0; i < 16; i++) {
-		if (g_D3DStreams[i] != xbnullptr) {
+		if (g_SetStreamSources[i].VertexBuffer != xbnullptr) {
 			lastStreamIndex = i + 1;
 		}
 	}
@@ -311,7 +310,7 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
 		uiHostVertexStride = (bNeedVertexPatching) ? pVertexShaderStreamInfo->HostVertexStride : uiXboxVertexStride;
 		dwHostVertexDataSize = uiVertexCount * uiHostVertexStride;
 	} else {
-		XTL::X_D3DVertexBuffer *pXboxVertexBuffer = g_D3DStreams[uiStream];
+		XTL::X_D3DVertexBuffer *pXboxVertexBuffer = g_SetStreamSources[uiStream].VertexBuffer;
         pXboxVertexData = (uint8_t*)GetDataFromXboxResource(pXboxVertexBuffer);
 		if (pXboxVertexData == NULL) {
 			HRESULT hRet = g_pD3DDevice->SetStreamSource(
@@ -327,7 +326,7 @@ void XTL::CxbxVertexBufferConverter::ConvertStream
 			return;
 		}
 
-		uiXboxVertexStride = g_D3DStreamStrides[uiStream];
+		uiXboxVertexStride = g_SetStreamSources[uiStream].Stride;
         // Set a new (exact) vertex count
 		uiVertexCount = pDrawContext->VerticesInBuffer;
 		// Dxbx note : Don't overwrite pDrawContext.dwVertexCount with uiVertexCount, because an indexed draw

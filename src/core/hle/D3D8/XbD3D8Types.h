@@ -1114,13 +1114,15 @@ typedef struct _X_VERTEXSHADERINPUT
 }
 X_VERTEXSHADERINPUT;
 
+const int X_VSH_NBR_ATTRIBUTES = 16;
+
 // ******************************************************************
 // * X_VERTEXATTRIBUTEFORMAT
 // ******************************************************************
 typedef struct _X_VERTEXATTRIBUTEFORMAT
 {
-	// TODO : Does this need #pragma pack(1) / #include "AlignPrefix1.h" (and it's closure)?
-    X_VERTEXSHADERINPUT pVertexShaderInput[MAX_NBR_STREAMS];
+	// Note : Alignment looks okay even without #pragma pack(1) / #include "AlignPrefix1.h" (and it's closure)
+    X_VERTEXSHADERINPUT Slots[X_VSH_NBR_ATTRIBUTES];
 }
 X_VERTEXATTRIBUTEFORMAT;
 
@@ -1141,12 +1143,9 @@ struct X_D3DVertexShader
 	DWORD Flags;
 	DWORD FunctionSize; // ?Also known as ProgramSize?
 	DWORD TotalSize; // seems to include both the function and ?constants?
-	DWORD NumberOfDimensionsPerTexture; // Guesswork, since all 4 bytes (for all 4 textures) are most often set to 2 (or 0 when a texture isn't used) and 1, 3 and 4 also occur (and nothing else)
-	X_VERTEXATTRIBUTEFORMAT VertexAttributes;
-	union {
-		DWORD CxbxVertexShaderHandle; // This is probably the least damaging part to overwrite : We put a pointer to our CbxVertexShader here
-		DWORD FunctionData[VSH_XBOX_MAX_INSTRUCTION_COUNT]; // probably the binary function data and ?constants? (data continues futher outside this struct, up to TotalSize DWORD's)
-	};
+	DWORD NumberOfDimensionsPerTexture; // Guesswork, since all 4 bytes (for all 4 textures) are most often set to 0 (or 2 when a texture isn't used) and 1, 3 and 4 also occur (and nothing else)
+	X_VERTEXATTRIBUTEFORMAT VertexAttribute;
+	DWORD FunctionData[VSH_XBOX_MAX_INSTRUCTION_COUNT]; // probably the binary function data and ?constants? (data continues futher outside this struct, up to TotalSize DWORD's)
 };
 
 // vertex shader input registers for fixed function vertex shader
@@ -1253,13 +1252,14 @@ typedef enum _X_D3DVSD_TOKENTYPE
 #define X_D3DVSD_END() 0xFFFFFFFF
 
 // FVF Definitions
-#define X_D3DFVF_POSITION_MASK    0x00E
+#define X_D3DFVF_RESERVED0        0x001
 #define X_D3DFVF_XYZ              0x002
 #define X_D3DFVF_XYZRHW           0x004
 #define X_D3DFVF_XYZB1            0x006
 #define X_D3DFVF_XYZB2            0x008
 #define X_D3DFVF_XYZB3            0x00a
 #define X_D3DFVF_XYZB4            0x00c
+#define X_D3DFVF_POSITION_MASK    0x00E
 #define X_D3DFVF_NORMAL           0x010
 #define X_D3DFVF_RESERVED1        0x020
 #define X_D3DFVF_DIFFUSE          0x040
