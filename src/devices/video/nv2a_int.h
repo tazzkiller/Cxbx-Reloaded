@@ -478,7 +478,9 @@ typedef struct {
 	PPUSH Reference; // TODO : xbaddr / void* / DWORD ? 
 	DWORD Ignored2[0x7ED];
 } Nv2AControlDma;
+#endif
 
+// Not from xqemu :
 #define PUSH_TYPE_MASK         0x00000002 // 2 bits
 #define PUSH_TYPE_SHIFT        0
 #define PUSH_TYPE_METHOD        0 // method
@@ -513,13 +515,12 @@ typedef struct {
 #define PUSH_SUBCH_MAX (PUSH_SUBCH_MASK >> PUSH_SUBCH_SHIFT) // = 7
 #define PUSH_COUNT_MAX (PUSH_COUNT_MASK >> PUSH_COUNT_SHIFT) // = 2047
 
-// Decode push buffer conmmand (inverse of D3DPUSH_ENCODE)
+// Decode push buffer command (inverse of D3DPUSH_ENCODE)
 inline void D3DPUSH_DECODE(const DWORD dwPushCommand, DWORD &dwMethod, DWORD &dwSubCh, DWORD &dwCount)
 {
 	dwMethod = PUSH_METHOD(dwPushCommand);
 	dwSubCh = PUSH_SUBCH(dwPushCommand);
 	dwCount = PUSH_COUNT(dwPushCommand);
 }
-#endif
 
 #endif
