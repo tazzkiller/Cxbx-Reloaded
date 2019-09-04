@@ -64,7 +64,7 @@ DWORD g_Xbox_VertexShader_FunctionSlots[VSH_XBOX_MAX_INSTRUCTION_COUNT * X_VSH_I
 // Set by CxbxLocateVertexShader()
 DWORD* g_XboxAddr_pVertexShader = xbnullptr; // TODO : Get this symbol from g_SymbolAddresses["D3DDevice.m_pVertexShader"]; or whats its name
 
-typedef uint16_t binary16_t; // Quick and dirty way to indicate IEEE754–2008 'half-precision floats'
+typedef uint16_t binary16_t; // Quick and dirty way to indicate IEEE754-2008 'half-precision floats'
 
 // ****************************************************************************
 // * Vertex shader function recompiler
@@ -2687,13 +2687,15 @@ XTL::IDirect3DVertexBuffer* CxbxConvertXboxVertexBufferSingleAttribute(XTL::X_D3
 // splitting up each attribute into a separate stream per host element,
 // so that we can use an unmodified host clone of the Xbox vertex buffer
 // for all compatible data types, and separate host streams for conversions.
-void CxbxUpdateActiveVertexDeclaration(XTL::X_VERTEXATTRIBUTEFORMAT* pVertexAttributes, XTL::X_STREAMINPUT *pStreamInputs)
+void CxbxUpdateActiveVertexDeclaration()
 {
 	using namespace XTL;
 
-	assert(pXboxVertexShader);
-
 	LOG_INIT;
+
+	// Take overrides (on declarations and streaminputs, as set by SetVertexShaderInput) into account :
+	X_VERTEXATTRIBUTEFORMAT *pVertexAttributes = (g_Xbox_SetVertexShaderInput_Count > 0) ? &g_Xbox_SetVertexShaderInput_Attributes : &pXboxVertexShader->VertexAttribute;
+	X_STREAMINPUT *pStreamInputs = (g_Xbox_SetVertexShaderInput_Count > 0) ? g_Xbox_SetVertexShaderInput_Data : g_SetStreamSources;
 
 	HRESULT hRet = D3D_OK;
 	D3DVERTEXELEMENT HostVertexElements[X_VSH_NBR_ATTRIBUTES + 1] = { 0 };
@@ -2934,12 +2936,26 @@ void CxbxUpdateActiveVertexShader()
 		return;
 	}
 
-	// Take overrides (on declarations and streaminputs, as set by SetVertexShaderInput) into account :
-	X_VERTEXATTRIBUTEFORMAT *pVertexAttributes = (g_Xbox_SetVertexShaderInput_Count > 0) ? &g_Xbox_SetVertexShaderInput_Attributes : &pXboxVertexShader->VertexAttribute;
-	X_STREAMINPUT *pStreamInputs = (g_Xbox_SetVertexShaderInput_Count > 0) ? g_Xbox_SetVertexShaderInput_Data : g_SetStreamSources;
-
-	CxbxUpdateActiveVertexDeclaration(pVertexAttributes, pStreamInputs);
+	CxbxUpdateActiveVertexDeclaration();
 	CxbxParseAndConvertVertexShaderFunctionSlots();
+}
+
+void CxbxCopyVertexShaderFunctionSlots(unsigned Address, unsigned NumberOfSlots, void *FunctionData)
+{
+	if (Address >= VSH_XBOX_MAX_INSTRUCTION_COUNT) {
+		LOG_TEST_CASE("CxbxCopyVertexShaderFunctionSlots would start too high!");
+		return;
+	}
+
+	if (Address + NumberOfSlots > VSH_XBOX_MAX_INSTRUCTION_COUNT) {
+		LOG_TEST_CASE("CxbxCopyVertexShaderFunctionSlots would write too far!");
+		return;
+	}
+
+	// Each slot is either 4 DWORDS or 4 floats
+	DWORD SizeInBytes = NumberOfSlots * X_VSH_INSTRUCTION_SIZE_BYTES;
+	// Copy this data towards our storage for this, at the indicated address offset :
+	memcpy(&(g_Xbox_VertexShader_FunctionSlots[Address * X_VSH_INSTRUCTION_SIZE]), FunctionData, SizeInBytes);
 }
 
 // Our vertex shader related EMU_PATCH implementations :
@@ -2953,11 +2969,6 @@ void CxbxImpl_LoadVertexShader(DWORD Handle, DWORD Address)
 		return;
 	}
 
-	if (Address >= VSH_XBOX_MAX_INSTRUCTION_COUNT) {
-		LOG_TEST_CASE("D3DDevice_LoadVertexShader would start too high!");
-		return;
-	}
-
 	X_D3DVertexShader* XboxVertexShader = VshHandleToXboxVertexShader(Handle);
 	if (Address + XboxVertexShader->TotalSize > VSH_XBOX_MAX_INSTRUCTION_COUNT) {
 		LOG_TEST_CASE("D3DDevice_LoadVertexShader would exceed too far!");
@@ -2965,11 +2976,7 @@ void CxbxImpl_LoadVertexShader(DWORD Handle, DWORD Address)
 	}
 
 	// Copy the function data into the indicated address slots :
-	DWORD NumberOfSlots = XboxVertexShader->TotalSize;
-	// Each slot is either 4 DWORDS or 4 floats
-	DWORD SizeInBytes = NumberOfSlots * X_VSH_INSTRUCTION_SIZE_BYTES;
-	// Copy this data towards our storage for this, at the indicated address offset :
-	memcpy(&(g_Xbox_VertexShader_FunctionSlots[Address * X_VSH_INSTRUCTION_SIZE]), XboxVertexShader->FunctionData, SizeInBytes);
+	CxbxCopyVertexShaderFunctionSlots(Address, XboxVertexShader->TotalSize, XboxVertexShader->FunctionData);
 }
 
 void CxbxImpl_SelectVertexShader(DWORD Handle, DWORD Address)
@@ -2999,7 +3006,7 @@ void CxbxImpl_SetVertexShaderInput(DWORD Handle, UINT StreamCount, XTL::X_STREAM
 	if (Handle == NULL)
 	{
 		// Xbox doesn't remember a null-handle - this may be an XDK bug!
-		// pStreamInputs is ingored
+		// pStreamInputs is ignored
 		g_Xbox_SetVertexShaderInput_Count = 0;
 	}
 	else
@@ -3021,8 +3028,7 @@ void CxbxImpl_LoadVertexShaderProgram(DWORD* pFunction, DWORD Address)
 	// The second word in the function indicates it's size, expressed in 4-DWORD-sized slots :
 	DWORD NumberOfSlots = *pFunction++ >> 16;
 	// Copy this data towards our storage for this, at the indicated address offset :
-	DWORD SizeInBytes = NumberOfSlots * X_VSH_INSTRUCTION_SIZE_BYTES;
-	memcpy(&(g_Xbox_VertexShader_FunctionSlots[Address * X_VSH_INSTRUCTION_SIZE]), pFunction, SizeInBytes);
+	CxbxCopyVertexShaderFunctionSlots(Address, NumberOfSlots, pFunction);
 }
 
 // TODO : Replace this with an XREF in XbSymbolDatabase, since this is re-inventing the wheel:
