@@ -55,7 +55,7 @@ extern XTL::X_D3DVertexBuffer      *g_pVertexBuffer = NULL;
 extern DWORD				XTL::g_dwPrimPerFrame = 0;
 
 // Copy of active Xbox D3D Vertex Streams (and strides), set by D3DDevice_SetStreamSource*
-XTL::X_STREAMINPUT g_SetStreamSources[16] = { 0 }; // Note : .Offset member is never set (so always 0)
+XTL::X_STREAMINPUT g_SetStreamSources[MAX_NBR_STREAMS] = { 0 }; // Note : .Offset member is never set (so always 0)
 
 extern XTL::X_D3DSurface* g_pXboxRenderTarget;
 extern XTL::X_D3DSurface* g_XboxBackBufferSurface;
@@ -140,7 +140,7 @@ size_t GetVerticesInBuffer(DWORD dwOffset, DWORD dwVertexCount, PWORD pIndexData
 int CountActiveD3DStreams()
 {
 	int lastStreamIndex = 0;
-	for (int i = 0; i < 16; i++) {
+	for (int i = 0; i < MAX_NBR_STREAMS; i++) {
 		if (g_SetStreamSources[i].VertexBuffer != xbnullptr) {
 			lastStreamIndex = i + 1;
 		}
@@ -161,7 +161,7 @@ UINT XTL::CxbxVertexBufferConverter::GetNbrStreams(CxbxDrawContext *pDrawContext
     if(VshHandleIsVertexShader(pDrawContext->XboxVertexShaderHandle)) {
         CxbxVertexShaderInfo *pVertexShaderInfo = GetCxbxVertexShaderInfo(pDrawContext->XboxVertexShaderHandle);
 		if (pVertexShaderInfo) {
-			if (pVertexShaderInfo->NumberOfVertexStreams <= 16) {
+			if (pVertexShaderInfo->NumberOfVertexStreams <= MAX_NBR_STREAMS) {
 				return pVertexShaderInfo->NumberOfVertexStreams;
 			}
 
@@ -807,9 +807,9 @@ void XTL::CxbxVertexBufferConverter::Apply(CxbxDrawContext *pDrawContext)
 
     // Get the number of streams
     m_uiNbrStreams = GetNbrStreams(pDrawContext);
-	if (m_uiNbrStreams > 16) {
+	if (m_uiNbrStreams > MAX_NBR_STREAMS) {
 		LOG_TEST_CASE("m_uiNbrStreams count > max number of streams");
-		m_uiNbrStreams = 16;
+		m_uiNbrStreams = MAX_NBR_STREAMS;
 	}
 
     for(UINT uiStream = 0; uiStream < m_uiNbrStreams; uiStream++) {
@@ -1015,7 +1015,7 @@ VOID XTL::EmuFlushIVB()
 
 void CxbxImpl_SetStreamSource(UINT StreamNumber, XTL::X_D3DVertexBuffer* pStreamData, UINT Stride)
 {
-	assert(StreamNumber < 16);
+	assert(StreamNumber < MAX_NBR_STREAMS);
 
 	g_SetStreamSources[StreamNumber].VertexBuffer = pStreamData;
 	g_SetStreamSources[StreamNumber].Stride = Stride;
