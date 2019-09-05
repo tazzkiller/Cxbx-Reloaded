@@ -1015,7 +1015,14 @@ VOID XTL::EmuFlushIVB()
 
 void CxbxImpl_SetStreamSource(UINT StreamNumber, XTL::X_D3DVertexBuffer* pStreamData, UINT Stride)
 {
-	assert(StreamNumber < MAX_NBR_STREAMS);
+	if (pStreamData != xbnullptr && Stride == 0) {
+		LOG_TEST_CASE("CxbxImpl_SetStreamSource : Stream assigned, and stride set to 0 (might be okay)");
+	}
+
+	if (StreamNumber >= MAX_NBR_STREAMS) {
+		LOG_TEST_CASE("CxbxImpl_SetStreamSource : StreamNumber >= 16");
+		return; // Avoid bounds overflow
+	}
 
 	g_SetStreamSources[StreamNumber].VertexBuffer = pStreamData;
 	g_SetStreamSources[StreamNumber].Stride = Stride;

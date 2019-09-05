@@ -6991,10 +6991,6 @@ VOID WINAPI XTL::EMUPATCH(D3DDevice_SetStreamSource)
 		LOG_FUNC_ARG(Stride)
 		LOG_FUNC_END;
 
-	if(pStreamData != xbnullptr && Stride == 0){
-		LOG_TEST_CASE("Stream stride set to 0");
-	}
-
 	CxbxImpl_SetStreamSource(StreamNumber, pStreamData, Stride);
 
 	// Forward to Xbox implementation
